@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 视图侧动画绑定组件（《动画模块专项设计》§4/§7 直 Clip 形态的视图入口）：**可动画视图的唯一挂件**，

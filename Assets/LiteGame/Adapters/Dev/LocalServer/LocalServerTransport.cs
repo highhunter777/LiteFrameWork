@@ -8,7 +8,8 @@ using LiteNet.Transport;
 using LiteSim;
 using RoomServer.Application;
 using RoomServer.Runtime;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 // 开发面剥离：与 DevHUD/DevStartupConfig 同款三宏 #if（release Player 中本件整体不编译；
 // asmdef 层不设约束）。

@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 特效资源加载口（可注入）。装配点绑定 <c>AssetService.LoadAssetAsync&lt;GameObject&gt;</c>。

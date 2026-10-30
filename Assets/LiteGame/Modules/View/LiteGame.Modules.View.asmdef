@@ -1,6 +1,6 @@
 {
     "name": "LiteGame.Modules.View",
-    "rootNamespace": "LiteView",
+    "rootNamespace": "LiteGame.View",
     "references": [
         "LiteGame.Core",
         "LiteFramework.Runtime",

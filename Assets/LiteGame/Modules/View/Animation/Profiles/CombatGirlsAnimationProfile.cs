@@ -1,4 +1,4 @@
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// CombatGirls 角色族的动画装配常量（内容路径与模型族标识）。

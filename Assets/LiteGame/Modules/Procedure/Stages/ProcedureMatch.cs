@@ -26,7 +26,7 @@ namespace LiteGame
         /// <summary>本地测试模式的占位端点（进程内 LocalServerTransport 不建 Socket；GM 本地联测页复用端口常量）。</summary>
         public const string TestHost = "127.0.0.1";
         public const int TestPort = 17777;
-        /// <summary>本地测试模式房间号（进程内 Room-Test；全房免死规则见 <see cref="LiteBattle.ILocalTestHooks"/>）。</summary>
+        /// <summary>本地测试模式房间号（进程内 Room-Test；全房免死规则见 <see cref="LiteGame.ILocalTestHooks"/>）。</summary>
         public const string TestRoomId = "Room-Test";
 
         /// <summary>JoinAck 等待预算（毫秒）——超时进 Error（确定失败态，不静默重试）。</summary>

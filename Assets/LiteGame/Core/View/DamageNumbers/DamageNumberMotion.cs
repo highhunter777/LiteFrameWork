@@ -1,6 +1,6 @@
 using System;
 
-namespace LiteView.DamageNumbers
+namespace LiteGame.View.DamageNumbers
 {
     /// <summary>
     /// 伤害数字轨道数学（纯函数、零引擎——《命中反馈与伤害数字专项设计》§4.2）：每渲染帧由驱动喂入

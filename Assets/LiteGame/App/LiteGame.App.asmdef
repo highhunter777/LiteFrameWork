@@ -8,7 +8,7 @@
         "LiteGame.Modules.Battle",
         "LiteGame.Modules.View",
         "LiteFramework.Runtime",
-        "LiteGame.LuaBridge",
+        "LiteGame.Adapters.LuaBridge",
         "LiteGame.Presentation",
         "LiteNet",
         "LiteSim",

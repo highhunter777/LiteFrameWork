@@ -1,7 +1,7 @@
 using LiteSim;
 using UnityEngine;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 命中反馈上下文（分发器在静默门之后解析交付——消费者不自行解事件、不重复解析槽位）。

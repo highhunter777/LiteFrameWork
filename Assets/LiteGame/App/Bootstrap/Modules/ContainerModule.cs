@@ -4,10 +4,11 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
-using LiteView;
+using LiteGame.View;
 using LiteFramework;
 using LiteNet.Transport;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

@@ -1,12 +1,12 @@
 using System;
 using LiteFramework;
-using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
-using LiteView;
-using LiteView.Animation;
+using LiteGame.View;
+using LiteGame.View.Animation;
 using UnityEngine;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {
@@ -45,12 +45,12 @@ namespace LiteGame
                 manifest: manifest,                               // 清单在 = 去 AC 主路径供片；缺清单回退控制器便利源
                 cameraPitchOf: camera != null ? (Func<float>)(() => camera.LookPitch) : null,   // TPS 俯仰姿态源
                 aimPointOf: aimPointOf,                           // ADS/腰射枪口对齐源（准心世界点）
-                backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());   // 引擎后端由适配层提供
+                backendFactory: new LiteGame.View.Animation.AnimatorAnimationBackendFactory());   // 引擎后端由适配层提供
         }
 
         /// <summary>挂瞄准激光（端点判定与显隐归驱动；本方法只装配）。</summary>
         public void AttachLaser(BattleContext context, IInputService input, GameObject laserBeam,
-            LiteBattle.IDevSession dev = null)
+            LiteGame.IDevSession dev = null)
         {
             if (laserBeam == null) return;                        // 资产缺失已在取件处降级（警告过）
             if (context.Sim == null)

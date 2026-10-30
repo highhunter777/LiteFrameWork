@@ -1,5 +1,5 @@
 using System;
-using LiteView.DamageNumbers;
+using LiteGame.View.DamageNumbers;
 using UnityEngine;
 
 namespace LiteGame

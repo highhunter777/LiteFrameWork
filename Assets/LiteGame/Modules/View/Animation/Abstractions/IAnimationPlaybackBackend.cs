@@ -1,6 +1,6 @@
 using LiteFramework.Animation;
 
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 视图侧播放后端扩展口：在框架通用播放契约上补"片段清单登记"（清单是 Unity 资源载体，

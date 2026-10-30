@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 叠加层 LayerMask 的构造工厂（《动画模块专项设计》§6"通道之间的 Mask、覆盖和混合关系由 Profile 固定"）。

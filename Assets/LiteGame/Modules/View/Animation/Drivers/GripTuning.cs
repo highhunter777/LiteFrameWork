@@ -1,4 +1,4 @@
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 换弹持枪幅度的**实时调参面**：烘焙值在 <see cref="GripBake.TorsoWeight"/>（0 = 不约束、

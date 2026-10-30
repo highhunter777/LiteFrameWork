@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 瞄准枪口对齐（TPS **ADS / 腰射**的上半身姿态修正）：把枪口前向指向准心世界点，

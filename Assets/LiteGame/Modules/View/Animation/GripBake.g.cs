@@ -4,7 +4,7 @@
 //       跟随右手而非躯干：add_weapon_r 与右手世界位全同（差 0.6mm）、右手是枪挂点父级——跟躯干会在拉栓（右手位移 21cm）时脱节。
 // 落点：LiteView（纯表现参数，刻意不进 LiteSim/Core/Scripts 的 BuildHash 源集——表现值变化不踢两端握手）。
 // 幅度：TorsoWeight 烘焙值 1（0=不约束 1=完全跟随）；对局内实时调参走 GM 面板（GripTuning 覆写，不落盘）。
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>持枪偏移常量（烘焙值；换弹期武器骨跟随持枪手——消费见 WeaponGripConstraint/GripTuning）。</summary>
     public static class GripBake

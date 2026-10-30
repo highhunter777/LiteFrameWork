@@ -5,7 +5,7 @@
         "LiteFramework.Runtime",
         "LiteFramework.Editor",
         "LiteCodeGen.Runtime",
-        "LiteGame.Dev",
+        "LiteGame.Adapters.Dev",
         "LiteGame.Editor.Core",
         "Luban.Runtime",
         "Luban.Tables",

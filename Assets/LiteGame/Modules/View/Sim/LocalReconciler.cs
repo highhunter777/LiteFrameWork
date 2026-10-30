@@ -2,7 +2,7 @@ using LiteFramework;
 using LiteSim;
 using UnityEngine;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 本地玩家表现态：跟预测态 0 延迟，和解后指数衰减；复活/传送/异常单帧跳变语义硬切。

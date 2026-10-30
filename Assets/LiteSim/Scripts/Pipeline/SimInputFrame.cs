@@ -3,7 +3,7 @@ namespace LiteSim
     /// <summary>
     /// 单玩家一帧的输入面（瞄准存**目标点**不存方向——AimPoint 单口径，《固定斜视角射击方案专项设计》§3；
     /// **P0 动作意图扩展**：《游戏业务系统总设计》§3.2 输入位和边沿）。
-    /// 采集侧（沙盒直接喂 / 输入服务 `LiteBattle.IInputService`）组装；Sim 侧只消费。
+    /// 采集侧（沙盒直接喂 / 输入服务 `LiteFramework.IInputService`）组装；Sim 侧只消费。
     /// **瞄准存目标点不存方向**：朝向与弹道方向两端同源自 AimPoint 派生（InputSystem 的
     /// `Yaw = Atan2(P − 本体XZ)`、ShootingSystem 的 `normalize(P − 逻辑枪口)`）——单向无环
     /// （P 不读 Yaw，历史"枪口→方向→Yaw"闭环自激结构性消亡）；原瞄准方向三分量字段已退役。

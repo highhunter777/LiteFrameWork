@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
 using UnityEngine;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

@@ -4,7 +4,7 @@ using LiteFramework.Animation;
 using LiteSim;
 using UnityEngine;
 
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 角色动画层次机的阶段 id（**TId 枚举一统**：

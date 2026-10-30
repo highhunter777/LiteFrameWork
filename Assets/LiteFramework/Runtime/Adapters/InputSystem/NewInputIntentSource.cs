@@ -3,7 +3,7 @@ using LiteFramework;
 using LiteSim;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using LiteBattle;
+using LiteFramework;
 
 namespace LiteFramework
 {

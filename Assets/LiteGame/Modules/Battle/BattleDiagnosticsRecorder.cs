@@ -3,7 +3,7 @@ using System.IO;
 using LiteFramework;
 using LiteFramework.Diagnostics;
 
-namespace LiteFramework
+namespace LiteGame
 {
     /// <summary>
     /// 对局诊断现场包记录器：mismatch/配置身份不符/托管异常时落本地，正常路径不产生 IO。

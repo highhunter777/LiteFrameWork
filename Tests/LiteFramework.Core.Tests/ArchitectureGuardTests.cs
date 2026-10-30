@@ -18,11 +18,11 @@ namespace LiteFramework.Core.Tests
             string root = RepoRoot();
 
             // 《路线图》§4.2：LiteFramework.Runtime 不引用 LiteView（表现经 IBattleView 端口进入）
-            AssertNoReference(root, "Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef", "LiteView");
+            AssertNoReference(root, "Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef", "LiteGame.Modules.View");
 
             // §4.2/§3.6：LiteGame.App 的 release 依赖图不含开发装配层 / RoomServer.*
             // （本地传输经 ILocalTransportFactory，由 LiteGame.Dev 装配）
-            AssertNoReference(root, "Assets/LiteGame/App/LiteGame.App.asmdef", "LiteGame.Dev");
+            AssertNoReference(root, "Assets/LiteGame/App/LiteGame.App.asmdef", "LiteGame.Adapters.Dev");
             AssertNoReferencePrefix(root, "Assets/LiteGame/App/LiteGame.App.asmdef", "RoomServer.");
         }
 
@@ -32,11 +32,11 @@ namespace LiteFramework.Core.Tests
             // 路线图 §4.8/§4.11 7：DEVELOPMENT_BUILD / LITEFRAMEWORK_DEBUG 只允许出现在 LiteGame.Dev*；
             // release 依赖图不得含 Dev / RoomServer.*——asmdef 引用是程序集级的，#if 挡不住。
             string root = RepoRoot();
-            string devAsmdef = Path.Combine(root, "Assets", "LiteGame", "Adapters", "Dev", "LiteGame.Dev.asmdef");
-            Assert.True(File.Exists(devAsmdef), "LiteGame.Dev.asmdef 缺失（开发装配层是 M1 的单一开发边界）");
+            string devAsmdef = Path.Combine(root, "Assets", "LiteGame", "Adapters", "Dev", "LiteGame.Adapters.Dev.asmdef");
+            Assert.True(File.Exists(devAsmdef), "LiteGame.Adapters.Dev.asmdef 缺失（开发装配层是 M1 的单一开发边界）");
 
             string devText = File.ReadAllText(devAsmdef);
-            Assert.False(string.IsNullOrWhiteSpace(devText), "LiteGame.Dev.asmdef 为空");
+            Assert.False(string.IsNullOrWhiteSpace(devText), "LiteGame.Adapters.Dev.asmdef 为空");
             Assert.Contains("UNITY_EDITOR", devText);
             Assert.Contains("DEVELOPMENT_BUILD", devText);
             Assert.Contains("LITEFRAMEWORK_DEBUG", devText);

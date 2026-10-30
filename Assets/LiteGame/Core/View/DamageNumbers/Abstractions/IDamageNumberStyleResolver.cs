@@ -1,6 +1,6 @@
-using LiteView.DamageNumbers;
+using LiteGame.View.DamageNumbers;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 样式解析单源接口（《命中反馈与伤害数字专项设计》§4.2）：**初版常量表实现**，样式编辑器批

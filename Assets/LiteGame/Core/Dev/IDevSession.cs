@@ -1,6 +1,6 @@
 using LiteSim;
 
-namespace LiteBattle
+namespace LiteGame
 {
     /// <summary>
     /// 开发会话端口（路线图 M0 接缝 6）：产品代码只经本端口读开发/测试面开关与请求，

@@ -1,7 +1,8 @@
 using LiteFramework;
 using LiteSim;
 using RoomServer.Runtime;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

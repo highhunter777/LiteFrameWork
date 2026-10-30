@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using LiteFramework;
-using LiteFramework;
 using LiteSim;
-using LiteView;
-using LiteView.DamageNumbers;
+using LiteGame.View;
+using LiteGame.View.DamageNumbers;
 using TMPro;
 using UnityEngine;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

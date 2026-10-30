@@ -9,7 +9,7 @@
 
 UI 不是"一个 UIManager"，而是**运行时 + 绑定生成 + 工具链 + Lua 注册表**四段流水线。四段共同服务的约束（违反由扫描器、校验规则或运行时抛错兜住）：
 
-1. **视觉单一来源**：可见结构只能来自 `Assets/ShareResource/UI/{Screens,Widgets,Hud}` 的 prefab，运行时不得 `new GameObject`/`AddComponent` 拼界面。`RuntimeVisualRule` 扫 `UiValidator.SourceScanDirs`（`Assets/LiteFramework/Runtime`、`Assets/LiteGame/App`、`Assets/LiteView` 等）。
+1. **视觉单一来源**：可见结构只能来自 `Assets/ShareResource/UI/{Screens,Widgets,Hud}` 的 prefab，运行时不得 `new GameObject`/`AddComponent` 拼界面。`RuntimeVisualRule` 扫 `UiValidator.SourceScanDirs`（`Assets/LiteFramework/Runtime`、`Assets/LiteGame/App`、`Assets/LiteGame.View` 等）。
 2. **单写者**：产品页面开关只经 `UINavigationController`；`UIService.ShowAsync` 只留给工具/测试。
 3. **逻辑可热更**：页面逻辑在 Lua，C# 只提供受控 API 面（`self.ui`）与生命周期桥，换表不重建 `LuaEnv`。
 4. **制作可分工**：美术管 prefab/命名/暴露，工程管表行/绑定/接线，以**页面契约**交接。

@@ -2,7 +2,7 @@ using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
 
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 死亡叶：死亡期间保持 Death 末帧；复活由根的存活事实裁决退出。

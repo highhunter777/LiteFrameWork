@@ -1,6 +1,6 @@
 using LiteFramework;
 
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 开火·静止（"窗内保持 clip"）：进态即持 AimIdle 循环——**开火不播专用射击片段**

@@ -1,8 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteFramework;
-using LiteBattle;
+using LiteGame;
 
 namespace LiteGame
 {
@@ -32,7 +31,7 @@ namespace LiteGame
             // 不必依赖 ShutdownAsync（失败模块不会被调用关闭）。
             context.Scope.Register(new DelegatedDisposable(DisposeModuleResources));
             _service = new InputService();
-            LiteBattle.IDevSession dev = context.Require<LiteBattle.IDevSession>();
+            LiteGame.IDevSession dev = context.Require<LiteGame.IDevSession>();
             _source = new NewInputIntentSource(matchRules: () => dev.MatchRules);   // Action 资产在本类内建；本局规则经读口注入
             _source.SetAimCamera(context.Get<UnityEngine.Camera>());   // ⑩ 表现域建的主相机（注册序保证已就绪；null = 不做换算）
             _service.SetSource(_source);

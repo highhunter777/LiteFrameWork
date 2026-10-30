@@ -1,7 +1,7 @@
 using System;
 using LiteSim;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 表现变换数学（《联机战斗演示专项设计》§2.4 C3：插值/衰减抽成纯函数

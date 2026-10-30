@@ -1,6 +1,7 @@
 using LiteFramework;
 using LiteSim;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

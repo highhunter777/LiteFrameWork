@@ -1,8 +1,8 @@
 using System;
 using LiteFramework;
-using LiteFramework;
 using LiteFramework.Diagnostics;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

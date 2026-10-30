@@ -4,7 +4,7 @@ using LiteFramework;
 using LiteSim;
 using UnityEngine;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 槽位 → 视图对象的映射与池。

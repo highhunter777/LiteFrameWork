@@ -94,12 +94,12 @@ namespace LiteGame.Tests.EditMode
         public void 真实代码_运行时无未登记的视觉构建()
         {
             string root = ProjectRoot();
-            // 覆盖全部含视觉构建的目录。流程（唯一例外 ProcedureError 的所在地）在 `App/Procedure`，
+            // 覆盖全部含视觉构建的目录。流程（唯一例外 ProcedureError 的所在地）在 `Modules/Procedure`，
             // 此处**必须同步**——例外只对"被扫到的文件"生效，漏扫该目录等于让唯一例外与整个目录一起失去把守。
             List<VisualConstructionScanner.Violation> found =
                 VisualConstructionScanner.ScanDirectory(root,
                     "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame/App",
-                    "Assets/LiteFramework/Runtime", "Assets/LiteView");
+                    "Assets/LiteFramework/Runtime", "Assets/LiteGame/Modules", "Assets/LiteGame/Adapters");
 
             if (found.Count > 0)
                 Assert.Fail("运行时视觉构建违规（§7 视觉单一来源）:\n" +

@@ -1,4 +1,4 @@
-using LiteView.Animation;
+using LiteGame.View.Animation;
 using NUnit.Framework;
 
 namespace LiteGame.Tests.EditMode

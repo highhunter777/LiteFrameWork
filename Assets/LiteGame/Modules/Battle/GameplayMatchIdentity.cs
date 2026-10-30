@@ -1,7 +1,7 @@
 using LiteFramework;
 using LiteSim;
 
-namespace LiteFramework
+namespace LiteGame
 {
     /// <summary>
     /// 本局玩法数据身份实现：基摘要来自本地装载产物，规则位按本局实例计算。

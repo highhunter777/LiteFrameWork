@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using LiteSim;
 using UnityEngine;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 远端快照 jitter buffer 与渲染帧推进（《状态同步专项设计》§6.2）：

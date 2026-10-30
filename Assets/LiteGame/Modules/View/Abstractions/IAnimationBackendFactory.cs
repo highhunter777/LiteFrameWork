@@ -1,8 +1,8 @@
 using LiteFramework.Animation;
-using LiteView.Animation;
+using LiteGame.View.Animation;
 using UnityEngine;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 动画播放后端的构造口：视图模块只认契约，具体引擎后端由适配层提供并在装配根注入。

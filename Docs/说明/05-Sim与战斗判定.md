@@ -203,7 +203,7 @@ SimStep.Step(..., advanceMatch: false)
 
 ## 9. 表现侧：插值、衰减、静默门
 
-`Assets/LiteView/Modules/SimView.cs` 只读 Sim、只写视图：
+`Assets/LiteGame.View/Modules/SimView.cs` 只读 Sim、只写视图：
 
 - **`SnapshotInterpolationBuffer`**（远端 jitter buffer）：容量 8，按快照帧号有序；渲染帧 = `最新快照帧 − RenderDelayFrames(4)`，按 `60 × dt` 匀速推进并封顶；前后快照间按真实帧差插值（丢包时铺满而非冻结），快照停摆不外推。
 - **硬切条件**：远端 `LifeStartFrame` 变化（复活）或位移 > `SnapDistance(3m)`；本地复活无条件硬切（直写 `CharacterController`，不走带扫掠的 `Move`），异常单帧跳变兜底 2m（平方阈值 4）。

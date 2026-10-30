@@ -2,7 +2,7 @@ using System;
 using LiteSim;
 using Xunit;
 using LiteFramework;
-using LiteBattle;
+using LiteGame;
 
 namespace LiteSim.Tests
 {

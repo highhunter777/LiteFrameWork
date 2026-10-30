@@ -1,4 +1,4 @@
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 命中反馈消费者（分发器注册面）：伤害数字为首个消费者；命中特效/音效/受击死亡动画随各自批注册。

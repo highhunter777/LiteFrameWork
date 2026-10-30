@@ -90,7 +90,7 @@ namespace LiteGame.EditorTools
         {
             EditorGUILayout.HelpBox(
                 "持枪偏移：参考持枪姿态（AimIdle t=0）下采样「武器骨 add_weapon_r 相对持枪手（RightHand）」的局部变换，"
-                + "烘成 GripBake.g.cs 常量（落 LiteView——纯表现参数，刻意不进 BuildHash 源集）——换弹期枪位姿态覆写（WeaponGripConstraint）的唯一来源。\n"
+                + "烘成 GripBake.g.cs 常量（落 LiteGame.Modules.View——纯表现参数，刻意不进 BuildHash 源集）——换弹期枪位姿态覆写（WeaponGripConstraint）的唯一来源。\n"
                 + "重跑时机：换绑定骨/换枪后；对局内观感幅度走 GM 面板「持枪幅度」滑杆（GripTuning 覆写，不落盘）。", MessageType.Info);
             if (GUILayout.Button("烘焙 GripBake.g.cs")) Run(WeaponGripBaker.All);
             DrawReport();

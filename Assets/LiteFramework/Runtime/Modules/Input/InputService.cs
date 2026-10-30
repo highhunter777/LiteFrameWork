@@ -1,6 +1,6 @@
 using System;
 using LiteSim;
-using LiteBattle;
+using LiteFramework;
 
 namespace LiteFramework
 {

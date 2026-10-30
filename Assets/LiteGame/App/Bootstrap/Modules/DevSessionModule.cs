@@ -1,8 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteFramework;
-using LiteBattle;
+using LiteGame;
 
 namespace LiteGame
 {

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
-using LiteView;
+using LiteGame.View;
 using UnityEngine;
 
 namespace LiteGame

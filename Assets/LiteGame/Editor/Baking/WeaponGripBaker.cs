@@ -86,7 +86,7 @@ namespace LiteGame.EditorTools
         {
             var inv = CultureInfo.InvariantCulture;
             var sb = new StringBuilder();
-            sb.AppendLine("namespace LiteView.Animation");
+            sb.AppendLine("namespace LiteGame.View.Animation");
             sb.AppendLine("{");
             sb.AppendLine("    /// <summary>持枪偏移常量（烘焙值；换弹期武器骨跟随持枪手——消费见 WeaponGripConstraint/GripTuning）。</summary>");
             sb.AppendLine("    public static class GripBake");

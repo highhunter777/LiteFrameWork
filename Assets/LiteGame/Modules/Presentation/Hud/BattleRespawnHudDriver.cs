@@ -1,10 +1,11 @@
 using System;
 using LiteFramework;
 using LiteSim;
-using LiteView;
+using LiteGame.View;
 using TMPro;
 using UnityEngine;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

@@ -1,8 +1,9 @@
 using LiteFramework;
 using LiteSim;
-using LiteView;
+using LiteGame.View;
 using UnityEngine;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

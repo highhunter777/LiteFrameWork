@@ -1,5 +1,5 @@
 {
-    "name": "LiteGame.LuaBridge",
+    "name": "LiteGame.Adapters.LuaBridge",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteFramework.Runtime",

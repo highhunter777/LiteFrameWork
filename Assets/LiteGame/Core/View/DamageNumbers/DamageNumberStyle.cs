@@ -1,4 +1,4 @@
-namespace LiteView.DamageNumbers
+namespace LiteGame.View.DamageNumbers
 {
     /// <summary>
     /// 伤害数字材质档（(本地角色, 爆头档) 四档——逐档材质调色板查表键；零引擎）。

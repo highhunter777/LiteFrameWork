@@ -5,9 +5,10 @@ using LiteFramework.Diagnostics;
 using LiteNet;
 using LiteNet.Protocol;
 using LiteSim;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
-namespace LiteFramework
+namespace LiteGame
 {
     /// <summary>
     /// 对局上下文：一局对局的**运行态编排**——网络事件 → 持久镜像重建（协议单源 SnapshotReassembler）→

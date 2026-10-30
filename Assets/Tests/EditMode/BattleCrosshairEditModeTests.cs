@@ -2,13 +2,13 @@ using System.Collections.Generic;
 using System.IO;
 using Luban;
 using LiteSim;
-using LiteView;
+using LiteGame.View;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
 using LiteFramework;
-using LiteBattle;
+using LiteGame;
 
 namespace LiteGame.Tests.EditMode
 {

@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using LiteFramework;
-using LiteFramework;
 using LiteFramework.Diagnostics;
 using LiteNet.Diagnostics;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {
@@ -30,14 +30,14 @@ namespace LiteGame
         private readonly DebugPerfSampler _perf = new DebugPerfSampler();
         private readonly WeakNetRuntime _weakNet;
         private readonly NetworkDebug _network;
-        private readonly LiteBattle.IDevSession _devSession;
+        private readonly LiteGame.IDevSession _devSession;
         private readonly Dictionary<Type, MethodInfo> _sendMethods = new Dictionary<Type, MethodInfo>(16);
         private bool _statsInitialized;
         private bool _tunablesInitialized;
 
         public DebugKernel(CommandCenter commands, IInputService input,
             IEnumerable<IDebugTunableProvider> tunableProviders = null, WeakNetRuntime weakNet = null,
-            NetworkDebug network = null, LiteBattle.IDevSession devSession = null)
+            NetworkDebug network = null, LiteGame.IDevSession devSession = null)
         {
             _commands = commands ?? throw new ArgumentNullException(nameof(commands));
             _input = input;

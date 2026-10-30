@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using LiteSim;
-using LiteView;
+using LiteGame.View;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;

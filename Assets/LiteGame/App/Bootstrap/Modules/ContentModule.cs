@@ -91,7 +91,7 @@ namespace LiteGame
             context.Put(coordinator);
 
             // 入口资产探针（初始化后执行；时序说明见上）——真实实体入口，走与运行时同一条租约通道。
-            context.Put(new AssetsHealthProbe(_content, new[] { LiteView.SimView.DefaultEntityPrefab }));
+            context.Put(new AssetsHealthProbe(_content, new[] { LiteGame.View.SimView.DefaultEntityPrefab }));
             return UniTask.CompletedTask;
         }
 

@@ -1,7 +1,7 @@
 using System;
 using LiteSim;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 表现层事实读口：本地取预测态、远端取渲染帧快照；槽位越界/首快照未到/槽位不在场一律 false。

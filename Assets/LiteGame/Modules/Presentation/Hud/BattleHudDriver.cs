@@ -4,7 +4,8 @@ using LiteSim;
 using LiteFramework.UI;
 using TMPro;
 using UnityEngine;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

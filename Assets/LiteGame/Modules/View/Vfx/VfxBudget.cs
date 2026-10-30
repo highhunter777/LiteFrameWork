@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>超预算策略（《VFX服务实施指导》§1 决策 7）。</summary>
     public enum VfxOverflowPolicy

@@ -5,7 +5,7 @@ using LiteNet.Transport;
 using LiteSim;
 using UnityEngine;
 
-namespace LiteGame.Dev
+namespace LiteGame.Adapters.Dev
 {
     /// <summary>
     /// 本地服传输工厂（开发装配）：把"进程内本地服"从 <see cref="ProcedureMatch"/> 里搬出来——

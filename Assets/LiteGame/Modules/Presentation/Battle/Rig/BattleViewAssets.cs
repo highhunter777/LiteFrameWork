@@ -5,8 +5,8 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework;
 using LiteFramework.Animation;
-using LiteView;
-using LiteView.Animation;
+using LiteGame.View;
+using LiteGame.View.Animation;
 using UnityEngine;
 using LiteFramework.UI;
 

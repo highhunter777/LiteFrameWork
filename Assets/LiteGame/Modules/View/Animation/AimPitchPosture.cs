@@ -1,4 +1,4 @@
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 俯仰瞄准姿态映射（第三人称自由视角）：相机 pitch（弧度）→ 上半身姿态俯仰角（弧度）。

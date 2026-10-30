@@ -25,19 +25,19 @@
 
 | 类别 | 信任边界 | 所有者/落点 | 发布面 | 鉴权/审计 | 失败语义 |
 |---|---|---|---|---|---|
-| **DevCheat**（开发作弊） | 本机开发/编辑器 | `LiteGame.Dev`：`TestModeRuntime`、`DebugKernel`、`DevHUD`、`DebugConsole`、`DebugPanel`；编辑器 GM 页只做投影 | `defineConstraints` 三宏，release 不编译 | 无（本机）；产品只经 `IDevSession` 读 | 端口缺失 = 发布形态空实现；不静默造开发副作用 |
-| **MatchSandbox**（测试沙盒） | 本地测试房/单局 | `MatchTestRules`（LiteSim，每局实例）、`ILocalTestHooks`（LiteGame.Core，开发端口）、`LocalServerTransport`（LiteGame.Dev） | 只在本地测试房生效；不进正式匹配 | 测试房由入口/GM 显式创建；钩子只由本地服消费 | 规则缺失 = 本地服构造失败；发布端口恒空 |
+| **DevCheat**（开发作弊） | 本机开发/编辑器 | `LiteGame.Adapters.Dev`：`TestModeRuntime`、`DebugKernel`、`DevHUD`、`DebugConsole`、`DebugPanel`；编辑器 GM 页只做投影 | `defineConstraints` 三宏，release 不编译 | 无（本机）；产品只经 `IDevSession` 读 | 端口缺失 = 发布形态空实现；不静默造开发副作用 |
+| **MatchSandbox**（测试沙盒） | 本地测试房/单局 | `MatchTestRules`（LiteSim，每局实例）、`ILocalTestHooks`（LiteGame.Core，开发端口）、`LocalServerTransport`（LiteGame.Adapters.Dev） | 只在本地测试房生效；不进正式匹配 | 测试房由入口/GM 显式创建；钩子只由本地服消费 | 规则缺失 = 本地服构造失败；发布端口恒空 |
 | **OpsGm**（运维 GM） | 云端运维面 | `Server/RoomServer` 的 `/gm/*`（`start`/`abort`/`kick`/`settle-flush`/`rules`/`diag-*`）；`CommandCenter` GM 命令；编辑器 `Gm*Page` 只是投影 | 服务端常驻；客户端 GM 页仅 Editor | `X-GM-Key` + 隧道绑定；命令进审计环 | 缺密钥/隧道 = 拒绝；不降级为开发作弊 |
 | **AntiCheat**（反作弊） | 服务端判定/校验面 | `RoomServer.Runtime` 的 `InputGate`/`LagCompensator`/快照 checksum；`LiteNet` 协议校验；BuildHash/ConfigHash/CombatConfigDigest 身份 | 服务端与客户端校验链；不是可开关模块 | 服务器权威；客户端只报事实/被拒 | 超界即夹取/拒绝；不得由客户端自证 |
 
 **四条硬规则**：
 
-1. **DevCheat 与 MatchSandbox 只能住开发面**：产品程序集（`LiteFramework.Runtime`、`LiteGame.App`、`LiteGame.Presentation`、`LiteGame.LuaBridge`）不得直读 `TestModeRuntime`/`DebugKernel`/`TestModeOptions` 等实现；只能经 `IDevSession`/`ILocalTestHooks` 端口。
+1. **DevCheat 与 MatchSandbox 只能住开发面**：产品程序集（`LiteFramework.Runtime`、`LiteGame.App`、`LiteGame.Presentation`、`LiteGame.Adapters.LuaBridge`）不得直读 `TestModeRuntime`/`DebugKernel`/`TestModeOptions` 等实现；只能经 `IDevSession`/`ILocalTestHooks` 端口。
 2. **OpsGm 不得下放到客户端**：GM 动作只在服务端端点或编辑器页出现；客户端运行时不得编译 GM 端点/密钥。
 3. **AntiCheat 不是模块**：不新建“反作弊服务”或客户端反作弊组件；判定/夹取/校验分别归 `InputGate`、`LagCompensator`、checksum/identity 链。
 4. **新增“作弊类”能力先选类别**：跨类别复用（如把 DevCheat 开关接进正式匹配、把 OpsGm 动作暴露给玩家）一律拒绝；选不出类别则不实现。
 
-> 守卫：`CheatBoundaryGuardTests`（L1）扫描产品程序集禁止直读开发作弊源；`ArchitectureGuardTests` 守住 `LiteGame.App` 不引 `LiteGame.Dev`/`RoomServer.*`；服务端方向由 `D1` 守卫。
+> 守卫：`CheatBoundaryGuardTests`（L1）扫描产品程序集禁止直读开发作弊源；`ArchitectureGuardTests` 守住 `LiteGame.App` 不引 `LiteGame.Adapters.Dev`/`RoomServer.*`；服务端方向由 `D1` 守卫。
 
 ## 2. 动作三分口径（命令化边界）
 
@@ -64,9 +64,9 @@
 
 ## 5. 运行时投影：DevHUD、开发控制台与常用面板
 
-只读统计 HUD（自创建、F1 总开关、0.25s 节流、经 `DevRuntime.Kernel`（开发装配装饰期登记）读内核读模型）——**保持只读**。将来真机/开发包若需 GM 动作，加命令通道（§2.2 形态复用），不给 HUD 加直写口。目录 `Assets/LiteGame/Adapters/Dev/Projection/`、程序集 `LiteGame.Dev`（开发装配层）+ 三宏约束；**禁移入 `Editor/` 特殊目录**（代码自创建形态，`MonoBehaviour` 须可 AddComponent——详见其类注释）。
+只读统计 HUD（自创建、F1 总开关、0.25s 节流、经 `DevRuntime.Kernel`（开发装配装饰期登记）读内核读模型）——**保持只读**。将来真机/开发包若需 GM 动作，加命令通道（§2.2 形态复用），不给 HUD 加直写口。目录 `Assets/LiteGame/Adapters/Dev/Projection/`、程序集 `LiteGame.Adapters.Dev`（开发装配层）+ 三宏约束；**禁移入 `Editor/` 特殊目录**（代码自创建形态，`MonoBehaviour` 须可 AddComponent——详见其类注释）。
 
-- **段构成**：模块 stats 段（容器注册件 + 场景组件型合并发现）＋联机诊断段（读口 `BattleDiagnostics`——对局上下文的 dev-only 单点登记，对局视图装配/拆视图两处接线；无对局整段不显示，不显示陈旧值）＋性能段（内核性能读模型：FPS/p50/p95/p99/最差帧/长帧 + GC/Draw/Batches recorder——投影只喂时钟差并读 `DebugKernel` 读口）＋日志尾巴/错误行。各段渲染开关 = DevHUD public 字段；**模块 stats 段按白名单显示**（`statToggles` 未登记默认隐藏，勾选态持久化 `LiteGame.DevHUD.statsOn`；GM 页勾选清单与 F3 `hud stats` 按需开关）。联机诊断段的「会话 + 弱网注入」文案单源＝`DebugKernel.Network.AppendLines`。**初始展开集**由 `DevStartupConfig.DevHudDefaultExpanded`（段掩码）提供，仅在本机无折叠记忆时套用；此后折叠态持久化优先。
+- **段构成**：模块 stats 段（容器注册件 + 场景组件型合并发现）＋联机诊断段（读口 `BattleDiagnostics`——对局上下文的 dev-only 单点登记，对局视图装配/拆视图两处接线；无对局整段不显示，不显示陈旧值）＋性能段（内核性能读模型：FPS/p50/p95/p99/最差帧/长帧 + GC/Draw/Batches recorder——投影只喂时钟差并读 `DebugKernel` 读口）＋日志尾巴/错误行。各段渲染开关 = DevHUD public 字段；**模块 stats 段按白名单显示**（`statToggles` 未登记默认隐藏，勾选态持久化 `LiteGame.Adapters.DevHUD.statsOn`；GM 页勾选清单与 F3 `hud stats` 按需开关）。联机诊断段的「会话 + 弱网注入」文案单源＝`DebugKernel.Network.AppendLines`。**初始展开集**由 `DevStartupConfig.DevHudDefaultExpanded`（段掩码）提供，仅在本机无折叠记忆时套用；此后折叠态持久化优先。
 - **对局诊断读口**（`Dev/Debug/Diagnostics/BattleDiagnostics`，开发装配层）：对局上下文是流程私有件——不进容器、非场景组件，HUD 与 GM 页经同一登记口读数（`Attach/Detach` + 快照/描述单源——两处消费不各拼一套文案）；RTT/丢包口径与 `BattleNetworkHudDriver` 同源（千分比 → 一位小数百分比）。
 - **编辑器投影**：`LiteGame/工具链` →「联机诊断」页＝DevHUD 开关投影（总开关/段开关，F1 等效）＋初始展开集重排（按 `DevStartupConfig.DevHudDefaultExpanded` 覆盖当前折叠记忆）＋读数投影（同一描述单源）。包形态无 Hub，HUD 由 F1 开。
 - **开发包启用**：出包脚本消费 BuildProfile `channel`——`development` 通道传 `BuildOptions.Development`（三宏的 `DEVELOPMENT_BUILD` 在包内成立，dev 面随包编译：DevHUD/DebugConsole/DebugPanel/DevStartupConfig/DebugRuntimeTuner/GM 命令层）；其余通道维持原样（缺省仅 DetailedBuildReport）。**分发边界**：development 通道产物＝开发侧测试客户端专用，**不进测试者分发包**——测试者出包走 release 通道档（`BuildProfiles/windows-x64-release.json`），各通道产物目录独立（`profile.output` 透传 build 命令），Dist 打包测试者包指向 `Builds/StandaloneWindows64-release`。开发控制台随 `DebugConsole` 自创建（`RuntimeInitializeOnLoadMethod`），不需要 dev 预制体；运行期开发入口不随包通道分叉。
@@ -81,7 +81,7 @@
 - 审计环不覆盖 pre-Play 请求桥与高频旋钮（§2 取舍，非遗漏）。
 - `MatchTestRules` 链路依赖"客户端预测与进程内服务器同进程同实例"——**本地测试模式/本地服形态专属**；真 KCP 的云端测试房只提供 `gm_flags`（免死/无限弹药）在线下发，爆头带/持枪幅度等覆写仍只在本地测试模式验（`ProcedureMatch` 入口口径）。
 - GM 面板对局中导出爆头区会触发 domain reload 中断对局（既有行为，页内 HelpBox 已提示）。
-- **投影直调禁令（R14）**：两个投影根（`LiteGame.Dev/Projection` + `Editor/Gm`）的调试读数/动作/发现面一律经内核；直调底层调试源由纪律扫描把守。唯一 lint-allow 判例＝场景页（带参命令专面板——`CommandCenter.SendAsync` 直用，全量审计）；编辑器页在非 Play（内核未装配）时相关节空态提示。
+- **投影直调禁令（R14）**：两个投影根（`LiteGame.Adapters.Dev/Projection` + `Editor/Gm`）的调试读数/动作/发现面一律经内核；直调底层调试源由纪律扫描把守。唯一 lint-allow 判例＝场景页（带参命令专面板——`CommandCenter.SendAsync` 直用，全量审计）；编辑器页在非 Play（内核未装配）时相关节空态提示。
 
 ## 7. 统一内核与三投影
 

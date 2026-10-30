@@ -5,7 +5,8 @@ using LiteSim;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

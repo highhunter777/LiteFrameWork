@@ -1,7 +1,7 @@
 # DevHUD 演进路线图
 
 > **版本**：0.1
-> **定位**：裁决 DevHUD（`LiteGame.Dev` 开发装配层，`Dev/Projection` 目录，F1 Overlay）的目标形态、分批与退出条件——回答“后续做什么、做到什么算完成、什么不做”。只读仪表盘定位不变。
+> **定位**：裁决 DevHUD（`LiteGame.Adapters.Dev` 开发装配层，`Dev/Projection` 目录，F1 Overlay）的目标形态、分批与退出条件——回答“后续做什么、做到什么算完成、什么不做”。只读仪表盘定位不变。
 > **不做的事**：不重复 GM/调试分层（归[《GM 与调试工具分层专项设计》](../架构/GM与调试工具分层专项设计.md) §5）与平台形态契约（归[《开发工具链平台专项设计》](../架构/开发工具链平台专项设计.md) §1.1）；不登记批次完成状态（归 `Docs/施工进度/`）；不裁控制台/弱网/世界查看器（各为独立件，HUD 只接状态段）。
 > **冲突裁决**：形态与写口纪律以 GM 分层为准；能力优先级以[《调试与开发工具链演进路线图》](调试与开发工具链演进路线图.md) T1～T3 为准；操作面以[13-调试手册](../../说明/13-调试面与排障.md) §2 为准。
 > **关联**：[13-调试手册](../../说明/13-调试面与排障.md)、[14-客户端开发能力地图](../../说明/13-调试面与排障.md)、[施工进度/GM与调试线](../../施工进度/GM与调试线.md)、[修改指南](../../规范/02-代码与修改规范.md)。
@@ -11,7 +11,7 @@
 - 宿主 `DevHUD`（约 455 行）只持生命周期/输入/持久化/编排；七段由 `DevHudSectionSet` 构建（错误 / 联机诊断 / 性能 / 模块 Stats / Log Recent / DiagTrace / 日志 sink），Stats 发现/过滤/性能采样/网络历史/JSON 导出各自独立件。0.25s 节流、F1 总开关、F4 复制、F5 级别、F6 本局、F7 现场包、F8 JSON、F9 过滤。
 - 性能段：240 帧环 → `FPS / p50 / p95 / p99 / 最差 / 长帧`；`ProfilerRecorder` 读 `GC Allocated In Frame`、`Draw Calls Count`、`Batches Count`（marker 缺失显示 `n/a`）；`HUD: x ms` 自报聚合耗时（指数平滑）。
 - 联机段：相位/RTT/丢包/和解 + `回滚/延后/输入领先/快照年龄`；RTT/丢包 60s sparkline（240 采样 @4Hz，换局 Reset）。
-- 生命周期：`[RuntimeInitializeOnLoadMethod]` 自创建 + `DontDestroyOnLoad`；程序集 `LiteGame.Dev`（`Dev/Projection`）+ 三宏约束；不得移入 `Editor/`。
+- 生命周期：`[RuntimeInitializeOnLoadMethod]` 自创建 + `DontDestroyOnLoad`；程序集 `LiteGame.Adapters.Dev`（`Dev/Projection`）+ 三宏约束；不得移入 `Editor/`。
 - 数据面：`GameEntry.Stats` + 场景 `IModuleStats`（场景加载后重扫、每轮剔除销毁件）；联机读数走 `BattleDiagnostics` 单读口；日志条目带 `[m/f/p]`；`DiagTrace`/`StructuredLogSink` 状态直读。
 - 只读：不持规则、不写运行态；无控制台/命令面。
 - 已知边界：tag 过滤用 `@tag` 文本（不做多选控件）；`hudScale` 只缩放字号；无 ThemeStyleSheet（标准控件无样式）；IMGUI 回退无色调/折叠；折叠/位置/过滤/缩放已持久化；初始展开集读 `DevStartupConfig.DevHudDefaultExpanded`（出厂精简四段），仅本机无折叠记忆时套用。

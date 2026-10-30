@@ -241,9 +241,9 @@ Docs/设计文档/客户端/UI/      本套设计文档
 <a id="ch-page-definition"></a>
 
 - **唯一源**：`#uiform`（id/prefab/lua/layer/fullscreen）+ `UiPageManifest`（Owner/状态/设备档/缓存策略）+ `UiPageContract`（绑定表/文案；控件表已由 prefab BindNode 生成），由 `codegen.ui-page` 生成器合并为 `PageDefinition`。
-- **生成物**：`Assets/LiteFramework/Runtime/Modules/UI/Generated/UiPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteFramework` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，`LiteGame.LuaBridge` 也要消费；生成物只依赖壳类型，不依赖产品程序集。
+- **生成物**：`Assets/LiteFramework/Runtime/Modules/UI/Generated/UiPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteFramework` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，`LiteGame.Adapters.LuaBridge` 也要消费；生成物只依赖壳类型，不依赖产品程序集。
 - **缺失处理**：缺失 contract 的 Tmp 页告警并以空绑定表生成；缺失 prefab/table 行 fail-fast；同一 prefab 多行（如 201/206）各生成一条，id 独立。
-- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Assets/LiteFramework/Runtime/Modules`、`Assets/LiteGame/App`、`Assets/LiteGame/LuaBridge` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
+- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Assets/LiteFramework/Runtime/Modules`、`Assets/LiteGame/Modules`、`Assets/LiteGame/Adapters/LuaBridge` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
 - **迁移结果**：旧 `UIFormInfo`/`UIFormCatalog` 已删除；运行时只认 `PageDefinition`/`IPageCatalog`。
 
 ### 5.2 生命周期与状态机

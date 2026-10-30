@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
-using LiteView.Animation;
-using LiteBattle;
+using LiteGame.View.Animation;
+using LiteFramework;
+using LiteGame;
 
 namespace LiteGame
 {

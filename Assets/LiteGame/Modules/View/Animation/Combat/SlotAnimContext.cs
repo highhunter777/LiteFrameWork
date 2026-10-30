@@ -2,7 +2,7 @@ using System;
 using LiteFramework.Animation;
 using LiteSim;
 
-namespace LiteView.Animation
+namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 驱动器每帧喂入的跨层事实（不可变值——**唯一写入入口** <see cref="SlotAnimContext.Feed"/>）。

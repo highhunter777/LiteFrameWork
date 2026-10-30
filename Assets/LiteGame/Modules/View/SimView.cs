@@ -1,11 +1,11 @@
 using System;
 using LiteFramework;
-using LiteFramework;
 using LiteSim;
 using UnityEngine;
-using LiteBattle;
+using LiteFramework;
+using LiteGame;
 
-namespace LiteView
+namespace LiteGame.View
 {
     /// <summary>
     /// 战斗表现视图门面：槽位镜像、远端插值、本地和解衰减、事件静默。

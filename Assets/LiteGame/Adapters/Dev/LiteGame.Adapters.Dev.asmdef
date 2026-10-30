@@ -1,6 +1,6 @@
 {
-    "name": "LiteGame.Dev",
-    "rootNamespace": "LiteGame.Dev",
+    "name": "LiteGame.Adapters.Dev",
+    "rootNamespace": "LiteGame.Adapters.Dev",
     "references": [
         "LiteGame.Modules",
         "LiteGame.Adapters.Unity",
@@ -10,7 +10,7 @@
         "LiteFramework.Runtime",
         "LiteGame.App",
         "LiteGame.Presentation",
-        "LiteGame.LuaBridge",
+        "LiteGame.Adapters.LuaBridge",
         "LiteNet",
         "LiteSim",
         "Luban.Tables",

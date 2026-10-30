@@ -20,7 +20,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef"] = new[] { "Cinemachine", "DOTween.Modules", "LiteCodeGen.Runtime", "LiteNet", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.InputSystem", "Unity.TextMeshPro", "YooAsset", "xLuaMain" },
             ["Assets/LiteFramework/Editor/LiteFramework.Editor.asmdef"] = new[] { "LiteCodeGen.Runtime" },
             ["Assets/LiteGame/Core/LiteGame.Core.asmdef"] = new[] { "LiteSim" },
-            ["Assets/LiteGame/Modules/LiteGame.Modules.asmdef"] = new[] { "LiteFramework.Runtime", "LiteGame.Core", "LiteGame.LuaBridge", "LiteGame.Modules.Battle", "LiteGame.Modules.View", "LiteGame.Presentation", "LiteNet", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
+            ["Assets/LiteGame/Modules/LiteGame.Modules.asmdef"] = new[] { "LiteFramework.Runtime", "LiteGame.Core", "LiteGame.Adapters.LuaBridge", "LiteGame.Modules.Battle", "LiteGame.Modules.View", "LiteGame.Presentation", "LiteNet", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
             ["Assets/LiteGame/Modules/Battle/LiteGame.Modules.Battle.asmdef"] = new[] { "LiteFramework.Runtime", "LiteGame.Core", "LiteNet", "LiteSim", "UniTask" },
             ["Assets/LiteGame/Modules/View/LiteGame.Modules.View.asmdef"] = new[] { "LiteFramework.Runtime", "LiteGame.Core", "LiteSim", "UniTask" },
             ["Assets/LiteGame/Adapters/Unity/LiteGame.Adapters.Unity.asmdef"] = new[] { "LiteFramework.Runtime", "LiteGame.Modules.View" },
@@ -28,13 +28,13 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteSim/Editor/LiteSim.Editor.asmdef"] = new[] { "LiteSim" },
             ["Assets/LiteNet/LiteNet.asmdef"] = new[] { "LiteSim" },
             ["Assets/LiteCodeGen/Runtime/LiteCodeGen.Runtime.asmdef"] = Array.Empty<string>(),
-            ["Assets/LiteGame/Adapters/LuaBridge/LiteGame.LuaBridge.asmdef"] = new[] { "LiteFramework.Runtime", "Luban.Runtime", "Luban.Tables", "UniTask", "xLuaMain" },
-            ["Assets/LiteGame/App/LiteGame.App.asmdef"] = new[] { "LiteFramework.Runtime", "LiteGame.Adapters.Unity", "LiteGame.Core", "LiteGame.LuaBridge", "LiteGame.Modules", "LiteGame.Modules.Battle", "LiteGame.Modules.View", "LiteGame.Presentation", "LiteNet", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
+            ["Assets/LiteGame/Adapters/LuaBridge/LiteGame.Adapters.LuaBridge.asmdef"] = new[] { "LiteFramework.Runtime", "Luban.Runtime", "Luban.Tables", "UniTask", "xLuaMain" },
+            ["Assets/LiteGame/App/LiteGame.App.asmdef"] = new[] { "LiteFramework.Runtime", "LiteGame.Adapters.Unity", "LiteGame.Core", "LiteGame.Adapters.LuaBridge", "LiteGame.Modules", "LiteGame.Modules.Battle", "LiteGame.Modules.View", "LiteGame.Presentation", "LiteNet", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
             ["Assets/LiteGame/Modules/Presentation/LiteGame.Presentation.asmdef"] = new[] { "LiteFramework.Runtime", "LiteGame.Adapters.Unity", "LiteGame.Core", "LiteGame.Modules.Battle", "LiteGame.Modules.View", "LiteNet", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro" },
-            ["Assets/LiteGame/Adapters/Dev/LiteGame.Dev.asmdef"] = new[] { "LiteFramework.Runtime", "LiteGame.Adapters.Unity", "LiteGame.App", "LiteGame.Core", "LiteGame.Modules", "LiteGame.Modules.Battle", "LiteGame.Modules.View", "LiteGame.Presentation", "LiteGame.LuaBridge", "LiteNet", "LiteSim", "Luban.Tables", "RoomServer.Application.Runtime", "RoomServer.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
+            ["Assets/LiteGame/Adapters/Dev/LiteGame.Adapters.Dev.asmdef"] = new[] { "LiteFramework.Runtime", "LiteGame.Adapters.Unity", "LiteGame.App", "LiteGame.Core", "LiteGame.Modules", "LiteGame.Modules.Battle", "LiteGame.Modules.View", "LiteGame.Presentation", "LiteGame.Adapters.LuaBridge", "LiteNet", "LiteSim", "Luban.Tables", "RoomServer.Application.Runtime", "RoomServer.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
             ["Assets/LiteGame/Editor/Core/LiteGame.Editor.Core.asmdef"] = new[] { "LiteFramework.Runtime", "Unity.TextMeshPro" },
-            ["Assets/LiteGame/Editor/UiTools/LiteGame.Editor.UiTools.asmdef"] = new[] { "LiteFramework.Runtime", "LiteFramework.Editor", "LiteCodeGen.Runtime", "LiteGame.Dev", "LiteGame.Editor.Core", "Luban.Runtime", "Luban.Tables", "Unity.TextMeshPro" },
-            ["Assets/LiteGame/Editor/LiteGame.Editor.asmdef"] = new[] { "LiteFramework.Runtime", "LiteFramework.Editor", "LiteCodeGen.Runtime", "LiteGame.Adapters.Unity", "LiteGame.App", "LiteGame.Core", "LiteGame.Modules", "LiteGame.Modules.Battle", "LiteGame.Modules.View", "LiteGame.Presentation", "LiteGame.Dev", "LiteGame.Editor.Core", "LiteGame.Editor.UiTools", "LiteGame.LuaBridge", "LiteNet", "LiteSim", "LiteSim.Editor", "DisciplineScanner.Editor", "Luban.Tables", "Luban.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "YooAsset", "YooAsset.Editor" },
+            ["Assets/LiteGame/Editor/UiTools/LiteGame.Editor.UiTools.asmdef"] = new[] { "LiteFramework.Runtime", "LiteFramework.Editor", "LiteCodeGen.Runtime", "LiteGame.Adapters.Dev", "LiteGame.Editor.Core", "Luban.Runtime", "Luban.Tables", "Unity.TextMeshPro" },
+            ["Assets/LiteGame/Editor/LiteGame.Editor.asmdef"] = new[] { "LiteFramework.Runtime", "LiteFramework.Editor", "LiteCodeGen.Runtime", "LiteGame.Adapters.Unity", "LiteGame.App", "LiteGame.Core", "LiteGame.Modules", "LiteGame.Modules.Battle", "LiteGame.Modules.View", "LiteGame.Presentation", "LiteGame.Adapters.Dev", "LiteGame.Editor.Core", "LiteGame.Editor.UiTools", "LiteGame.Adapters.LuaBridge", "LiteNet", "LiteSim", "LiteSim.Editor", "DisciplineScanner.Editor", "Luban.Tables", "Luban.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "YooAsset", "YooAsset.Editor" },
         };
 
         [Fact]
@@ -105,26 +105,31 @@ namespace LiteFramework.Core.Tests
                         ForbidPrefix(refs, pair.Key, "LiteFramework.", offenders);
                         ForbidPrefix(refs, pair.Key, "LiteGame.", offenders);
                         Forbid(refs, pair.Key, "LiteNet", offenders);
-                        Forbid(refs, pair.Key, "LiteView", offenders);
+                        Forbid(refs, pair.Key, "LiteGame.Modules.View", offenders);
                         ForbidPrefix(refs, pair.Key, "RoomServer.", offenders);
                         break;
                     case "Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef":
-                        Forbid(refs, pair.Key, "LiteView", offenders);
+                        Forbid(refs, pair.Key, "LiteGame.Modules.View", offenders);
                         ForbidPrefix(refs, pair.Key, "LiteGame.", offenders);
                         break;
                     case "Assets/LiteGame/Modules/LiteGame.Modules.asmdef":
+                        // LuaBridge 是产品 Lua 门面桥（模块经它装订/转发），不是引擎适配器——允许；
+                        // 引擎/开发适配器仍禁（模块不得反向认识 Unity/Dev 实现）。
+                        ForbidPrefix(refs, pair.Key, "LiteGame.Adapters.Dev", offenders);
+                        ForbidPrefix(refs, pair.Key, "LiteGame.Adapters.Unity", offenders);
+                        break;
                     case "Assets/LiteGame/Modules/Battle/LiteGame.Modules.Battle.asmdef":
                     case "Assets/LiteGame/Modules/View/LiteGame.Modules.View.asmdef":
                         ForbidPrefix(refs, pair.Key, "LiteGame.Adapters.", offenders);
                         ForbidPrefix(refs, pair.Key, "LiteGame.Dev", offenders);
                         break;
                     case "Assets/LiteGame/App/LiteGame.App.asmdef":
-                        Forbid(refs, pair.Key, "LiteGame.Dev", offenders);
+                        Forbid(refs, pair.Key, "LiteGame.Adapters.Dev", offenders);
                         ForbidPrefix(refs, pair.Key, "RoomServer.", offenders);
                         break;
-                    case "Assets/LiteGame/Adapters/LuaBridge/LiteGame.LuaBridge.asmdef":
+                    case "Assets/LiteGame/Adapters/LuaBridge/LiteGame.Adapters.LuaBridge.asmdef":
                         ForbidPrefix(refs, pair.Key, "LiteGame.App", offenders);
-                        ForbidPrefix(refs, pair.Key, "LiteGame.Dev", offenders);
+                        ForbidPrefix(refs, pair.Key, "LiteGame.Adapters.Dev", offenders);
                         break;
                 }
                 if (pair.Key.StartsWith("Assets/LiteFramework/", StringComparison.Ordinal))

@@ -1,6 +1,6 @@
 {
     "name": "LiteGame.Adapters.Unity",
-    "rootNamespace": "LiteView.Animation",
+    "rootNamespace": "LiteGame.View.Animation",
     "references": [
         "LiteFramework.Runtime",
         "LiteGame.Modules.View"

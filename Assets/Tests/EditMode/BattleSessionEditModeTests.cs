@@ -11,7 +11,7 @@ using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using LiteFramework;
-using LiteBattle;
+using LiteGame;
 
 namespace LiteGame.Tests.EditMode
 {

@@ -1,6 +1,6 @@
 using System;
 using LiteSim;
-using LiteView;
+using LiteGame.View;
 using Xunit;
 
 namespace LiteSim.Tests
