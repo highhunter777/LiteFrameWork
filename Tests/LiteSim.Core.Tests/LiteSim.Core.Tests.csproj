@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Assets\LiteSim\LiteSim.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteSync\LiteSync.csproj" />
     <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
   </ItemGroup>
 
@@ -28,6 +29,17 @@
   -->
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteGame\Core\View\Transform\ViewTransformMath.cs" Link="View\ViewTransformMath.cs" />
+  </ItemGroup>
+
+  <!--
+    根位移数据产物（rootmotion.bin）装载器的 L1 覆盖（《联机动画与根位移专项设计》§3）：字段契约、
+    装载校验与编码往返全零引擎。三个文件住 LiteGame.Modules.Battle（Unity 程序集，L1 不能
+    ProjectReference 它），按源链接纳入 L1——同一份 .cs 两侧编译，字节格式与校验语义不可能漂移。
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Arena\RootMotionEntry.cs" Link="Battle\Arena\RootMotionEntry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Arena\RootMotionCatalog.cs" Link="Battle\Arena\RootMotionCatalog.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Arena\RootMotionDigest.cs" Link="Battle\Arena\RootMotionDigest.cs" />
   </ItemGroup>
 
   <!--
@@ -76,6 +88,17 @@
     <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Debug\Session\TestModeOptions.cs" Link="Gm\TestModeOptions.cs" />
     <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Debug\Session\TestModeRuntime.cs" Link="Gm\TestModeRuntime.cs" />
     <Compile Include="..\..\Assets\LiteGame\Core\Dev\ILocalTestHooks.cs" Link="Dev\ILocalTestHooks.cs" />
+  </ItemGroup>
+
+  <!--
+    判定参数覆写/求值门的 L1 覆盖（T80）：两件零引擎依赖（只引 LiteSim），住 LiteGame.Modules.Config
+    程序集无 dotnet csproj——按源链接纳入 L1（同 ViewTransform/RootMotion 先例，同一份 .cs 两侧编译）。
+    门是纯函数（无静态可变状态），覆写面是实例状态，因此不存在测试间串扰。
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\SimParamsOverrides.cs" Link="Config\SimParamsOverrides.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\SimParamsGate.cs" Link="Config\SimParamsGate.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\SimParamsActivation.cs" Link="Config\SimParamsActivation.cs" />
   </ItemGroup>
 
   <ItemGroup>

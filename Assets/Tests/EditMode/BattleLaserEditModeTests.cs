@@ -158,7 +158,7 @@ namespace LiteGame.Tests.EditMode
             driver.Tick();
 
             // 遇玩家截停：近弧 = 圆心距 − 命中半径 = 10 − 0.5
-            AssertLocal(beam.GetPosition(1), new Vector3(0f, 0f, 10f - CombatConfig.HitscanRadius), 1e-3f);
+            AssertLocal(beam.GetPosition(1), new Vector3(0f, 0f, 10f - CombatConfig.Geometry.HitscanRadius), 1e-3f);
             driver.Dispose();
         }
 
@@ -192,7 +192,7 @@ namespace LiteGame.Tests.EditMode
 
             SampleInput(input);
             driver.Tick();
-            AssertLocal(beam.GetPosition(1), new Vector3(0f, 0f, 10f - CombatConfig.HitscanRadius), 1e-3f);
+            AssertLocal(beam.GetPosition(1), new Vector3(0f, 0f, 10f - CombatConfig.Geometry.HitscanRadius), 1e-3f);
             driver.Dispose();
         }
         [Test]
@@ -207,7 +207,7 @@ namespace LiteGame.Tests.EditMode
             SampleInput(input);
             driver.Tick();
             Vector3 barrel = beam.GetPosition(1);
-            AssertLocal(barrel, new Vector3(0f, 0f, 10f - CombatConfig.HitscanRadius), 1e-3f, "待机：枪管截停目标");
+            AssertLocal(barrel, new Vector3(0f, 0f, 10f - CombatConfig.Geometry.HitscanRadius), 1e-3f, "待机：枪管截停目标");
 
             world.Entities[0].Flags |= EntityFlags.Aiming;
             SampleInput(input);
@@ -243,7 +243,7 @@ namespace LiteGame.Tests.EditMode
             driver.Tick();                                // 无输入服务：不拦、不读瞄准——照样出束
             Assert.IsTrue(beamGo.activeSelf, "无输入形态也显示（方向来自枪，不来自输入/鼠标）");
             AssertLocal(beamGo.GetComponent<LineRenderer>().GetPosition(1),
-                new Vector3(0f, 0f, 10f - CombatConfig.HitscanRadius), 1e-3f, "枪口朝 +X → 截停 +X 侧目标");
+                new Vector3(0f, 0f, 10f - CombatConfig.Geometry.HitscanRadius), 1e-3f, "枪口朝 +X → 截停 +X 侧目标");
             driver.Dispose();
 
             BuildMount(localView, new Vector3(0f, 1f, 0f), worldYawDeg: -90f);     // 转锚点即转向 −X
@@ -252,7 +252,7 @@ namespace LiteGame.Tests.EditMode
 
             driver2.Tick();
             AssertLocal(beamGo2.GetComponent<LineRenderer>().GetPosition(1),
-                new Vector3(0f, 0f, 10f - CombatConfig.HitscanRadius), 1e-3f, "枪口朝 −X → 截停 −X 侧目标（端点随挂载点朝向，与鼠标无关）");
+                new Vector3(0f, 0f, 10f - CombatConfig.Geometry.HitscanRadius), 1e-3f, "枪口朝 −X → 截停 −X 侧目标（端点随挂载点朝向，与鼠标无关）");
             driver2.Dispose();
         }
         [Test]
@@ -393,31 +393,40 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 激光_规则走注入_不读活动局静态读口()
+        public void 激光_几何走CombatConfig_Geometry投影()
         {
             // 侧向 1.2m 的目标：默认双柱（身体 0.45 / 爆头 0.32、爆头线下沿 ~1.4）打不中；
-            // 注入"爆头带下移到 0 + 爆头柱 1.5"才在 9.1m 处命中。两个方向各验一次：
-            // ① 注入宽规则 → 命中（读注入）；② 不注入 → 默认几何（无全局"当前局"可借）。
+            // Published 宽几何"爆头带下移到 0 + 爆头柱 1.5"才在 9.1m 处命中。两个方向各验一次：
+            // ① 宽几何 → 命中；② 复位默认几何 → 射程上限（视图只读 CombatConfig.Geometry 投影）。
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map, new Vector3(10f, 0f, 1.2f));
             BuildMount(localView, new Vector3(0f, 1f, 0f));                    // 枪口 (0,1,0) 前向 +X
             _ = world;
 
-            var wideHead = new MatchTestRules { HeadHitLineOverride = 0f, HeadshotRadiusOverride = 1.5f };
+            var wideGeometry = new CombatGeometry(0.32f, 1.8f, 0.45f, 0f, 1.5f,
+                0.7739859f, 0.0829204246f, 1.29482734f, 1, 4f, 180, 25f, 12f);
+            CombatConfig.Publish(new CombatValues(5f, -9.8f, 100f, 25, 1, 100, 2.5f, 60, wideGeometry));
+            try
+            {
+                var (input1, driver1, beam1) = BuildDriver(view, sim, map);
+                SampleInput(input1);
+                driver1.Tick();
+                AssertLocal(beam1.GetPosition(1), new Vector3(0f, 0f, 10f - 0.9f), 1e-2f,
+                    "Published 宽爆头柱生效——端点不是射程上限");
+                driver1.Dispose();
 
-            var (input1, driver1, beam1) = BuildDriver(view, sim, map, wideHead);
-            SampleInput(input1);
-            driver1.Tick();
-            AssertLocal(beam1.GetPosition(1), new Vector3(0f, 0f, 10f - 0.9f), 1e-2f,
-                "注入的宽爆头柱生效——端点不是射程上限");
-            driver1.Dispose();
-
-            var (input2, driver2, beam2) = BuildDriver(view, sim, map, rules: null);
-            SampleInput(input2);
-            driver2.Tick();
-            AssertLocal(beam2.GetPosition(1), new Vector3(0f, 0f, CombatConfig.HitscanRange), 1e-2f,
-                "未注入规则 → 默认几何（不存在可借用的全局当前局）");
-            driver2.Dispose();
+                CombatConfig.Publish(CombatValues.Default);
+                var (input2, driver2, beam2) = BuildDriver(view, sim, map);
+                SampleInput(input2);
+                driver2.Tick();
+                AssertLocal(beam2.GetPosition(1), new Vector3(0f, 0f, CombatConfig.HitscanRange), 1e-2f,
+                    "默认几何 → 射程上限");
+                driver2.Dispose();
+            }
+            finally
+            {
+                CombatConfig.Publish(CombatValues.Default);
+            }
         }
 
         /// <summary>空载荷设备源替身（装配兼容保留——激光驱动不读瞄准输入，只读被拦门，此源不承载数据）。</summary>

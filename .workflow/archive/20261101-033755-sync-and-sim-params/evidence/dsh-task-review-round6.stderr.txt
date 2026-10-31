@@ -1,0 +1,640 @@
+dsh: reasoning:
+Let me start by reading the two key files. Constraint: max 8 tool calls, read-only. Let me read tasks.md and plan.md.
+
+Let me first check file sizes maybe. Just read them.
+dsh: reasoning:
+I have the key content. Note the plan header says "第五轮 FAIL（2 个）；第六轮 FAIL（1 个）；本版为第六轮整改" but the 评审整改记录 goes through 第八轮. That's an inconsistency in plan.md (metadata stale vs content). Also tasks.md says "阶段：子代理评审任务（review-tasks） ｜ 完成 0/82（取消 66，阻塞 0）" — 82 total, canceled 66, so effective = T43,T44,T69~T82 = 2+14 = 16 tasks. 82-66=16. OK.
+
+But wait — plan.md line 7 says "本版为第六轮整改" while 评审整改记录 covers 第八轮. Also plan 风险 mentions... this is a doc inconsistency but minor/non-blocking? It's a review doc; the header is stale relative to the revision log. Non-blocking suggestion.
+
+Now check coverage: B1~B24 mapping to effective tasks.
+
+Effective tasks: T43 (B1), T44 (B2/B3/B4/B6/B7), T69 (B5/B22), T70 (B8), T71 (B9 type/gate), T72 (B11+B9 table), T73 (B10), T74 (B13/B14), T75 (B12 partial: Body/Head/Muzzle + SimMap), T76 (B12 Grip), T77 (B16/B17/B18), T78 (B12 收口 WriteGenerated), T79 (B15), T80 (B19/B20/B21), T81 (B23), T82 (B24).
+
+That's 16 tasks covering B1-B24. Count B items: B1..B24 = 24. Assignments:
+- B1: T43
+- B2: T44
+- B3: T44
+- B4: T44
+- B5: T69
+- B6: T44
+- B7: T44
+- B8: T70
+- B9: T71 (type/gate) + T72 (table part)
+- B10: T73
+- B11: T72
+- B12: T75 + T76 + T77 + T78
+- B13: T74
+- B14: T74
+- B15: T79
+- B16: T77
+- B17: T77
+- B18: T77
+- B19: T80
+- B20: T80
+- B21: T80
+- B22: T69
+- B23: T81
+- B24: T82
+
+All covered. No duplicates except B9 split and B12 split, both explicitly labeled as "（类型/闸门）"/"（表）" and "（部分）/（Grip）/（收口）" with task boundaries. B13/B14 both T74 fine.
+
+Now check B9 detail: B9 requires 10 处 new CombatValues 调用点, ResetForTests, Loaded 时序 (BattleContextTests), ValidateCandidate bad table. T71 covers. But T71 says "坏表候选校验（表接入下一任务）" — hmm, T71 does ValidateCandidate bad-table validation before table is wired in T72. Is that executable? B9 acceptance says "ValidateCandidate 用候选表行校验坏表（不读 Default）有用例". ValidateCandidate validating candidate table rows requires tbcombatgeom loading; T72 is 表接入. So T71's bad-table case depends on T72. T71 notes "（表接入下一任务）" — it defers to T72. But T72's acceptance doesn't mention 坏表用例? T72 does: "坏表 ValidateCandidate 拒启动". Yes T72 includes it. So the 坏表 case actually lands in T72, but T71's acceptance lists "坏表候选校验（表接入下一任务）" — the ordering: T71 dependency is T70; T72 depends on T71. T71 would need to build CombatGeometry type before table. The bad table test can only run in T72. T71 acknowledges deferral. Slightly ambiguous but B9 covered across T71+T72. However B9's acceptance includes "10 处 new CombatValues 调用点全部更新" — T71 says "10 构造点". But some of those 10 are in tests tied to tbcombatgeom? No, constructors just need Geometry arg, fine.
+
+Wait — B9 also says "`CombatValues` 含 `Geometry` 字段... 13 列全部从 `Combat/tbcombatgeom` 装载". The loading is T72. Fine.
+
+Now check the escapes: "有效任务" T43..T44, T69..T82 = 16 tasks. tasks.md stat says 完成 0/82（取消 66）→ 82-66 = 16. Consistent.
+
+Now check dependencies chain: T43 → T44 → T69 → T70 → T71 → T72 → T73 → T74(E) → T75(F) → T76 → T77 → T78 → T79 → T80 → T81 → T82. Linear. Good. Task names shifted (T73 no longer "架构守卫" but "判定面"). Fine.
+
+Now check the four round-5 fixes as claimed:
+1. WriteGenerated removed from T75, new T78 depends on T77; T75 says "本任务不删 WriteGenerated". ✓. But plan.md B12 says "`BakeTargets.WriteGenerated` 零引用并删除" — consistent (T78). However plan 子步 T9b still says "`WriteGenerated` 删除" bundled in T9b — stale in plan's 子步 section (line 147). And plan line 131 says "WriteGenerated 在五件 .g.cs 全部退役后删除（零引用）" consistent. The 子步 T9b lumps it but it's a subsection listing, not a task. Non-blocking.
+
+2. Executors: T69 (守卫 C#/测试=施工子代理, 门禁配置=主代理) — but B5/B22 items are tests (C# tests) and gen-build-hash.py check; "门禁配置" likely means gen-build-hash.py? Wait T69's verification includes gen-build-hash --check-shared. Who edits gen-build-hash.py? T44 says 主代理 executes SHARED_TARGETS + regeneration. T69 doesn't change gen-build-hash. "门禁配置=主代理" ambiguous — which gate config? StaticMutableAllowlistTests scan roots are C# tests → 施工子代理. Hmm, maybe "门禁配置" = `.workflow/config.json`? That's T81. Ambiguous but not blocking.
+
+T70 主代理 ✓. T74 代码/测试子代理, 重生成主代理 ✓. T75 资产删除/重生成主代理, 代码/测试子代理 ✓. T76 资产删除主代理, 代码/测试子代理 ✓. T77 资产删除/重生成主代理 ✓. T78 施工子代理 (Editor code, no shared source) ✓ — but T78 depends on T77 which involves deleting RootMotionData.g.cs (under LiteSim/Scripts/Map — shared source set!). Wait: RootMotionData.g.cs was in Assets/LiteSim/Scripts/Map → shared source? SHARED_TARGETS includes LiteSim/Scripts, but .g.cs generated files — the shared target is directory-level so a .g.cs within Scripts counts? Actually BuildHash source set: `Assets/LiteSim/{Scripts,Systems}` — but gen-build-hash typically only hashes .cs files in those dirs. So deleting RootMotionData.g.cs changes the hash. T77 says 重生成 BuildHash 主代理 ✓. Deleting WriteGenerated in BakeTargets — BakeTargets.cs is in Assets/LiteSim/... wait where is BakeTargets? Plan line 130/131 mentions `SimMapBaker.cs:460/505/508` and BakeTargets output constants; BakeTargets likely in LiteSim/Scripts/Map or LiteGame/Editor/Baking. tasks T75/T76/T77 文件范围 detail sections are truncated but T78 says "施工子代理（Editor 代码，无共享源变更）" — so BakeTargets is in Assets/LiteGame/Editor/Baking presumably. B12 says "删除对应 `.g.cs` 与 `BakeTargets` 输出常量" and "`WriteGenerated` 在五件 `.g.cs` 全部退役后删除". If BakeTargets.WriteGenerated is in LiteSim shared source, then T78 would need 重生成. T78 claims no shared source change. Hmm. BakeTargets is referenced by body/head/muzzle/rootmotion/weapon grip bakers, which are in Editor/Baking (LiteGame Editor). But plan 现状 says `BodyBake` used in `SimMapBaker.cs`, and `BakeTargets` — in T62 (canceled) it listed "BakeTargets.cs:36-38/46 的 Assets/LiteSim/Core/Scripts/*" for dead path constants, ambiguous whether the file BakeTargets.cs itself is in LiteSim or Editor. T62's 文件范围: "Assets/LiteGame/Editor/Baking, Assets/LiteSim/Scripts/Map, Luban/Data, Assets/GameData, Tests" — BakeTargets likely in Editor/Baking or LiteSim/Scripts/Map. Given T75/T76/T77 change BakeTargets 五常量 and say 重生成主代理, and T78 doesn't, there may be inconsistency if BakeTargets is in shared source. But since T75 already changes BakeTargets and regenerates, T78's deletion of WriteGenerated is also in BakeTargets → would also be shared source → T78 needs 重生成 too. This is a potential blocking-ish inconsistency: T78 says "无共享源变更" but deleting a method in BakeTargets.cs — if that file is in LiteSim/Scripts/Map, BuildHash changes. Hmm, the T78 文件范围 detail may list it; truncated at line 447. I could read further to see T69~T82 detail sections for file ranges. That's worth a 3rd tool call (limit 8). Let me read lines 448+ to check file ranges and evidence for T43+ and T69+.
+
+Also need to check T43's file scope "Assets/LiteSync" plus asmdef/csproj; plan B1 mentions双轨 csproj. Fine.
+
+Check T44 includes Tests.slnx, LiteGame.App/Editor, RoomServer, good. But plan line 102 says 引用者加 LiteSync: LiteGame.App、LiteGame.Adapters.Dev、LiteGame.Editor、Tests/EditMode、Tests/UI/PlayMode、Tests/LiteNet.Tests（或新建 Tests/LiteSync.Tests）、Server/RoomServer. T44 lists "LiteGame.App/Editor、Server/RoomServer、Tests.slnx 补 LiteSync 引用" — does not explicitly list LiteGame.Adapters.Dev, Tests/EditMode, Tests/UI/PlayMode, Tests/LiteNet.Tests. But "引用者/测试改引用" and verification "Unity+dotnet 编译" covers 全量; and 文件范围 includes Tests and LiteGame/Adapters/Dev. So implicitly covered by compile. Acceptable, maybe non-blocking note.
+
+B5/T69: "Allowed 删 LiteNet->LiteSim 加 LiteSync" — T44 already deletes LiteNet.asmdef reference to LiteSim; ClientAsmdefAllowlistTests.Allowed entry removal belongs where? Plan says B5 covers Allowed. T69 does it. But T44 acceptance includes B2/B3/B4/B6/B7 not B5. Then T44's 编译 might fail if ClientAsmdefAllowlistTests.Allowed still has LiteNet->LiteSim entry? That test asserts allowlist matches actual? If Allowed contains an entry that no longer exists (LiteNet->LiteSim), the test would fail until T69. Actually ClientAsmdefAllowlistTests likely checks that all actual asmdef references are in the allowlist AND maybe unused entries too. If only actual refs checked, stale entry harmless. But if it compares set equality, T44's "Unity+dotnet 编译" isn't test-run; T44 verification includes Tests/LiteNet.Tests and DebugKernel. Hmm. Potential compile-interruption/gate-red window between T44 and T69. Plan line 101: "引用者加 LiteSync" and 守卫: "ClientAsmdefAllowlistTests.ClientRoots 加 Assets/LiteSync；ArchitectureGuardTests 新硬边" — grouped in B5, T69. Two-phase: T44 moves, T69 updates allowlist. If the allowlist test is in L1 gate run at T70, it's fine because T69 completes before T70. But T44's verification runs Tests/LiteNet.Tests only, not ClientAsmdefAllowlistTests. So no false green. However, does T44's acceptance "Unity+dotnet 编译" pass with ClientAsmdefAllowlistTests still listing LiteNet->LiteSim? Compilation yes; test would fail. T69 then fixes. Acceptable but the intermediate red is a known sequencing; not blocking since gate at T70 after T69.
+
+But wait, T44 verification says "gen-build-hash 重生成 + --check-shared". Fine.
+
+Now the bigger question: "是否还有编译中断/门禁不可执行/虚假通过". Let's examine:
+
+- T43 creates LiteSync empty shell and csproj double track; but T44 moves files. When creating LiteSync.csproj with wildcard includes, at T43 the shell is empty; OK.
+- T44 moves 15 files incl. ProtocolConstants → LiteSync/Shared; SHARED_TARGETS added; but `LiteSim` references? fine.
+- T71 changes CombatValues constructor to 9 params → all 10 call sites updated in same task; but B11 table loading in T72 adds tbcombatgeom param to BuildCombatValues. Wait: plan 现状 says BuildCombatValues has 4 call points (ConfigService.cs:191, CombatValuesEditModeTests, ServerTableLoader 70/98). If T71 changes CombatValues constructor, it can update those with a default/test Geometry; T72 then wires the table. OK, compiles.
+
+But T71's B9 "13 列全部从 Combat/tbcombatgeom 装载" not in T71; deferred to T72. That's a split of B9 with explicit labels. Fine.
+
+- Key issue: T73 (判定面迁移) deletes CombatConfig geometric constants? Plan says T13 (old) deletes constants after T8 reader migration; new tasks: T73 migrates readers and "本任务唯一删除四几何覆写". But where is 删除 CombatConfig 几何常量? B10 says "旧 CombatConfig.<几何名>（常量已删除...）". T73 acceptance says "旧几何名零命中" — implies constants deleted, but does not explicitly say "删除 CombatConfig 公开几何常量". Hmm, T73 "判定面与外部消费者迁移" should include deleting the constants (as the plan 子步 T13 says "在 T8 读者迁移完成后删除 CombatConfig 几何常量"). In new numbering, T73 is the equivalent of T8+constant deletion. T73's acceptance: "Assets/Server/Tests 旧几何名零命中；本任务唯一删除四几何覆写；HUD/Dev/Editor/测试读者迁移；..." It doesn't state "删除 CombatConfig 几何常量" explicitly, but "旧几何名零命中" requires them gone; and B10 says 常量已删除. Is this an orphan? Under "文件范围/验收一致" — T73's file range includes Assets/LiteSim/Scripts (from T60's detail likely), where CombatConfig lives. Probably acceptable; the zero-hit requirement forces deletion. But there's a risk that a worker migrates readers to CombatConfig.Geometry and leaves constants → zero-hit test on code identifiers `CombatConfig.<几何名>` would fail, so gate catches. Not blocking.
+
+- B12 T75/T76/T77: T77 deletes RootMotionData.g.cs which is in LiteSim/Scripts/Map (shared). T77 has 重生成. Good. T75 deletes Body/Head/Muzzle .g.cs — also in LiteSim/Scripts/Map (shared) → 重生成 ✓. T76 deletes GripBake.g.cs in LiteGame module (not shared) ✓. T78 deletes WriteGenerated in BakeTargets — where? If BakeTargets in LiteSim shared → needs regen; T78 says no shared change. Let me verify by reading a key file: I could grep for `class BakeTargets` location — but constraint says no full-repo search; grep tool is allowed? "禁止全仓搜索/运行命令" — they forbid full-repo search. I could read one key file to verify. But limited to "可读 1-2 个关键文件核对". I could read the tasks.md remainder (file ranges) which may name BakeTargets path. Let's read offset 448.
+
+Also B12 says "`simmap`... 相关 XML 注释清理后编译 0 warning". T75 covers 注释 0 warning. T78 "编译 0 warning". OK.
+
+Another issue: B12 acceptance requires "`rootmotion.bin`/`grip.bin` 输出摘要等于预期" — T76 covers grip 内容摘要, T77 covers RootMotion digest. Fine.
+
+B16/B18: "LiteSim 内不再出现 RootMotion*" — T77. But T77 depends on T76 and T75; RootMotionCatalog lives in Battle/Arena (LiteGame) — T77 file range planned. Fine.
+
+B15 T79: "AoiSettings 落 LiteSync/Shared" — LiteSync/Shared is in SHARED_TARGETS (added T44) → changing it requires BuildHash 重生成, and T79 says 重生成 BuildHash 主代理 ✓. Also T79 mentions restart LiteGame-Room after config change ✓ (good, avoids false pass). GM `start` sandbox 房回读 via gm.py ✓.
+
+B19: SimParamsGate "dev 三宏" — gate only in dev macros; but B19 says "SimParamsOverrides 仅在 dev 三宏内；唯一门 ... 组合根"; T80 ✓.
+
+B20: 四条断言 including GM 页联机禁用几何滑杆真实操作 → T80 "红线 13 真实操作" + "GM 真实操作=主代理" ✓.
+
+B21: 编辑器与 GM 两处导出 same path ✓ T80.
+
+B23: T81 creates `scripts/gate/sync-and-sim-e2e.py` with RoomServer publish + build-player + player-smoke + digest 对账; 命令组 includes e2e. But plan B23 says command group = L1 全量、LiteSync/LiteSim 定向、gen-build-hash --check-shared、l2-unity-gate.py、两端重建联测；证据列出实际命令与结果. T81 matches. But e2e is a new script — is that acceptable scope? Plan B23 says `.workflow/config.json` 新增命令组并在 wf verify 通过; a script is fine. Yet B23's "两端重建联测" being automated by build-player + player-smoke + 对账 — does player-smoke cover 联机 (two ends)? It says "两端 BuildHash/ConfigHash 对账" — that's not actual online play. Plan B23 explicitly says "两端重建联测" as a command group item, and T70 does the real local test room + KCP lossy. T81's e2e covers build + smoke + digest equality, not actual 2-client join. Is that "虚假通过"? The plan B23 definition is vague; test strategy says 联测: 两端重建后本地测试房 + 真 KCP lossy. Under T81 "两端 e2e" it lists RoomServer publish + build-player + player-smoke + 对账. If player-smoke is a single-player smoke, then B23's "两端重建联测" might be unfulfilled by T70/T81? T70 does "客户端 build-player + RoomServer publish；本地测试房+KCP lossy 冒烟；两端 BuildHash 对账" — that's batch 6 联测, which covers B8. Batch 7 final 两端联测 is not a separate task now; B23 says command group includes 两端重建联测. T81's e2e with player-smoke + digest 对账 likely acceptable as "automated e2e". Possibly non-blocking risk that player-smoke doesn't verify a real join (虚假通过). Hmm.
+
+Also T70 "本地测试房+KCP lossy 冒烟" — does it verify actual two-end join (client + server) and evidence? Yes.
+
+Potential blocking issues to consider:
+
+(a) T69's executor split "门禁配置=主代理" ambiguous — which 门禁配置 does T69 touch? B5/B22 are pure C# test edits; maybe gen-build-hash.py? No. Could be `.workflow/config.json`? That's T81. If T69 needs no gate config changes, then specifying a main-agent executor for 门禁配置 is confusing but not blocking.
+
+(b) T78 shared-source regeneration opposite: if BakeTargets.cs is under LiteSim/Scripts/Map (shared), T78 must 重生成 — otherwise BuildHash 门禁 fails at T81 (--check-shared) — that's a real "门禁不可执行/编译中断"? Actually it would be caught by T81's --check-shared, so not a silent pass; but T78 claims no shared change and blocks until fixed. Severity: medium. Need to determine BakeTargets location. The plan line 130 says "四条死路径 = BakeTargets.cs:36-38/46 的 `Assets/LiteSim/Core/Scripts/*`→新去向" — those are *constants' string values*, not file location. `BakeTargets` likely sits in `Assets/LiteSim/Scripts/Map/BakeTargets.cs` since `SimMapBaker` and `.g.cs` gen files are there. But T75's 文件范围 in old T62 included `Assets/LiteSim/Scripts/Map` (as source dir) and `Assets/LiteGame/Editor/Baking`. WriteGenerated is a method of BakeTargets that writes generated .cs into LiteSim/Scripts/Map — the class could be anywhere in Editor. Hmm.
+
+Actually plan line 128: "三者改为写表（共享表写入器复用 SimParamsExporter 的 xlsx 读写/备份/原子写，落 `Assets/LiteGame/Editor/Baking/` 并单测...）删除对应 `.g.cs` 与 `BakeTargets` 输出常量。" `BakeTargets` is likely part of the baking editor tooling. `BodyCylinderBaker.cs` is in Assets/LiteGame/Editor/Baking (B10 list: BodyCylinderBaker.cs:18-19, MuzzleOffsetBaker.cs:71, HeadHitLineTuner). And T10's file list says `Assets/LiteGame/Editor/Baking/RootMotionBaker.cs`. So BakeTargets likely also Editor/Baking. Then T78 no shared change is right. But T75's file range includes `Assets/LiteSim/Scripts/Map` because .g.cs deletion and SimMapBaker live there (SimMapBaker.cs in LiteSim/Scripts/Map). And `BakeTargets.cs:36-38/46` dead path constants—wait if BakeTargets is in Editor/Baking, references to `Assets/LiteSim/Core/Scripts/*` are just output paths. Yes.
+
+Hmm but B12 acceptance says "`BakeTargets.WriteGenerated` 零引用并删除" and T75 modifies BakeTargets 五常量 + 四条死路径（BakeTargets.cs:36-38/46）— that's Editor code too. T75's file range from T62: "Assets/LiteGame/Editor/Baking, Assets/LiteSim/Scripts/Map, Luban/Data, Assets/GameData, Tests" — no Luban in T75 acceptance? T75 says 表写入器/新行 (new table rows) → Luban/Data needed. File range detail for T75 may omit Luban/Data. Let me check the detail sections for T69~T82 (lines 448+). That also gives 文件范围 for T73 etc. Good use of tool call #3.
+
+Also check T44's file range includes LiteNet.csproj etc. Already seen.
+
+Another potential blocking: T43 as "纯 C#/asmdef" but B1 requires 双轨 csproj — creating LiteSync.csproj and editing Tests.slnx is not purely C#/asmdef; but "双轨 csproj 齐备" is in acceptance, executor 施工子代理 (纯 C#/asmdef，不碰门禁脚本). csproj isn't a gate script. Fine.
+
+Another: T44 executor "资产搬迁/gen-build-hash 主代理，C#/测试施工子代理" — but who edits LiteNet.asmdef/csproj and LiteSync.csproj? asmdef is C#/... probably 施工子代理. Fine.
+
+Another possible issue: T69 (B5) includes "Allowed 删 LiteNet->LiteSim 加 LiteSync" — but T44 already removed the LiteNet->LiteSim reference. If ClientAsmdefAllowlistTests asserts allowlist exactly equals actual edges, then T44's Unity compile doesn't run tests; fine. But T44 verification includes `Tests/LiteNet.Tests` — moved tests may fail to compile due to missing refs? T44 adds Tests.slnx LiteSync reference. OK.
+
+Wait bigger: T44 moves WeakNet to LiteGame.Adapters.Dev per B6. But T44 acceptance says "WeakNet 移 Dev" ✓; B6 requires "LiteNet 只留 IClientTransport/IClientTransportErrorSource（grep 断言）" and Tests/LiteNet.Tests WeakNet 用例改引用后仍绿. T44 verification includes Tests/LiteNet.Tests ✓. But does T44 include LiteGame.Adapters.Dev file range? yes. And DebugKernelEditModeTests ✓.
+
+B7 DiagTrace 保留并登记 ✓ T44.
+
+Now "共享源集任务的重生成+check 与执行者": effective tasks touching shared source:
+- T44: SHARED_TARGETS edit + regen + check, 主代理 ✓.
+- T71 (CombatValues/CombatConfig in LiteSim/Scripts/Config) → 重生成 主代理 ✓.
+- T72 (BuildCombatValues, TableLayout (Serialization.Luban shared link file), gen 表 → GameData/Generated) → 重生成+check 主代理 ✓ (also gen.bat). Note TableLayout.cs is a SHARED_LINK_FILE in Serialization.Luban — T72 changes it (add file entry). gen-build-hash must include; T72 says 重生成 BuildHash 主代理 ✓.
+- T73 (Scripts/Systems readers; delete CombatConfig constants) → 重生成 ✓.
+- T74 (Config digest in LiteGame/Modules/Config? and Server) — if changes only LiteGame + Server, no shared source; yet T74 says 重生成=主代理. It may touch LiteSim? Digest is in Config module (LiteGame) but CombatConfigDigest may be in LiteSim? B13 says 判定表字节 in digest; CombatConfigDigest is LiteGame. But T74 includes 重生成 anyway → safe over-inclusion, fine.
+- T75 (delete .g.cs under LiteSim/Scripts/Map, SimMapBaker changes, tbmovement?) → 重生成 ✓.
+- T76 (GripBake.g.cs in LiteGame module non-shared; WeaponGripCatalog in Battle/Characters) → no regen needed; T76 says 无需 BuildHash ✓ correct.
+- T77 (delete RootMotionData.g.cs in LiteSim/Scripts/Map; RootMotionCatalog in LiteGame; AppComposition) → 重生成 ✓.
+- T78 (Editor only, no regen) — correct if BakeTargets in Editor.
+- T79 (AoiSettings in LiteSync/Shared = shared target; SimConfig in LiteSim/Scripts/Config) → 重生成 ✓.
+- T80 (SimParams in LiteSim/Scripts/Rules? SimParamsDebugTunables in Adapters/Dev; SimParamsOverrides maybe LiteSim/Scripts? and ConfigService) → 重生成 ✓.
+- T81 e2e: no source changes, but --check-shared as gate ✓.
+- T82 docs: no regen ✓ (docs not source).
+
+Good: all shared edits have 重生成 + check and executor. T78's exception needs verification.
+
+Potential orphan/duplicate: plan 子步 numbering T1~T13 now obsolete; tasks use T43..T82. The plan's 子步 list still uses T1–T13 and mentions "T9b 烘焙全迁 ... WriteGenerated 删除" — stale vs tasks (plan task mapping not updated), but plan states 子步 as design decomposition, not tasks. It does contradict T75/T78 split. Non-blocking but could confuse. Also plan header "本版为第六轮整改" vs log through 第八轮 — stale metadata. Non-blocking.
+
+Coverage of B12's "BakeTargets 五条输出常量逐条去向明确" — T75 has it. "四条死路径修正" — T75. "CombatConfig 类头/成员注释与 SimMapBaker cref 清理" — plan line 131 assigns to T9b; new tasks: T75 covers "注释 0 warning"; T71 covers CombatConfig 类头注释? T71 acceptance mentions type/gate but not comment cleanup at CombatConfig.cs:12/55/82/130/141/161/176/184/193/200. Plan's 评审记录 第六轮 non-blocking says "CombatConfig.cs:12/22 注释与初始化同批 T7 清理" — new T71 should include it. T71's acceptance doesn't mention 注释. Is that a coverage hole for B12's "相关 XML 注释清理后编译 0 warning"? T75 has "注释 0 warning" for SimMapBaker/BakeTargets and CombatConfig? Hmm, B12 acceptance includes "MatchTestRules 类头/字段的爆头覆写说明同步删除；... 相关 XML 注释清理后编译 0 warning". MatchTestRules comment deletion: T73 deletes 四几何覆写 — does it include 类头/字段说明清理? T73 doesn't mention 注释 explicitly. T75 says 注释 0 warning but MatchTestRules is T73's file. Potential gap: XML cref cleanup in MatchTestRules/CombatConfig could be missed, but "Unity 0 error" / 0 warning in T75 only applies to its own compile? Unity compiles all, warnings appear at compile time regardless of task; any task's "Unity 0 error" won't catch warnings unless --warnaserror. Since csc.rsp has warnaserror, dangling crefs become errors → compile red, caught. Plan says "按 csc.rsp 的 warnaserror 口径核对". If warnaserror, any stale cref breaks compile, so it's caught by T73/T75 compile gates. Not blocking, maybe non-blocking note that comment cleanup ownership isn't explicit (T71/T73).
+
+Now file ranges: need T69~T82 details. Let me read tasks.md offset 448.
+
+Also I might want to check B12 test names requirement: T74 mentions 测试名; T73 test names ✓. B14 says "给出测试名" ✓ T74.
+
+One more potential blocking: T73 says "本任务唯一删除四几何覆写" — but T80 says "四几何覆写只做零命中复核（删除在判定面任务）" ✓ consistent.
+
+Potential blocking: B10 guard scanning includes `Server/**` and root `Tests/**` and `Assets/**`; T73 acceptance says "Assets/Server/Tests 旧几何名零命中" ✓.
+
+B10 also "判定/烘焙代码不读 CombatConfig.Geometry（有断言）" ✓ T73 "判定路径与烘焙写入源不读 Geometry（显示/对比白名单）".
+
+B10 "SimStep 与 9 个 System.Run 签名未变" ✓.
+
+B15 "AoiSettings 可运行期注入且服务端生效；三档...真实注入" ✓ T79. But B15 also "客户端不读该配置" and SnapshotHz 从 JoinAck; T79 covers? "SnapshotHz 分离，客户端从 JoinAck 取" ✓.
+
+B16 "RootMotionCatalog.Load 位于 Modules/Battle/Arena" ✓ T77 mentions RootMotionCatalog.Load + 重生成. Does T77 acceptance include "RootMotionCatalog.Load 落 Battle/Arena" explicitly? T77: "先落 RootMotionCatalog.Load/rootmotion.bin/Digest/AppComposition 绑定" — path not specified, but detail file range includes Arena (T64 detail). OK.
+
+B17 "不新增名称字段" ✓ T77 "ContentIdentity 不引 LiteSim/SHA-256/无名称字段" (the "SHA-256" bit is odd phrasing — it says ContentIdentity 不引 LiteSim/SHA-256? Plan B17: ContentIdentity 不引用 LiteSim; AppComposition 用 Digest (SHA-256 对字节). tasks T77 says "ContentIdentity 不引 LiteSim/SHA-256/无名称字段" — ambiguous: does "不引 SHA-256" mean ContentIdentity shouldn't compute SHA-256? Probably means ContentIdentity 不引用 LiteSim、不引用 SHA-256(实现细节)、无名称字段. It's a bit garbled but matches earlier T53. Non-blocking clarity.
+
+B18 "已烘焙、执行层未接线登记" ✓ T77 "已烘焙未接线登记".
+
+B22 T69 ✓.
+
+B24 T82: 3 设计 + 2 进度卷 + 索引 + doc-lint ✓. But plan B24 lists 4 docs? "状态同步专项设计"（新增/更新章节）+ "联机动画与根位移专项设计" + "烘焙工具箱专项设计" + 2 进度卷 = 3 设计 + 2 进度 ✓.
+
+B23 T81 "证据列命令/时间/摘要/清理" — "清理" likely cleanup of build artifacts; fine.
+
+Now the question of "是否还有编译中断": the T44→T69 window is a red test state; T44's acceptance doesn't claim ClientAsmdefAllowlistTests green, so no false pass. But is there an ordering issue: T69 depends on T44; T70 depends on T69; good.
+
+The T71→T72 split: T71 acceptance includes "坏表候选校验（表接入下一任务）" — ambiguous: does T71 implement ValidateCandidate's candidate-row validation (requires tbcombatgeom table not yet wired) or defer? Parenthetical says "表接入下一任务", so the bad-table test presumably is T72. But T71's acceptance phrase "坏表候选校验（表接入下一任务）" could be read as T71 does it while table wiring in T72 — contradictory because validation needs the table. If T71 tries to validate a table that doesn't exist yet, it can't. It says defer. Severity low; the B9 bad-table requirement is covered by T72 ("坏表 ValidateCandidate 拒启动"). Non-blocking clarity.
+
+Another possible blocker: T43 "LiteSync 空壳" but T44's 15 件 move includes `AoiSettings`? No, AoiSettings new in T79. Fine.
+
+LiteSync references LiteSim; LiteSim references? LiteSim references [] — LiteSync→LiteSim fine. But `AoiSettings` lives in LiteSync/Shared and is used by LiteSim? Plan: AoiFilter in LiteSync, SnapshotSource/Pipeline in LiteSync; SimView in LiteGame. Does LiteSim need AoiSettings? Plan says AoiSettings 落 LiteSync/Shared; service side reads config and injects. OK, LiteSim doesn't reference LiteSync (LiteSim has references:[]). Fine.
+
+But wait: `ProtocolConstants` moves from LiteNet to LiteSync/Shared. LiteNet keeps PacketType/PacketCodec; does anything in LiteNet reference ProtocolConstants? Plan says only SnapshotDiffer (moves). OK.
+
+`BuildHash.g.cs` namespace LiteNet and path unchanged; LiteSync/Shared in shared targets means BuildHash.g.cs generated into LiteNet (SHARED_OUT_FILE). Fine.
+
+One subtle: B22 "StaticMutableAllowlistTests 扫描根含 LiteNet/LiteSync" — T69. But T69's test scanning LiteSync/Client (client code) might flag existing static mutable state moved from LiteNet (e.g., DiagTrace static?). Plan says no new public static mutable; existing moved code might already have; allowlist updates. Fine.
+
+Another: B5 "ArchitectureGuardTests 两条新硬边生效，并有植入违规应红用例" — T69 ✓. But "植入违规应红" test requires a way to inject fixture; fine.
+
+Now check whether T44 includes B4's "--check-shared 通过并记录新哈希" — T44 verification "gen-build-hash 重生成 + --check-shared" but acceptance doesn't mention 记录新哈希 or BuildHash.g.cs 路径/namespace 不变 (B4 includes those). T44 acceptance: "SHARED_TARGETS 增 Four dirs（不含 Client）并重生成 BuildHash（主代理执行）" — no explicit "BuildHash.g.cs 路径与 namespace 不变" or "记录新哈希". B4's requirement "路径与 namespace 未变" is a do-not-change constraint; probably implied. B4 "记录新哈希" not in T44 acceptance/evidence ("证据 -"). Minor gap: no evidence field. All evidence "-" though, tasks not started. Non-blocking.
+
+Also B2 "LiteNet.asmdef 与 LiteNet.csproj 均不引用 LiteSim；Assets/LiteNet/** 内 using LiteSim 零命中" — T44 includes grep 零命中 ✓ (and grep LiteSync too for B2? B2 only LiteSim; T13 old added zero LiteSync too, fine).
+
+B3 "15 件...git status 成对、无 GUID 重建" — T44 verification "unity-pipeline 回读+git status 成对" ✓.
+
+Now, do any tasks exceed "越界" (over-boundary)? T81 creating a new e2e script is within B23. T80 GM export etc. Fine. T82 docs only. T43/44 fine.
+
+Duplicate: B13 and B14 both in T74; B12 in 4 tasks split explicitly. B9 split. No orphan.
+
+One concern: T75 acceptance includes "BakeTargets 五常量去向...四条死路径" and "本任务不删 WriteGenerated" — but B12 requires "`BakeTargets` 五条输出常量逐条去向明确" — if constants deleted in T75 and WriteGenerated (which uses those constants) remains until T78, deleting the constants would break compilation of WriteGenerated in T75. Unless constants are repointed (not deleted) in T75 and removed in T78. T75 says "五常量去向" (destination mapping) not necessarily deletion; it says 四条死路径修正 → repoint. Then T78 removes WriteGenerated and probably the now-unused constants? But B12 says "删除对应 `.g.cs` 与 `BakeTargets` 输出常量" in plan line 128 — deletion of output constants is in T75? If constants deleted in T75, WriteGenerated fails compile until T78 → real compile interruption between T75 and T78 (two tasks). Hmm. T75 says "BakeTargets 五常量去向（Head/Muzzle/Body→#combatgeom...）" — likely repoint, and 四条死路径修正 repoint strings. Then constants remain used by WriteGenerated? After bakers stop using WriteGenerated and write tables directly, WriteGenerated has zero references but still compiles using constants. So T78 deletes method (and maybe constants). T75's "本任务不删 WriteGenerated" plus repointing keeps compile green. But acceptance "五常量去向" ambiguous whether 删除. B12 requires "BakeTargets 五条输出常量逐条去向明确" (明确 not delete) and T78 handles deletion. So consistent-ish. Non-blocking note: clarify constants retained (repointed) until T78 deletes with WriteGenerated, to avoid a compile gap. Actually this is a plausible blocking: if 施工者 interprets "去向" as delete, T75 breaks compile. But B12's wording "逐条去向明确" suggests mapping. I'd raise as non-blocking/medium clarity.
+
+Wait—but plan line 128 explicitly: "删除对应 `.g.cs` 与 `BakeTargets` 输出常量" — this is under 烘焙全迁, and T75 covers Body/Head/Muzzle and their 输出常量; if T75 deletes Body/Head/Muzzle constants while WriteGenerated still references them => compile break. T78 defers WriteGenerated. This is exactly the kind of compile interruption the review asks about. The tasks T75 acceptance says "BakeTargets 五常量去向（...）" — not "删除". So tasks.md softens plan's "删除输出常量" to "去向明确", avoiding immediate compile break. But then B12's "相关常量删除" (if any) is unassigned except possibly T78 ("WriteGenerated 零引用并删除" — only method). So the deletion of the five output constants may be orphaned! Plan B12 acceptance: "`BakeTargets` 五条输出常量逐条去向明确" — just clarify destination, not necessarily delete. Plan §设计 says "删除对应 `.g.cs` 与 `BakeTargets` 输出常量". Discrepancy between plan §设计 (delete constants) and B12 acceptance (去向明确) — this existed across revisions. T78 deletes WriteGenerated; after that constants become unreferenced — should be deleted too for warnaserror? Unused private const doesn't warn. So no compile issue; possible dead constants remain, violating "死路径清理" spirit. Non-blocking or medium.
+
+Hmm, but the review is about whether the four round-5 blockers are fixed and no new blockers. We should be strict but pragmatic. The instruction says output PASS or FAIL with blocking count. Given this is round 6 of plan review (plan log shows 8 rounds) and task review round 5... The four claimed fixes check out. We need decide whether any blocking remains.
+
+Let me look for real blocking issues:
+
+1. T78's "无共享源变更" — need verify BakeTargets location. If BakeTargets.cs is under Assets/LiteSim/Scripts/Map, T78 must regen. Let me check the tasks detail for T78's 文件范围 (likely lists "Assets/LiteGame/Editor/Baking"). Read lines 448+.
+
+2. T69 executor "门禁配置=主代理" — which config? Could be `.workflow/config.json` or gen-build-hash? Actually B5/B22 gate tests are C#; no script. So "门禁配置" might refer to `scripts/gate/test.py` lane config? StaticMutableAllowlistTests roots are in C# test file. Maybe "门禁配置" = `.workflow/config.json` for the new command group? But that's T81. This might be a leftover from prior wording; ambiguous but not blocking.
+
+3. T44 引用者 list missing LiteGame.Adapters.Dev / Tests/EditMode / Tests/UI/PlayMode / Tests/LiteNet.Tests — but "引用者/测试改引用" plus compile covers. Non-blocking.
+
+4. T70 does real 联测 but is it executor main agent (allowed to run build/unity)? yes.
+
+5. T71 B9 "坏表候选校验（表接入下一任务）" — deferral means B9 not fully closed at T71; B9 is split across T71/T72 explicitly labelled "（类型/闸门）"/"（表）" in T71/T72? T72 says "B11+B9（表）...坏表 ValidateCandidate 拒启动" ✓. So B9 split is labeled. Fine.
+
+6. Evidence all "-" — tasks 待办, fine.
+
+7. Plan header "本版为第六轮整改" while log has 第八轮 — stale. Non-blocking (documentation inconsistency), but could be considered a blocker since the plan is described as final? No, it's metadata.
+
+8. Plan 子步 T9b still includes WriteGenerated 删除 and T1-T13 numbering stale relative to tasks; "B1~B24 全覆盖" is about plan acceptance vs tasks, not 子步. Non-blocking.
+
+9. B12 T75 includes "BodyCylinderBaker 同次原子写夹具（含来源 prefab）" ✓ (round-5 fix #4). T75 "prefab 缺失=失败不 skip" ✓. But B12 says "restore-check 保证 prefab 存在，缺失=失败不 skip" — T75 acceptance has "prefab 缺失=失败不 skip" but does not mention restore-check 前置! T75's acceptance omits "restore-check 前置" whereas the old T62 had it. Let me re-read T75 line: "B12：先落表写入器/新行；三件 .g.cs 走 unity-pipeline 删除（主代理）；三烘焙器写表（源只来自 prefab/anchor）；SimMapBaker 读 BakeTargets.PrefabPath 的 CC 并断言表 row≡BodyCc 夹具（半径+高）；BodyCylinderBaker 同次原子写夹具（含来源 prefab）；prefab 缺失=失败不 skip；BakeTargets 五常量去向...；本任务不删 WriteGenerated；注释 0 warning；重生成 BuildHash 主代理。执行者..." — no restore-check. B12 requires "`restore-check` 保证 prefab 存在，缺失=失败不 skip". T75 says prefab 缺失=失败不 skip but doesn't assign restore-check guarantee. Verification mentions "夹具同源/缺失失败用例". Hmm, "prefab 缺失=失败不 skip" covers the failure semantics; restore-check is a mechanism. B12 explicitly names restore-check. Is that a coverage gap? Minor: the requirement "restore-check 保证 prefab 存在" is a precondition mechanism; T75 covers 缺失失败. I'd call non-blocking unless strict. The prior round said "prefab 不入库...restore-check 前置"—the reviewer may have asked to keep it. T75 dropped "restore-check 前置" from acceptance but there is "prefab 缺失=失败不 skip". Maybe flag as non-blocking.
+
+10. T77 B16/B18 requires "rootmotion.bin 位于 Assets/GameData/Config/runtime/" — T77 acceptance doesn't state path. B16 acceptance explicitly. T77 says "rootmotion.bin" only; detail file range includes Assets/GameData/Config/runtime (from T64 detail). Probably okay but acceptance not explicit. Also B18 "LiteSim/Scripts 下不再有 RootMotionData.g.cs" ✓ T77 "先落...再删 RootMotionData.g.cs".
+
+11. B21 "导出后自动 gen.bat + --check-shared 并显示 diff 与'两端需重建'" — T80 says "编辑器+GM 两处导出/diff/备份/check-shared" but not "两端需重建" prompt or gen.bat auto. Hmm, T80 acceptance lacks explicit "自动 gen.bat" and "显示两端需重建". Old T66 also. Plan B21 includes. Minor acceptance gap; verification "工具实操". Non-blocking? It's an acceptance criterion detail; tasks should mirror B items. This is a "文件范围/验收一致" issue. Could be non-blocking suggestion.
+
+12. B19 "唯一门 SimParamsGate.Evaluate(...) 组合根每会话求值一次后以 bool 传递（有'只求值一次'用例）" — T80 says "单门 SimParamsGate.Evaluate 每会话一次 bool" ✓ but does it name the test/验证? "provider/门/合并点用例" ✓.
+
+13. B15 "AoiSettings 可运行期注入且服务端生效" — T79 "AoiSettings 落 LiteSync/Shared；两路真实注入..." ✓.
+
+14. B14 "黄金样本随表调参的更新流程写明" — T74 "黄金样本/更新流程/测试名" ✓.
+
+15. B13 "改表后 GameplayDigestBase 变化可观测" — T74 "改表后 GameplayDigestBase 变化可观测（测试名）" ✓.
+
+16. B8 "两端重建后联机冒烟通过" T70 ✓.
+
+17. B6 "LiteNet 只留 IClientTransport/IClientTransportErrorSource（grep 断言）" — T44 says "WeakNet 移 Dev" but acceptance doesn't explicitly say "LiteNet 只留两接口 grep 断言". Verification says grep 零命中. B6 covered partly. Non-blocking.
+
+18. B7 "Dev 侧只经 DebugKernel 读，由 DebugKernelEditModeTests 覆盖" — T44 has DebugKernelEditModeTests ✓.
+
+19. B2 "Assets/LiteNet/** 内 using LiteSim 零命中" ✓.
+
+20. B1 "asmdef references=[LiteNet,LiteSim]+noEngineReferences+Google.Protobuf 预编译；双轨 csproj 齐备；Unity+dotnet 双轨编译" — T43 file range only "Assets/LiteSync"; csproj changes are in Tests.slnx/LiteNet.csproj? T43 detail file range may include Tests. Detail line 350 "文件: Assets/LiteSync" only. But acceptance says 双轨 csproj 齐备 — file range doesn't include Tests/Tests.slnx or LiteSync.csproj path? LiteSync.csproj perhaps generated/under Assets/LiteSync? In this repo csproj likely at Assets/LiteSync/LiteSync.csproj? T2 old said "收窄/补齐双方 csproj 通配". Hmm, T43 文件范围 Assets/LiteSync only, while acceptance requires dotnet build Tests.slnx and LiteNet.csproj. If creating LiteSync.csproj is under Assets/LiteSync, fine; adding to Tests.slnx would be outside. T44 文件范围 includes Tests/Tests.slnx. So T43 may create csproj (located in Assets/LiteSync) but not register in solution; dotnet build Tests.slnx in T43 would then not include it but still build. "双轨 csproj 齐备" — maybe LiteSync.csproj exists but not in slnx until T44. T44 adds Tests.slnx LiteSync reference. Slight ordering: T43 dotnet build Tests.slnx wouldn't validate LiteSync.csproj; but T43 also dotnet build LiteSync.csproj explicitly. OK.
+
+21. T69 "gen-build-hash --check-shared" verification — no shared change in T69, fine.
+
+22. T81 new script `scripts/gate/sync-and-sim-e2e.py` — toolchain check may require registration? scripts/gate not tool. Fine.
+
+23. T82 docs: B24 requires 4 docs: 状态同步专项设计, 联机动画与根位移专项设计, 烘焙工具箱专项设计 + 2 进度卷 ✓ "3 设计+2 进度卷".
+
+24. Plan B23 "Sync-and-sim 命令组... wf verify 通过" T81 ✓.
+
+Now "权限与资产搬迁方式": T44 走 unity-pipeline, 主代理 for asset move; T75/T76/T77 主代理 delete .g.cs; T78 施工子代理 Editor code (no asset). T79 main for cloud ops. T80 main for GM real operations. T70 main for build. Looks good. But T76 "资产删除=主代理；代码/测试=施工子代理" and T76's grip.bin is a runtime asset under Assets/GameData/Config/runtime — generating it is via editor baker; who runs the baker? T75/T76 "烘焙实操" verification; executor not specified for running baker. T76 asset delete main; 烘焙器 code by subagent; running the baker (Unity) probably main? Ambiguous but not blocking.
+
+Similarly T75 "资产删除/重生成=主代理；代码/测试=施工子代理" — who performs the actual bake to produce table rows and BodyCc fixture? "烘焙实操" in verification; execution likely main agent via unity-pipeline (asset pipeline). Not explicitly assigned. This could be a permission/executor gap: 烘焙器实跑需 Unity/资产写权限，主代理；T75 only assigns 资产删除/重生成. If 施工子代理 runs the baker (editor code execution) it's a Unity operation beyond its permission. Hmm. Previous rounds asked for executors; round-5 fix #2 lists T75 executors. Maybe sufficient: "资产删除/重生成主代理" and code/tests subagent; the bake run falls under 资产? Ambiguous. Non-blocking maybe.
+
+Now, "任务粒度/依赖/验证可独立执行": T74 depends on T73; includes regen. T75 depends T74; but T75 modifies bake table writer and BodyCc fixture — independent. T76 depends T75 — Grip is independent of Body/Head/Muzzle, but linear chain is fine (order by area). T77 depends T76. T78 depends T77 (correct per fix #1). T79 depends T78 — AOI after WriteGenerated deletion; unrelated but linear. Fine.
+
+T70 (两次重建联测) before T71; T81 final e2e. Fine.
+
+Could there be a blocking issue that T73's "四几何覆写" deletion must occur before T80 and after T72, and B19 says "删除四几何覆写" in acceptance — T80 does zero-hit recheck, T73 deletes ✓.
+
+One real concern: B10/T73 deletes `CombatConfig` geometry constants, but plan says B9/T71 defines `CombatConfig.Geometry` projection and T73 deletes constants. T71 doesn't mention deleting constants (correct, constants removed in T73 after readers migrate? Wait T73 both migrates readers and deletes constants — same task, that's fine: delete after migrating within task). But plan 子步 T13 says "在 T8 读者迁移完成后删除 CombatConfig 几何常量" as a separate step after T8. New T73 merges them into one task. Fine as long as done in one commit/task (compile after both). T73 acceptance "本任务唯一删除四几何覆写" but doesn't say "删除 CombatConfig 几何常量" explicitly — B10 covered via zero-hit. Acceptable.
+
+Another real concern: B9 "10 处 new CombatValues 调用点全部更新" at T71, but 3 production call sites include `SimConfigMapper.cs:46` and `ServerTableLoader.cs:204` which are in LiteGame/Modules/Config? and Server. T71 file range includes Modules/Config, Server/RoomServer, Tests ✓ (detail line 436). Good.
+
+T72 file range includes Assets/GameData/Generated + Config ✓, Luban ✓, Server ✓, Tests ✓.
+
+T73 detail likely includes Assets/LiteGame modules (Arena/Dev/Editor/Gm), Server, Tests, LiteSim Scripts/Systems, and Lua? T73 mentions Arena 侧 files. Let me read remainder to check T69-T82 file ranges for coverage (e.g., T73 missing Assets/LiteGame/Editor/Gm, T80 missing deploy config for Aoi? no).
+
+Let me use tool call 3: read tasks.md from 448.
+dsh: reasoning:
+T78 file range = Assets/LiteGame/Editor/Baking → confirms BakeTargets is in Editor/Baking, no shared source. Good, T78 no regen correct.
+
+T69 file range = Tests/LiteFramework.Core.Tests only — but T69 also includes "Allowed 删 LiteNet->LiteSim 加 LiteSync" — where is ClientAsmdefAllowlistTests? Tests/LiteFramework.Core.Tests likely. But "ClientRoots" etc. all in Tests project. "门禁配置=主代理" — but no gate config file in range. Hmm, T69 acceptance mentions "门禁配置=主代理" but 文件范围 is only tests, no config. Could be that gen-build-hash.py? Not a gate config. Maybe "门禁配置" = `.workflow/config.json`? Out of scope. Minor inconsistency: executor split mentions a component not present in file range/acceptance. Not blocking but note.
+
+Now T74 file range = Config module + Server + Tests, no LiteSim; yet T74's acceptance includes "重生成=主代理" and "gen-build-hash 重生成+check". If T74 doesn't change shared sources, regen yields no change — harmless but unnecessary. However B13 table bytes digest — CombatConfigDigest lives in Modules/Config (LiteGame). But B14 tests maybe. Fine.
+
+T73 file range includes Assets/LiteGame whole, which includes Editor/Gm, Adapters/Dev, measured. Good.
+
+T71 file range includes Battle/Arena (for BattleContextTests) — but tests are under Tests; "Assets/LiteGame/Modules/Battle/Arena" for BattleContext source? B9 loaded reader timing is BattleContext.cs:305, changes? No change needed to BattleContext, only test. Including Arena allows assertions. Fine.
+
+T79 file range includes LiteSync, LiteSim/Scripts/Config, Arena, RoomServer, deploy config, gm.py, Tests. Good. But AoiSettings client read from JoinAck — SimView in Arena? plan line 120 says SimView takes from JoinAck, likely in LiteGame/Modules/Battle/Arena or LiteGame. Included. JoinAck is protobuf in LiteNet Core/Proto — file range doesn't include Assets/LiteNet/Core/Proto or proto files! B15 requires JoinAck.SnapshotHz (already exists per plan 现状: `JoinAck` 字段 exists) — so no proto change. Plan line 61: SnapshotHz 现存依赖: JoinAck 字段、SimView.SnapshotInterval、LocalServerHandshakeEditModeTests. So JoinAck already has field; no proto edit. Fine.
+
+T80 file range includes Adapters/Dev (SimParamsGate), Editor/Baking (exporter), Editor/Gm, LiteSim/Scripts/Rules, Modules/Config, Server, Tests. But SimParamsOverrides maybe in LiteSim/Scripts/Config? "Rules" included. ServerTableLoader optional merge delegate → Server/RoomServer ✓. ConfigService → Modules/Config ✓. Good.
+
+T81 file range includes scripts/gate e2e, config.json, scripts/build, Server, Builds. Good.
+
+T82 docs only; B24 requires 3 design docs + 2 progress volumes and index registration. File range lists docs directories, no index? "索引登记" in acceptance; index under Docs maybe not in range but doc-lint covers. Fine.
+
+T44 file range: Assets/LiteSync, LiteNet, LiteNet.csproj, Adapters/Dev, App, Editor, RoomServer, gen-build-hash.py, Tests, Tests.slnx. Missing asset move for `LiteNet/Core/Protocol` files into LiteSync — covered by Assets/LiteSync + LiteNet. Missing `Assets/LiteNet/LiteNet.asmdef`? Under Assets/LiteNet. Good. Missing `LiteSim` references? no changes.
+
+But T44 acceptance mentions "LiteGame.App/Editor、Server/RoomServer、Tests.slnx 补 LiteSync 引用" — what about `Tests/LiteNet.Tests` and `Tests/EditMode`, `Tests/UI/PlayMode` asmdefs? They are under Tests, covered by "引用者/测试改引用" + file range Tests. The B6 WeakNet tests in Tests/LiteNet.Tests reference Dev which is under Adapters/Dev — okay.
+
+Now check whether T73's "测试名" fix is adequate: names BattleCrosshairEditModeTests/BattleLaserEditModeTests/BattleSmokePlayModeTests + ArchitectureGuardTests 负例 + Arena only-read assertions. B10 lists those test names in plan line 113. ✓.
+
+Round-5 fix 4: T75 has BodyCylinderBaker atomic write fixture (incl. source prefab), prefab missing = fail not skip ✓.
+
+Round-5 fix 1: ✓ T78, T75 explicitly not delete.
+Round-5 fix 2: T69/T70/T74/T75 executors ✓ (with ambiguity in T69's 门禁配置).
+Round-5 fix 3: ✓.
+
+Now overall conclusion. Are there any blocking issues? The instruction expects strict. Let me scan for serious issues:
+
+A. T69 file range/executor mismatch: "门禁配置=主代理" but file range only Tests project; no gate config file. Minor.
+
+B. T44 → T69 sequencing leaves an intentional red window for ClientAsmdefAllowlistTests/ArchitectureGuardTests: T44 deletes LiteNet→LiteSim asmdef ref and moves files, but Allowed table still lists old edge and lacks LiteSync. If ClientAsmdefAllowlistTests asserts the allowlist exactly (both directions), then in T44 the test is red; but T44 doesn't run it and T70 runs L1 only after T69. However, does T44's "Unity 0 error" gate run the test? No. So no false pass. But T44 acceptance includes "LiteNet 零 using LiteSim" verified by grep, not the allowlist test. Fine.
+
+C. Does T44's `dotnet build Tests.slnx` include Tests/LiteFramework.Core.Tests with LiteSync reference? Tests.csproj may reference LiteLink etc. Fine.
+
+D. T71 B9 claims "10 构造点" but after T72 adds tbcombatgeom, constructor unchanged (9 params). Fine.
+
+E. T72 acceptance "生成读码/表字节落 Assets/GameData/Generated/Config" — B11 requires TableLayout.Files `"Combat/tbcombatgeom"`; T72 says "TableLayout.Files=Combat/tbcombatgeom" ✓.
+
+F. B13 digest: T74 acceptance "表字节进摘要" — does T74 include adding tbcombatgeom to JudgmentFiles? That's T72. T74 should verify. If CombatConfigDigest code (which tables to hash) needs update, where? Plan says JudgmentFiles automatic via TableLayout domain; T72. T74 only tests. OK.
+
+G. B14 "13 值与表装载结果逐字段精确相等（比较对象是装载产物，不是同源夹具自比）" — T74 says "13 值与表装载结果 0 容差" ✓.
+
+H. B20 ④ GM 页联机禁用几何滑杆 + 红线 13 真实操作: T80 "红线 13 真实操作" and GM 真实操作=主代理 ✓.
+
+I. B23 "wf verify" command group: T81 says wf verify 通过 ✓.
+
+J. B24 "doc-lint 全过" ✓.
+
+K. Plan metadata stale (第六轮 vs 第八轮; 子步 T9b/WriteGenerated; T-number mapping). Non-blocking.
+
+L. B12's "BakeTargets.WriteGenerated 零引用并删除" is T78 but B12 says "相关 XML 注释清理后编译 0 warning；BakeTargets.WriteGenerated 零引用并删除" — T78 covers. ✓
+
+M. T75 "本任务不删 WriteGenerated" ✓ but does T75's "BakeTargets 五常量去向" risk deleting constants used by WriteGenerated? T75 says 去向 not 删除; T78 deletes WriteGenerated. But if B12 says "删除对应 .g.cs 与 BakeTargets 输出常量" (plan design), the constant deletion is unspecified. Since T78 only says "WriteGenerated 零引用并删除；编译 0 warning", the five output constants (now dead) would remain. Are they public? If unused private const, C# no warning. This leaves dead paths—contradicting "B12 五条输出常量逐条给出新去向，四条死路径修正". Actually "四条死路径修正" means repoint constants, so they're not dead. After WriteGenerated deletion, constants unused. Is that a problem? Minor dead code, not blocking. Could note.
+
+N. T76 does not mention 重生成 (correct, non-shared) but grip.bin is under Assets/GameData/Config/runtime — is that in BuildHash source? No .bin not in SHARED_TARGETS; GameData/Generated is, Config not? Plan says SHARED_TARGETS includes GameData/Generated, and `Assets/GameData/Config` maybe includes generated config bytes. `rootmotion.bin` in Config/runtime not in targets (plan B18). Fine.
+
+O. B18 "根位移摘要进 ContentIdentity.RootMotionDigest" — T77 includes Digest; B17 AppComposition. ✓
+
+P. B16 "LiteSim 内不再出现 RootMotion*" ✓ T77; but RootMotionBaker is in Assets/LiteGame/Editor/Baking/RootMotionBaker.cs (file range) ✓.
+
+Q. T70 evidence "两端 BuildHash 对账" ✓.
+
+R. Task T43 "纯 C#/asmdef" but creates `.csproj` — csproj is C# project, fine. It isn't "门禁脚本".
+
+S. T44 says `SHARED_TARGETS 增 Four dirs（不含 Client）并重生成 BuildHash（主代理执行）` — good. But B4 also "BuildHash.g.cs 路径与 namespace LiteNet 未变"; not stated. Verification check-shared would fail if path changed. Minor.
+
+T. B1 "asmdef refs=[LiteNet,LiteSim]" T43 ✓; but plan line 100 also csproj `LangVersion 9.0`; T43 acceptance doesn't mention LangVersion 9.0. Minor acceptance gap (B1 doesn't either).
+
+U. B5 "ClientAsmdefAllowlistTests.Allowed 删除 LiteNet->LiteSim 新增 LiteSync.asmdef 条目" T69 ✓. But T44 already moved ClientRoots? no.
+
+V. T44 acceptance "B2/B3/B4/B6/B7" — B6 requires "LiteNet 只留 IClientTransport/IClientTransportErrorSource"; T44 doesn't explicitly assert only two interface files. Perhaps non-blocking.
+
+W. B7 "DiagTrace 登记" T44 ✓.
+
+X. B22 scan roots LiteNet+LiteSync — T69 ✓. But LiteSync/Client may contain static state moved; test may fail if existing static mutable (e.g., RoomClient static?). Plan says no new; allowlist should include existing? Not our concern.
+
+Y. AoiSettings in `LiteSync/Shared/` — B15 says "AoiSettings 可运行期注入"; T79 "落 LiteSync/Shared" but B15 doesn't require location. Fine.
+
+Z. T79 "两路真实注入" includes 改配置后重启 LiteGame-Room 再回读 — good, avoids false pass. GM sandbox via gm.py — plausible.
+
+Possible blocking: `Tests/LiteFramework.Core.Tests` might reference `LiteSync`? T69 file range Test project only; B5 requires asmdef allowlist and hard edges. Fine.
+
+Now "是否存在越界": T81 creates e2e script and edits config — B23 ✓. T74 重生成 despite no shared change — harmless. T71 file range includes Battle/Arena though no code change? It's for test assertions on BattleContext? Tests in Tests project, but including Arena allows if needed. Slight over-range not harmful.
+
+What about T73 scope "Assets/LiteGame" whole (broad) — acceptable given many readers.
+
+Now, a potentially real issue: `CombatConfig.Geometry` is defined in T71 (LiteSim/Scripts/Config) and used by readers in T73. But T71's acceptance says "读口三态（未发布抛/已发布读/展示兜底）" — good. T71 also includes `ResetForTests` and loaded timing. Fine.
+
+Another: T71 "10 构造点" — 10 includes production 3 (SimConfigMapper, CombatValues.cs:74, ServerTableLoader:204) and 7 tests. T71 file range includes Config module + Server + Tests, but not `Assets/LiteSim/Scripts/Config/CombatValues.cs`? Yes "Assets/LiteSim/Scripts/Config" ✓.
+
+T72 file range includes `Assets/LiteGame/Modules/Config` and `Server/RoomServer`, `Tests`, `Luban`, `Assets/GameData/Generated` and `Config` — but not `Assets/LiteSim/Scripts/Config/Serialization` (SimConfigMapper?) or `TableLayout` which lives in `Serialization.Luban/{SimConfigMapper,TableLayout}.cs` — where is that in repo? AGENTS says `Serialization.Luban/{SimConfigMapper,TableLayout}.cs` shared link file. Its path likely `LiteGame/Modules/Config/Serialization.Luban`? Actually `Serialization.Luban` maybe under `Assets/LiteGame/Modules/Config`. T72 file range includes Modules/Config, likely covers. Plan 现状 "BuildCombatValues 在 SimConfigMapper" — in Modules/Config. Fine.
+
+Now, the tasks stat says "完成 0/82（取消 66，阻塞 0）" — 66 canceled, but effective tasks 16. Let me count canceled: T1-T42 = 42, plus T45-T68 = 24 → 66. Effective T43,T44,T69-T82 = 16. 82-66=16 ✓. Good, no orphan/dormant tasks. But T43/T44/T69-T82 have no "状态理由" (待办), fine.
+
+Now, plan B12 mentions "五个烘焙器改产表行或 .bin" but tasks T75/T76/T77 plus T78 cover. BodyCylinderBaker/HeadHitLineTuner/MuzzleOffsetBaker (3) T75; RootMotionBaker T77; WeaponGripBaker T76. ✓
+
+B12 "SimMapBaker 的出生点校验直接读 BakeTargets.PrefabPath 的 CharacterController（与 BodyCylinderBaker 同源）" — T75 "SimMapBaker 读 BakeTargets.PrefabPath 的 CC" ✓; "ValidateSpawns/SpawnOverlapsObstacle 收 radius/height" not in T75 acceptance explicitly. B12 acceptance explicitly includes "`ValidateSpawns`/`SpawnOverlapsObstacle` 收 radius/height". T75 says "SimMapBaker 读 ... CC 并断言表 row≡BodyCc 夹具" — omits the method parameterization. Minor acceptance gap; task detail maybe not. This is a "验收一致" issue but likely non-blocking since body radius/height use is implied. But hmm, the review asked specifically "文件范围/验收一致". If multiple B-item details are omitted, we could stack them as one non-blocking cluster.
+
+B12 also "BakeTargets 五条输出常量逐条去向明确" ✓ T75; "四条死路径修正" ✓; "相关 XML 注释清理后编译 0 warning" ✓ T75; "`BakeTargets.WriteGenerated` 零引用并删除" ✓ T78.
+
+B12 also "`BodyBakeEditModeTests`、`SimMapBakerEditModeTests`、`WeaponGripConstraintEditModeTests`、`GripTuning`/`FeatureDebugTunables` 迁移" — T75 verification "BodyBake/SimMapBaker EditMode" ✓, T76 "WeaponGripConstraintEditMode; catalog 用例" but "GripTuning"/"FeatureDebugTunables" migration? T76 acceptance lists "WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver/GripTuning/FeatureDebugTunables 迁移" ✓.
+
+B12 "`MatchTestRules` 类头/字段的爆头覆写说明同步删除" — T73 deletes fields; comment cleanup not explicit. With warnaserror only cref issues error; comments mentioning deleted fields won't error. This is a real acceptance gap: T73's acceptance doesn't mention 注释清理. But B10's zero-hit guard scans code identifiers excluding comments/strings — comments referencing old fields would be allowed, so stale comments remain. Not a compile/gate issue. Plan line 131 assigns comment cleanup to T9b (old); in new tasks T75 covers "注释 0 warning" but that's for baking/SimMap, not MatchTestRules. However T73's file range includes LiteSim/Scripts, so could include. Non-blocking.
+
+Now the critical question: is there any issue severe enough to FAIL? Given the prompt says "第 5 轮 4 个阻塞的整改" and lists exactly fixes; we verify those. The four fixes are present and correct. Coverage is complete. Executors mostly complete. Regeneration with check and executors present for shared-source tasks. The remaining issues are ambiguities/minor gaps. I lean PASS with 0 blocking, listing non-blocking suggestions.
+
+But wait — the prompt's "只核验" includes "是否还有编译中断/门禁不可执行/虚假通过". Is there a false-pass risk in T73's "Arena 只读展示断言"? Plan B10 requires "判定/烘焙代码不读 CombatConfig.Geometry（有断言）" and T73's "Arena 侧 ... 只读展示断言" — okay.
+
+Potential false pass: T74's "改表后 GameplayDigestBase 变化可观测（测试名）" but T74 no test name given explicitly? It says "（测试名）" but doesn't name it. B13 doesn't require test name; B14 requires test names. T74 says "黄金样本/更新流程/测试名" but no names. Hmm, round-5 fix #3 required test names for T73 only; B14's "给出测试名" — T74 says "测试名" as a deliverable, not naming. Is that acceptable? It tells executor to produce names; but acceptance should be verifiable. B14 explicitly "（给出测试名）" — task should name them or require the evidence. Since T74 says "黄金样本/更新流程/测试名" as acceptance (i.e., must record names), arguably okay, but weak: cannot verify without naming. Non-blocking.
+
+Potential false pass: T70 "本地测试房+KCP lossy 冒烟" — doesn't assert actual join success/checksum; "冒烟" vague. But B8 same wording. Fine.
+
+Potential blocking: T69's executor line says "门禁配置=主代理", but T69 modifications include `.workflow/config.json`? No. If "门禁配置" means `scripts/gate`? B5/B22 checks are tests; no gate config. This line is leftover and could cause a worker to wait for main agent for a nonexistent piece. Not blocking, but a clarity defect in the exact round-5 fix #2. Since the fix requirement was to补齐执行者, a mismatched component is worth flagging as non-blocking or even blocking? The component "门禁配置" could refer to `.workflow/config.json` command group? Actually maybe "门禁配置" refers to `gen-build-hash.py`? No. Or `Tests/LiteFramework.Core.Tests` .csproj? No.
+
+Hmm, could "门禁配置" mean the `.workflow/config.json` gate command group for T69? B22 test runs in L1; no config needed. It's likely a leftover from a generic template. I'd flag as non-blocking: 建议明确 T69 无门禁脚本改动，删除该表述或改为 "测试 asmdef/csproj 引用=主代理".
+
+Another: T44's file range includes `Assets/LiteNet/LiteNet.csproj` but not `Assets/LiteNet/LiteNet.asmdef`? Covered by directory. Fine.
+
+Another: T78 "五件 .g.cs 全部退役后" dependency T77 — correct since RootMotionData.g.cs is deleted in T77 and GripBake in T76 etc.
+
+Another possible ordering flaw: T75 deletes Body/Head/Muzzle .g.cs and T76 deletes GripBake, T77 deletes RootMotionData, but `BakeTargets.WriteGenerated` still exists with compile-time references to the output constants and maybe to generated class names? WriteGenerated writes files via strings; after deleting generated classes, nothing references them except consumers, which T75/T76/T77 migrate. But T75 only migrates BodyBake consumers (SimMapBaker, tests) and not head/muzzle consumers? B10 list includes `HeadHitLineTuner` (editor) and `BodyCylinderBaker` (editor) and `MuzzleOffsetBaker` (editor) — wait those are the bakers themselves, using CombatConfig.Geometry? Plan line 113 external readers: ConfigService, BattleCrosshairDriver, AutoHeadshotRig, BattleHeadshotDebugDrawer, FeatureDebugTunables, GmTestModePage, HeadHitLineTuner, BodyCylinderBaker, MuzzleOffsetBaker, and tests. Those are T73's migration (HUD/Dev/Editor/测试) — T73 covers Editor (Assets/LiteGame whole). But HeadHitLineTuner/BodyCylinderBaker/MuzzleOffsetBaker are modified both in T73 (stop reading CombatConfig.Geometry) and T75 (write table). Order T73 before T75, fine.
+
+Does HeadBake/MuzzleBake have runtime consumers besides the bakers? Plan 现状 says HeadBake → `HeadHitLine/HeadshotRadius` in CombatConfig; after T71/T72 these come from table; the .g.cs constants are only read by CombatConfig (removed in T73). So deleting .g.cs in T75 after T73 is safe. BodyBake used by SimMapBaker (T75 migrates) and tests. MuzzleBake only CombatConfig. RootMotionData used by RootMotionCatalog (T77). GripBake used by 5 consumers (T76). Good ordering: T73 removes CombatConfig reads of BodyBake/HeadBake/MuzzleBake? Wait T73 deletes CombatConfig geometric constants (sourced from BodyBake/HeadBake/MuzzleBake) and migrates to `values.Geometry`. That makes the .g.cs unreferenced after T73, then T75 deletes. But `CombatConfig.cs` currently has `public const float HitscanRadius = BodyBake...` etc. Deleting constants requires no stale using. Fine.
+
+But one compile-order subtlety: T71 adds `CombatConfig.Geometry`; T73 deletes old constants and migrates. If CombatConfig keeps old constants until T73, fine. T71 doesn't delete them. Good.
+
+B10/T73 deletes `MatchTestRules.ResolveHead*` and overrides, and code m readers. T73 does both. Good.
+
+Now SimParams (T80) uses `CombatValues.Geometry`; SimParamsDebugTunables 13 items could reference old constants until T73? T80 after T73, fine.
+
+Potential issue: T79 depends on T78, which is a different area; no problem.
+
+Now, is T70 (batch 6 rebuild) after T69 sufficient for B8 even though B5/T69 might leave `ArchitectureGuardTests` changes requiring a BuildHash regen? Tests aren't in shared source; no.
+
+What about T69's ClientAsmdefAllowlistTests requiring `Assets/LiteSync` ClientRoots — the LiteSync asmdef for tests? fine.
+
+Now let me consider "覆盖矩阵" format: group B1~B24. I'll write groups.
+
+Given all this, conclusion PASS with 0 blocking, but the output schema requires 阻塞问题: <数量>. Could be 0. But instructions "第 5 轮 4 个阻塞的整改" — reviewer should be independent, could find new blocking. Are any of my findings truly blocking? The strongest candidates:
+
+1. T44 → T69 red window: ClientAsmdefAllowlistTests.Allowed retains `LiteNet -> LiteSim` after T44 removes the actual reference. If that test uses exact-set equality, it will be red between T44 and T69; meanwhile T44's acceptance includes "Unity+dotnet 编译" and T44's B5 isn't in scope. Gate isn't run until T70. Not a false pass, just intermediate red. Not blocking.
+
+2. T75 dropped "restore-check 前置" from acceptance (B12 explicitly names it). Is restore-check part of B12 acceptance: "`restore-check` 保证 prefab 存在，缺失=失败不 skip". T75 has "prefab 缺失=失败不 skip" but no restore-check. The mechanism "restore-check ensures prefab exists" is separate. If omitted, neither task implements restore-check change → B12 partially uncovered. That's a coverage gap for an explicit acceptance clause. Severity: could be blocking under "B1~B24 全覆盖". Hmm. But T75 verification includes "夹具同源/缺失失败用例" and acceptance "prefab 缺失=失败不 skip", which is the behavior. The plan requires restore-check specifically to guarantee prefab presence; a test can simulate missing prefab. Is the restore-check mechanism part of B12? Yes explicitly. But is it a *behavior* requirement or an implementation suggestion? It says "`restore-check` 保证 prefab 存在，缺失=失败不 skip". T75 covers "缺失=失败不 skip" but not "restore-check 保证". Could be considered covered semantically: the pre-bake check fails instead of skipping. I'd list as non-blocking (建议补 restore-check)。
+
+3. T78 file range/executor correct. Good.
+
+4. B21's "自动 gen.bat + 显示两端需重建" omitted in T80. B21 is explicit. T80 says "编辑器+GM 两处导出/diff/备份/check-shared" — "check-shared" after export implies gen.bat? Not necessarily; B21 requires automatic gen.bat after export. T80's "导出/diff/备份/check-shared" omits "自动 gen.bat" and "两端需重建" prompt. Is that blocking? It's an acceptance detail; worker could implement without gen.bat and still pass "check-shared" (which would then fail on hash mismatch if table source changed? Actually --check-shared checks BuildHash, not Luban data; generated read-code changes only if table schema changes, not values. So skipping gen.bat would not fail check-shared; the table .bytes wouldn't be regenerated → game not use new values → false pass!). Interesting: B21 requires 导出后自动 gen.bat + --check-shared. T80 acceptance says "导出/diff/备份/check-shared" — "check-shared" might be the `gen-build-hash.py --check-shared`, not gen.bat. Without gen.bat, exported xlsx values aren't in .bytes, so the "next game" wouldn't use them. Is gen.bat implied by "导出到表"? "导出" writes xlsx only. T80's verification "工具实操" is vague. This is a potential false-pass: export flow could pass diff/backup/check-shared without regenerating bytes. However T80 acceptance earlier says "B19/B20/B21：... 编辑器+GM 两处导出/diff/备份/check-shared" — B21 is referenced wholesale ("B21："), so B21's full criteria are imported by reference. Similarly other tasks say "B13/B14: ..." and then list. Here T80 starts "B19/B20/B21：" and lists partial. Reference to B21 arguably covers all its clauses, but the listed subset might be the intended scope. Same for T70 "B8：..." listing. Usually "Bxx：" means "covering Bxx", with details abbreviated. So maybe not blocking.
+
+Nonetheless, strict review could flag these as "验收点省略" non-blocking.
+
+5. B14 test names: T74 says "测试名" but doesn't name. B14 requires "给出测试名". In contrast round-5 explicitly added names for T73. This is a verifiability weakness, not a coverage gap. Non-blocking.
+
+6. Plan metadata inconsistency (第六轮 vs 第八轮) and stale 子步 list with WriteGenerated — doc-level, non-blocking.
+
+7. Coverage matrix has no task for "B12 收口" except T78, good.
+
+8. "B1~B24 全覆盖" — B5 in T69; B22 T69. All covered.
+
+9. No "孤儿": Are there any effective tasks not mapping to a B? T78 maps B12 收口; T74 B13/B14; T81 B23; T82 B24. All mapped.
+
+10. "重复": B9 split T71/T72 labelled; B12 split T75/T76/T77/T78 labelled; B13/B14 same task. No duplicate acceptance between tasks? T73 says "四几何覆写只做..." no. T80 says "四几何覆写只做零命中复核（删除在判定面任务）" — that's a recheck, not duplicate. Fine.
+
+11. "越界": T81 adds an e2e script not explicitly in plan B23 (plan says command group; command can be a script). T81's e2e includes "清理" evidence; fine.
+
+Hmm — one more important check: "共享源集任务的重生成+check 与执行者" — T71/T72/T73/T75/T77/T79/T80 all have "重生成 BuildHash 主代理" and verification "gen-build-hash 重生成+check" — yes. T74 has regen too. T76 no shared; T78 no shared. T43/T44 yes. T69 no shared (tests). Good.
+
+But T72 changes `TableLayout.cs` which is a SHARED_LINK_FILE — T72 says 重生成 ✓. T72 also runs Luban/gen.bat (主代理 gen) ✓.
+
+T75 changes `#combatgeom` schema? No, adds new rows via table writer; gen.bat needed after table write. T75 acceptance says "先落表写入器/新行" and verification "烘焙实操" but doesn't mention `gen.bat` after baking writes table! B12 requires "gen.bat + --check-shared" for table writers (plan line 128: "三者改为写表...（... `gen.bat` + `--check-shared`）"). T75 acceptance: "先落表写入器/新行" — new rows must be generated to .bytes for runtime; task doesn't say run gen.bat after bake. Verification "gen-build-hash 重生成+check" (BuildHash, not Luban gen). This is a potentially real false-pass: baking writes xlsx but runtime table .bytes not regenerated. However B12 acceptance as a whole doesn't explicitly say gen.bat; plan line 128 does. T75's "表写入器/新行" maybe implies. Hmm. T80 covers exporter gen.bat via B21 (partially). But baker table writes in T75 also need gen.bat. The old T62 acceptance also didn't mention gen.bat explicitly. This could be a gap worth flagging. But is it blocking? The task's verification is "烘焙实操" (run bakers) and "gen-build-hash 重生成+check" — if gen.bat isn't run, the runtime table remains stale; but the table writer may itself trigger gen.bat? Plan line 128 says "三者改为写表（共享表写入器复用 SimParamsExporter 的 xlsx 读写/备份/原子写...）" — the `gen.bat` with check-shared is stated for the exporter (B21) and for table writers? "（共享表写入器复用 SimParamsExporter 的 xlsx 读写/备份/原子写，落 Assets/LiteGame/Editor/Baking/ 并单测；gen.bat + --check-shared）" — yes gen.bat is part of table writer behavior. T75 says "先落表写入器/新行" without specifying gen.bat; B12 referenced wholesale ("B12：先落表写入器/新行；...") so maybe the writer's spec includes gen.bat in plan. Since tasks reference B-items, the executor should read plan. Still, acceptance should be self-contained ("验证可独立执行"). I'd raise as non-blocking or blocking? The review asks "验证可独立执行" — T75's verification lacks a check that the baked table row reaches `.bytes`/runtime. But it does include "夹具同源/缺失失败用例" and "gen-build-hash...". Hmm.
+
+The strongest potential blocking: T75/T76 bake table writes → `Luban/gen.bat` not in any acceptance/verification for T75/T76 (T76 only grip.bin, no table). T80's B21 export includes gen.bat (if B21 fully imported). T75 writes table via bakers; if gen.bat not run, next runtime still loads old bytes → local test may "pass" against stale values → false green. Is this covered by "表 row≡夹具" test? That test compares table row (xlsx loaded) vs fixture; not .bytes. So a false-pass path exists. Should this be blocking? It's an omission of a required flow step in the plan (plan explicitly says gen.bat for table writes). Task T75 acceptance is derived from B12; B12 doesn't explicitly say gen.bat but plan §设计 line 128 does. The review scope includes "文件范围/验收一致" and "虚假通过". I could flag it as a blocking issue: T75/T80 must include gen.bat after bake/export. But T80's "B21" reference (导出后自动 gen.bat) arguably covers export; T75's bake writes new rows — need gen.bat. Hmm, does baking actually add new *rows*? The table has one row (#combatgeom). Bakers update values in the single row. So table values change → need gen.bat to regenerate .bytes. T75 acceptance "先落表写入器/新行" and B12 "五烘焙器改产表行". No gen.bat. This is a real gap but it could be argued T75's verification "重生成 BuildHash" is different. Given the review has already gone 5 rounds and the user expects strict verification of specific items, I need to decide PASS vs FAIL. The user's specified focus list includes "共享源集任务的重生成+check 与执行者" — they mean BuildHash. It also includes "文件范围/验收一致" — T75's acceptance vs B12/plan has gaps (restore-check, ValidateSpawns params, gen.bat). Are those blockers? The prior rounds' blockers were about correctness holes (prefab not in repo, static reads, gates). These omissions are smaller.
+
+Let me weigh: "任务粒度/依赖/验证可独立执行" — T75 verification "烘焙实操" is not a concrete check; but all tasks in this repo use such wording. The key is whether a task can be validated. T75 has "夹具同源/缺失失败用例" plus "BodyBake/SimMapBaker EditMode" — adequate.
+
+What about T78 "Unity 0 warning" — deleting WriteGenerated might leave unused constants; no warning. Fine.
+
+Let me check if `BakeTargets` is in Editor/Baking — T78 file range says yes, consistent with T75's file range. Good.
+
+One more: T69's "门禁配置=主代理" while 文件范围 only Tests — this is a direct inconsistency in round-5 fix #2 (executors). If strict, this is a defect but not blocking functionality. Similarly T74's "重生成=主代理" though no shared source (maybe unnecessary). T75's "重生成=主代理" ✓.
+
+Now, "是否还有编译中断": consider T73 deletes CombatConfig constants; any other code outside T73's scope still references them? B10 lists all readers within Assets/LiteGame/Editor/Gm, Adapters/Dev, Tests, ConfigService. T73 file range covers Assets/LiteGame (all), Assets/LiteSim (Scripts/Systems), Server, Tests. So full. Good. `BattleCrosshairEditModeTests` etc. under Tests. Good.
+
+T71 changes CombatValues constructor; all 10 call sites updated in T71 (prod 3/test 7), plus any Lua/JS bindings? Not mentioned, but not known.
+
+T72 changes BuildCombatValues signature; call sites: ConfigService, CombatValuesEditModeTests, ServerTableLoader 70/98. T72 must update tests; covered. What about `ConfigurationSourceTests`/`ServerTableLoadTests`/`CombatValuesTableTests` (plan test strategy)? T72 file range Tests. Fine.
+
+T79 changes SnapshotHz from SimConfig static; consumers: SimView, LocalServerHandshakeEditModeTests, SnapshotSource, SnapshotPipeline, maybe `JoinAck` serializer, `ServerTableLoader`/RoomConfig. File range includes LiteSync, LiteSim/Scripts/Config, Arena, RoomServer, config, gm.py, Tests — but SnapshotPipeline/SnapshotSource are in LiteSync (moved), included. `JoinAck` proto in LiteNet/Core/Proto — not changed (field exists). `SimView` likely in LiteGame/Modules/Battle/Arena? Maybe LiteGame/Modules/Battle/View — not in range! Plan line 61 says `SimView.SnapshotInterval`; where is SimView? Likely `Assets/LiteGame/Modules/Battle/Arena/` or `Assets/LiteGame/Modules/Battle/View`. T79 file range has "Assets/LiteGame/Modules/Battle/Arena" only, plus Assets/LiteSync. If SimView lives outside Arena (e.g., `Assets/LiteGame/Modules/Battle/View/SimView.cs`), the file range is too narrow → executor hits files outside declared scope → scope violation or missed change. Hmm. Plan line 61 mentions `SimView`; plan line 37 says `SimView.SnapshotInterval`. Where does SimView live? Unknown. Could be Arena (sim view for battle). The plan's B15 says "客户端从 JoinAck.SnapshotHz 取"; T79's file range includes Arena likely for SimView. But `BattleCrosshairDriver` etc. are in Arena per T73's "Arena 侧". Plausible SimView in Arena. Not enough evidence; can't read more without exceeding? I have 5 tool calls left. The constraint allows "可读 1-2 个关键文件核对" and forbids full-repo search. I could grep for `class SimView` — that's a targeted search, not full-repo? "禁止全仓搜索" — a grep on Assets/LiteGame/Modules/Battle maybe. But the file scope check isn't required to be code-verified; and the user says only read tasks.md/plan.md (可读 1-2 个关键文件核对). I've already read both. Reading a third key file might be allowed ("1-2 个关键文件") but grep is a search. Better not. We can note as non-blocking risk if unsure.
+
+Similarly T80 file range lacks `LiteGame/Modules/Battle/...` for GM page? GM page is Editor/Gm ✓. SimParamsDebugTunables in Adapters/Dev ✓. SimParamsOverrides/Rules in LiteSim/Scripts/Rules ✓. SimParamsGate in Adapters/Dev ✓. ConfigService Modules/Config ✓. ServerTableLoader RoomServer ✓. Buuut `SimParamsOverrides` is used in client ConfigService and in local server host; managed. Good.
+
+T76 file range lacks `Assets/LiteGame/Modules/Battle/Arena`? Grip consumers: WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver in Battle/Characters? WeaponAimConstraint maybe Arena/Characters. T76 file range includes Characters + Adapters/Dev + Editor/Baking + runtime + Tests. If WeaponAimConstraint lives in Arena, miss. Plan line 129 says consumers "WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver/GripTuning/FeatureDebugTunables 从 catalog 取值（由战斗装配注入）" — 装配 injection point could be AppComposition/BattleComposition under App or Arena. T76 range lacks Arena/App. But they're all in "Modules/Battle/Characters" likely (WeaponGripConstraint is characters). `FeatureDebugTunables` in LiteGame/Adapters/Dev ✓. `GripTuning` maybe in Characters. So likely fine.
+
+T77 file range includes App ✓ Arena ✓ runtime ✓ RootMotionBaker ✓ Tests ✓ and LiteSim/Scripts/Map ✓. Good.
+
+T75 file range includes Editor/Baking, LiteSim/Scripts/Map, Luban/Data, GameData, Tests. But `BodyBakeEditModeTests`/`SimMapBakerEditModeTests` are Tests ✓. `BodyCc.json` under Tests/EditMode/Fixtures ✓.
+
+T73 file range includes `Assets/LiteGame` whole, Server, Tests, LiteSim Scripts/Systems ✓.
+
+T74 range lacks LiteSim; if `CombatConfigDigest` is in LiteSim? Plan says CombatConfigDigest 判定表字节 + rules; `CombatConfigDigest` maybe in `Assets/LiteSim/Scripts/Config`? Plan 摘要口径 says `CombatConfigDigest` — where? AGENTS says `CombatConfigDigest` runtime digest. If it lives in LiteSim/Scripts/Config, T74 needs to edit it (to exclude overrides / include rules bits) and its file range omits LiteSim/Scripts/Config → scope/compile issue. Hmm! Plan line 133: 联机 `CombatConfigDigest` = 判定表字节 + 入口规则位... T74's acceptance "表字节进摘要；联机摘要不含覆盖". T74 file range: Assets/LiteGame/Modules/Config, Server/RoomServer, Tests. Where is CombatConfigDigest? If in LiteGame/Modules/Config, fine. The digest is client-side computing from StartGame; `ConfigService.GameplayDigestBase` is in Modules/Config. `CombatConfigDigest` maybe in LiteSim? AGENTS.md 红线 1 mentions `CombatConfigDigest：判定面表字节 + 本局规则`, likely in `LiteGame/Modules/Config` or `LiteSim`. Plan line 189 B13: "`Combat/tbcombatgeom` 进 `JudgmentFiles` ⇒ 表字节进 `CombatConfigDigest`". JudgmentFiles defined in TableLayout (Serialization.Luban under Modules/Config). The digest implementation is likely `CombatConfigDigest` in LiteGame/Modules/Config. T74 range covers. OK.
+
+But T74 "重生成 BuildHash 主代理" despite no shared source: if no shared file changes, regen is a no-op; but `CombatConfigDigest` could be in LiteGame (not shared). Harmless. Unless the rules-bit encoding is in LiteSim? Not stated.
+
+Hmm, note plan says `CombatConfigDigest` computed from table bytes + rules; if it's in LiteSim, T74 would need LiteSim edit and regen — T74 does say 重生成, suggesting reviewer anticipated shared source. But file range omits LiteSim/Scripts/Config. This is a possible file-range inconsistency: 重生成 implies shared-source edits but range doesn't include LiteSim. Either harmless overkill or missing range. Non-blocking note.
+
+Similarly T71's file range includes Server/RoomServer and Config module for 10 call sites; but `CombatValues.cs` is in LiteSim/Scripts/Config ✓.
+
+Now decide PASS/FAIL. The user asks "结论: PASS 或 FAIL / 阻塞问题: <数量>". If I say PASS with 0 blocking but list many non-blocking, that's acceptable given the four fixes verified and coverage complete. But is there truly no blocking? Let me consider the requirement "B1~B24 全覆盖" — B12's "restore-check" and "ValidateSpawns/SpawnOverlapsObstacle 收参数" and "gen.bat" are explicit B12 acceptance clauses. T75 acceptance omits them. Coverage matrix at B-level: B12 mapped to T75/T76/T77/T78, so "covered". But acceptance consistency: T75 doesn't state all B12 sub-requirements for its slice. The user explicitly asks "文件范围/验收一致". This is a finding. Blocking? In prior rounds, missing explicit items became blockers (e.g., prefab not in repo, write source). The user's escalation history suggests they want rigorous coverage; a FAIL might be expected if any hole. But the four fixes are the focus; they explicitly say "只核验" five items, including "是否还有编译中断/门禁不可执行/虚假通过" — no actual compile break found; "任务粒度/依赖/验证可独立执行" — T75's validation is executable.
+
+I think the correct independent verdict: PASS, 0 blocking, with non-blocking suggestions:
+1. T69 executor "门禁配置=主代理" 无对应文件范围/工作项，建议改为“Tests asmdef/工程引用=主代理”或删。
+2. T75 acceptance 补 `restore-check` 前置、`ValidateSpawns/SpawnOverlapsObstacle` 收 radius/height、烘焙写表后 `gen.bat` 重生成 `.bytes`。
+3. T78 与 T75 明确五条输出常量是“重指向保留”还是“随 T78 删除”，避免提前删常量导致编译中断。
+4. Plan 头部“本版为第六轮整改”与评审整改记录到第八轮不一致；子是步 T9b 仍写 WriteGenerated 删除，与任务拆分不一致；建议同步。
+5. T74 说明黄金样本/测试名具体名称；T80 补“两端需重建”提示；T44 补记录新哈希/引用者清单；T73/T71 注释清理归属。
+6. T74/T71/T76/T79 文件范围可能漏（SimView/Arena、CombatConfigDigest/LiteSim、WeaponAimConstraint）——but I'm unsure; maybe list as "建议核对".
+
+Wait: T79's file range and SimView. Let me quickly check one key file location with glob (not full-repo search): glob pattern "**/SimView.cs" is a path search across repo — arguably "全仓搜索" prohibited. The constraint says "禁止全仓搜索/运行命令" and "可读 1-2 个关键文件核对". So I can read a specific known path if I guessed, but no path known. Don't.
+
+Could cite plan line 61 "SimView.SnapshotInterval" and note file range doesn't include the likely view module — but without knowing, risky. I could frame as "建议核对 T79 文件范围是否覆盖 SimView 所在模块（计划只列 Arena）" — non-blocking.
+
+Also "B15...三档真实注入 + GM 房参数" — T79 says sandbox 房? It says "GM `start` 创建 sandbox 房后回读生效值" whereas B15 says "三档（全开/30m/15m）通过 deploy 配置 + GM 房参数真实注入". GM start creates sandbox room — okay.
+
+Hmm wait, AGENTS says sandbox rooms are 隐藏、不限时、无击杀上限、不结算, default standard. Is GM geometry/AOI injection into sandbox valid? B15 says GM 房参数. T79 tests GM sandbox. Fine.
+
+Another possible issue: T79 uses cloud GM (10.8.0.1) which requires tunnel; task says scripts/deploy/gm.py, and AGENTS says gm.py auto-tunnels. Fine.
+
+Now think about "虚假通过" in T70: "本地测试房+KCP lossy 冒烟" — 本地测试房 does not use KCP? LocalServerTransport is in-process; "KCP lossy" requires remote/local server over KCP. "本地测试房 + KCP lossy 冒烟" could be two scenarios (local test room, and KCP lossy online). Verification "player-smoke" single player? T70 acceptance "客户端 build-player + RoomServer publish；本地测试房+KCP lossy 冒烟；两端 BuildHash 对账" — has client + server builds, but player-smoke may be one player. B8 only says 联机冒烟. For batch 6, iterator. Not blocking.
+
+The final answer format is Chinese plain text. Coverage matrix grouped by B1~B24. I'll list compactly.
+
+Should I include "结论: PASS" or FAIL? Let me re-read the user's framing: "第 5 轮 4 个阻塞的整改" — they want verification that those fixes are in place. They are. "是否还有编译中断/门禁不可执行/虚假通过" — I found no hard compile break or unexecutable gate; some acceptance omissions could enable false pass (gen.bat missing; T80 export missing "两端需重建"/gen.bat). Hmm, if I consider the gen.bat omission a false-pass vector, that's blocking. Let me dig: T75 writes #combatgeom via new table writer. Plan line 128 explicitly requires the shared table writer to run `gen.bat` + `--check-shared`. T75 acceptance says "先落表写入器/新行" and verification "gen-build-hash 重生成+check" (check-shared only validates BuildHash constants, which do NOT change when table *values* change; only generated reader code changes affect BuildHash). Actually AGENTS: "改表源跑完 Luban/gen.bat 后仍要重跑 gen-build-hash（生成读码面在闭包内）" — table source value change → gen.bat rewrites `Assets/GameData/Generated` .bytes? GameData/Generated is in SHARED_TARGETS. If values change but generated reader code doesn't, does BuildHash change? The generated bytes are under GameData/Config maybe, not Generated. `GameData/Generated` = Luban generated table row classes/readers; value changes don't change code. So `--check-shared` passes even if gen.bat skipped. Thus a skipped gen.bat yields stale runtime tables and no gate catches it except an end-to-end test that reads the row value vs fixture... T75's "表 row≡夹具" test: if the test loads the *xlsx* row via some exporter, it passes; if it loads the runtime table (.bytes), it fails. Wording "表 row" suggests loaded table. If the test compares loaded table values (from .bytes) to fixture, then skipping gen.bat fails the test. But the test runs after bake; if table writer runs gen.bat automatically, fine. T75 says "先落表写入器/新行" — new writer likely includes gen.bat per plan. Since tasks reference B12 wholesale and plan, but "验证可独立执行" requires self-contained acceptance. I'd call it non-blocking (suggest adding explicit gen.bat), not enough to FAIL because the writer spec is in plan and T80 covers export flow.
+
+The instruction "只核验" also includes "共享源集任务的重生成+check 与执行者" — in that dimension, all good.
+
+I'll go PASS with 0 blocking. But is it credible that a 5th-round task review has zero blockers? The four stated blockers are fixed; new findings are minor. The reviewer is independent; PASS is acceptable if justified. However, I should be careful: the user might expect FAIL because plan metadata stale and a few acceptance gaps. But PASS/FAIL should reflect blocking severity. The four fixes are correctly implemented; coverage complete; no hard compile/gate failure. PASS.
+
+Wait, one more potential blocking I should examine: T69 depends on T44, and T44's acceptance includes "Allowed 删 LiteNet->LiteSim 加 LiteSync"? No, T44 acceptance B2/B3/B4/B6/B7. But T69's "Allowed 删 LiteNet->LiteSim 加 LiteSync" — `ClientAsmdefAllowlistTests.Allowed` is in Tests/LiteFramework.Core.Tests; T69 file range that project. But `ArchitectureGuardTests` 硬边 "LiteNet 不得引 LiteSim/LiteSync" — after T44, LiteNet has no refs. Fine.
+
+B22 "StaticMutableAllowlistTests 扫描根含 LiteNet/LiteSync" — T69 adds LiteSync root; if LiteSync/Client introduced static mutable state, the test would flag; allowlist may need entries. Plan says no new. Fine.
+
+What about "LiteSync 进 ClientAsmdefAllowlistTests.ClientRoots" — T69 ✓.
+
+Compile interruption: T43 creates LiteSync asmdef referencing LiteNet/LiteSim; before T44 moves files, LiteSync empty. But LiteNet still references LiteSim (from B2 not yet applied) — allowed. After T44, LiteNet removes LiteSim; moved files in LiteSync reference LiteSim; LiteSync refs both. Fine. `LiteNet.asmdef` noEngineReferences and Protobuf only. T44 file range covers LiteNet.asmdef/csproj via Assets/LiteNet.
+
+One subtle compile risk: moving `ProtocolConstants` to LiteSync/Shared changes namespace? Plan doesn't say namespace change; if namespace remains `LiteNet` (like BuildHash), then LiteNet files referencing `LiteNet.ProtocolConstants` would need `using LiteSync`? Plan says only SnapshotDiffer uses it and moves. But the type's namespace: if it stays `LiteNet`, then LiteSync files use it fine, but LiteNet would no longer contain it — no problem; external consumers use namespace LiteNet + assembly LiteSync reference. If namespace changes to `LiteSync`, then post-move all references need `using LiteSync`; unknown consumers in LiteGame/Server would break compile. B3/B4 doesn't state namespace policy for moved files (unlike BuildHash.g.cs). T44's acceptance doesn't specify namespace. Plan B3 "15 件文件按目录搬迁到位" — for C# moved across assemblies, namespaces usually adjusted or kept. Since LiteGame/Server add LiteSync ref, either works if compile green. T44 "Unity+dotnet 编译" catches. Not blocking.
+
+Similarly `RoomClient` moved: its namespace may stay `LiteNet.Client` or change to `LiteSync.Client`; all consumers updated under T44. Fine.
+
+`AoiSettings` new in LiteSync/Shared (T79) being shared source; BuildHash includes it → server rebuild and hash changes; T79 regen ✓.
+
+`SimParamsOverrides` in LiteSim/Scripts/Rules? Only dev macros; if in shared source, BuildHash includes dev-only code — not a review item.
+
+Another: B23 says "L2" gate — T81 command group includes "L2" ✓ and e2e.
+
+Now, "覆盖矩阵" 24 items; I'll group:
+- B1: T43
+- B2: T44
+- B3: T44
+- B4: T44
+- B5: T69
+- B6: T44
+- B7: T44
+- B8: T70
+- B9: T71 + T72（类型/闸门 | 表/坏表）
+- B10: T73
+- B11: T72
+- B12: T75（Body/Head/Muzzle/SimMap/BakeTargets）+ T76（Grip）+ T77（RootMotion）+ T78（WriteGenerated 收口）
+- B13: T74
+- B14: T74
+- B15: T79
+- B16: T77
+- B17: T77
+- B18: T77
+- B19: T80
+- B20: T80
+- B21: T80
+- B22: T69
+- B23: T81
+- B24: T82
+
+Blocking count 0.
+
+But the format asks "阻塞问题清单：" then items; with 0, write "无（0 项）". And severity tags for non-blocking? The format says blocking list has [严重度][B 项/任务]; non-blocking suggestions can use B/task references.
+
+Should I note "T75 缺 restore-check/gen.bat" as 中 non-blocking? Yes.
+
+Also note the plan header/子步 stale as 非阻塞.
+
+Also note evidence all "-" (未开工) not an issue.
+
+Also note T44→T69 red window: 非阻塞 but suggest merging allowlist update into T44 or explicitly state T44 不跑该测试.
+
+Also "T69 门禁配置" ambiguity.
+
+Also "T74 重生成但文件范围无共享源" — verify or drop.
+
+Also "T80 导出缺自动 gen.bat/两端需重建" — B21 reference covers but explicit.
+
+Also "T75 五常量保留/删除语义" and "T77 rootmotion.bin 路径未在验收写全".
+
+Also "T73 注释清理（MatchTestRules 类头/CombatConfig）未显式归属".
+
+Also "T79 文件范围是否含 SimView 所在模块".
+
+I need keep within 6 min; final now. But let me double-check tasks stat and canceled list for any effective task I might have missed: T43, T44, T69, T70, T71, T72, T73, T74, T75, T76, T77, T78, T79, T80, T81, T82 = 16. Good.
+
+Dependencies: T43(-), T44(43), T69(44), T70(69), T71(70), T72(71), T73(72), T74(73), T75(74), T76(75), T77(76), T78(77), T79(78), T80(79), T81(80), T82(81). Linear; T75 starts a new area depending on T74 (digest) — is that dependency semantically needed? B12 doesn't depend on B13/B14. T75 depends on T74 which depends T73... it's a strict linear chain, which is safe but could delay. Not blocking; maybe non-blocking note: T75 (烘焙) 与 T74 (摘要) 无实质依赖，串行只为顺序；可按需并行? But changing table rows affects digest test golden samples (T74 done before T75 means digest/golden samples built with table values that T75 later changes! Wait: T74 validates 13 values vs table and golden checksum samples. T75 bakers write table values from prefabs, potentially changing values → T74's golden samples/digest tests could break after T75. B14 says "固定输入下确定性 checksum/回放结果与改动前黄金样本一致" — if T75 bakes values identical to current constants, no change. But bakers writing from prefab could alter rounding. Ordering T74 before T75 means T74's "13 值与表装载结果相等" holds for the table as seeded in T72; T75 rewrites rows from prefab → T74's golden/values may need re-verification, but T75's own tests catch. Is this a dependency inversion? The plan's sub-steps: T9 table/digest before T9b baking — so same order. They assume the initial table values are seeded from current constants, and bakers later verify/refresh. After T75, the digest tests should still pass if values unchanged. Risk non-blocking. Could note: T75 后需回跑 T74 的黄金样本/摘要用例（建议加在 T75 verification 或 T78 收口）。Actually T75's verification list doesn't include T74 tests. This is a potential false-pass or late break: if baking changes values, T74's golden samples go stale, but T81 L1 would catch. Non-blocking with suggestion: T75/T76/T77 收口后回跑 B13/B14 与黄金样本（T81 L1 已能兜底）.
+
+Similarly T75 deleting BodyBake.g.cs requires T73 already removed CombatConfig refs; yes.
+
+T77 after T75/T76; T77 deletes RootMotionData.g.cs, RootMotion consumers (RootMotionCatalog) — T77 migrates. Fine.
+
+One more: T80 after T79; SimParamsGate depends on TestModeRuntime.Active/LocalServerTransport, unchanged. Fine.
+
+Now, is B12's "编译 0 warning" assignable to T75 when T78 later deletes WriteGenerated (a deletion won't add warning)? Fine.
+
+I think PASS.
+
+But hold on — the user label says "第 5 轮 4 个阻塞的整改" but plan says the plan review history goes to 第八轮 and tasks were rebuilt "任务评审第5轮整改". The tasks.md 状态理由 for canceled T45-T68 says "任务评审第5轮整改...由 T69~T82 重建". So this is task review round 5; the four blockers are from round 5. Good.
+
+One issue: plan.md line 7 says "第五轮 FAIL（2 个）；第六轮 FAIL（1 个）；本版为第六轮整改" — that's plan review rounds, not task review; the 评审整改记录 goes "第八轮" — so the plan header wasn't updated after rounds 7-8. That's an internal inconsistency in the final plan document: it claims "本版为第六轮整改" while it contains eighth-round fixes and is being used as final. Since the plan is the final scheme, stale provenance is a documentation defect but doesn't affect executability. Non-blocking.
+
+Also plan line 147 (子步 T9b) says WriteGenerated deletion bundled; plan line 131 says after five .g.cs. Not contradictory (line 147 lists within T9b which is the whole baking migration). But task T75 explicitly says not deleting, T78 does; plan's 子步 doesn't reflect task split. Non-blocking.
+
+Now craft the final answer in Chinese plain text, concise but complete. No markdown? "中文纯文本" — I can use plain text with lines. Avoid heavy markdown; the requested format uses labels. Fine.
+
+Include 覆盖矩阵 grouping. I'll compress B2/B3 to one line each as required "按 B1~B24 分组列出对应任务" — list all 24 lines or group ranges? 24 lines is long but acceptable. Maybe group by 批: B1-B8 etc. But they asked "按 B1~B24 分组", so 24 entries.
+
+Blocking issues count 0; then "阻塞问题清单：无". Then 主要优点 and 非阻塞建议.
+
+I should mention the four round-5 fixes verified explicitly in 主要优点:
+1. T78 单列 + T75 明示不删 + 依赖 T77。
+2. 执行者四位补齐（T69/T70/T74/T75）— though T69's 门禁配置 wording needs cleanup.
+3. T73 测试名齐（3 个 + ArchitectureGuardTests 负例 + Arena 只读断言）。
+4. T75 BodyCc 同次原子写 + 来源 prefab + 缺失失败不 skip。
+
+Also mention 共享源集 tasks all have 重生成 + --check-shared + 主代理; T76/T78 correctly除外。
+
+Non-blocking list, keep ~8 bullets.
+
+Do I need to mention the "最多 8 次工具调用" compliance? I used 3 reads. Fine.
+
+Let me finalize with PASS and 0 blockers. But re-examine whether "T75 缺 restore-check 前置" qualifies as blocking under "B1~B24 全覆盖". The coverage matrix maps B12 to T75, and T75 acceptance includes "prefab 缺失=失败不 skip" — the behavioral requirement is present; restore-check is the mechanism. I'll note it as 中 non-blocking "建议补回 restore-check 前置表述，否则机制落点不明".
+
+And "gen.bat" — note as 中 non-blocking (false-pass vector) with recommendation to add "烘焙/导出后自动 gen.bat + --check-shared" to T75/T80 verification. Since T80's B21 ref arguably includes, phrase as "验收文字未显式写，建议补明".
+
+Would a reviewer with "blocking" criteria consider these blocking? The user asked "是否还有...虚假通过" — a false-pass vector is exactly a blocker-type. But it's covered by B21's explicit reference in T80 and plan line 128 for table writers. T75's "先落表写入器/新行" — the writer is the same SimParamsExporter path with gen.bat; the task references B12. I'll keep non-blocking but call it "中".
+
+Also mention T44→T69 intermediate red as low, T74/T71 sequencing (T74 golden samples may need re-run after baking) as low/中. Actually that last one is a plausible false-pass/late break: T74 before T75/T77, and T75 changes table values, potentially invalidating T74's "13 值与表装载结果 0 容差" and golden checksum. T75's verification doesn't include rerunning T74's tests; T81 L1 runs all, so it's caught at final gate, but T75/T76/T77 could pass while T74's tests are now stale. This is a dependency ordering smell: baking (writes table) should precede value/digest validation (T74), or T74 should be re-run after. Original plan sub-steps: T7 table+digest, T9b baking — same. The bakers are supposed to reproduce existing values, so no change. But "写入源只能来自 prefab" implies values may differ from seeded table (if constants were stale), which is the point of baking. If they differ, T74's golden samples/digest recorded before baking become wrong → T81 catches but T74's "0 容差" no longer true with the new table. Then B14 "13 值与表装载结果逐字段精确相等" still holds (loader vs table) but golden checksum may change. Mitigation: golden sample update process documented. I'd flag as 中 non-blocking: T75 收口后回跑 T74 的 13 值/黄金样本，或把 T74 放到 T77 之后（依赖 T75/T76/T77）。But moving T74 after T77 would break the linear chain semantics; a "回跑" note suffices. This is a legit finding worth mentioning.
+
+Would that be blocking? It's a sequencing flaw that could cause T74 to be reworked. The user's criterion "任务粒度/依赖" — dependency is present but semantically inverted. Hmm. If the bakers change table values (which the whole B12 is about), then T74's acceptance ("13 值与表装载结果 0 容差" — compares loader vs table; still holds) and golden checksum ("改动前黄金样本一致" — if geometry values change, checksum likely changes; but the requirement is determinism with fixed input, and the golden is updated when table changes). T74 documents update flow. After T75, need to re-run/update; T81 L1 will fail until updated. This would be caught, not silent, but costs a rework cycle. Non-blocking (medium).
+
+Another: T77 after T76, but T76's grip consumers (FeatureDebugTunables) may also read CombatConfig.Geometry? handled T73.
+
+Okay final answer.
+
+Format: plain text, no markdown tables maybe. Use "-" bullets. Ensure "结论: PASS", "阻塞问题: 0".
+
+Write coverage matrix grouped with B items:
+
+覆盖矩阵:
+- B1: T43
+...
+- B12: T75（Body/Head/Muzzle/SimMap/BakeTargets 常量去向）+ T76（Grip）+ T77（RootMotion）+ T78（WriteGenerated 删除收口）
+...
+
+Then "阻塞问题清单: 无（0 项）" — but schema wants items; say "无".
+
+Then 主要优点 ~6 bullets. Non-blocking ~8 bullets, each with B/task and suggestion.
+
+Keep within reasonable length.

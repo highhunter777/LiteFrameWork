@@ -1,4 +1,5 @@
-using LiteNet.Protocol;
+using LiteSync.Input;
+using LiteSync.Shared;
 using LiteSim;
 using RoomServer.Runtime;
 using Xunit;

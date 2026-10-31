@@ -1,0 +1,103 @@
+dsh: reasoning:
+Let me read the plan and MatchTestRules.cs. Constraint: max 2 tool calls. Let me do two reads in parallel: plan.md full and MatchTestRules.cs.
+
+First, check the paths. plan.md at .workflow/active/sync-and-sim-params/plan.md. MatchTestRules.cs — need path. Can't glob beyond 2 calls... I could read plan.md and use grep? Let me do both reads in one message; but I need the path of MatchTestRules.cs. Likely Assets/LiteSim/... Let me grep? That would use a call. Better: first call: glob for MatchTestRules.cs and read plan.md simultaneously (two tools in one block = 2 tool calls? The constraint says max 2 tool calls). Hmm, "最多 2 次工具调用" — each tool invocation counts. So I have 2 calls total. I need plan.md full text and MatchTestRules.cs. So I must guess the path. Risky.
+
+Alternative: use grep with pattern over path? No.
+
+I could read plan.md first, which likely cites the file path (it's about MatchTestRules). Then use second call to read the exact path. That's safer. Let's do that.
+dsh: reasoning:
+Now I need to read MatchTestRules.cs to verify current contract. Path likely Assets/LiteSim/Scripts/Rules/MatchTestRules.cs. I have one tool call left. Let me try that path. Risk if wrong. Hmm. Could use pwsh? No — only 2 calls total, and read tools... I could use glob but that's a call. 
+
+The plan references `MatchTestRules.cs:73/77`. Existing structure: LiteSim/Scripts/{Kernel,World,Pipeline,Rules,Config,Map}. Probably Rules/MatchTestRules.cs. Let me attempt read; if fails, I'd have to use another call (exceeding? 2 max). Failure counts as a call presumably.
+
+Alternative: use pwsh command that lists both? No, cannot determine path... Actually a single pwsh call could do: Get-ChildItem -Recurse -Filter MatchTestRules.cs then Get-Content. That's one tool call and robust. It's read-only (allowed; "禁止运行命令" — user said no running commands, only read plan.md + MatchTestRules.cs). Hmm, user says read-only, no modifying files or running commands. So reading via shell would violate "禁止运行命令"? Reading is generally allowed via read tool. Better use read with best-guess path.
+
+I think likely path: Assets/LiteSim/Scripts/Rules/MatchTestRules.cs. If the read fails, the error may list alternatives? Often no. Let me consider grep tool... also a call.
+
+I'll go with the guess. If it fails, I'll report with evidence from plan only and mark verification limited. Actually a failed read might not count as a "tool call" for the user's sanity but it does. Risk: I'd have used 2 calls and lack the code evidence. Given the review focuses on plan text precision, plan evidence may suffice, but the user explicitly asked to read MatchTestRules.cs.
+
+Hmm, maybe I can combine: read tool with path ... I'll pick the most likely. Let me think about the repo: Assets/LiteSim has Scripts/{Kernel,World,Pipeline,Rules,Config,Map}. MatchTestRules is a rules class → Scripts/Rules. Also could be Scripts/Rules/MatchTestRules.cs. I'll try.
+dsh: reasoning:
+Now verify findings.
+
+1. Plan line 134: keeps DamageOverride/RpmOverride/ResolveWeaponDamage/ResolveFireIntervalFrames; deletes HeadHitLineOverride/HeadshotRadiusOverride/ResolveHeadHitLine/ResolveHeadshotRadius. All named exactly. B19 line 195: names deletion of the four geometry identifiers exactly; keeps DamageOverride/RpmOverride. No wildcard. Consistent. Note: MatchTestRules.cs line 26-27 comments reference CombatConfig.HeadHitLine, which is deleted — B12 line 188 says "`MatchTestRules` 类头/字段的爆头覆写说明同步删除" — covered.
+
+But careful: B20 ① mentions "13 项设哨兵值 + 门 false ⇒ 逐字段等于 loader 产物，摘要等于同构建无覆盖摘要（表字节 + 入口规则位，规则位取同值；编码顺序固定）". Line 133 摘要口径 says 联机 = 判定表字节 + CombatValues 入口规则位（NoDeath/InfiniteAmmo，沿用 MatchTestRules 现行契约；编码顺序固定）. Is "入口规则位" uniquely encoded? Fixed order stated twice. But does the plan specify encoding bits (FlagNoDeath=1, FlagInfiniteAmmo=2) — actually it says "编码顺序固定" but not the exact bit layout. "纯表摘要" — search plan for "纯表": not present (line 196 replaced). Any other "表摘要"? Line 196 only. Good.
+
+Potential new contradiction: line 133 says 联机摘要在不含 dev 覆写 while local test room digest computed on effective values including local overrides. B20① says "摘要等于同构建无覆盖摘要" — under 门 false, overrides not applied, so effective = loader product, digest = 同构建无覆盖摘要. Consistent. But wait: "同构建无覆盖摘要" phrase — is it defined? It says (表字节 + 入口规则位，规则位取同值；编码顺序固定). So yes defined inline. However, "规则位取同值" — ambiguous? It means rule bits equal value. Fine.
+
+Potential issue: line 110 `CombatValues` 现有 10 字段; line 185 B9 same. Consistent.
+
+Potential new contradiction: line 19 goal says MatchTestRules only carries rule bits and non-geometry dev overrides. Good.
+
+Another potential: line 112 "grep 守卫零命中" for ResolveHeadHitLine etc — but the names would appear in deleted history only; fine. But gating on "零命中" for identifiers while B10 excludes comments/strings — B10 line 186 lists those. Fine.
+
+Possible issue: MatchTestRules' ResolveHeadHitLine uses CombatConfig.HeadHitLine; deleting these methods is fine. But other callers (ShootingSystem.cs:80/196? SimRaycast.cs:81/85) must migrate. Plan line 112 lists those line refs as migration. Hmm — MatchTestRules.cs:73/77 are inside Resolve methods (migrated by deletion). OK.
+
+Another consideration: B19 says "删除 HeadHitLineOverride/HeadshotRadiusOverride/ResolveHeadHitLine/ResolveHeadshotRadius" but B19 also says "联机/云 sandbox 不读客户端覆盖（有断言）" — fine.
+
+Is there a contradiction about digest including rule bits vs "MatchTestRules 不进摘要"? Current code comment line 15 says 中局开合不进摘要; entry initial values enter CombatValues digest. Plan says 入口规则位 in digest. So consistent: entry values in digest, mid-match toggles not.
+
+One possible remaining ambiguity: 摘要的口径 in B13 line 189 has "**联机摘要 = 判定表字节 + `CombatValues` 入口规则位（NoDeath/InfiniteAmmo），不含 ...**". Consistent with 133. So single source.
+
+Now check "同构建无覆盖摘要" — B20① only; is it referenced elsewhere? Search: line 196 only. Fine.
+
+Potential issue: B20① "13 项设哨兵值 + 门 false ⇒ 逐字段等于 loader 产物" — but if 门 false, sentinel values can't apply, so the test is trivially true; fine as specified.
+
+New contradiction candidates:
+- Line 134 says non-geometry dev overrides "现状不动：不进摘要、不可重放、联机禁用". But current MatchTestRules DamageOverride is seeded by TestModeRuntime, and "联机禁用" — existing contract? Code comment doesn't say 联机禁用. Hmm, "联机禁用" for DamageOverride/RpmOverride: is that a new claim? The code says 进房随 TestModeRuntime 待用值种子. Not necessarily 联机禁用. Plan asserting "联机禁用" for them could be a new claim not backed — but previous round already accepted this as 现状契约. It's minor.
+
+- B12 line 188 says "MatchTestRules 类头/字段的爆头覆写说明同步删除" — exact.
+
+- Does any part of the plan still reference ResolveHeadHitLine as something to keep? Line 112 mentions "MatchTestRules.cs:73/77" among 迁移面 — those are the Resolve methods; plan says delete methods and migrate callers. But wait: if ResolveHeadHitLine is deleted, then line 112's "MatchTestRules.cs:73/77 ... 改读 values.Geometry.*" is inconsistent with deletion — a reader might think those methods are modified rather than deleted. However line 112 same sentence says 删除 ... 两方法. So it's covered, arguably. Is the line-ref 73/77 still meaningful? Those lines are inside methods being deleted; the callers (SimRaycast:81/85, ShootingSystem:80/196) consume them. Deleting methods requires changing call sites to values.Geometry. So "MatchTestRules.cs:73/77 改读 values.Geometry" is loose but the same bullet says delete. Could count as non-blocking ambiguity.
+
+- B10 line 186: "`ResolveHeadHitLine|ResolveHeadshotRadius|HeadHitLineOverride|HeadshotRadiusOverride` 零命中" — but the guard excludes comments/strings. After deletion, names gone from code. Fine.
+
+Wait — there could be a new conflict: B10 asserts "判定/烘焙代码不读 CombatConfig.Geometry（有断言）" while line 113 says 非判定读者走投影. Fine.
+
+Another: line 134 says "不把 Damage/Rpm 并入 SimParamsOverrides" — consistent with line 132 which describes SimParamsOverrides as dev 三宏 (geometry 13 items + maybe others?). Line 132: "`SimParamsOverrides`（dev 三宏；...）" — "dev 三宏" refers to three macros not three params. OK.
+
+Possible conflict: line 132 "旧 `FeatureDebugTunables` 的 HeadHitLine/HeadshotRadius 覆盖退役并入新 13 项" — but MatchTestRules HeadHitLineOverride also retires. And FeatureDebugTunables line 113 mentions 40/49/73/75/89. Fine.
+
+Potential new contradiction: 摘要 "入口规则位" — but the plan also says "本地测试房摘要按生效 CombatValues（含本地覆盖）算，仅本地使用" while B20① asserts 门 false → digest equals 同构建无覆盖摘要. Consistent.
+
+Does the plan fix the encoding of the rule bits? "编码顺序固定" is a requirement but no explicit encoding (e.g., 2 bits: bit0 NoDeath, bit1 InfiniteAmmo). Could be flagged non-blocking: 未固定具体编码值，只要求顺序固定；且 MatchTestRules 已有 FlagNoDeath=1/FlagInfiniteAmmo=2，可引用。That's a reasonable non-blocking note: plan should cite existing constants as single source. Is that a blocking issue? Round 9 asks whether B20① "改为'同构建无覆盖摘要'并固定规则位编码". "编码顺序固定" appears — but is the encoding actually fixed? It says 编码顺序固定, not the encoding layout. Hmm, the request says "固定规则位编码" — the plan says "编码顺序固定" twice. Does "编码顺序" = field order, not bit values. The current digest likely encodes GmFlags as int (bitmask), which is already fixed by FlagNoDeath=1/FlagInfiniteAmmo=2 in code. Since it says "沿用 MatchTestRules 现行契约" — the bit values come from MatchTestRules constants. That's arguably single-source and fixed. But the plan deleting geometry overrides keeps FlagNoDeath/FlagInfiniteAmmo, so the encoding source survives. So it's acceptable, with non-blocking note to name the constants explicitly.
+
+I should decide PASS/FAIL. Given eighth-round blockers addressed, and only wording looseness (line 112's 73/77 ref) and missing explicit bit constants, I'd say PASS with non-blocking suggestions. Number of blocking issues: 0.
+
+Hmm, but 验收标准 PASS too. The question: "结论: PASS 或 FAIL; 验收标准: PASS 或 FAIL". Both PASS.
+
+Let me also check whether "纯表摘要" appears anywhere: no. But does line 196 phrase "同构建无覆盖摘要" perhaps conflict with line 133's naming "联机 CombatConfigDigest"? B20① is under local test room scenario (门 false). 联机 digest also = 表字节+规则位. Under 门 false and no overrides, local effective = table + entry rules = same formula. Consistent.
+
+One more possible contradiction: line 134 says Damage/Rpm overrides "联机禁用" but line 133 says digest 不含 dev 覆写, implying dev overrides could exist in local only. Fine.
+
+Also, is there tension: B20① "门 false" — 门 = SimParamsGate.Evaluate, which controls geometry overrides only (SimParamsOverrides). MatchTestRules Damage/Rpm overrides not gated by 门? In local test room, Damage/Rpm could be active via TestModeRuntime seeding, which would change checksum but not digest (not in digest). B20② asserts checksum equality between local authoritative tick and client prediction — both share same rules instance, so fine.
+
+Hmm, but B20① says "逐字段等于 loader 产物" for 13 fields — while Damage/Rpm overrides irrelevant to geometry. Fine.
+
+Potential new矛盾: line 19 target says "`MatchTestRules` 仅承载规则位与非几何 dev 覆写（Damage/Rpm，现状契约）" — consistent.
+
+Now evidence with line numbers:
+- plan.md:134 (boundary), :195 (B19), :133 (digest single source), :196 (B20①), :112 (all-judgment migration incl. deletion), :188 (B12 comment cleanup), :186 (B10 grep).
+- MatchTestRules.cs:20/24 (rule bits), 31/34 (geometry overrides), 39/43 (damage/rpm overrides), 62-69 FromFlags, 72-77 ResolveHead*, 80-89 ResolveWeaponDamage/ResolveFireIntervalFrames, 26-27/28-30 comments referencing CombatConfig.HeadHitLine.
+
+Also note: MatchTestRules.cs:88 uses SimConfig.TickRate (static read of config const? TickRate probably const). Not relevant.
+
+Minor non-blocking suggestions:
+1. line 112 仍以 "MatchTestRules.cs:73/77" 作为"改读 values.Geometry"的对象，但该两方法同条要求删除；建议改写为"调用点 SimRaycast/ShootingSystem 改读 values.Geometry（MatchTestRules 两 Resolve* 删除）"避免读者误以为要保留方法改实现。
+2. 摘要规则位编码建议点名 `MatchTestRules.FlagNoDeath=1`/`FlagInfiniteAmmo=2`（MatchTestRules.cs:46-47）为单源，并写明"按 GmFlags 位掩码按位序序列化"，把"编码顺序固定"落到可断言的形式。
+3. B12 清理 MatchTestRules 类头时，同时把 `ResolveHeadHitLine` 的 <see cref="CombatConfig.HeadHitLine"/> 引用清掉（csc warnaserror) — already covered by B12 XML cleanup. Could merge.
+4. line 134 "联机禁用" for Damage/Rpm — current code doesn't state 联机禁用 explicitly; 建议注明这是入口层（TestModeRuntime/ProcedureMatch）职责或补入 B19 断言。
+
+Also B19 with "删除" names exactly, no wildcard. Good.
+
+Also check whether B19's deletion sentence could conflict with B10's grep guard: B10 lists same four names zero hit. Consistent.
+
+Deliver text output in Chinese, format as requested. 2 tool calls used exactly. Also mention 抽查证据 with line numbers.
+
+Conclusion: PASS, 阻塞 0.
+
+I should be careful and honest: I did not verify git HEAD, but plan says HEAD 8a8fe0bf. Fine.
+
+Let me write final answer.

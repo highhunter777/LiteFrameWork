@@ -1,0 +1,24 @@
+你是本项目的独立方案评审子代理（外部 dsh 代理），做**第五轮复评**。只读评审：禁止修改文件、禁止运行 Unity/构建/测试。
+
+仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。评审对象：`.workflow/active/sync-and-sim-params/plan.md`（第四轮 4 个阻塞已整改）。
+第四轮 4 项：①prefab 不入库导致“表 row ≡ prefab CC”守卫不可复现；②`CombatValues.Default` 双语义与导出流冲突；③`_published` 测试隔离；④`SimParamsOverrides` 服务端同源/摘要。
+
+只核验：
+1. 这 4 项是否闭合，是否引入新矛盾。
+2. B9/B12/B19/B20 是否可判定。
+3. 是否还有编译红/启动崩/虚假通过的硬断点。
+
+约束：最多 6 次工具调用；只读 plan.md 全文 + 最多 3 个文件（建议 BakeTargets.cs、SimMapBaker.cs、CombatConfig.cs）；禁止全仓搜索/运行命令；无法核实列非阻塞；5 分钟内出结论。
+
+输出（中文纯文本）：
+结论: PASS 或 FAIL
+验收标准: PASS 或 FAIL
+阻塞问题: <数量>
+阻塞问题清单:
+- [严重度][文件/章节] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...
+抽查证据:
+- 文件:行号 + 结论

@@ -30,8 +30,15 @@ namespace LiteGame
             Func<uint> gameplayDigestBase = () => config.GameplayDigestBase;
             IMapProvider maps = context.Require<IMapProvider>();
 
+            // 判定参数覆写面在装配末段（组合根 <c>BindSimParams</c>）才落容器——本段只捕获**取件闭包**，
+            // 求值推迟到进房时点（ProductTransportFactory 每局一次：门须在本地测试模式真的开启后才为真）。
+            ServiceContainer services = context.Services;
+            Func<SimParamsOverrides> simParams = () =>
+                services.TryResolve(out SimParamsOverrides value) ? value : null;
+
             var transport = new ProductTransportFactory(
-                context.Require<MetaEntryConfig>(), gameplayDigestBase, maps, context.Require<IDevSession>());
+                context.Require<MetaEntryConfig>(), gameplayDigestBase, maps, context.Require<IDevSession>(),
+                config, simParams);
             context.Put<ITransportFactory>(transport);
 
             // 注册面＝服务接口（消费者经构造注入解析）：Account 半边零引擎依赖（L1 源链接直测）。

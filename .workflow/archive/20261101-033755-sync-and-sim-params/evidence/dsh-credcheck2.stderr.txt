@@ -1,0 +1,2 @@
+dsh: reasoning:
+The user asks to only reply with exactly "凭证自检通过" six characters, and not to read or modify any files. So just answer that.

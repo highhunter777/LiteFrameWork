@@ -1,0 +1,44 @@
+结论: FAIL
+阻塞问题: 7
+
+覆盖矩阵:
+- B1 → T28
+- B2/B3/B4/B6/B7 → T29
+- B5/B22 → T30
+- B8 → T31
+- B9 → T32（类型/发布闸门）+ T33（表/13 列映射）
+- B10 → T34
+- B11 → T33
+- B12 → T36（Body/Head/Muzzle/SimMap）+ T37（Grip）+ T38（RootMotion）
+- B13/B14 → T35
+- B15 → T39
+- B16/B17/B18 → T38
+- B19/B20/B21 → T40
+- B23 → T41（自动部分）+ T42（人工联测）
+- B24 → T42
+
+24 项均有任务承接，无孤儿任务；但存在下述重复与范围缺口。
+
+阻塞问题清单:
+- [高][B9/T32] T32 修改 `Assets/LiteSim/Scripts/Config` 下的 `CombatValues`/`CombatConfig`，该路径属于共享源集 `Assets/LiteSim/Scripts`，但 T32 的验收与验证均未写 `gen-build-hash.py` 重生成和 `--check-shared`。T29 之后哈希已变更，T32 提交即会让 `build-player` 的共享哈希门禁变红，直到 T33 才补生成。建议在 T32 验收/验证补“重生成 + `--check-shared`”，并写明由主代理执行。
+- [高][B2/B3/B6/T29] T29 文件范围只有 `Assets/LiteSync`、`Assets/LiteNet`、`Assets/LiteGame/Adapters/Dev`、`scripts/codegen/gen-build-hash.py`、`Tests`，但方案要求 `LiteGame.App`、`LiteGame.Editor`、`Server/RoomServer` 也增加 `LiteSync` 引用，验收却要求“引用者/测试编译绿”。搬走 `RoomClient` 等文件后，这些未列入范围的工程会编译中断；同时验收要求改 `LiteNet.csproj`，文件范围也未列该路径及根级 `Tests.slnx`。建议扩范围，或拆出“引用者收口”子任务并逐项列明工程文件。
+- [中][B12/T36、T38，T37 待核] T36/T38 的执行者只写“资产删除由主代理，代码/测试由施工子代理”，未写 `gen-build-hash.py` 由主代理执行，而两项验收都要求重生成 BuildHash，权限归属缺失，施工子代理可能越界调用生成器。T37 未写重生成；若 `GripBake.g.cs` 位于 `Assets/LiteSim/Scripts/Map` 等共享源集则同样漏跑，需先核对实际路径并写明依据。建议三处补齐执行人；T37 若属共享源集则补“重生成 + check”。
+- [中][B12/T36-T38] 方案要求 `BakeTargets` 五条输出常量（Head/Muzzle/Body/RootMotion/Grip）逐条给出新去向、修正四条死路径，并让 `SimMapBaker` 直接读 `BakeTargets.PrefabPath` 的 CharacterController；T36-T38 只写“SimMapBaker 读 CC”“WriteGenerated 删除”，五常量去向、死路径修正、`PrefabPath` 绑定均无验收项。结果是 B12 可在 `BakeTargets` 仍指旧产物的情况下判绿，C 交付接手时还要二次改同一路径。建议在 T36 增加逐条去向对照与死路径证据，或单列 T36b。
+- [中][B15/T39] B15 要求 `deploy/roomserver.windows.json` 房间配置 **加 GM 房参数** 两路真实注入，T39 只写 deploy 配置三档注入，GM 房参数路径及其验证缺失。建议补 GM 房参数注入、断言与文件范围；若确认本期不做，应在验收中显式排除并说明理由。
+- [中][B19/T40] B19 的“判定路径零静态读”和“联机/云 sandbox 不读客户端覆盖（有断言）”未出现在 T40 验收/验证中；T40 当前只有单门、单合并点、“联机禁用覆盖”。这会让 B19 在判定路径仍静态读、云 sandbox 未断言的情况下虚假通过。建议补“判定路径静态读 grep/负例”和云 sandbox 断言。
+- [中][B10/B19/T34、T40] T34 与 T40 都声明删除 `ResolveHeadHitLine`/`ResolveHeadshotRadius`/`HeadHitLineOverride`/`HeadshotRadiusOverride`，且都触及 `Assets/LiteSim/Scripts/Rules`；同一共享文件双写，第二处“删除”无法独立验收，且会重复触发共享源集重生成。建议 T34 执行删除，T40 只做零命中复核，并只保留一处重生成责任。
+
+主要优点:
+- B1-B24 全部有任务承接，无孤儿；B9、B12、B23 按可施工边界拆分，T41/T42 自动/人工分离清楚。
+- 已识别的共享源集任务（T29/T33/T34/T35/T36/T38/T39/T40）基本都写了重生成与 `--check-shared`，T29 还明确主代理执行生成器。
+- T36/T37/T38 明确“先落新表/catalog/loader 与消费面，再删 `.g.cs`”，避免先删后补导致编译中断；资产搬迁/删除走 unity-pipeline，主代理与施工子代理边界总体清楚。
+- B14 使用 0 容差对比装载产物而非同源夹具，B20 使用双 checksum 与红线 13 真实操作，能有效防止“自比”和“直调 API 冒充操作”。
+- 摘要口径单源、`MatchTestRules` 现契约收敛、`CombatConfig` 展示兜底与发布闸门分层，方向正确。
+
+非阻塞建议:
+- B13/T35 补“两端摘要不等拒局（不要逐值拼摘要）”用例，避免只验证摘要“变化可观测”。
+- T32/T33 的坏表用例归属再明确：当前 T32 验收含“坏表候选校验（表接入在 T33）”，但 T33 才接入 `tbcombatgeom`，T32 用例难以独立执行且与 T33 重复；建议整体放 T33，T32 只保留候选值校验函数。
+- B17/T38 补 `ContentIdentity` 不引 `LiteSim`、SHA-256、无“名称”字段的显式验收；B9/T32 补 UI“未装载/展示值”标注；B4/T29 补 `BuildHash.g.cs` 路径/namespace/新哈希记录；B21/T40 补“编辑器 + GM 两处入口”和“两端需重建”提示。
+- T29、T36、T42 粒度过粗，建议分别拆为“搬迁/引用收口、BuildHash、WeakNet”“表写入器、三烘焙器”“文档回写、最终两端联测”，降低单任务失败面。
+- T31、T39、T40 未写执行者；T39 修改 `deploy` 配置是否需主代理操作、是否需云侧重启，建议写明。
+- T1-T12 的取消理由仍写“由 T13+ 取代”，而 T13 已取消，建议统一改为“由 T28+ 取代”；表头阶段名仍为 `review-tasks`，与实施任务不符。

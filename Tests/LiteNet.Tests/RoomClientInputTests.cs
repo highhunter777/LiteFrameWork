@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using LiteNet.Protocol;
+using LiteSync.Input;
 using LiteNet.Transport;
 using LiteSim;
 using Xunit;
 
+using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>

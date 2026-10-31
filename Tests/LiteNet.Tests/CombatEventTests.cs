@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using LiteNet.Protocol;
+using LiteSync.Events;
 using LiteNet.Proto;
 using LiteSim;
 using LiteSim.Tests;

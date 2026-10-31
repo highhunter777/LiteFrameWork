@@ -60,7 +60,7 @@
 ### 3.1 帧轴（现行形态）
 
 ```text
-服务器：每逻辑帧 SimStep → MatchSystem.Tick（Timer--） → 每 2 帧（SnapshotHz=30）广播一份快照
+服务器：每逻辑帧 SimStep → MatchSystem.Tick（Timer--） → 按房级 snapshot_hz（缺省 30 ⇒ 每 2 帧）广播一份快照
                                                           └─ SnapshotDiffer 每份都带 MatchStateDelta.timer
 客户端：收到快照 → SnapshotReassembler.Apply 重建镜像 Match
                     → BattleSnapshotMirror.ApplyAndReconcile：和解则整帧覆盖；未和解则

@@ -1,0 +1,336 @@
+dsh: reasoning:
+Let me start by reading plan.md. I have at most 8 tool calls. Let me be efficient.
+
+Let me first read the plan.md file, then the 4 suggested files. That's 5 calls. I should use the remaining for targeted reads if needed.
+
+Let me read plan.md first.
+dsh: reasoning:
+Now let me read the 4 files. I'll batch calls: CombatConfig.cs, CombatValues.cs, SimMapBaker.cs, ClientAsmdefAllowlistTests.cs. Need to find paths. I can guess:
+
+- Assets/LiteSim/Scripts/Config/CombatConfig.cs
+- Assets/LiteSim/Scripts/Config/CombatValues.cs
+- SimMapBaker.cs — probably Assets/LiteGame/Editor/Baking/SimMapBaker.cs
+- Tests/EditMode/.../ClientAsmdefAllowlistTests.cs
+
+I have 7 calls left. Let me glob to find them? That would consume calls. Better: try read with guessed paths; failures return error but consume a call. Risky. Let me use one glob for the four names? glob only one pattern. Maybe use glob pattern "**/{CombatConfig,CombatValues,SimMapBaker,ClientAsmdefAllowlistTests}.cs" — brace expansion may be supported by the glob implementation. Uncertain.
+
+Alternative: use pwsh Get-ChildItem? That's a shell command, but the user said "禁止全仓搜索" — a targeted file listing is borderline. Better use glob tool with pattern "**/*{CombatConfig,CombatValues,SimMapBaker,ClientAsmdefAllowlistTests}.cs". Ripgrep-style glob maybe support braces.
+
+Let me try glob with pattern "**/{CombatConfig,CombatValues,SimMapBaker,ClientAsmdefAllowlistTests}.cs". If it fails, fallback.
+
+Actually I can do 2 tool calls in parallel in one block: glob for names, and read a guessed path. Let's do glob first alone to conserve.
+
+Actually total budget 8 calls; used 1. Let's do glob once, then read 4 files (5 total = 6 used), leaving 2 for follow-up.
+dsh: reasoning:
+Now read all 4 in parallel. That's 4 calls (total 5). Wait — the read tool calls count as separate tool calls but I can batch them in one assistant message (each is a call). Budget "最多 8 次工具调用" — 4 reads = 4 calls, total 5, leaving 3.
+
+Let me read CombatConfig.cs (likely small), CombatValues.cs, and the two others. SimMapBaker.cs may be large (>500 lines). I should read targeted portions. But reading whole is a call anyway; large output is fine maybe truncated. Let's read with limit 2000 default.
+
+Actually to save context, read CombatConfig fully, CombatValues fully, ClientAsmdefAllowlistTests fully, SimMapBaker limit maybe 700.
+dsh: reasoning:
+Now I have 3 calls left (used 5). I need to verify key claims. Let me think about the hard blocks.
+
+Key findings so far:
+
+1. ClientAsmdefAllowlistTests line 37: `["Assets/LiteNet/LiteNet.asmdef"] = new[] { "LiteSim" }`, and line 24? No. Also line 33, 41, 44 etc have LiteNet. Plan says: delete `LiteNet -> LiteSim` and add `LiteSync.asmdef` entry, add ClientRoots `Assets/LiteSync`. That's consistent. But note: the test `客户端根下所有asmdef必须登记在允许表` enumerates ClientRoots and requires every asmdef registered. If `Assets/LiteSync` added but asmdef not registered, red — plan covers.
+
+But key: the plan's Allowed table must add `LiteSync` references to all consumers: lines 22-44 show `LiteNet` listed in many; `LiteSync` would need to be added to those same asmdefs (LiteGame.App line 40, Dev line 41, Editor line 44, Modules line 31, Battle line 33, EditMode tests line 23, PlayMode line 22). Plan §批6 says "引用者加 LiteSync: LiteGame.App、LiteGame.Adapters.Dev、LiteGame.Editor、Tests/EditMode、Tests/UI/PlayMode、Tests/LiteNet.Tests、Server/RoomServer". Note it omits `LiteGame.Modules` (line 31) and `LiteGame.Modules.Battle` (line 33) — do those use RoomClient etc.? Possibly they use Snapshot types/protocol. That's a potential compile-red block but plan does mention §风险 3 "RoomClient 迁走后 LiteGame/RoomServer 的 using 与构造点全量排查". Hmm, `LiteGame.Modules` references LiteNet but maybe only transports. Hard to verify without search. Non-blocking pending.
+
+Also ClientRoots: adding `Assets/LiteSync` — but also B5 says "Allowed 删除 LiteNet -> LiteSim". However, line 37 Allowed for LiteNet is `{ "LiteSim" }`; if LiteNet ends with zero references, the entry becomes `Array.Empty<string>()`. Fine.
+
+Important: `客户端根下所有asmdef必须登记` — `Assets/LiteSync` added to ClientRoots; need `Assets/LiteSync/LiteSync.asmdef` registered. Plan covers.
+
+Another: test at line 35 `LiteSim.asmdef = Array.Empty` — LiteSim asmdef currently references none. OK.
+
+Critical issue: B10 / B9. CombatConfig currently has `HardMaxSpeed` and `FaceTurnRadPerSec` as `public const`. Plan says 13 geometry fields include HardMaxSpeed, FaceTurnRadPerSec, HeadshotDamageShift, HipSpreadFactor, CorpseFrames — moved to CombatValues.Geometry. But these are "code constants deliberately not in digest" in current docs. Plan's B13 says "13 个几何值进 CombatConfigDigest" — this contradicts current comments "刻意不进 digest" (HardMaxSpeed, FaceTurnRadPerSec, HeadshotDamageShift, HipSpreadFactor, CorpseFrames). Is that a contradiction? It's a design change but intentional: now table values must enter digest, because table values can drift. Actually acceptable — rationale: since these become table-loaded, they must be digest participants. But plan doesn't note this semantic change/express it. Could be a non-blocking note. However B13 says all 13 geometry values into CombatConfigDigest — but plan §批7 table says `#combatgeom` 13 columns auto in JudgmentFiles; CombatConfigDigest computes from table bytes. Wait — digest is computed from table bytes (判定面表字节). If #combatgeom in JudgmentDomains Combat, then adding "Combat/tbcombatgeom" automatically enters digest via table bytes. So B13 is satisfiable. Fine.
+
+Now, the crucial hard block: `CombatConfig` is a `static class`. Plan wants `_published` flag and `Loaded` throwing; `Geometry` returning `CombatValues.Default.Geometry`. But `CombatConfig` is static with `public const` HardMaxSpeed and FaceTurnRadPerSec. Turning them into `CombatGeometry` fields means `CombatConfig.HardMaxSpeed` const disappears; consumers use `CombatConfig.Geometry.HardMaxSpeed`. That's what plan says.
+
+Potential new contradiction: `CombatConfig.MuzzleOrigin` is a static method reading consts; plan moves muzzle into Geometry and says MuzzleOrigin computed in CombatGeometry. Non-judgment readers that call `CombatConfig.MuzzleOrigin` (e.g., view/crosshair) need a projection. Does plan list `MuzzleOrigin` consumers? The 外部消费面 list includes BattleCrosshairDriver, etc. But MuzzleOrigin is called by ShootingSystem (judgment) and aim laser (view). Plan says delete CombatConfig public geometry constants; does it keep `CombatConfig.MuzzleOrigin` as projection? Not stated explicitly. That's a gap: the plan says "MuzzleOrigin(in SimVector3 pos, float yaw) 用三偏移计算" under CombatGeometry instance derive. Then external consumers of `CombatConfig.MuzzleOrigin` (static method) — are there any? Likely AimLaser in Battle module and BattleCrosshairDriver. Plan's list includes BattleCrosshairDriver.cs:165 (that might be exactly MuzzleOrigin call). If they migrate to `CombatConfig.Geometry.MuzzleOrigin(pos,yaw)`, fine. But plan doesn't explicitly say whether `CombatConfig.MuzzleOrigin` is retained as a projection. B10 says no old `CombatConfig.<几何名>` identifiers — MuzzleOrigin is not a geometry name? The guard scans identifiers of old geometry names. If CombatConfig.MuzzleOrigin is deleted, compiler catches. It's a detail; not necessarily blocking but could be flagged as non-blocking/tbd.
+
+Bigger: static `CombatConfig.Loaded` throws before publish. But `CombatConfig` currently initializes `_loaded = CombatValues.Default` and many static properties (MoveSpeed etc.) read `_loaded`. If `Loaded` throws when unpublished, and `MoveSpeed` etc. use `_loaded` (not Loaded), fine. But plan says "判定读口 Loaded 未发布时抛". Then the non-judgment projection `CombatConfig.Geometry` returns Default. Consistent.
+
+However there's a real problem: `CombatValues.Default` currently constructs with 8 args (line 74-75). Plan says constructor becomes 9 params with `in CombatGeometry`; Default must be updated with geometry default. Fine.
+
+Also: `CombatValues` is a `struct` with public mutable fields (existing debt). Not our scope.
+
+Now SimMapBaker: lines 460/496/498/505/512 reference `BodyBake.Radius/Height`; plan B12 requires SimMapBaker read `BakeTargets.PrefabPath` CC, `ValidateSpawns` takes radius/height params. Plan covers. Note that `SpawnOverlapsObstacle` also reads BodyBake.Height at line 512/513 — plan only mentions ValidateSpawns receives parameters, but `SpawnOverlapsObstacle` is a separate private method also reading `BodyBake.Height`. If ValidateSpawns takes bodyRadius/bodyHeight params, it must pass bodyHeight into SpawnOverlapsObstacle, which currently has no height parameter. Plan says "`ValidateSpawns` 改为接收 `bodyRadius/bodyHeight` 参数" — implies SpawnOverlapsObstacle must be changed too, but not stated. This is a minor but concrete gap (compile red would catch it; not a hard block since compiler). Could be listed as non-blocking or as a blocking "planting" detail. Given the review's threshold, I'd mention it as non-blocking precision note (compiler catches).
+
+Also `SimMapBaker` uses `BakeTargets.WriteArtifact` (line 123), `WriteGenerated` is different. OK.
+
+Wait, plan §130 says "`SimMapBaker` 的出生点校验直接读 `BakeTargets.PrefabPath` 的 CharacterController（与 `BodyCylinderBaker` 同源）；`ValidateSpawns` 改为接收 `bodyRadius/bodyHeight` 参数". But `SimMapBaker` is in `Assets/LiteGame/Editor` (editor tool, Unity), reading `BakeTargets.PrefabPath` requires loading prefab asset via AssetDatabase (Unity API) — fine in editor. But `Collect` is `public static` and called from tests; reading prefab inside ValidateSpawns means test paths need prefab. Also `SimMapBaker.Collect` is used by tests with arbitrary collision root — requiring prefab load makes it depend on BakeTargets.PrefabPath global. Plan says validate uses fixed BakeTargets.PrefabPath, and test guards "表 row ≡ prefab CC". Acceptable.
+
+But note: SimMapBaker's `Collect` is public API used by tests potentially with synthetic roots; injecting CC values from a fixed prefab path could break tests that don't have prefab. Editor tests do have project Assets so fine.
+
+Now B9/B12/B19 evaluability. Need to check `BakeTargets.PrefabPath` exists. We didn't read BakeTargets.cs. Plan claims "BakeTargets 四条死路径修正". Hmm. We can't verify. Non-blocking pending.
+
+Let me consider the acceptance numbering: user asks B9/B10/B12/B19 "是否可判定" — whether acceptance criteria are decidable/verifiable. Check each:
+
+- B9: includes "`CombatValues.Default ≡ 表值` 有 L1 守卫（Default 仅测试夹具）". Problem: `CombatValues.Default` comment says "Default = 表装面默认值（灰盒实测值），必须与表值一致". With 13 new geometry fields, Default must equal table values. But B9 says "Default 仅测试夹具" — yet `CombatConfig.Geometry` unpublished returns `CombatValues.Default.Geometry`, so Default is production fallback for HUD, not only test fixture. That's a contradiction in wording: "CombatConfig.Geometry 未发布时取 CombatValues.Default.Geometry（生产 HUD/Dev 读）" vs "Default 仅测试夹具". This is a genuine internal contradiction introduced in the revision. Severity: medium. It could cause a design ambiguity but not compile red. Is it blocking? The reviewer's mandate: whether remediation closed and whether new contradictions. This is a new contradiction. I'd mark it as a blocking-ish issue? Let's consider: B9 acceptance says "`CombatValues.Default ≡ 表值` 有 L1 守卫（Default 仅测试夹具）". Meanwhile §设计要点 says `CombatConfig.Geometry` 未发布返回 `CombatValues.Default.Geometry`（供 HUD/Dev/Editor 装载前安全读取）. So Default is used in production pre-publish path. The parenthetical "Default 仅测试夹具" is false. That's a documentation/acceptance contradiction that could lead to implementation deleting Default or mis-scoping the guard. I'd list as blocking (medium) — since acceptance criterion is not decidable as written? Actually it is decidable if you choose one; the contradiction makes B9's last clause ambiguous. Hmm. Given prior rounds were strict (4 blocks), this is a legit finding.
+
+- B10: "`Assets/**` 不再出现旧 `CombatConfig.<几何名>`" with guard excluding comments/strings. Decidable. But wait: deleting `CombatConfig.HardMaxSpeed` etc. means test files in `Tests/` may also use them — B10 scans `Assets/**`, but this repo has top-level `Tests/` directory (Tests/LiteFramework.Core.Tests) separate from `Assets/Tests`. The plan's list of consumers includes "BattleCrosshairEditModeTests" etc. located under `Assets/Tests/EditMode` presumably. But the repo has a top-level `Tests/` (xunit, non-Unity) — e.g., ClientAsmdefAllowlistTests lives there. Do any top-level Tests reference LiteSim? BuildCombatValues tests `CombatValuesEditModeTests.cs` maybe under Assets/Tests. We can't verify. If there are `CombatConfig.<geom>` usages in top-level `Tests/**` or `Server/**` (server code may use HardMaxSpeed? no, server uses LiteSim compiled in RoomServer project — `Server/RoomServer` references LiteSim csproj; any `CombatConfig.HitscanRadius` there?). Actually server-side movement hard cap `HardMaxSpeed` may be used in server-side validation? `MovementSystem` in LiteSim uses it. Server code probably doesn't. But the scan scope `Assets/**` excludes `Server/` and `Tests/` at root. If `Server/**` or root `Tests/**` use `CombatConfig` geometry, deleting constants → compile red, and B10's guard wouldn't catch it. Plan says "常量删除后由编译器兜底" — but server csproj & xunit tests compile in CI (`Tests.slnx`), so compile catches. But the plan's file list "外部几何读者约 40 处 in Assets/LiteGame/LiteSim/Editor/Tests" — ambiguous "Tests" which? The build-hash shared csproj includes LiteSim source links for server; server `RoomServer` compiles LiteSim? Let's recall: `SHARED_LINK_FILES` = `Serialization.Luban/{SimConfigMapper,TableLayout}.cs`. Server references LiteSim via project? Plan line 58: server `ServerTableLoader` in Server project calls `SimConfigMapper.BuildCombatValues` so Server references LiteSim assembly/csproj. If any server file uses `CombatConfig.HardMaxSpeed`, compile catches. Likely not.
+
+B10's guard scans `Assets/**` only. It's decidable, but coverage gap for `Server/**` and root `Tests/**`. Mention as non-blocking or blocking? The reviewer asks hard blocks: compile red → no, compiler catches; but "虚假通过" risk: acceptance B10 could pass while Server has stale usage? That would be compile error, not silent. So non-blocking.
+
+- B12: "五个烘焙器改产表行或 `.bin`，且写入源只来自 prefab/anchor/曲线" — how to verify? Need guard. Plan says "加'表 row ≡ prefab CC'守卫测试（固定 BakeTargets.PrefabPath 与默认行）". For Head/Muzzle, no equivalent guard specified — only for BodyRadius/Height. Write-source provenance for HeadHitLine ratio / muzzle offsets cannot be mechanically verified; only code review. "写入源只来自 prefab/anchor/曲线（禁止未发布默认回退）" is a code-inspection criterion, decidable by review, though not by a test. Acceptable-ish.
+
+B12 also says "`rootmotion.bin`/`grip.bin` 输出摘要等于预期" — "预期"是硬编码？That would be hardcoded digest values, brittle; but it's a test. Fine.
+
+- B19: "DevHUD/GM 出现全部判定参数滑杆（含几何 13 项）" — decidable via UI test/manual. "SimParamsOverrides 仅在 dev 三宏内" — what are "dev 三宏"? Not defined in plan! "dev 三宏" appears at line 132 and B19 without enumeration. If undefined, B19 is not decidable. Let me check: maybe existing macros known (e.g., `LITEGAME_DEV`, `UNITY_EDITOR`, `DEVELOPMENT_BUILD`?). We can't grep (budget). The plan uses "dev 三宏" as a known project term. Since the review is supposed to check decidability, I could flag "dev 三宏未枚举" as non-blocking. Hmm, but that's a real decidability gap for B19. Actually B19's main clause "SimParamsOverrides 仅在 dev 三宏内且只在装载/开局并入" — without listing macros, implementer can't know which. Is that new? It's in the plan from earlier? Line 132 says `SimParamsOverrides`（dev 三宏…). Third round presumably didn't flag it. I can flag as non-blocking (待确认) since maybe project convention.
+
+Let me weigh what to report as blocking. The instructions: 6-minute conclusion, max 8 tool calls. I have 3 calls left. I should verify one or two more things to make the review solid:
+
+(a) Does `BakeTargets.PrefabPath` exist? Important for B12/S2 remediation closure ("SimMapBaker 用 BakeTargets.PrefabPath"). If it doesn't exist, the plan's fix is ungrounded → blocking. Worth one read. Path likely `Assets/LiteGame/Editor/Baking/BakeTargets.cs`.
+
+(b) Does `BattleContext.cs:305` really use `CombatConfig.Loaded`? Verify claim "唯一外部读者". Worth a read around line 300. Path: Assets/LiteGame/Modules/Battle/.../BattleContext.cs. Unknown path. Glob would cost a call. I could use `grep` for "CombatConfig.Loaded" in Assets — but user said "禁止全仓搜索"; grep tool over Assets with pattern is a targeted content search though. The constraint says "禁止全仓搜索/运行命令" — they explicitly prohibit repo-wide search. So no grep. Reading BattleContext requires path. Skip; list as 待确认 (non-blocking), noting the claim is unverified but plausible.
+
+(c) Does `SimConfig` contain SnapshotHz/AoiRadius and `ProtocolConstants.ThrottleAoiRadius`? Plan line 61/121 claims. Not necessary.
+
+(d) `CombatValues.cs` current constructor 8 params — plan's "构造 8 → 9 参数" verified. `new CombatValues(` count 10 unverified.
+
+Given budget, reading BakeTargets.cs is highest value for remediation #3 (SimMapBaker 值来源). Let's glob/read. I know path might be `Assets/LiteGame/Editor/Baking/BakeTargets.cs`. Try direct read; if fails, that's a wasted call but we have 3. Let me guess strongly: SimMapBaker is at Assets/LiteGame/Editor/Baking/SimMapBaker.cs, uses BakeTargets — same folder likely.
+
+Actually, one more consideration on a potential hard block I noticed: In ClientAsmdefAllowlistTests, the `Allowed` dict line 37 is `["Assets/LiteNet/LiteNet.asmdef"] = new[] { "LiteSim" }`. Plan says delete this. Fine. But there's a second constraint: `客户端根下所有asmdef必须登记在允许表` — `Assets/LiteSync` added to ClientRoots, and LiteSync asmdef must be registered. Plan B5 says "新增 `LiteSync.asmdef` 条目" ✓.
+
+But the plan's asmdef `LiteSync` references `LiteNet` and `LiteSim`; the hard-edge test switch has no case for LiteSync, so plan adds ArchitectureGuardTests new hard edges. Fine.
+
+Another potential contradiction: `LiteSync/Client` excluded from BuildHash, but `LiteSync/Snapshot` etc. included. `AoiSettings` is described as "（LiteSync）" at line 119 but it's not in the 15-file move list (which includes AoiFilter under Snapshot, ProtocolConstants under Shared). AoiSettings is a *new* file whose location isn't specified as Shared/Snapshot. If placed in a subdirectory not in SHARED_TARGETS (e.g., `LiteSync/Aoi/`), the AOI settings would not be in BuildHash — yet AoiFilter (in Snapshot, in closure) uses it. Is that a problem? BuildHash covers shared source for both ends; AoiSettings is server-only (client doesn't read config), so it needn't be in the closure. But if AoiFilter in Snapshot (in closure) references AoiSettings type defined outside the closure, server and client compilations both use the same assembly source? BuildHash scope is "shared source" — a type referenced by shared code but outside closure means client build hash could differ without hash change. Since client doesn't use AoiSettings? Actually AoiFilter is client-side too (client filters snapshots for AOI? If client applies AOI filter). If client and server both compile AoiFilter, they both need AoiSettings; if AoiSettings is outside SHARED_TARGETS and changes, the two ends could diverge silently. Plan says AoiSettings "按房间实例注入；注入源=deploy/... 服务端读取并下发... 客户端不读该配置". If the client receives settings over the wire, then AoiSettings type is shared but values differ per room — type-level compatibility still matters. Solvable by placing AoiSettings in `LiteSync/Shared` (in closure). The plan doesn't specify the file's directory → ambiguity that could yield a silent-divergence (fake pass). This is a genuine, concrete finding introduced by the remediation restructure. Severity: medium; could be blocking as "B15 可判定性"? B15 says "AoiSettings 可运行期注入且服务端生效" — no requirement it's in BuildHash. I'd flag as non-blocking? Hmm, "虚假通过" criterion: B4 checks SHARED_TARGETS contains the four dirs; if AoiSettings lands in a fifth dir, B4 passes and hash misses it. But is it a "硬断点" (compile red / startup crash / fake pass)? Fake pass in the sense that both ends could diverge on AOI settings type without BuildHash change — but since settings are runtime-injected and wire-compatible via explicitly encoded fields, divergence in behavior is possible. Actually BuildHash only guards shared source const/type compatibility for Join handshake. If client's AoiFilter interprets fields differently, that's a desync. I'd report as non-blocking suggestion (specify `LiteSync/Shared/AoiSettings` or add dir), not a blocker for plan approval, unless the review demands strictness.
+
+Another: `CombatConfig` is static and `Publish` sets `_published = true`; but `Publish` is called by ConfigService and possibly tests; once published it can't revert — tests that rely on Default could leak state across tests (static state). Plan says "测试用 Publish 辅助或 CombatValues.Default 夹具". B9 acceptance "编辑器工具未发布不崩" — but if some earlier test published, `_published` is true, so "未发布" test is order-dependent → flaky/false pass. This is a real testability issue: static `_published` has no reset, xunit test ordering. Existing pattern: "测试不依赖本槽". The plan's B9 adds "未发布 Loaded 抛" test, which requires a fresh static state; with static flag, running that test after `Publish` in same process fails. There's no reset API specified. This is a decidable gap → test order dependence. Could be blocking? It's a test-design flaw that could cause false red or requiring `[Collection]`/reflection reset. Actually tests compile in assemblies; each test XML? Same process, shared static. Very likely to be flaky. I'd flag as blocking (medium): B9 未定义 `_published` 复位/测试隔离机制，静态状态跨用例污染会让"未发布抛"断言假通过/假失败。Plan does say "测试不依赖本槽" in CombatConfig comment, but the new test depends on it precisely.
+
+Alternative: they could test via a fresh AppDomain (not in xunit) or reflection to reset (undesirable). This is a legit finding worth blocking since B9 is an acceptance criterion.
+
+Hmm, but the user asked to judge "整改是否真正闭合，是否引入新矛盾" and B9/B10/B12/B19 decidability. The `_published` test isolation is exactly a B9 decidability issue. Similarly `Default ≡ 表值` guard is doable.
+
+Now also a subtle compile-red: `CombatConfig` currently has `public const float HardMaxSpeed` and `FaceTurnRadPerSec` used across LiteSim and LiteGame; plan deletes them and moves into `CombatGeometry` which is a struct in `CombatValues`. But `CombatGeometry` instance derivation `HeadHitLine => HitscanHeight * HeadRatio` etc. is fine. However `CombatValues` is a mutable struct with public fields; adding `Geometry` field while `Default` property constructs — fine.
+
+But wait: plan says `CombatValues` 10 → 11 fields (新增 Geometry, 13 列). Yet the 13 geometry fields include `HitscanRadius` etc. Currently `HitscanRadius` is a const in CombatConfig and currently **not** in the table. Table `#combatgeom` 13 columns. Plan's 13 list includes `HitscanRadius`. Good.
+
+Potential conflict: `CombatValues` comment (line 14) says "编译期常量（枪口烘焙/判定几何等）**不在**本实例——它们留在 CombatConfig" — plan says update. Documentation writeback needed; B24 doc list doesn't include CombatValues.cs/CombatConfig.cs doc comments (code comments aren't docs). Fine.
+
+Now B13 vs existing "刻意不进 digest" constants: moving HardMaxSpeed (code guard) into table means server "硬上限" now configurable per table — a design semantic change: the comment says the hard cap is a *server code fallback* to protect against config errors ("配置只做软上限"). If HardMaxSpeed becomes a table value, then a misconfigured table could remove the guard — the very failure mode it protects against. This is a real design contradiction introduced by the plan (all 13 including HardMaxSpeed into table). The plan's own §非目标 says "不做 LiteSim 全参数外部化（结构常量/位布局/算法 epsilon 不动）", but HardMaxSpeed is explicitly in the 13. And the existing doc says it's "代码常量两端编译期同值，刻意不进 digest". Putting it in the table means it enters digest (B13) and becomes hot-updatable — contradicting "服务器代码兜底（配置只做软上限）". That's a substantive new contradiction. Severity: high? It's a design flaw: hard limit externalized defeats purpose. But maybe user's ruling "litesim里参数都要从外部加载，别跟我说什么裁决" mandates ALL constants into table, including HardMaxSpeed. Indeed 裁决: "裁决常量全部进表". So it's user-mandated. Then the contradiction is with the old rationale doc, which must be updated; and the "hard cap" semantics need a lower bound guard in ValidateCandidate (e.g., hard cap must be ≥ max design speed). Plan's ValidateCandidate says 13 列有限/正/边界 — "边界" could cover. Hmm, plan says ValidateCandidate checks 13 columns finite/positive/bounds. Good enough.
+
+I should not overreach: the user explicitly demanded all constants into table. So mention as non-blocking doc writeback (comments in CombatConfig lines 51-55/79-82/182-200 would become stale and must be rewritten; B24 doesn't list code comments but writeback rule).
+
+Now, biggest issue may be the `CombatConfig.Loaded` "唯一外部读者 BattleContext.cs:305". Verified? In plan §66 and line 115. If wrong (other readers), publish gate throws in HUD/Awake → startup crash. B9 asserts unique reader. Since third round already handled this ("CombatConfig.Loaded 读者清点"), and plan says it, presumably correct. I can note unverified due to read budget.
+
+Let me now decide PASS/FAIL. Given at least one genuine internal contradiction (Default 仅测试夹具 vs production fallback) and the `_published` static test isolation issue, and possibly "AoiSettings 目录未定" — are these "阻塞"? The review's role is to gate plan approval. Prior rounds failed with 4 blocks. Fourth round expects likely PASS if closed. The user asks "结论: PASS 或 FAIL".
+
+I need to be honest, not contrive. Let's assess severity:
+
+1. `CombatValues.Default` contradiction: B9 says "Default 仅测试夹具", while §116/§113 says `CombatConfig.Geometry` 未发布返回 `CombatValues.Default.Geometry` for HUD/Dev/Editor. Is this really contradictory? "Default ≡ 表值 有 L1 守卫（Default 仅测试夹具）" — maybe meaning "Default 只作为测试夹具（生产路径不读 Default 的数值，仅作为未发布投影兜底）". It's ambiguous but arguably the parenthetical asserts default is only a test fixture, which conflicts. This is a wording/acceptance precision issue → blocking? It affects implementation choice: if Default is a production fallback, guarding `Default ≡ 表值` is insufficient (table is loaded at runtime, Default is compile-time; they can drift after a hot-update of table — and HUD would show stale geometry). Actually that's the deeper issue: using `CombatValues.Default.Geometry` as pre-publish fallback means HUD/tools could display stale baked values inconsistent with the table (since table is the single source now). But it's only before publish (pre-load), transient. Existing `ConfigService` publishes before gameplay. The editor bakers run without publish — they'd read Default (stale) for display/comparison; plan forbids using it as write source. Acceptable, but "Default ≡ 表值" L1 guard would fail whenever the table is tuned (hot-update) without code change — wait, the table values can be changed without recompiling Default. The L1 guard asserts `CombatValues.Default ≡ 表值`; if designers tune `#combatgeom`, the guard (which presumably reads the .bytes table) fails until Default is updated. For the 8 existing装载面 fields, the same guard exists already ("Default 必须与表值一致，L1 守卫卡漂移") — so precedent exists: tuning the table requires updating Default. With 13 new fields (including designer-tunable HardMaxSpeed etc.), every table tuning now requires a code edit to Default → contradicts "改表不动代码/两端热更" and "调参零副作用". This is a real systemic consequence: adding 13 geometry columns to the `Default ≡ 表值` guard means every table tune breaks L1 unless Default is synced by hand. But existing 8 fields already have this; the plan extends it. Hmm, but table data was intentionally moved out of BuildHash (2026-10-14), so table values hot-update without rebuild; Default is compile-time. The guard `Default ≡ 表值` would seem to conflict with that... unless the guard's purpose is to catch drift and the default is only for tests. Given existing code, this is existing design tension, not new. But the plan's assertion "Default 仅测试夹具" might be exactly an attempt to resolve: if Default is only a test fixture, guard is fine. Yet §116 uses Default as production fallback. That's the contradiction. I'll list it as blocking? It could be fixed by wording: keep Default as the pre-publish *display* fallback and guard; test isolation still.
+
+2. `_published` static + test isolation: real decidability issue for B9 ("未发布 Loaded 抛（有用例）"). No reset/collection specified. xunit runs tests in parallel within collection? Static flag shared; `Publish` called in other tests (ConfigService tests) would make "未发布" assertions order-dependent. This is a legit blocking design gap for a stated acceptance criterion. Suggest: add internal `ResetForTests()` (Editor-only/test assembly friend) or test via a separate `CombatConfig` instance? But the whole point is static read口. Or make the publish gate per-world and test through `ConfigService` order; or add `[Collection]` + reset. The plan must specify.
+
+3. B19 "dev 三宏" undefined — decidability gap; non-blocking? Could be defined in repo convention. I'll list as non-blocking pending.
+
+4. AoiSettings directory not in SHARED_TARGETS — non-blocking but note hash coverage.
+
+5. SimMapBaker: `SpawnOverlapsObstacle` also reads BodyBake.Height — plan only says ValidateSpawns params; after BodyBake退役 compile red if missed, so compiler catches; also B12's "表 row ≡ prefab CC" guard covers radius but bodyHeight (HitscanHeight) equivalence also needed for the "inside obstacle" Y-band check. Suggest pass both radius/height through to the private helper, and extend guard to height. Non-blocking precision.
+
+6. B10 guard scope excludes `Server/**` and top-level `Tests/**` — compiler catches, but with `ClientAsmdefAllowlistTests` at root `Tests/` setting precedent, the top-level `Tests` project compiles LiteSim source-linked? If root Tests reference CombatConfig geometry, B10's "Assets/** 零命中" passes while a test project still uses them → compile red in Tests.slnx. Suggest extend B10 to repo-wide (`Server/`, `Tests/`). Is that a "虚假通过"? It's a守卫覆盖缺口 → B10 could pass while compile fails elsewhere → fake pass at acceptance level. I'd call it blocking-lite. Hmm.
+
+Given the review question explicitly: "是否还有会导致编译红/启动崩/虚假通过的硬断点". #6 is a fake-pass risk. #2 is test false pass. #1 is contradiction. I think FAIL with 3 blocks is defensible, or PASS with non-blocking. Which is expected? The project's review discipline: "plan review" blocks prior rounds; fourth round expects closure. But I must judge independently.
+
+Let me do my remaining 2-3 calls to verify BakeTargets.PrefabPath existence and maybe FindDeep, since remediation #3 hinges on it. If `BakeTargets.PrefabPath` doesn't exist, that's a hard block for B12 (compile red). Read `Assets/LiteGame/Editor/Baking/BakeTargets.cs`.
+
+Also maybe read `Assets/LiteGame/Editor/Baking/BodyCylinderBaker.cs` to confirm it uses PrefabPath + CC and uses `BodyBake` write source (i.e., whether BodyCylinderBaker reads CombatConfig default). Plan's remediation: "烘焙器禁止把未发布默认回退当写入源". Does BodyCylinderBaker currently read `BodyBake`? Let me check BodyCylinderBaker to see if it writes BodyBake constants and where values come from — relevant to B12 decidability. Two reads: BakeTargets.cs and BodyCylinderBaker.cs. That uses calls 6,7; leaves 1 spare.
+
+Let me do both in parallel.
+dsh: reasoning:
+Great findings:
+
+1. `BakeTargets.PrefabPath` exists (line 25) ✓. But note path: `Assets/ShareResource/Characters/Player(Rifle).prefab` and comment says "不入版本管理——重烘需本地还原". Now plan's new guard test "表 row ≡ prefab CC" requires the prefab asset present in the test environment. Since it's not version-controlled, CI/other machines will fail the guard; plan doesn't state handling (skip if missing? that'd be fake pass). This is a concrete issue for B12 decidability: the new "表 row ≡ prefab CC" guard depends on a non-versioned prefab — in CI the file is absent → test either fails (red on clean clone) or skips (fake pass). Plan says "固定 BakeTargets.PrefabPath 与默认行" but does not address asset availability/restore. This is a real hard block for a guard's robustness. Good finding. Severity medium-high → blocking (B12 not decidable in CI; guard either red on clean checkout or silently skipped).
+
+Also `BakeTargets` output paths: `Assets/LiteSim/Core/Scripts/HeadBake.g.cs` etc. Plan says B12 five .g.cs "均不存在" and "BakeTargets 四条死路径修正" — wait, "四条死路径"? There are HeadBakeOutput, MuzzleBakeOutput, BodyBakeOutput, GripBakeOutput, RootMotionOutput = five output constants. Plan line 131 says "`BakeTargets` 四条死路径修正" — that's inconsistent: five outputs. Hmm, count: HeadBakeOutput, MuzzleBakeOutput, BodyBakeOutput, GripBakeOutput, RootMotionOutput = 5. Plus map outputs. The plan itself says "五件 .g.cs 全部退役" and "四条死路径修正" — the number four is wrong / unspecified which four. Actually "BakeTargets 四条死路径" may refer to four *dead* paths currently pointing to wrong dirs (e.g., `Assets/LiteSim/Core/Scripts/` vs actual `Assets/LiteSim/Scripts/`)? Look: current outputs point to `Assets/LiteSim/Core/Scripts/...` — and actual files? Plan §14 says Bake products in `Scripts/Map/*.g.cs`; Hmm the actual BodyBake location per plan line 64 is `Assets/LiteSim/Scripts/Map`? Actually line 14 says `Scripts/Map/*.g.cs` (烘焙产物 BodyBake/HeadBake/MuzzleBake/RootMotionData). But BakeTargets says `Assets/LiteSim/Core/Scripts/BodyBake.g.cs`. The old plan line 66/117 mentioned "B10 路径不再写 `Modules/LiteSim/...`". There's a known mismatch: "BakeTargets 四条死路径修正" — dead paths maybe outdated `Assets/LiteSim/Core/Scripts/` prefix (4 outputs there: Head/Muzzle/Body/RootMotion) while GripBake has the correct path. That's 4 dead paths + 1 correct = 5 outputs. Plausible! So "四条死路径" is consistent if the four under `LiteSim/Core/Scripts` are stale. Good — not an issue. Actually the plan's remediation says BodyBake/HeadBake etc. retire anyway; fixing dead paths then deleting them may be moot.
+
+2. `BodyCylinderBaker` writes from CC (prefab) directly — good: remediation "写入源只来自 prefab" is already true for BodyCylinderBaker. So B12's "禁止未发布默认回退" is a non-issue for Body (writes cc.radius/height). Fine.
+
+3. Bigger: `SimMapBaker` needs CC; plan says "SimMapBaker 的出生点校验直接读 BakeTargets.PrefabPath 的 CharacterController". But SimMapBaker currently is a *scene* baker and `Collect` is also used by tests with arbitrary roots; more importantly, `BakeTargets.PrefabPath` is a non-versioned prefab → same availability issue.
+
+4. `BakeTargets.PrefabPath` path includes parentheses `Player(Rifle).prefab`; fine.
+
+Now — a crucial new issue: Plan B12 says "五个烘焙器改产表行或 .bin，且写入源只来自 prefab/anchor/曲线". But `BodyCylinderBaker` writes radius/height; plan requires `#combatgeom` also contains `HitscanRadius` (judgment leniency 0.45), `HeadshotDamageShift`, `HipSpreadFactor`, `CorpseFrames`, `HardMaxSpeed`, `FaceTurnRadPerSec` — these are NOT baked from prefab/anchor/curve. Where do their table values come from? The plan's 13-column `#combatgeom` mixes prefab-derived geometry (BodyRadius/Height) with hand-tuned judgment constants and movement/规则 values. The baking tools write only some columns; the others are edited by... `SimParamsDebugTunables`/`SimParamsExporter` (dev sliders) or direct xlsx. Plan says bakers write 3 groups (body/head/muzzle) = 2+2+3 = 7 columns; the remaining 6 (HitscanRadius, HeadshotDamageShift, HipSpreadFactor, CorpseFrames, HardMaxSpeed, FaceTurnRadPerSec) have no defined authoring source other than SimParamsExporter. Is that closed? `SimParamsExport` writes `#combatgeom.xlsx` from overrides (Dev). But a table cell whose value is not derivable from any source would be hand-edited — acceptable if documented. However, there's a conflict: `BodyCylinderBaker` writing to the shared `#combatgeom` table must avoid overwriting the other 11 columns — plan says uses "共享表写入器" with xlsx read/write/backup, and "先 Body 写表、再 SimMapBaker". Fine if writer is column-scoped. But not specified whether writers patch only their columns (vs rewriting row) — potential data loss if writers replace the row. Plan says "三者改为写表（共享表写入器复用 SimParamsExporter 的 xlsx 读写/备份/原子写）" — if the shared writer is "write whole row", each baker would zero out others. This is an implementation detail; suggest specify column-scoped merge. Non-blocking.
+
+5. Also `BodyCylinderBaker`'s comment references `CombatConfig.BodyRadius`/`HitscanHeight` and writes `BodyBake` — after retiring BodyBake, this baker writes table; plan covers.
+
+Now, `BakeTargets.PrefabPath` non-versioned is a strong finding: the proposed guard test "表 row ≡ prefab CC" will be non-deterministic across machines. Unless the prefab is restored by pipeline. AGENTS.md says third-party paid assets not in VCS; `Assets/ShareResource/Characters/Player(Rifle).prefab` — comment says not in version control. So yes. The existing EditMode tests `BodyBakeEditModeTests` presumably don't require the prefab (they test generated constants). New guard would need the prefab. Plan doesn't mention restore or condition. If test is skipped when missing → acceptance "表 row ≡ CC" falsely green on CI. This is exactly "虚假通过" the user asks about. Blocking? I'd say yes, medium-high.
+
+Also note: SimMapBaker reading prefab CC at bake time is fine editor-side (baker requires prefab local anyway — existing bakers already require it). The problem is only the *test guard*. Plan B12 explicitly adds "加'表 row ≡ prefab CC'守卫测试（固定 BakeTargets.PrefabPath 与默认行）". So it's a test that requires a non-versioned prefab.
+
+Now, another hard issue: The plan's `CombatConfig` publish gate + `CombatConfig.Geometry` fallback. `CombatConfig` is in LiteSim, a shared assembly compiled also into the server (via csproj) — `Publish` is client-only; on the server, `CombatConfig.Loaded` would always be unpublished → server code calling `CombatConfig.Loaded` throws. Plan says "服务端不经本槽". But `CombatConfig.Geometry` is used by non-judgment consumers; server-side any? Probably not. Fine.
+
+But: `CombatConfig.Geometry` returns `CombatValues.Default.Geometry` when unpublished. After publish, returns `_loaded.Geometry`. If `CombatConfig.Geometry` is a *property* returning a struct, and consumers call `CombatConfig.Geometry.HeadHitLine`, fine.
+
+Potential hard break: `CombatConfig` currently is `public static class` with `public const` fields. Plan deletes `HitscanRadius` etc. and adds `Geometry` property — but the plan also says `CombatGeometry.MuzzleOrigin` is an instance method; and `CombatConfig.MuzzleOrigin` (static method) currently used by *both* ShootingSystem (judgment) and view aim laser. Plan's migration list mentions `ConfigService.cs:197`, `BattleCrosshairDriver.cs:165`... but if `CombatConfig.MuzzleOrigin` is removed, view code must switch to `CombatConfig.Geometry.MuzzleOrigin(pos, yaw)`. That's decidable by compile. Fine.
+
+Another potential hard break: `CombatValues` is a `struct` used as `in` parameter; adding a nested struct field `CombatGeometry` is fine. But `CombatValues` has public mutable fields and `Default` property — adding 13-field struct increases size; `in` params fine.
+
+Now — table layout: `#combatgeom` 13 columns, and plan says `HeadHitLine = HitscanHeight × HeadRatio` derived. But the baked HeadBake.Ratio is currently a *ratio* 0.775 and `HeadshotRadius` = baked radius. HeadHitLineTuner tunes "head band"; writes ratio and radius. Fine.
+
+But: the plan's 13 columns list includes `HeadRatio` and `HeadRadius` but **not** `HeadHitLine`; derived from `HitscanHeight` — which is in table. Consistency maintained: if a designer tunes HitscanHeight (body) via BodyCylinderBaker, HeadHitLine shifts; plan says that's intended ("随身高自动缩放"). OK.
+
+`CorpseFrames` in geometry table: validation "CorpseFrames 正" etc. Then B13 digest includes CorpseFrames — currently "刻意不进 digest". Changing corpse frames affects entity lifecycle → is a judgment param, so digest inclusion is actually correct for联机一致性. Fine.
+
+Now, the digest mechanism: `CombatConfigDigest` is computed from "判定面表字节" — `DeriveJudgmentFiles` takes domain from `TableLayout.Files`. Plan adds `"Combat/tbcombatgeom"`; `JudgmentDomains` includes Combat. So table bytes included. But B13 says "13 个几何值进 CombatConfigDigest" — actually the digest is over table bytes, not values; and `CombatConfigDigest` on the client is computed from local table bytes; the values come via `CombatConfig`. Statement is loose but acceptable.
+
+Wait — B13 says "改表后 `GameplayDigestBase` 变化可观测；两端不等时拒局" — since digest is table bytes and `#combatgeom` is in Combat domain, automatic. ✓.
+
+Now, another important check: `AoiSettings` injection source = `deploy/roomserver.windows.json` room config + GM params. But `AoiSettings` lives in LiteSync, and server reads deploy JSON. Server projects use LiteSync. Fine. However, plan says `AoiSettings`（LiteSync）— but `LiteSync` asmdef has `noEngineReferences: true`; reading JSON config in RoomServer is outside. Fine.
+
+Now — the plan says LiteSync references `LiteNet` and `LiteSim`. But the goal is "LiteNet 零 using LiteSim". Client-side: `LiteSync/Client` includes `RoomClient` which uses transport interfaces from LiteNet and sim types. OK.
+
+But `LiteSync` shared source dirs {Shared, Snapshot, Input, Events} are in BuildHash, and they reference `LiteSim`/`LiteNet` types. Both ends compile. Fine.
+
+Critical: `SHARED_TARGETS` includes `LiteSim/{Scripts,Systems}` and `LiteNet/Core/{Proto,Protocol,Transport/Security}`. If `LiteSync/Snapshot` etc. are added, the BuildHash constant in `LiteNet/BuildHash.g.cs` must include them; `namespace LiteNet` unchanged, path unchanged — plan says so. But if `SHARED_TARGETS` adds `Assets/LiteSync/Snapshot` and that file references `LiteSim` types whose source is also hashed, fine.
+
+Another: BuildHash source set includes `LiteSim/Scripts`; but `CombatConfig`/`CombatValues` stay in LiteSim (hashed). The plan moves 13 consts → table; BuildHash changes anyway due to new files. Fine.
+
+Now, `ClientAsmdefAllowlistTests` currently asserts every registered asmdef file **exists** (line 55). If `LiteSync` is registered before T1 creates asmdef → red; plan's T1 order "建 LiteSync（空壳，编译 + L1 绿）" then T5 guard. But B5 acceptance is after T5. The plan doesn't specify the Allowed entry addition timing vs T1. Minor.
+
+More significant: `ClientAsmdefAllowlistTests.ClientRoots` currently includes `Assets/LiteNet`. If the plan removes `LiteSim` reference from `LiteNet.asmdef`, then the allowlist entry for LiteNet becomes `Array.Empty<string>()`. But the test's `硬边_反向与跨层引用一律失败` has no LiteNet case; ArchitectureGuardTests adds new edges. Fine.
+
+However: The plan says "B5: ClientAsmdefAllowlistTests.Allowed 删除 LiteNet -> LiteSim、新增 LiteSync.asmdef 条目". It does NOT say to update all the *other* entries that currently only list `LiteNet` but will need `LiteSync` (e.g., `LiteGame.Modules` line 31, `LiteGame.Modules.Battle` line 33, `LiteGame.Core` no). And crucially, adding `LiteSync` reference to asmdefs triggers the allowlist test failure unless each entry updated. The plan §批6 line 102 lists 7 consumers to add LiteSync, and line 24-44 has `LiteNet` in 9 asmdefs: Luban? no. Let's count entries with LiteNet: PlayMode (22), EditMode (23), Modules (31), Battle (33), LuaBridge (39), App (40), Dev (41), Editor (44), LiteNet (37). Consumers listed: App, Dev, Editor, EditMode tests, PlayMode tests, LiteNet.Tests, RoomServer. Missing: `LiteGame.Modules`, `LiteGame.Modules.Battle`, `LiteGame.Adapters.LuaBridge`. Do these need LiteSync? `LiteGame.Modules` holds Map/Config modules — likely no RoomClient. Battle likely uses snapshots (view), so probably needs LiteSync (SnapshotCodec? view uses snapshots from App). If they need it, B5's allowlist update must include them, and plan omits. Risk of compile red (T3) — plan risk #3 says "全量排查". Hmm, it's a real gap: the plan's consumer list is incomplete relative to the actual allowlist entries that hold LiteNet. But whether they truly consume LiteSync types can't be verified without search (forbidden). I can flag as non-blocking 待确认 with evidence: asmdef list shows LiteNet referenced by 9 asmdefs, plan names only 7 consumers; LuaBridge/Modules/Battle 未列入，需在 T3 清点（LuaBridge 引用 LiteNet 但可能只用传输类型）。
+
+Now let's decide final verdict. I think there are enough concrete gaps to FAIL? Let's judge how strict prior rounds were: first round 10 blocks, second 4. Third incomplete. The fixes address the 4. As an independent reviewer, I should PASS if the plan is implementable and acceptance criteria decidable, with only minor notes. But I found:
+
+A. B12's new guard test depends on a non-versioned prefab (`BakeTargets.PrefabPath` line 23-25 explicitly "不入版本管理——重烘需本地还原"). This makes the "表 row ≡ prefab CC" guard non-deterministic: on clean checkout/CI the prefab is absent → either red or skipped (fake pass). This is a *material* decidability defect introduced by the remediation. Blocking? I'd call it a blocking issue (medium) because the plan cites this guard as the closure proof for remediation #3.
+
+Hmm wait: is the prefab really not versioned? The doc comment says "**不入版本管理**——重烘需本地还原". That's authoritative in-code. So yes.
+
+But Foundation: `.gitignore` might still include it? The comment says not. Good.
+
+B. `_published` static gate test isolation: B9 "未发布 Loaded 抛（有用例）" — static `_published` never resets; the same process also runs ConfigService tests that publish. No reset mechanism specified. → test order-dependent, false red/false green. Blocking? Medium. Could be resolved by `[Collection]` + internal reset; plan must state. I'd count it.
+
+C. Contradiction: `CombatValues.Default` "仅测试夹具" (B9) vs production fallback in `CombatConfig.Geometry` (§116) and "编辑器工具未发布不崩". Also the `Default ≡ 表值` L1 guard: with 13 tunable columns, any table tuning breaks L1 until Default is hand-edited; plan says tuning table doesn't require code. This is a systemic inconsistency (not just wording). Blocking? Medium. Actually since existing 8 columns already have this guard, maybe the project accepts "tune table + update Default". But B24 says "改表不动代码" as a generic extensibility claim (line 154 "新增判定数值只加表列（不改代码）"). If Default must mirror, adding a column requires code (constructor + Default), which contradicts "不改代码". The plan's own goal says 13 columns added now so code needed anyway.
+
+I think C is worth a blocking issue as "验收自相矛盾/守卫口径".
+
+D. AoiSettings 目录未定 → BuildHash coverage gap. Non-blocking.
+
+E. `SpawnOverlapsObstacle` still reads `BodyBake.Height`; plan only names `ValidateSpawns` params; B12's "表 row ≡ prefab CC" guard only covers radius/height via "CC" (it says row ≡ prefab CC, which covers both radius and height). So if ValidateSpawns gets both params and passes to helper, fine — but plan text doesn't say the helper. Compiler catches. Non-blocking.
+
+F. B10 guard scope `Assets/**` only; `Server/**` + root `Tests/**` not covered — stale refs there → compile red (not fake pass) unless it's a shared source linked. Non-blocking suggestion.
+
+G. B19 "dev 三宏" not enumerated → decidability gap. Also `SimParamsOverrides` "只在装载/开局并入" but if overrides are applied at load time to `CombatValues.Geometry`, "下一局生效" (B20) conflicts: ConfigService loads once per app start, not per match. B20 says "滑杆改值 → 下一局生效" — if overrides only merge at 装载/开局, "开局" is per match, so possible (match start applies overrides into values). But `CombatValues` is created at load and captured; need per-match merge. Plan line 132 says "只在装载/开局时并入 CombatValues.Geometry 或 MatchTestRules 实例" — "开局" per match. Then B13 digest: overrides change the per-match instance but not digest? The digest is computed from table bytes + rules; dev overrides in test rooms could cause checksum divergence? Dev-only macros, and test rooms maybe excluded. Also `NoDeath/InfiniteAmmo` rules enter digest. If geometry overrides applied at match start on the client but server doesn't apply (server has no dev sliders), then client and server geometry diverge → determinism break in dev sessions. Plan says overrides are dev-only and 判定系统只读参数; but the *server* also runs sim with room `CombatValues`. In a local test room the server runs in-process with the same macros? If server is separate RoomServer build, overrides not applied there → divergence. This is a genuine risk: "SimParamsOverrides 只在 dev 三宏内且只在装载/开局并入" — how do overrides reach the authoritative sim (server)? For a local in-process server (LocalServer), same process/macros, maybe. But for cloud room server, dev sliders on client can't alter server geometry. Existing `MatchTestRules` overrides (HeadHitLine/HeadshotRadius) presumably travel to server via JoinRequest/测试规则 — plan says "旧 HeadHitLine/HeadshotRadius 覆盖退役并入新 13 项" and B19 "并入 MatchTestRules 实例". If MatchTestRules overrides are transmitted to server, fine; else mismatch. B19 says "只在装载/开局并入 CombatValues.Geometry / MatchTestRules 实例" — but doesn't define how the server gets the overridden values, nor how digest handles them. This is a substantive decidability gap, but likely user/dev scope.
+
+Hmm, this could be a blocking issue about "调参面数据流" — but round 2 already flagged SimParamsOverrides data flow and plan claims closure. The closure says only "装载/开局并入 + 判定零静态读", which does not address *如何到达权威端* and *是否进 digest*. If overrides are dev-only and local server; still, a dev override in a real online room would desync. Given prior review flagged "SimParamsOverrides 数据流" as a block and the plan's fix is thin, I can re-flag as partially closed. But the instruction says round 2's 4 items "均已整改" and asks whether closed. So flagging the overrides path as still not fully closed is legitimate. Specifically:
+- Where is the override applied relative to `CombatConfigDigest`? If applied to `CombatValues.Geometry` after digest computation (digest computed from table bytes), then two clients with different overrides would both claim the same ConfigHash and the server accepts — but sim results differ → desync. `MatchTestRules` instance overrides are presumably already handled (test rules transmitted? actually NoDeath/InfiniteAmmo are in digest). For dev overrides, need to either include in digest or restrict to local-only test rooms and declare it.
+- B19 only says "dev 三宏内" and "判定路径零静态读", not "覆盖值进 digest 或服务端同源".
+
+This is a real "false pass" / desync risk. But "dev 三宏" probably gates it to dev builds where both ends are dev and local testing only. The plan should still state digest impact. I'd list as blocking (medium) or non-blocking? Given user's focus on "数据流" closure, I'd flag it: 部分闭合.
+
+Now I have 1 tool call left (used 7). I don't strictly need more. Maybe verify `MatchTestRules` override transmission? Can't without search. Skip, list as pending.
+
+Actually, let me reconsider whether to FAIL. The output must be decisive. With A, B, C, G issues, FAIL is justified. But are they truly blocking, or am I over-strict? The user's rubric: "是否还有会导致编译红/启动崩/虚假通过的硬断点". 
+
+- A → false pass (guard skips without non-versioned prefab) — yes, fake pass.
+- B → false pass/false red in test — yes.
+- C → acceptance self-contradiction — yes, decidable issue.
+- G → desync/false pass potential — yes.
+
+So FAIL with 3-4 blocks. That seems defensible and matches the requested format. But prior rounds: reviewers found 4, 10 blocks. A fourth round FAIL with 3 new blocks might be annoying but honest.
+
+Let me make sure C is airtight. Plan line 116: "`CombatConfig.Geometry` 是非判定投影（未发布返回 `CombatValues.Default.Geometry`，供 HUD/Dev/Editor 在装载前安全读取）". Plan B9: "`CombatValues.Default ≡ 表值` 有 L1 守卫（Default 仅测试夹具）". So B9's parenthetical contradicts line 116 and line 113 ("未发布时取 CombatValues.Default.Geometry，避免 Awake/静态初始化崩"). Yes, genuine.
+
+Also consider: If `CombatValues.Default` must equal table values and is used by HUD pre-publish, then after table hot-update (no code change), `Default` is stale; editors display stale pre-publish; bakers forbidden to write from it. That's tolerable. But the guard "Default ≡ 表值" requires Default updated on every table tune — this conflicts with B21 export flow: export writes `#combatgeom.xlsx` + gen.bat + check-shared; does it also rewrite `CombatValues.Default`? No. So immediately after using the new export feature, L1's `Default ≡ 表值` guard fails! That's a direct functional contradiction: B21 (export table, re-gen, check-shared) + B9 (`Default ≡ 表值` L1 guard) = every export turns the baseline red until a developer hand-edits `CombatValues.Default`. Unless the guard compares only pre-existing 8 fields' defaults... but B9 says Default ≡ table (all values). This is a real workflow break — strong blocking issue. Excellent.
+
+Wait, does the existing guard already exist for the 8 fields, meaning the existing "数值调参批" has the same issue? `SimParamsExporter` writes `#combatgeom` (new table) — and the `Default` guard would be a *new* L1 test for the 13 values. If added, exporting tune values breaks it. Unless the guard reads a *source* snapshot (e.g., `CombatValues.Default` compared with the gray-box `#combatgeom` default row while designers use a different environment override)? The table has one row. So yes, contradiction. And plan B13 "改表后 GameplayDigestBase 变化可观测" wants table editing to be a normal workflow; B21 automates it. Meanwhile B9's guard would fail each time. This is a systemic inconsistency, not just wording. Strong.
+
+Hmm, but existing `CombatValues.Default` for 8 fields: changing `tb_combatnum` already would break the existing guard (it says L1 守卫卡漂移). How do they currently tune? Perhaps the guard compares against Luban-generated defaults and the accepted workflow includes updating Default. Since that exists today (before plan), the plan just extends the burden. Still, plan's own claim "调参/导出" + B21 doesn't mention updating `CombatValues.Default` / running the guard. Could be non-blocking if accepted practice. But combining with B9's "Default 仅测试夹具", the plans ambiguous.
+
+OK. Let me also check A more carefully: The new guard "表 row ≡ prefab CC" — prefab not in VCS. Existing body baker requires prefab; existing EditMode tests `BodyBakeEditModeTests` test the generated constants (which are checked in), not the prefab. The new guard creates dependency. Unless `BakeTargets.PrefabPath` comment "不入版本管理" is outdated (maybe it is now in?) — plan mentions "P-6 ... 相关 EditMode 测试迁移" and "固定 BakeTargets.PrefabPath 与默认行". If the prefab is absent, `AssetDatabase.LoadAssetAtPath` returns null → test should skip? Fake pass. This is a legitimate concern; suggest guard strategy: check in a small fixture CC descriptor (JSON) generated from the prefab, or gate test to editor-only with explicit "prefab missing → fail with restore instructions" (not skip), and CI restore. I'll report.
+
+Now B12 also: "`rootmotion.bin`/`grip.bin` 输出摘要等于预期" — `grip.bin` baked from prefab/anchors which are non-versioned. Same issue: expected digest of non-versioned prefab-derived data can't be stable across machines unless prefab restored identically. Actually the prefab isn't versioned, so its bytes can differ per machine; the grip offsets are floats from prefab → digest differs. A guard comparing to a hardcoded expected digest would fail on machines with a different local prefab (or pass only where prefab matches). Hmm, but maybe the prefab content is fixed/restorable from a package (third-party). "重烘需本地还原" implies a deterministic restore. Still, if pipeline restores it, fine. The plan doesn't mention restore. Group with A.
+
+Let me now think about whether there's a *compile-red* specific issue in the plan's `CombatValues` signature claim "构造 8 → 9 参数". Currently the constructor has 8 params. Plan says 9. `new CombatValues(` occurrences: plan says 10. OK.
+
+But: `CombatValues` is a `struct` with a public parameterless implicit ctor; `Default` calls the 8-arg ctor. `SimConfigMapper.BuildCombatValues` returns `new CombatValues(...)` — must take `tbcombatgeom`. Fine.
+
+Another possible compile break: `CombatConfig` comments reference `BodyBake`, `MuzzleBake`, `HeadBake` (lines 94-176). When those `.g.cs` are deleted, the code compiles (references only in `<see cref>` XML comments — doc comment cref to non-existent type generates CS1574 *warning* only, and only if XML doc generation enabled; not error). Actually `/// <see cref="BodyBake.Radius"/>` in code with `BodyBake` deleted → CS1574 warning (if doc file generated). If the project treats warnings as errors (check `csc.rsp`/`-warnaserror`), could be red. The plan says B12 deletes five .g.cs and B10 migration; but does it plan to rewrite `CombatConfig` XML comments? The plan says "删除 `CombatConfig` 的公开几何常量" but the class-level doc comments referencing `BodyBake` etc. must be rewritten — that's writeback, not listed. Warnings-as-errors is unknown. Non-blocking note.
+
+Also `BakeTargets` XML `<see cref="BodyBake"/>`? BakeTargets lines 11-15 reference tool classes, not BodyBake. Body output constants deleted → references in tools removed.
+
+`SimMapBaker` line 460-512 `<see cref="BodyBake.Radius"/>` xml comments — after deletion, CS1574 warnings. Plan's migration covers code lines but not doc comments; again warnings only.
+
+OK, time to write the review. I'll structure per requested format. Decide PASS/FAIL: FAIL with 3 blocking issues? Or 4? Let me settle:
+
+阻塞问题 1 (B12 / §设计要点·烘焙全迁): "表 row ≡ prefab CC" 守卫与 `grip.bin` 摘要预期依赖不入库的 prefab (`BakeTargets.cs:23-25` 明示 "不入版本管理——重烘需本地还原")，CI/干净克隆无该资产 → 守卫只能跳过（假绿）或必红；plan 未给资产还原/夹具策略。严重度 中高。建议：守卫改为对"从 prefab 抽出的 CC 描述夹具（入库）"比对，或先把 prefab（或其 CC 参数导出件）入库/由 restore 脚本保证存在并让缺失=红。
+
+阻塞问题 2 (B9 / §发布闸门): `CombatValues.Default` 定位自相矛盾（"仅测试夹具" vs `CombatConfig.Geometry` 未发布兜底），且 `Default ≡ 表值` 守卫与 B21 导出表流程冲突（导出调参后 Default 不变即 L1 红）。严重度 中。建议：明确 Default 定位（要么纯夹具+Geometry 未发布抛/空，要么生产兜底并从表生成 Default 或只在装载前有明确范围），并把导出后同步 Default 纳入 exporter。
+
+阻塞问题 3 (B9 / 发布闸门可测性): `_published` 是静态状态，无复位；同进程其他用例先 `Publish` 后，"未发布 Loaded 抛" 用例顺序相关（假红/假绿）。严重度 中。建议：给 `CombatConfig` 加 internal `ResetPublishForTests`（InternalsVisibleTo 测试程序集）或 `[Collection]` 串行 + 显式复位，并在 T7 明确。
+
+阻塞问题 4 (B19 / SimParamsOverrides): 覆盖只在"装载/开局"并入，但未定义权威端（RoomServer）如何拿到同一份覆盖、是否进 `CombatConfigDigest`；客户端本地覆盖与服务器表值不一致时判定分叉却摘要相同（假通过/不同步）。严重度 中。建议：明确覆盖只用于纯本地/进程内测试房并在摘要或握手入口显式隔离（如覆盖入 digest 或拒绝联机），或经既有 MatchTestRules 通道随 Join 下发，B19 加断言。
+
+Hmm, #4 — is it fair? Round 2 block ④ was "SimParamsOverrides 数据流"; plan's fix says only merge at load/match start + judgment zero static. The reviewer should judge closure. The server-side distribution is indeed undefined. Since "dev 三宏" likely means dev builds only, and local server runs same build. But cloud test room also is dev? Cloud Room is release-ish. The plan says "调参/导出" primarily for tuning, not online play. Yet B20 "滑杆改值 → 下一局生效" implies within a session; in an online room with separate server, server won't apply. Actually B20 might be about local test mode. The plan should state scope. I'll keep as blocking-lite, or downgrade to non-blocking if I already have 3 blocks. Three blocks is enough. But this one is arguably the most user-relevant (they specifically care about 4 data flows). Hmm.
+
+Let me evaluate whether #4 can be inferred: `SimParamsOverrides`（dev 三宏；只在装载/开局时并入 `CombatValues.Geometry` 或 `MatchTestRules` 实例）. "MatchTestRules 实例" is the per-match rules object that presumably is sent from client to server? Round 2's block mentioned "SimParamsOverrides 数据流" and the fix says "只在装载/开局时并入 CombatValues.Geometry 或 MatchTestRules 实例，判定系统只读参数，禁静态读". The mention of MatchTestRules suggests the overrides ride the existing test-rules channel to the server. If so, server gets them → consistent. But `CombatValues.Geometry` merge at 装载 on the server would need the override values transmitted before load; unclear. I'll present it as "部分闭合" blocking with precise ask: 明确覆盖值进入 MatchTestRules 并按既有测试规则下发（沿用 HeadHitLine/HeadshotRadius 通道）或在 B19 中限定为进程内单世界并禁止联机。That's constructive.
+
+But should I also flag B10 scope? Non-blocking suggestion.
+
+Also #5 non-blocking: `SpawnOverlapsObstacle` helper also reads BodyBake.Height (line 512-513); plan only names ValidateSpawns params; make height param threaded through helper and extend guard to body height. Non-blocking (compiler).
+
+#6 non-blocking: AoiSettings 目录未指定；若不在 `LiteSync/{Shared,Snapshot,Input,Events}`，B4 绿但 BuildHash 不覆盖共享类型 → 两端类型漂移不被哈希捕获。建议明确落 `LiteSync/Shared/`（或把 `LiteSync/Aoi` 加入 SHARED_TARGETS）。
+
+#7 non-blocking: B10 守卫只扫 `Assets/**`，`Server/**`、根 `Tests/**`（xunit 工程，如 `Tests/LiteFramework.Core.Tests`）不在扫描面；编译器能兜住编译红但不满足"零命中"验收口径。建议扩到 `Server/**`+`Tests/**`。
+
+#8 non-blocking: `CombatConfig` 类头/成员 XML 注释大量 `<see cref="BodyBake/MuzzleBake/HeadBake"/>`（CombatConfig.cs:15-16, 85-104, 133-176），五件 .g.cs 删除后成 CS1574 警告；若工程开启 warnaserror 则编译红，plan 未列注释回写。建议 T9b 收口时同步重写注释并核对 csc.rsp。
+
+That's a good concrete finding with file:line evidence. Actually this could be a real compile-red if warnings-as-errors. We can't check csc.rsp (no calls). List as non-blocking/待确认.
+
+Non-blocking: ClientAsmdef allowlist consumers: plan lists 7 consumer asmdefs; existing allowlist has 9 asmdefs referencing LiteNet (Modules, Battle, LuaBridge included); T3 must reconcile each (either not need LiteSync or update Allowed), else B5's allowlist test red. Evidence ClientAsmdefAllowlistTests.cs:31,33,37,39,41,44.
+
+Also: `ClientRoots` add `Assets/LiteSync` requires `LiteSync.asmdef` registered before the "all asmdef registered" test green — T1/T5 ordering; minor.
+
+Another non-blocking: `BakeTargets` 现输出路径 `Assets/LiteSim/Core/Scripts/*.g.cs` 与 plan §14 说产物在 `Scripts/Map/*.g.cs` 不一致（BakeTargets.cs:36-46 vs plan:14/64）——"四条死路径修正"未列具体四条；建议在 T9b 明列五条输出常量各自去向，避免删除时漏项。Evidence: five output constants exist (Head/Muzzle/Body/RootMotion/Grip) yet plan says "四条死路径". Actually "四条死路径" means 4 dead paths + 1 correct, plausible. But the mismatch between §14 (`Scripts/Map`) and BakeTargets (`Core/Scripts`) is itself evidence plan's file inventory may be imprecise. Hmm, lines 14 says `Scripts/Map/*.g.cs` — maybe wrong. Since plan is based on HEAD实测, discrepancy → non-blocking fact-check item. I'll include in 非阻塞.
+
+Now 验收标准 verdict: FAIL (because B9/B12/B19 not decidable as written). 结论 FAIL.
+
+主要优点:
+- 四项第二轮整改有具体落点（B9 发布闸门三态、B12 prefab 同源、B19 覆盖并入实例、B10 标识符守卫+负例），与代码现状对得上（`BakeTargets.PrefabPath` 存在、`SimMapBaker` 现读 `BodyBake.Radius/Height` 确为待迁点）。
+- `using LiteSim` 11 文件全在 15 件清单、ProtocolConstants 不成环、`LiteSync/Client` 排除 BuildHash 等边界清晰。
+- 守卫层设计（负例、白名单为空、asmdef 根扩展）可执行。
+
+抽查证据 (file:line):
+- plan.md:116 / :183 — Default 双重定位矛盾.
+- CombatConfig.cs:22-29 — `_loaded` 初值 Default、无 `_published`（现状），闸门为新增静态态，无复位点；:51-55,79-82,130-200 — 拟迁的 13 项现状均为 const（含"刻意不进 digest"表述，与 B13 全进 digest 需同步改注释）。
+- CombatValues.cs:56-76 — 8 参数构造、Default 8 参；确认"8→9"。
+- ClientAsmdefAllowlistTests.cs:37 — LiteNet->LiteSim 待删；:69-76 ClientRoots 待加；:31,33,39 等 LiteNet 引用面未被 §批6 消费者清单覆盖（Modules/Battle/LuaBridge）。
+- SimMapBaker.cs:460/496/498/505/512-513 — BodyBake.Radius/Height 消费点，其中 512-513 在 `SpawnOverlapsObstacle`（plan 只点名 ValidateSpawns 参数）→ 需把 bodyHeight 一并下传。
+- BakeTargets.cs:23-25 — PrefabPath "不入版本管理——重烘需本地还原" → 新增 prefab CC 守卫的可用性问题。
+- BodyCylinderBaker.cs:35-49 — 写入源=prefab CC（已符合"禁止默认回退"要求），但输出走 `WriteGenerated`（:135）需删除。
+
+Note: plan says "BakeTargets.WriteGenerated 零引用并删除" — BodyCylinderBaker line 42 uses WriteGenerated → after migration, removed. Good.
+
+Also: `BakeTargets.WriteGenerated` is used by `WriteArtifact`? No, separate. Fine.
+
+One more possible blocking: `SimMapBaker` is `public static` and `Collect` public; plan says SimMapBaker 迁移 (P-6 全迁 to... where?). "P-6 扩范围全迁：SimMapBaker、相关 EditMode 测试、WeaponGripBaker 一并迁移" — migrate to where? Probably `Assets/LiteSim/Editor` or `LiteGame/Editor`? It already is in LiteGame/Editor. "迁移" likely means moving out with baking toolbox? The plan doesn't say destination for these migration targets in §设计要点. Hmm, "P-6 扩范围全迁" in context of "烘焙全迁" — maybe means retire generated constants. Unclear. Existing SimMapBaker is under Assets/LiteGame/Editor/Baking; "迁移" to where? Could be "migrate consumers". Not a hard block.
+
+Given the 8-call limit, stop. Now produce Chinese plain text, with the requested sections. Keep it concise but evidence-rich. Blockers count: 4. Severity [中]/[中高].
+
+Wait — is "验收标准: FAIL" separate from "结论: FAIL"? The format lists both; presumably 结论 = overall review verdict, 验收标准 = whether acceptance criteria are decidable/pass. Both FAIL.
+
+Let me write it.
+
+Line count fine. Include "非阻塞待确认" items clearly. Mention constraints honored (read-only, no commands).
+
+Be careful: don't overclaim things I didn't verify (e.g., CI absence of prefab) — phrase as "干净克隆/CI 下" conditional, based on doc comment.
+
+Let me finalize wording.
+
+One more check on the `_published` issue: B9 says "未 Publish 时 CombatConfig.Loaded 抛（有用例）". In xunit, tests within an assembly run sequentially by default? xUnit v2 runs test collections in parallel by default (different collections parallel). Tests in the same class are same collection → sequential. ConfigService tests likely another class → could run in parallel with B9 test, publishing concurrently. Static state → flaky. Even without parallelism, order within process. Yes, valid.
+
+Also note if they make `_published` `[ThreadStatic]` etc. no. Suggest reset.
+
+Regarding `CombatConfig.Geometry` fallback and `Publish`: `Publish` once set true, stays true. If a test publishes, editor tools later read published values instead of Default — could mask "未发布不崩". The acceptance "编辑器工具未发布不崩" only in a fresh domain. Fine.
+
+I'll also mention B10 decidability PASS-ish: guard on identifiers excluding comments/strings is decidable; but scope gap.
+
+B12 decidability: FAIL due to prefab guard; also "写入源只来自 prefab/anchor/曲线" is a code-review criterion, not mechanically guarded for head/muzzle (only body equivalence guard) → 可判定但依赖人工。Mention.
+
+B9 decidability: FAIL due to Default/reset.
+
+B19 decidability: FAIL due to server path/digest & "dev 三宏" undefined.
+
+Write final.

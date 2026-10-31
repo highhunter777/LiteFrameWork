@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using LiteGame.Toolchain;
 using LiteSim;
@@ -64,17 +65,22 @@ namespace LiteGame.EditorTools
 
         public static string BakeAll(ToolWriteScope writeScope)
         {
+            if (!SimMapSpawnGate.TryRead(out float bodyRadius, out float bodyHeight, out string error))
+                return "ABORT " + error;
+
             var sb = new StringBuilder();
             for (int i = 0; i < BakeTargets.Maps.Length; i++)
             {
                 if (i > 0) sb.Append('\n');
                 BakeTargets.MapTarget target = BakeTargets.Maps[i];
-                sb.Append("== ").Append(target.MapName).Append(" ==\n").Append(Bake(target, writeScope));
+                sb.Append("== ").Append(target.MapName).Append(" ==\n")
+                  .Append(Bake(target, writeScope, bodyRadius, bodyHeight));
             }
             return sb.ToString();
         }
 
-        /// <summary>烘焙一个地图目标：定位场景 MapCollision 根 → <see cref="Collect"/> → 写盘（每图一文件）→ 报告。</summary>
+        /// <summary>烘焙一个地图目标：定位场景 MapCollision 根 → <see cref="Collect"/> → 写盘（每图一文件）→ 报告。
+        /// 身位几何在读 prefab CC / 表行 / 夹具三方一致后传给采集器。</summary>
         internal static string Bake(BakeTargets.MapTarget target)   // 目标类型 internal——对外入口只留 All/AllTraining
         {
             return Bake(target, null);
@@ -82,10 +88,18 @@ namespace LiteGame.EditorTools
 
         internal static string Bake(BakeTargets.MapTarget target, ToolWriteScope writeScope)
         {
-            if (!System.IO.File.Exists(target.ScenePath))
-                return "ABORT 缺地图场景：" + target.ScenePath;
+            if (!SimMapSpawnGate.TryRead(out float bodyRadius, out float bodyHeight, out string error))
+                return "ABORT " + error;
+            return Bake(target, writeScope, bodyRadius, bodyHeight);
+        }
+
+        private static string Bake(BakeTargets.MapTarget target, ToolWriteScope writeScope,
+            float bodyRadius, float bodyHeight)
+        {
             if (string.IsNullOrEmpty(target.ScenePath))
                 return "ABORT 地图目标缺场景路径（表行 scene 列来源——加图＝加文件 + 加场景）";
+            if (!System.IO.File.Exists(target.ScenePath))
+                return "ABORT 缺地图场景：" + target.ScenePath;
 
             Scene scene = SceneManager.GetSceneByPath(target.ScenePath);
             bool openedHere = false;
@@ -114,6 +128,7 @@ namespace LiteGame.EditorTools
                         + "（地图场景约定：MapCollision 代理树 ＋ spawn_* ＋ map_bounds）";
 
                 string report = Collect(root, out SimMapData map, out string jsonText,
+                    bodyRadius, bodyHeight,
                     mapId: target.MapId, mapName: target.MapName, scenePath: target.ScenePath);
                 if (map == null) return report;
 
@@ -133,16 +148,21 @@ namespace LiteGame.EditorTools
 
         /// <summary>
         /// 采集＋校验＋量化＋摘要（**不落盘**——写盘归 <see cref="All"/>；测试与 run_script 对账直调）。
+        /// <paramref name="bodyRadius"/>/<paramref name="bodyHeight"/> 是身位圆柱（prefab CC 单源，
+        /// 经表行与入库夹具三方一致后由调用方传入）——出生点校验不再读编译期常量。
         /// 失败返回 ABORT 报告并置 <paramref name="map"/>/<paramref name="jsonText"/> 为 null；
         /// 成功返回采集报告（含丢弃清单等提示行），产物经 out 交给调用方。
         /// </summary>
         public static string Collect(GameObject collisionRoot, out SimMapData map, out string jsonText,
+            float bodyRadius, float bodyHeight,
             MeshColliderPolicy meshPolicy = MeshColliderPolicy.Fail,
             int mapId = BakeTargets.MapId, string mapName = BakeTargets.MapName, string scenePath = null)
         {
             map = null;
             jsonText = null;
             if (collisionRoot == null) return "ABORT 采集根为空";
+            if (!(bodyRadius > 0f) || !(bodyHeight > 0f))
+                return "ABORT 身位几何非法（body_radius/body_height 须为正有限值）";
 
             var errors = new StringBuilder();
             var notes = new StringBuilder();
@@ -152,7 +172,7 @@ namespace LiteGame.EditorTools
             CollectBounds(collisionRoot, out float groundY, out float halfWidth, out float halfDepth, errors);
             List<(string Name, SimVector3 Pos)> spawns = CollectSpawns(collisionRoot, errors);
             if (errors.Length == 0)
-                ValidateSpawns(spawns, drafts, groundY, halfWidth, halfDepth, errors);   // 布点可调的安全闸（见方法注释）
+                SimMapSpawnGate.Validate(spawns, drafts, groundY, halfWidth, halfDepth, bodyRadius, bodyHeight, errors);   // 布点可调的安全闸（见方法注释）
 
             if (errors.Length > 0)
                 return "ABORT 地图采集校验失败（不产半成品——修场景后重烘）：\n" + errors;
@@ -454,75 +474,6 @@ namespace LiteGame.EditorTools
             return spawns;
         }
 
-        /// <summary>
-        /// 出生点合法性（**布点可调的安全闸**——多图批；**逐图通用，不依赖作者记得留余量**）：
-        /// ① **不落障碍内**（含 y 区间的 2.5D 判据：出生点站立区间与障碍 y 区间相交且 XZ 落在圆/AABB 内 = 出生即卡几何）；
-        /// ② **离障碍不小于身位半径**（<see cref="BodyBake.Radius"/>——否则出生首帧被移动去穿插推出，
-        /// 落点与场景标记不符；新图不靠"复活点离死亡点够远/出生点恰好宽敞"这类隐含约定）；
-        /// ③ **不越边界**（|x| ≤ half_width、|z| ≤ half_depth）。
-        /// 任一违例 fail-fast（不产半成品；调布点时点位打偏即刻在报告里点名，而不是等进局才发现）。
-        /// 边界判据与视觉地面同源（`map_bounds`：布点必须落在视觉场地内，防"出界出生"）。
-        /// </summary>
-        private static void ValidateSpawns(List<(string Name, SimVector3 Pos)> spawns,
-            List<ObstacleDraft> obstacles, float groundY, float halfWidth, float halfDepth, StringBuilder errors)
-        {
-            for (int i = 0; i < spawns.Count; i++)
-            {
-                (string name, SimVector3 p) = spawns[i];
-                if (Mathf.Abs(p.X) > halfWidth || Mathf.Abs(p.Z) > halfDepth)
-                {
-                    errors.Append(name).Append("：出生点越界（").Append(p.X).Append(',').Append(p.Z)
-                          .Append(" 超出半宽 ").Append(SimMapDigest.Fmt(halfWidth))
-                          .Append(" / 半深 ").Append(SimMapDigest.Fmt(halfDepth)).Append("）\n");
-                    continue;
-                }
-
-                // 索引读取（List 索引器返回值不是变量——readonly struct 字段取址需先落局部）
-                bool blocked = false;
-                for (int o = 0; o < obstacles.Count; o++)
-                {
-                    ObstacleDraft draft = obstacles[o];
-                    if (!SpawnOverlapsObstacle(in p, groundY, in draft.Obstacle, 0f)) continue;
-                    errors.Append(name).Append("：出生点落在障碍内（").Append(draft.Name)
-                          .Append("；出生点 y=").Append(SimMapDigest.Fmt(p.Y)).Append("）\n");
-                    blocked = true;
-                    break;
-                }
-                if (blocked) continue;                                 // 已点名：不再重复报"离障碍过近"
-
-                for (int o = 0; o < obstacles.Count; o++)
-                {
-                    ObstacleDraft draft = obstacles[o];
-                    if (!SpawnOverlapsObstacle(in p, groundY, in draft.Obstacle, BodyBake.Radius)) continue;
-                    errors.Append(name).Append("：出生点离障碍过近（").Append(draft.Name)
-                          .Append("；净距 < 身位半径 ").Append(SimMapDigest.Fmt(BodyBake.Radius))
-                          .Append("m——出生首帧会被去穿插推出）\n");
-                    break;
-                }
-            }
-        }
-
-        /// <summary>出生点是否与障碍相交（2.5D：站立占用 [y, y+<see cref="BodyBake.Height"/>] 与障碍 y 区间相交
-        /// ＋ XZ 距离小于 <paramref name="margin"/>）：margin=0 = "落在截面内"；margin=身位半径 = "出生即被
-        /// 移动去穿插推出"。盒按最近点欧氏距离（角点精确、不是 AABB 各轴放宽），圆按半径外扩；
-        /// 站立高度取身位圆柱烘焙值 <see cref="BodyBake.Height"/> 单源。</summary>
-        private static bool SpawnOverlapsObstacle(in SimVector3 p, float groundY, in SimObstacle o, float margin)
-        {
-            float bottom = p.Y - groundY;                  // 相对地面高度（地面非 0 的地图同口径）
-            float top = bottom + BodyBake.Height;
-            if (top <= o.Center.Y || bottom >= o.Center.Y + o.Height) return false;   // y 区间不相交
-            if (o.Kind == SimObstacleKind.Circle)
-            {
-                float dx = p.X - o.Center.X, dz = p.Z - o.Center.Z;
-                float r = o.Radius + margin;
-                return dx * dx + dz * dz < r * r;
-            }
-            float ex = Mathf.Max(Mathf.Abs(p.X - o.Center.X) - o.HalfX, 0f);
-            float ez = Mathf.Max(Mathf.Abs(p.Z - o.Center.Z) - o.HalfZ, 0f);
-            if (ex <= 0f && ez <= 0f) return true;         // 点已在盒内（margin 任意）
-            return ex * ex + ez * ez < margin * margin;    // 盒外：最近点距离 < margin
-        }
-
         /// <summary>surface 前缀解析（`surf_&lt;surface&gt;_...`；无前缀＝Default；未知名拒载）。</summary>
         private static string TrySurface(string objectName, out SimObstacleSurface surface)
         {
@@ -667,7 +618,7 @@ namespace LiteGame.EditorTools
         }
 
         /// <summary>障碍草稿（采集名 ＋ 量化后值 ＋ 占位面积——超上限选择依据）。</summary>
-        private readonly struct ObstacleDraft
+        internal readonly struct ObstacleDraft
         {
             public readonly string Name;
             public readonly SimObstacle Obstacle;

@@ -1,0 +1,755 @@
+dsh: reasoning:
+The user wants a read-only review of tasks.md and plan.md. I need to read the files. Max 8 tool calls, no shell commands. Let me read the files.
+
+Let me first check the paths. `.workflow/active/sync-and-sim-params/tasks.md` and `plan.md`. Also reference `references/artifact-quality.md` "任务评审" and AGENTS.md. But tool budget: 8 calls. Let me read tasks.md and plan.md first (2 calls), maybe artifact-quality.md (1 call), and maybe one key file for verification.
+
+Let me do parallel reads.
+dsh: reasoning:
+Now I need to review. Let me check reference artifact-quality.md 任务评审 criteria and maybe AGENTS.md红线 — but AGENTS.md content already provided in system reminder. Let me read artifact-quality.md 任务评审 section (1 call). Also perhaps check .workflow/config.json to verify T26's claim of main-agent exclusive, and whether command group exists. But budget: 8 calls total; used 2. I can use a few more.
+
+Key things to verify:
+1. B1~B24 full coverage in tasks T13-T27.
+2. Granularity, dependency order, acceptance/verification independently executable.
+3. Compilation interruption / gate not executable / construction subagent overreach.
+4. Hardcoding or silent scope expansion.
+
+Let me map coverage:
+
+- B1 → T13 ✓
+- B2 → T14 ✓
+- B3 → T14 ✓
+- B4 → T14 (SHARED_TARGETS + regen + --check-shared) ✓
+- B5 → T15 ✓
+- B6 → T14 ✓ (WeakNet move, DiagTrace registration)
+- B7 → T14 ✓
+- B8 → T16 ✓
+- B9 → T17 (type/gate/construction points/Loaded timing/editor not crash/10 construction points/bad table candidate validation) — but B9 also says "13 columns all loaded from table" which requires T18. T17 acceptance says "坏表候选校验（表接入在 T18）". Hmm B9 says "`CombatGeometry` 13 列全部从 `Combat/tbcombatgeom` 装载" — this is split: T17 covers type and gate; T18 covers table access. Does T18's acceptance (B11) mention 13 columns loaded? T18 says B11: __tables__ + TableLayout... but not explicit "13 columns loaded". T20 covers B13/B14. Hmm. B9's "13 列全部从表装载" is arguably covered by T18 + T20 (B14 13 values equal table load result). But T18 acceptance doesn't explicitly say 13 columns mapped from table into CombatGeometry. There's a potential coverage gap: mapping from tbcombatgeom columns → CombatGeometry fields (SimConfigMapper.BuildCombatValues with tbcombatgeom) isn't explicitly a task. T17 says "10 处构造点更新" and "坏表候选校验（表接入在 T18）"; T18 says "ConfigService/ServerTableLoader/测试调用点全更新". SimConfigMapper.BuildCombatValues signature change to accept tbcombatgeom is part of B9/B11. T18's B11 "调用点全部更新" likely implies mapper. But the actual field mapping (13 columns to Geometry) is not named. Could be a blocking issue: no task explicitly owns `SimConfigMapper.BuildCombatValues(..., tbcombatgeom)` mapping 13 columns. Plan says B9 includes "13 列全部从表装载", T17 defers table to T18 but T18 labels only B11. If mapping belongs to neither, it's an orphan. However, T18 "表接入与装载" naturally includes loading 13 columns; acceptance says "表装载/坏表用例" and "13 列"? Let me re-read T18: "B11：__tables__ + TableLayout.Files=Combat/tbcombatgeom；JudgmentFiles 自动包含；ConfigService/ServerTableLoader/测试调用点全更新；坏表在 ValidateCandidate 拒启动". No explicit mapping. T20 B14 compares 13 values to table load result. So T20 would fail if mapping missing, but T20 is "摘要与值校验" and could implicitly force it. Still, the task that implements mapping is not clearly assigned. This is a plausible blocking finding (B9 coverage split leaves mapper/13-column binding unowned). Severity medium/high.
+
+- B10 → T19 ✓
+- B11 → T18 ✓
+- B12 → T21 (Body/Head/Muzzle + SimMap + WriteGenerated) + T22 (Grip) ✓. But B12 also includes RootMotionData.g.cs retirement — that's T23. B12 says five .g.cs absent; T21 three, T22 Grip, T23 RootMotion. Coverage across three tasks. Fine, but B12 also includes "BakeTargets 五条输出常量逐条去向明确" and "相关 XML 注释清理后编译 0 warning" and "MatchTestRules 类头/字段爆头覆写说明同步删除" — T21 says "注释 0 warning" but does it cover BakeTargets five output constants? T21 acceptance doesn't mention BakeTargets five constants / dead paths. T22 doesn't either. Plan B12 explicitly requires "BakeTargets 五条输出常量逐条去向明确；... MatchTestRules 类头/字段的爆头覆写说明同步删除". Tasks T21-T23 don't mention BakeTargets output constants nor MatchTestRules comment cleanup. That's a coverage gap for B12 sub-items. Could be blocking or non-blocking. B12 is large; if those acceptance items are dropped, coverage incomplete.
+
+- B13 → T20 ✓
+- B14 → T20 ✓
+- B15 → T24 ✓
+- B16 → T23 ✓
+- B17 → T23 ✓
+- B18 → T23 ✓
+- B19 → T25 ✓
+- B20 → T25 ✓
+- B21 → T25 ✓
+- B22 → T15 ✓
+- B23 → T26 (auto) + T27 (manual) ✓
+- B24 → T27 ✓
+
+Coverage matrix seems mostly complete except B9 mapping and B12 subitems.
+
+Now check task dependencies and compilation interruptions:
+- T13: create LiteSync asmdef referencing LiteNet+LiteSim. But LiteNet currently references LiteSim; LiteSync references both. Fine. But if LiteSync exists empty and csproj added, no files? asmdef with no scripts is fine in Unity; csproj might compile nothing. BuildHash not yet changed. OK.
+- T14: move 15 files, update references, SHARED_TARGETS, regenerate BuildHash. It says LiteNet zero using LiteSim/LiteSync. But after moving RoomClient etc. out of LiteNet, LiteNet.asmdef must remove LiteSim reference. Does T14 include asmdef reference removal? B2 says LiteNet.asmdef and csproj no LiteSim. T14 acceptance "LiteNet 零 using LiteSim/LiteSync" but doesn't explicitly say remove asmdef/csproj LiteSim reference. T13 says LiteSync asmdef references LiteNet+LiteSim. T15 guards Allowed delete LiteNet->LiteSim. If T14 doesn't remove LiteNet's asmdef reference to LiteSim, T15's guard would fail; but T15's dependency on T14 means it might be fixed in T15. However B2 is mapped to T14 only in the matrix (T14 lists B2/B3/B4/B6/B7). T14's acceptance doesn't explicitly say "LiteNet.asmdef/csproj 删 LiteSim 引用". It says "引用收口" and "LiteNet 零 using LiteSim/LiteSync" — a reviewer could infer asmdef. But acceptance is what's independently executable; missing explicit asmdef/csproj reference removal is a real risk of compile break: LiteSync references LiteNet and LiteSim; if LiteNet still references LiteSim, no cycle (LiteNet→LiteSim, LiteSync→LiteNet+LiteSim) — actually no cycle. But B2 requires removal. T15 only changes Allowed, not asmdef. So B2's "LiteNet.asmdef 与 LiteNet.csproj 均不引用 LiteSim" is not explicitly assigned to any task. That's a blocking coverage/gate issue: T15's `ClientAsmdefAllowlistTests` will fail if asmdef still references LiteSim, and no task says to remove it. T14 "引用收口" could include it but acceptance doesn't state it. Given strict review, this is a blocking issue (B2 partial coverage). Actually T14 title "15 件搬迁、引用收口" — "引用收口" likely includes asmdef. But the acceptance lists only grep, compile, tests, buildhash. Hmm.
+
+- T14 also includes SHARED_TARGETS update and BuildHash regeneration. This is a shared source set change → requires gen-build-hash. It does include. But T14's `gen-build-hash.py` regen will fail if LiteSync directories don't contain files yet? They do after move. OK.
+- T15: guards. Depends T14. Fine.
+- T16: rebuild and联测 after guards. Fine.
+- T17: CombatGeometry type and gate. But T17 depends T16 (two-end rebuild), and B9 includes "10 处构造点更新" — but table not yet integrated (T18). If CombatGeometry added to CombatValues with 9th param, all 10 construction points need a Geometry value. Where does it come from before table? Probably `CombatValues.Default.Geometry` or a temporary fixture. T17 says "10 处构造点更新" and "坏表候选校验（表接入在 T18）". But if T17 changes constructor to require `CombatGeometry` and deletes `CombatConfig` constants, then T19 (consumer migration) comes after T18. Between T17 and T19, compilation could break because `CombatConfig` constants still exist? T17 doesn't say delete constants; T19 says consumers migrate, but does T19 delete constants? T19 acceptance B10: "Assets/Server/Tests 旧几何名零命中... 判定/烘焙不读 Geometry". Plan sub-step T13 says delete CombatConfig geometry constants after T8 reader migration. In tasks, T19 is reader migration; deletion of constants not explicitly stated in T19. T17 says "Geometry 展示兜底 DisplayOnly" and maybe constants remain. If constants are deleted in T17, then T19's consumers would fail to compile until migrated — but T17 acceptance says dotnet+Unity compile, so constants must remain until T19. Then who deletes them? T19's B10 requires zero old names; but acceptance doesn't explicitly say delete public constants. It says "旧几何名零命中" which implies deletion. Could be inferred. But "编译中断" risk: T17 adds 9-param constructor; T18 changes mapper; T19 migrates consumers. T17 "10 处构造点更新" includes tests and production. If T17 also deletes constants? Not stated. It's ambiguous. The reviewer asked specifically "是否还有编译中断". T17 says 10 construction points updated, so compile okay. T19 migrates consumers and presumably deletes constants. If deletion isn't explicit, T19 could pass grep by migrating readers while leaving constants (grep old names would still hit declarations). B10 says "常量已删除" in plan. T19's acceptance "Assets/Server/Tests 旧几何名零命中" forces deletion, but then does T19 include deleting constants? "Assets/LiteSim/Scripts" in files. It could. Still ambiguous but probably acceptable.
+
+- T18: table integration after T17. T18's acceptance says "坏表在 ValidateCandidate 拒启动". But T17 already has "坏表候选校验". Overlap/duplication? T17 says "坏表候选校验（表接入在 T18）" — bad-table validation before table exists? Candidate validation requires table rows; T17 can validate a candidate `CombatGeometry` struct (finite/positive/bounds) independent of table. T18 wires table. Slight duplication but okay.
+
+- T20: digest and value validation after T19. B13/B14. Fine.
+- T21: baking after T20. But T21 depends on T20 (digest/value validation), while B12 baking doesn't logically depend on digest. Ordering is linear but acceptable? It may serialize unnecessarily but not incorrect.
+- T22 Grip after T21. Fine.
+- T23 RootMotion after T22. B16/B17/B18. Fine.
+- T24 AOI after T23. Fine.
+- T25 tuning/export after T24. Fine.
+- T26 gate command group after T25 — but B23 command group includes L1/LiteSync/LiteSim/check-shared/L2 and 两端重建联测. T26 is main agent exclusive `.workflow/config.json`; T27 docs + manual联测 evidence. Good separation. But T26 acceptance says "B23（自动部分）... wf verify 通过；人工联测证据不在本任务". T27 B24+B23 manual. Good.
+
+Potential issue: T26 is last (after T25), so gate command group is only added at the very end; all earlier tasks' verification cannot use `wf verify`. But each task lists commands. Fine.
+
+Potential issue: T16 two-end rebuild happens before most of batch 7; B8 only batch 6. Fine.
+
+Potential issue: T27 says "3 份设计+2 份进度卷" while plan B24 lists 3 design docs + 2 progress docs. Yes.
+
+Potential issue: B24 mentions `Docs/设计文档/网络/状态同步专项设计.md` (新增/更新), `联机动画与根位移专项设计.md`, `烘焙工具箱专项设计.md`; T27 files list directories only. Fine.
+
+Potential issue: T26 main-agent exclusive `.workflow/config.json`; construction subagents don't touch gate config. But T26's file is config.json and it's "主代理" — good. However T25 includes "编辑器/GM 导出" and "工具实操"; no config.json. T27 docs. Fine.
+
+Potential issue: T14 includes `scripts/codegen/gen-build-hash.py` modification and BuildHash regen, plus file moves. T15 includes tests only. Good.
+
+Potential issue: T13 says asmdef references=[LiteNet,LiteSim]; but if LiteSync is created with no files, Unity may not generate csproj? They add csproj manually. Fine.
+
+Potential issue: T13 "双轨 csproj 齐备" and "dotnet build 双轨 csproj（Tests.slnx/LiteNet.csproj/LiteSync.csproj）". Is LiteNet.csproj a real path? Plan says dual-track csproj. Need to verify. Maybe check csproj existence. Could use glob. But budget.
+
+Potential issue: T14 "gen-build-hash.py 重生成 + --check-shared" — after adding LiteSync directories, BuildHash.g.cs path unchanged; okay. But T14 also moves `ProtocolConstants` into LiteSync/Shared, which is in SHARED_TARGETS. Good.
+
+Potential issue: T15 "ClientRoots/StaticMutable 根含 LiteSync" and "无新增 public static 可变字段". B22 says scan roots include LiteNet/LiteSync. T15 acceptance says "ClientRoots/StaticMutable 根含 LiteSync" but doesn't explicitly say LiteNet. B22 requires both LiteNet and LiteSync. T15 title "静态可变扫描根"; acceptance says "ClientRoots/StaticMutable 根含 LiteSync" only. Does it include LiteNet? Plan B22: "扫描根含 LiteNet/LiteSync". T15's acceptance lacks LiteNet. That's a B22 partial coverage gap. Could be blocking if strict. Also T15's verification lists StaticMutableAllowlistTests. Maybe LiteNet root already exists? Plan says "StaticMutableAllowlistTests 扫描根含 LiteNet/LiteSync" — likely new. If current root doesn't include LiteNet, T15 missing it. This is a concrete B22 gap.
+
+Potential issue: T17 "10 处构造点更新" but B9 also says "ResetForTests+[Collection]" — included. "Loaded 时序/编辑器未发布不崩" included. "坏表候选校验" included. Good. But B9 also "13 列全部从表装载" deferred to T18 but not stated in T18. As noted.
+
+Potential issue: T18 B11 says "JudgmentFiles 自动包含"; but B13 says table bytes enter digest. T20 covers. Fine.
+
+Potential issue: T19 B10 says "Assets/Server/Tests 旧几何名零命中" — plan B10 says `Assets/**`, `Server/**`, root `Tests/**`. T19 acceptance says "Assets/Server/Tests" which is ambiguous shorthand; could miss `Assets/**` beyond Server? It says "Assets/Server/Tests" maybe means Assets, Server, Tests. Actually it literally says "Assets/Server/Tests 旧几何名零命中" — likely means Assets/**, Server/**, Tests/**. But plan B10 also says "HUD/Dev/Editor/测试读者迁移". T19 acceptance lists "HUD/Dev/Editor/测试读者迁移". Good. But B10 requires "判定/烘焙代码不读 CombatConfig.Geometry（有断言）" — T19 says "判定/烘焙不读 Geometry" but no explicit assertion. Minor.
+
+Potential issue: T21 B12 partial: "Body/Head/Muzzle 三件 .g.cs 退役；三烘焙器写表（写入源只来自 prefab/anchor）；SimMapBaker 读 CC 并断言表 row≡入库 CC 夹具；restore-check 前置；WriteGenerated 零引用删除；注释 0 warning". Missing "BakeTargets 五条输出常量逐条去向明确" and "MatchTestRules 类头/字段爆头覆写说明同步删除" and "grip.bin/rootmotion.bin 输出摘要等于预期" (split T22/T23). B12's five output constants: T21 only covers Body/Head/Muzzle; T22 Grip; T23 RootMotion. "五条输出常量逐条去向" could be distributed. But no task explicitly says BakeTargets five constants/paths. T21 says "WriteGenerated 零引用删除" but not BakeTargets output constants. This is a gap. Also "四条死路径修正" not in tasks. Could be blocking: B12 explicitly requires it; if no task owns it, orphan.
+
+Potential issue: T22 acceptance includes "WeaponGripCatalog.Load 落 Battle/Characters；... grip.bin 摘要预期". Good. But B12 says GripBake.g.cs retired; T22 says GripBake.g.cs 退役. Good. Does T22 include `BakeTargets` grip output constant? Not explicit.
+
+Potential issue: T23 B16/B17/B18: "先落 RootMotionCatalog.Load/rootmotion.bin/Digest/AppComposition 绑定，再删 RootMotionData.g.cs". Good, addresses compilation interruption. But B17 says `AppComposition.cs:108-113` use catalog.Digest. T23 acceptance says AppComposition binding. Good.
+- B18 "已烘焙未接线登记" included. Good.
+- B16 "LiteSim 内不再出现 RootMotion*" included. But `RootMotionCatalog.Load` in Modules/Battle/Arena; if `LiteSim` no RootMotion*, okay. T23 also says "LiteSim 无 RootMotion*". Good.
+
+Potential issue: T24 B15: "AoiSettings 落 LiteSync/Shared；服务端真实配置注入三档；AoiFilter 无静态缓存；SnapshotHz 分离，客户端从 JoinAck 取；SimView 无静态读；ThrottleRadius 系数常量/表单源". B15 says "三档（全开/30m/15m）通过 deploy/roomserver.windows.json 房间配置 + GM 房参数真实注入（非测试自造实例）". T24 says "服务端真实配置注入三档" but doesn't explicitly say via deploy config + GM params, nor "非测试自造实例". It says "真实配置注入三档" and "ThrottleRadius 系数常量/表单源". Could be enough. But B15 also "AoiSettings 可运行期注入且服务端生效"; T24 says "服务端真实配置注入三档". Fine.
+
+Potential issue: T25 B19/B20/B21. T25 acceptance includes all key items: 13 sliders; single gate `SimParamsGate.Evaluate` + single merge point; online disable override; B20 four assertions; editor/GM export to table + diff/backup/check-shared; .bin export display digest. But B19 also "唯一门组合根每会话求值一次后以 bool 传递（有'只求值一次'用例）" — T25 says "单门 SimParamsGate.Evaluate+单合并点" but not "每会话一次/bool 传递/用例". Verification says "provider/门/合并点用例". Could be okay but missing explicit "只求值一次" assertion. B19 also "调用点集合固定为 ConfigService + ServerTableLoader 两处" — T25 says "单合并点" but not two call sites. B19 also "判定路径零静态读" — T25 doesn't explicitly mention, but "B20 四条断言" maybe. B19 also "联机/云 sandbox 不读客户端覆盖（有断言），GM 几何只改表或禁用" — T25 says "联机禁用覆盖". Fine.
+- B20 four assertions: T25 says "B20 四条断言" so covered by reference.
+- B21 "导出前备份可还原" — T25 says "diff/备份/check-shared". Good. "导出后自动 gen.bat + --check-shared 并显示 diff 与'两端需重建'" — T25 says export + diff/backup/check-shared; not explicitly gen.bat and "两端需重建". Minor.
+- B21 "grip.bin/rootmotion.bin 导出显示目标路径与内容摘要" — T25 says ".bin 导出显示摘要" but not target path. Minor.
+
+Potential issue: T26 B23 auto command group includes "两端重建联测" but T26 says "人工联测证据不在本任务". The command group in B23 includes "两端重建联测"; if command group includes a manual step, is it "自动部分"? T26 says "B23（自动部分）：...（L1/LiteSync/LiteSim 定向/check-shared/L2），wf verify 通过；人工联测证据不在本任务". So it omits "两端重建联测" from command group, while B23 lists it. T27 covers manual. Fine, but B23's command group may be incomplete relative to plan. Could be acceptable as split.
+
+Potential issue: T26 is "主代理" exclusive `.workflow/config.json`. But T27 is "文档回写与人工联测证据" and depends T26. Who executes T27? Not specified; likely main agent too, since docs. But construction subagent could do docs? The user's concern "施工子代理不碰门禁配置" — T26 explicitly main agent. T27 docs maybe main agent. Fine.
+
+Potential issue: task count says "完成 0/27（取消 12，阻塞 0）" but 27 tasks, 12 cancelled, 15 active (T13-T27 = 15). 0/27 completed. Fine. But "阻塞 0" while review may find blockers. Not relevant.
+
+Potential issue: T13-T27 statuses all "待办"; no "in progress". Fine.
+
+Potential issue: T14 includes BuildHash regeneration but T15 also verification includes `gen-build-hash --check-shared`. T14 and T15 both. Fine.
+
+Potential issue: T16 depends T15; T17 depends T16. So after batch 6 rebuild, batch 7 starts. Fine.
+
+Potential issue: T17 says "B9（类型/闸门部分）" and includes "10 处构造点更新". But B9 also says "13 列全部从 Combat/tbcombatgeom 装载". T17 defers table to T18. But then T17's 10 construction points need a `CombatGeometry` value; where from? Could use `CombatValues.Default.Geometry`, but that is a hardcoded default (13 values) which may conflict with "禁硬编码" and "数值一律外部加载". Plan says `CombatValues.Default` is default fallback for display only, but if T17 uses Default.Geometry as constructor argument at production call sites (SimConfigMapper, ServerTableLoader), that would be a hardcoded geometry until T18. T17 might temporarily use default. That is a "混入硬编码" concern. The task doesn't specify a temporary source. If construction points are updated with `default`/`CombatValues.Default.Geometry`, that's hardcoding 13 values. But since T18 follows immediately, maybe acceptable transient. However task acceptance says "10 处构造点更新" without saying source. Could lead to hardcoded fallback. This is a potential blocking issue: T17 may introduce hardcoded geometry defaults into production construction points before T18, and no instruction forbids it. The plan says `CombatValues.Default` is not authoritative and only display fallback; using it in `SimConfigMapper`/`ServerTableLoader` would violate. Need explicit "T17 构造点用 Default.Geometry 仅临时/或 T18 同批" etc.
+
+Also T17's "坏表候选校验（表接入在 T18）" — `ValidateCandidate` currently takes table rows; without tbcombatgeom in T17, it can't validate candidate table rows. T17 could validate a `CombatGeometry` candidate. Fine.
+
+Potential issue: T19 depends T18, but T19's "旧几何名零命中" includes `Assets/Server/Tests`; if `CombatConfig` constants are deleted in T19, then T21/T22/T23 baking code that still references old names? Plan says baking code not read Geometry; but T21/T22/T23 come after T19. T19 includes "判定/烘焙不读 Geometry"; but T21/T22/T23 are baking migrations later. If T19 deletes constants and migrates baking readers, then T21/T22/T23 further change baking. Could be okay, but T19's file list includes `Assets/LiteGame` and `Assets/LiteSim`; T21/T22/T23 files are under `Assets/LiteGame/Editor/Baking`. If T19 migrates them to `CombatConfig.Geometry`, then T21/T22/T23 remove/replace them. But B10 says "判定/烘焙代码不读 CombatConfig.Geometry"; T19 acceptance says "判定/烘焙不读 Geometry". Yet T21's `BodyCylinderBaker` etc. need display/comparison from Geometry? Plan says "烘焙器写入源只能来自 prefab/anchor/曲线源；禁止把 CombatConfig.Geometry 的未发布默认回退当写入源（显示/对比可读）". So baking code may read Geometry for display/comparison, but not as write source. T19 says "判定/烘焙不读 Geometry" — that's stricter and conflicts with plan's "显示/对比可读". This is a contradiction: B10 says "判定/烘焙代码不读 `CombatConfig.Geometry`（有断言）" in plan line 186. Wait plan B10 says exactly "判定/烘焙代码不读 `CombatConfig.Geometry`（有断言）". But design line 114 says "禁止把 `CombatConfig.Geometry` 的未发布默认回退当写入源（显示/对比可读）". So plan itself contradictory: B10 says baking code doesn't read Geometry at all, while design allows display/comparison read. T19 repeats "判定/烘焙不读 Geometry". T21 says "写入源只来自 prefab/anchor" but doesn't mention display read. This is a real inconsistency that could make B10 guard impossible/over-strict: if baking tools are allowed to display Geometry, a blanket "烘焙不读 Geometry" assertion would fail. This is a blocking issue? It affects acceptance executability. The user asks "验收与验证是否可独立执行". A guard that forbids any baking read conflicts with allowed display read. Could be blocking (B10/B12 contradiction). Severity high.
+
+Wait, maybe "烘焙代码" means the actual write path, not editor display. But B10 says "判定/烘焙代码不读 CombatConfig.Geometry（有断言）" — if interpreted as write path, okay. But the wording is broad. T21 acceptance "写入源只来自 prefab/anchor" is the precise rule. T19's "烘焙不读 Geometry" broad. Could flag as ambiguity/non-blocking, not blocking. But the user wants strict.
+
+Potential issue: T20 "13 值与表装载结果 0 容差" — B14 requires "比较对象是 ServerTableLoader/ConfigService 的装载产物，不是同源夹具自比". T20 says "13 值与表装载结果 0 容差" but doesn't explicitly say not same-source fixture. It says "黄金样本/更新流程与测试名落档". Could be enough. B14 also "固定输入下确定性 checksum/回放结果与改动前黄金样本一致（给出测试名）". T20 says "黄金样本/更新流程与测试名落档". Good.
+
+Potential issue: B13 "改表后 GameplayDigestBase 变化可观测" — T20 says "Combat/tbcombatgeom 进 JudgmentFiles⇒表字节进摘要；联机摘要不含覆盖". It doesn't explicitly say "改表后 GameplayDigestBase 变化可观测" but implied by digest test. Minor.
+
+Potential issue: B14 "0 容差" included.
+
+Potential issue: B15 "AoiFilter 无 static readonly 派生缓存" — T24 says "AoiFilter 无静态缓存". Good. "SimView 无静态 SimConfig.SnapshotHz 读" — T24 says "SimView 无静态读". Good. "SnapshotHz 与 AoiSettings 分离" — T24 says "SnapshotHz 分离". Good. "客户端从 JoinAck 取" included. "三档...真实注入" included-ish. "AoiSettings 落 LiteSync/Shared" included. "ThrottleRadius 系数常量/表单源" — plan says `ThrottleRadius => Radius * 0.5f`; T24 says "ThrottleRadius 系数常量/表单源" — good (addresses hardcoding).
+
+Potential issue: B16 "LiteSim 内不再出现 RootMotion*" — T23 says "LiteSim 无 RootMotion*". But `RootMotionCatalog.Load` in Modules/Battle/Arena, not LiteSim. Good.
+- B17 "ContentIdentity 不引用 LiteSim" — T23 acceptance doesn't explicitly say ContentIdentity no LiteSim; it says "Digest/AppComposition 绑定". Plan B17 includes. T23 says "B16/B17/B18" so reference covers. But task acceptance details omit "ContentIdentity 不引用 LiteSim". Minor.
+- B18 ".bin 不进 SHARED_TARGETS" included. "已烘焙未接线登记" included.
+
+Potential issue: B19 "SimParamsDebugTunables 接 IDebugTunableProvider" — T25 says "provider/门/合并点用例" but acceptance "13 项滑杆" not explicit interface. Likely okay.
+- B19 "DevHUD/GM 出现全部判定参数滑杆" — T25 "13 项滑杆". Good.
+- B19 "SimParamsOverrides 仅在 dev 三宏内" — T25 says "联机禁用覆盖" but not "dev 三宏". Plan says dev three macros. T25 acceptance doesn't mention "三宏". This is a gap: B19 requires compile-time gating by dev macros; T25 only says online disable. Could be blocking? It's a red-line-ish security/gating requirement. The task says "单门 SimParamsGate.Evaluate" but not "dev 三宏". Plan design line 132 says "SimParamsOverrides（dev 三宏...）". T25 acceptance says "联机禁用覆盖". If not explicitly implemented, overrides could ship in release. That's a significant coverage gap. B19 says "`SimParamsOverrides` 仅在 dev 三宏内". T25 doesn't state. Could be blocking.
+- B19 "唯一门 ... 组合根每会话求值一次后以 bool 传递（有'只求值一次'用例）" — T25 says "单门 ... + 单合并点" but not once-per-session/bool/test. Verification "门用例" may cover. Partial.
+- B19 "调用点集合固定为 ConfigService + ServerTableLoader 两处" — T25 doesn't state. Could be covered by "单合并点".
+- B19 "判定路径零静态读" — T25 doesn't state. B20 maybe.
+- B19 "GM 几何只改表或禁用" — T25 says "联机禁用覆盖" but not GM geometry only table/disabled. B20④ says GM page online disable geometry sliders; T25 says "B20 四条断言". So covered by reference.
+
+Potential issue: B20 "①13 项设哨兵值 + 门 false ⇒ 逐字段等于 loader 产物，摘要等于同构建无覆盖摘要（表字节 + 入口规则位，规则位取同值；编码顺序固定）" — T25 says "B20 四条断言" without detail. Since B20 is referenced, okay. But task acceptance should be independently executable; "B20 四条断言" is a reference to plan, acceptable? It is a plan doc, but tasks should be self-contained. The user asks "验收与验证是否可独立执行". Referencing "B20 四条断言" without restating may be okay because plan is companion. But strictly, task acceptance should state. T25 lists "B20 四条断言" and verification "B20 四条断言" — circular reference to plan, but plan has details. Acceptable.
+
+Potential issue: T26 "wf verify" command group — does `.workflow/config.json` currently have a `sync-and-sim` group? It will add. T26 is main agent. Fine. But T26 says "证据列出实际命令" — good.
+- B23 includes "两端重建联测" in command group; T26 excludes manual. T27 includes manual. Good.
+
+Potential issue: T27 "3 份设计+2 份进度卷" but plan B24 lists 3 design docs + 2 progress. Good.
+- B24 "索引登记，doc-lint 全过" included.
+
+Potential issue: T13-T27 don't include T12's `Docs/施工进度` etc. T27 does.
+
+Potential issue: T1-T12 cancellation reasons only "按 dsh 首轮意见拆分/重排，由 T13+ 取代" — not specific reason per task. The user says "T1~T12 已按首轮评审意见取消，原因写在任务状态里". The status reason is generic, not specific. Is that a problem? They asked to review tasks; cancellation reasons generic might be a documentation quality issue. But not blocking maybe. The first-round 6 blockers were addressed by splitting; T1-T12 cancelled. The status reason "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代" is not a concrete reason for each. Could be non-blocking.
+
+Potential issue: T13-T27 "完成 0/27" includes cancelled 12; 27 total. Fine.
+
+Potential issue: Task IDs T13-T27, 15 tasks. Dependencies linear T13→T14→...→T27. But some could be parallel; linear is safe but may over-serialize. Not a blocker. However T21 depends T20 (digest) though baking doesn't need digest; T22 depends T21; T23 depends T22; T24 depends T23. Could be okay.
+
+Potential issue: T14 includes BuildHash regeneration but T15 guard depends T14; if BuildHash regen changes `BuildHash.g.cs` (in LiteNet) and `LiteNet.csproj` includes it, okay.
+- T14 "15 件+meta 搬迁" but plan says 15 files + `.meta`; T14 says "15 件+meta". Good.
+- T14 "LiteNet 零 using LiteSim/LiteSync" — LiteNet should not use LiteSync either. Good.
+- T14 "WeakNet 移 Dev" — plan B6 says WeakNet/* moved to LiteGame.Adapters.Dev. T14 says "WeakNet 移 Dev". Good.
+- T14 "DiagTrace 保留登记" — B7 says register reason. Good.
+- T14 "引用者/测试编译绿" — includes all referencing asmdefs? Plan lists LiteGame.App, Adapters.Dev, Editor, Tests/EditMode, Tests/UI/PlayMode, Tests/LiteNet.Tests, Server/RoomServer. T14 says "引用者/测试编译绿" but doesn't enumerate. B3/B2. Could miss asmdef references. T14 verification "Unity+dotnet 编译" catches. Fine.
+
+Potential issue: T13 "asmdef references=[LiteNet,LiteSim]" — but `LiteSync` asmdef with `noEngineReferences:true` and `Google.Protobuf` precompiled. Good.
+- T13 "双轨 csproj 齐备" — does it include `Tests.slnx` update? Verification lists `Tests.slnx/LiteNet.csproj/LiteSync.csproj`; good.
+
+Potential issue: T13's dotnet build `Tests.slnx` may fail if LiteSync.csproj not added to solution. It says "双轨 csproj 齐备"; verification includes Tests.slnx. Good.
+
+Potential issue: T17's "dotnet+Unity 编译" before T18 table; okay.
+- T18 verification "Luban/gen.bat；gen-build-hash --check-shared；表装载/坏表用例". If T18 changes `TableLayout.Files` and generated code, it must run `gen-build-hash` because `Assets/GameData/Generated` changes. It does. Good.
+- T18 acceptance "JudgmentFiles 自动包含" but does it run `gen-build-hash` regeneration? It says check-shared only; if `gen.bat` changes generated readers, BuildHash must be regenerated, not just checked. T18 verification says "Luban/gen.bat；gen-build-hash --check-shared". Wait, red line 1: changing `Assets/GameData/Generated` (Luban generated read code) requires `python scripts/codegen/gen-build-hash.py` (regenerate), and `--check-shared` only checks. T18's acceptance says B11 and verification says `gen-build-hash --check-shared` but not "重生成". If `gen.bat` changes generated read code, `--check-shared` will fail because BuildHash.g.cs is stale; the task must run `gen-build-hash.py` to regenerate, then `--check-shared`. T14 already regenerates after LiteSync move, but T18's Luban changes generated code again, so another regen is needed. T18 verification only lists `--check-shared`, which is insufficient and would fail. This is a concrete "门禁不可执行" / BuildHash red-line issue. Similarly T20/T21/T22/T23? T21/T22/T23 produce `.bin` not in BuildHash; but T21 deletes `.g.cs` and changes generated code? Deleting `.g.cs` in `Assets/LiteSim/Scripts/Map` which is in SHARED_TARGETS (`LiteSim/Scripts`), so BuildHash changes; T21 verification doesn't include `gen-build-hash` regen, only "烘焙工具实操；BodyBake/SimMapBaker EditMode；Unity 0 warning". T22 deletes `GripBake.g.cs` (where? likely `LiteSim/Scripts/Map` or `GameData`), changes shared source set; T22 verification "WeaponGripConstraintEditMode；catalog 用例；烘焙摘要" no `gen-build-hash`. T23 deletes `RootMotionData.g.cs` in `LiteSim/Scripts/Map`; T23 verification includes `gen-build-hash --check-shared` but not regeneration. T23's `LiteSim/Scripts` is in SHARED_TARGETS, so deleting `RootMotionData.g.cs` changes hash; must regenerate, not just check. T24 changes `LiteSync/Shared` (in SHARED_TARGETS) and `LiteSim/Scripts/Config` (in SHARED_TARGETS); T24 verification doesn't include any BuildHash regen/check! T25 changes `LiteSim/Scripts/Rules` (in SHARED_TARGETS) and editor/GM; T25 verification no BuildHash. T19 changes `LiteSim/Scripts`/`Systems` (shared source) and `Server`; T19 verification "grep 守卫含负例；Unity 0 error；定向 EditMode" no `gen-build-hash` regen/check. T17 changes `LiteSim/Scripts/Config` (shared source) and `Server`; T17 verification "dotnet+Unity 编译" no BuildHash. T18 changes `Assets/GameData/Generated` (shared source) and `LiteSim/Scripts/Config`; only `--check-shared` not regen. This is a major systemic issue: many tasks modify SHARED_TARGETS source sets but their verification doesn't include `gen-build-hash.py` regeneration + `--check-shared`. The red line says any change to shared source set requires regen. The tasks T13-T15 and T23/T20 include some checks, but T17-T25 mostly don't. The user specifically asks "是否还有编译中断/门禁不可执行" and "B1~B24 全覆盖". BuildHash is a gate; if not regenerated, `--check-shared` fails at T26. T26's `wf verify` includes `--check-shared`, so it would catch at the end, but by then many tasks are done. Is that a blocking issue? It's a verification gap that makes tasks not independently executable and likely causes gate failure. T14 regenerates BuildHash for batch 6, but batch 7 changes shared sources multiple times. T18's `gen.bat` + `--check-shared` is definitely wrong: must regenerate. T23's `--check-shared` without regen after deleting `RootMotionData.g.cs` is also wrong. This is a strong blocking finding.
+
+Let me verify SHARED_TARGETS contents: plan line 67: `LiteSim/{Scripts,Systems}`, `LiteNet/Core/{Proto,Protocol,Transport/Security}`, `GameData/Generated`. Yes, `LiteSim/Scripts` and `Systems` in closure. T17 modifies `LiteSim/Scripts/Config` (CombatValues/CombatConfig) → hash changes. T19 modifies `LiteSim/Scripts`/`Systems` → hash changes. T20 modifies `LiteGame/Modules/Config`? `CombatConfigDigest` maybe in LiteSim? B13 digest; if only tests, maybe not. T21 deletes `LiteSim/Scripts/Map/*.g.cs` → hash changes. T22 deletes `GripBake.g.cs` maybe in `LiteSim/Scripts/Map` or `GameData`; likely. T23 deletes `RootMotionData.g.cs` → hash changes. T24 moves `SimConfig` AOI/SnapshotHz out of `LiteSim/Scripts/Config` → hash changes; also `LiteSync/Shared` in SHARED_TARGETS. T25 changes `LiteSim/Scripts/Rules` → hash changes. So all need regen. The tasks' verification missing `gen-build-hash` is a major gate issue.
+
+But maybe T26's command group runs `--check-shared` at end; but without regeneration it fails. T14 regenerates once, then batch 7 changes hash; T26 check fails. T18's `gen.bat` then `--check-shared` would fail immediately. This is a concrete blocking problem: T18 verification cannot pass. Unless `gen-build-hash.py --check-shared` is preceded by regeneration in some earlier task; no. T14 regenerates before T18. So T18 fails. Strong.
+
+Also T23 verification `--check-shared` after deleting RootMotionData.g.cs would fail. T23 should regenerate. T24/T25 no check at all.
+
+Another gate: T15 `ClientAsmdefAllowlistTests` after T14. If T14 doesn't remove LiteNet→LiteSim asmdef ref, T15 guard fails. Need flag.
+
+Another gate: T13 `dotnet build` of `Tests.slnx` might fail if `LiteSync.csproj` not in solution, but task says add.
+
+Another gate: T14 moves files with `AssetDatabase.MoveAsset` but no Unity CLI mention. The plan says "Assets/ 移动走 AssetDatabase.MoveAsset"; tasks T14 says "搬迁" but verification "文件/asmdef 检查" and "Unity+dotnet 编译". Does T14 specify using Unity pipeline for `.meta` moves? It says "15 件+meta 搬迁". Red line 4: Unity serialized assets/.meta must go through unity-pipeline CLI. Moving `.cs` + `.meta`? `.meta` is Unity serialized asset; red line 4 says scene/Prefab/Material/.meta must go through unity-pipeline CLI. T14's verification doesn't mention unity-pipeline CLI or `AssetDatabase.MoveAsset`. This is a red-line issue: moving `.cs` files and `.meta` under Assets must use unity-pipeline CLI. The task says "搬迁" but no method. Could be a blocking "施工子代理越权/红线" issue. The plan says constraint "Assets/ 移动走 AssetDatabase.MoveAsset". T14 acceptance doesn't mention. T14 file list includes `Assets/LiteSync`, `Assets/LiteNet`; moving `.meta` via shell would violate red line 4. Need flag as blocking or non-blocking. The user specifically asks "是否还有...施工子代理越权". T14 lacks explicit "走 unity-pipeline/AssetDatabase.MoveAsset" and "禁直改 .meta". That's a red-line execution risk. T13 creates `Assets/LiteSync` asmdef (a Unity serialized asset? asmdef is not listed in red line 4, but asmdef creation maybe via file is okay? Unity asmdef is a JSON asset; red line 4 lists scene/Prefab/Material/.meta; asmdef not explicitly. But `.meta` generated by Unity. T13 "文件/asmdef 检查" no unity-pipeline. Creating asmdef directly may be allowed? The skill `unity-asset-pipeline` says "工程设置" and "Assets 内移动删除" must use CLI. Creating asmdef is project setting-ish. Hmm.
+
+The review should focus on tasks/plan, not actual execution. We can flag missing explicit CLI constraint as blocking because red line 4.
+
+Another issue: T21/T22/T23 modify `.g.cs` under `Assets/GameData`/`Assets/LiteSim/Scripts` and delete them. Deleting `.cs`/`.meta` under Assets is a Unity asset operation; red line 4 says `.meta` moves/deletes via unity-pipeline. T21/T22/T23 verification don't mention unity-pipeline. T21 says "烘焙工具实操" (Unity editor tools) which may handle. But deleting `.g.cs` and `.meta` directly is risky. Could flag as non-blocking/blocking.
+
+Another issue: T21/T22/T23 write `.bin` into `Assets/GameData/Config/runtime/` via baking tools; `.bin` is not a Unity serialized asset? It is a text/binary asset; creating via tool may be okay. But `.meta` for `.bin` generated by Unity. Fine.
+
+Another issue: T25 "编辑器/GM 导出到表" writes `#combatgeom.xlsx` under `Luban/Data` (not Assets). Fine.
+
+Another issue: T18 `Luban/gen.bat` is a `.bat` entry; AGENTS says `.bat` entry via `cmd //c`. Not relevant.
+
+Another issue: T26 `.workflow/config.json` is "门禁配置"; main agent exclusive. But T26's verification `wf verify` requires the command group to include `l2-unity-gate.py`; L2 is nightly and may not be runnable locally? It says `wf verify` passes. If L2 requires Unity/nightly environment, T26 may be blocked. Plan B23 includes L2. T26 says "L2". Could be okay.
+
+Another issue: T27 "人工联测证据" depends T26, but T26 says manual evidence not in task; T27 includes. Good.
+
+Another issue: B23 says "证据列出实际命令与结果"; T26 says "证据列出实际命令"; T27 says "命令与 BuildHash 对账记录归档". Good.
+
+Another issue: T13-T27 all status "待办"; no owner. T26 explicitly main agent; T27 not. Could be a role ambiguity: who executes T27? The user says "T26 为自动命令组（主代理独占 .workflow/config.json）；T27 文档+人工联测证据；施工子代理不碰门禁配置." It doesn't say T27 main agent. But docs and manual联测 might be main agent. Could be non-blocking.
+
+Another issue: T14 and T15 both include `gen-build-hash --check-shared`; T14 regenerates, T15 checks. Fine.
+
+Another issue: T14's `SHARED_TARGETS` adds `LiteSync/{Shared,Snapshot,Input,Events}`; `ProtocolConstants` moved to `LiteSync/Shared`; `SnapshotDiffer` moved to `LiteSync/Snapshot`. Good. But `LiteSync/Client` not in BuildHash. `RoomClient` etc. not in closure. Fine.
+
+Another issue: B4 says "BuildHash.g.cs 路径与 namespace LiteNet 未变". T14 acceptance says "SHARED_TARGETS 增...；重生成 BuildHash" but doesn't explicitly say path/namespace unchanged. It says "B2/B3/B4/B6/B7" so reference covers. Fine.
+
+Another issue: B3 "15 件文件按 Shared/Snapshot/Input/Events/Client 目录搬迁到位且 .meta 随迁（git status 成对、无 GUID 重建）". T14 acceptance "15 件+meta 搬迁" but no "git status 成对、无 GUID 重建". Verification "文件/asmdef 检查" not git status. This is a verification gap: `.meta` GUID preservation is critical for references. T14 says "+meta" but no assertion. Could be blocking? The plan B3 requires. T14 verification "文件/asmdef 检查" might include. But not explicit. Flag as non-blocking or blocking.
+
+Another issue: B6 "LiteNet 只留 IClientTransport/IClientTransportErrorSource（grep 断言）". T14 acceptance says "WeakNet 移 Dev" but doesn't mention the two interfaces or grep assertion. B6 coverage partial. T14 references B6 but acceptance details omit. Verification "grep 零命中" is about LiteSim, not WeakNet. Could be a gap. Similarly B7 "Dev 侧只经 DebugKernel 读，由 DebugKernelEditModeTests 覆盖" — T14 verification includes `DebugKernelEditModeTests`. Good. B6's "Tests/LiteNet.Tests WeakNet 用例改引用后仍绿" — T14 verification includes `Tests/LiteNet.Tests`. Good. But "LiteNet 只留 IClientTransport..." not explicit. Could be non-blocking.
+
+Another issue: B5 "ArchitectureGuardTests 两条新硬边生效，并有'植入违规应红'用例". T15 says "两条硬边与植入违规负例生效". Good.
+
+Another issue: B22 "扫描根含 LiteNet/LiteSync，无新增 public static 可变字段". T15 says "ClientRoots/StaticMutable 根含 LiteSync" — missing LiteNet. Strong B22 gap.
+
+Another issue: B9 "10 处 new CombatValues 调用点全部更新" — T17 says "10 处构造点更新". Good.
+- B9 "ResetForTests + [Collection]" — T17 says "ResetForTests+[Collection]". Good.
+- B9 "Loaded 时序/编辑器未发布不崩 用例" — T17 says "Loaded 时序/编辑器未发布不崩 用例". Good.
+- B9 "坏表候选校验" — T17. Good.
+- B9 "13 列全部从表装载" — not in T17, deferred T18; T18 not explicit. Gap.
+
+Another issue: B11 "ConfigService/ServerTableLoader/测试的 BuildCombatValues 调用点全部更新" — T18 says "ConfigService/ServerTableLoader/测试调用点全更新". Good.
+- B11 "JudgmentFiles 自动包含（不改 JudgmentDomains）" — T18 says "JudgmentFiles 自动包含" but doesn't say "不改 JudgmentDomains". Minor.
+- B11 "--check-shared 记录新哈希" — T18 says `gen-build-hash --check-shared`, but as noted must regenerate. Also "记录新哈希" not in T18 acceptance. T14 records? T14 says "重生成 BuildHash" but no "记录新哈希". B4 says record new hash. T14 acceptance "重生成 BuildHash" not "记录". Could be a gap.
+
+Another issue: B12 "BodyBakeEditModeTests、SimMapBakerEditModeTests、WeaponGripConstraintEditModeTests、GripTuning/FeatureDebugTunables 迁移" — T21 verification includes BodyBake/SimMapBaker; T22 verification includes WeaponGripConstraint; T22 acceptance includes GripTuning/FeatureDebugTunables migration. Good.
+- B12 "MatchTestRules 类头/字段的爆头覆写说明同步删除" — not in T21/T22/T23. Gap.
+- B12 "BakeTargets 五条输出常量逐条去向明确" — not in tasks. Gap.
+- B12 "相关 XML 注释清理后编译 0 warning" — T21 "注释 0 warning" covers some, but T22/T23 not. Could be partial.
+- B12 "rootmotion.bin/grip.bin 输出摘要等于预期" — T22 "grip.bin 摘要预期"; T23 "Digest". Good.
+- B12 "WriteGenerated 零引用并删除" — T21. Good.
+- B12 "五件 .g.cs 均不存在" — T21 three, T22 Grip, T23 RootMotion. Good.
+- B12 "五个烘焙器改产表行或 .bin" — T21 three, T22 Grip, T23 RootMotion. Good.
+- B12 "SimMapBaker 直接读 CC...断言表 row≡入库 CC 夹具" — T21. Good.
+- B12 "restore-check 保证 prefab 存在，缺失=失败不 skip" — T21 "restore-check 前置" but not "缺失=失败不 skip". Minor.
+
+Another issue: B13 "两端不等时拒局" — T20 acceptance doesn't mention "两端不等时拒局"; it says digest. Plan B13 includes. T20 references B13 but acceptance details omit "拒局". Could be a gap. However B13's "两端不等时拒局" is existing behavior; maybe not needed. But strict coverage says missing.
+- B13 "联机摘要 = 判定表字节 + 入口规则位..." — T20 says "联机摘要不含覆盖" but doesn't state includes rule bits. It says "B13/B14" so reference. Partial.
+
+Another issue: B14 "黄金样本随表调参的更新流程写明" — T20 says "黄金样本/更新流程与测试名落档". Good.
+- B14 "给出测试名" — T20 says "测试名落档". Good.
+
+Another issue: B15 "三档（全开/30m/15m）通过 deploy/roomserver.windows.json 房间配置 + GM 房参数真实注入（非测试自造实例）" — T24 says "服务端真实配置注入三档" but doesn't specify deploy config + GM. Could be a gap. It says "真实配置" maybe. T24 files include Server; no deploy/ config file. `deploy/roomserver.windows.json` isn't in T24 file list. That's a concrete missing file/scope: B15 requires modifying `deploy/roomserver.windows.json` for three tiers; T24 file list is `Assets/LiteSync, Assets/LiteSim/Scripts/Config, Assets/LiteGame/Modules/Battle/Arena, Server` — no `deploy/`. If the three-tier config requires editing deploy JSON, T24's file scope omits it. Could be blocking: gate/config not executable. Plan line 119 says injection source = `deploy/roomserver.windows.json` + GM room params. T24 acceptance says "服务端真实配置注入三档" but file list lacks deploy config. This is a strong finding: T24 cannot achieve "真实注入" without touching `deploy/roomserver.windows.json`, which is outside its declared files. Unless the three tiers already exist in deploy config (maybe `standard`/`four`/`eight`/`sandbox` room configs). Plan says "三档（全开/30m/15m）通过 deploy/roomserver.windows.json 房间配置 + GM 房参数真实注入". Existing deploy config has rooms standard/four/eight/sandbox; maybe AOI tiers already? Unlikely. T24 should include deploy config. This is a "范围/文件清单" gap.
+
+Similarly T27 docs includes design docs but not `deploy/` docs. Fine.
+
+Another issue: B21 "GM 页" file `Assets/LiteGame/Editor/Gm` in T25. Good.
+
+Another issue: T25 "GM 页联机禁用几何滑杆" — file list includes `Assets/LiteGame/Editor/Gm`. Good.
+
+Another issue: B19 "GM 几何只改表或禁用" — T25 GM export to table. Good.
+
+Another issue: T24 "ThrottleRadius 系数常量/表单源" — plan says `ThrottleRadius => Radius * 0.5f`; if it's a hardcoded 0.5f, T24 says "系数常量/表单源" which addresses. Good.
+
+Another issue: T21 "SimMapBaker 读 CC 并断言表 row≡入库 CC 夹具" — plan says `Tests/EditMode/Fixtures/BodyCc.json`; T21 file list includes `Tests`; good. But T21 acceptance says "入库 CC 夹具" without naming path. Fine.
+
+Another issue: T21 "restore-check 前置" — `restore-check` is a script; T21 file list doesn't include scripts, but it's a verification prerequisite, not modification. Fine.
+
+Another issue: T22 "WeaponGripCatalog.Load 落 Battle/Characters" — plan says `Modules/Battle/Characters/`; T22 file list includes. Good.
+- T22 "WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver/GripTuning/FeatureDebugTunables 迁移" — all in file list? `Assets/LiteGame/Modules/Battle/Characters` yes; `FeatureDebugTunables` maybe `Assets/LiteGame/Adapters/Dev`? Plan says `FeatureDebugTunables` from GripBake; T22 file list doesn't include `Assets/LiteGame/Adapters/Dev`. T22 acceptance includes `FeatureDebugTunables` migration but its file list is `Assets/LiteGame/Editor/Baking, Assets/LiteGame/Modules/Battle/Characters, Assets/GameData/Config/runtime, Tests`. If `FeatureDebugTunables.cs` is in `Assets/LiteGame/Adapters/Dev` (T25 file list includes `Assets/LiteGame/Adapters/Dev` for `SimParamsDebugTunables`), T22's declared file scope may omit it. The plan line 129 says `WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver/GripTuning/FeatureDebugTunables` from catalog; `FeatureDebugTunables` likely in `Assets/LiteGame/Adapters/Dev` (as T11/T25 list). T22 file list lacks `Assets/LiteGame/Adapters/Dev`. That's a concrete scope gap: T22 acceptance includes `FeatureDebugTunables` but file list doesn't include its directory. Could be blocking (task not executable without touching undeclared files). Similarly T22 `GripTuning` maybe in `Modules/Battle/Characters`; okay. `FeatureDebugTunables` in Dev. Strong finding.
+
+Wait, T21 file list `Assets/LiteGame/Editor/Baking, Assets/GameData, Tests`; T22 `Assets/LiteGame/Editor/Baking, Assets/LiteGame/Modules/Battle/Characters, Assets/GameData/Config/runtime, Tests`; T25 `Assets/LiteGame/Adapters/Dev, Assets/LiteGame/Editor/Baking, Assets/LiteGame/Editor/Gm, Assets/LiteSim/Scripts/Rules, Tests`. So `FeatureDebugTunables` migration in T22 but only T25 declares `Assets/LiteGame/Adapters/Dev`. This is likely an intentional split? T22 says `FeatureDebugTunables` migration; T25 later "旧 FeatureDebugTunables 的 HeadHitLine/HeadshotRadius 覆盖退役并入新 13 项" (plan line 132). So T22 might only migrate grip consumers in `FeatureDebugTunables`, and T25 handles head overrides. But both touch same file; T22's file list should include `Assets/LiteGame/Adapters/Dev` or explicitly note T25. This is a scope/overlap issue: two tasks modify `FeatureDebugTunables` without dependency? T25 depends T24→T23→T22, so T25 after T22. But T22 file list omits it. Could be non-blocking if T22 only touches `Modules/Battle/Characters` and `FeatureDebugTunables` is in that dir? Let's check: plan line 64 says "`GripBake` 被 `WeaponGripConstraint`、`WeaponAimConstraint`、`AimPitchPostureDriver`、`GripTuning`、`FeatureDebugTunables` 使用"; line 113 lists `FeatureDebugTunables.cs:40/49/73/75/89` under external consumers; line 132 says "旧 `FeatureDebugTunables` 的 HeadHitLine/HeadshotRadius 覆盖退役". `FeatureDebugTunables` likely in `Assets/LiteGame/Adapters/Dev` (T25 file list). So T22 acceptance should include `Assets/LiteGame/Adapters/Dev` or defer `FeatureDebugTunables` to T25. This is a real "范围/文件清单不一致" issue. Could be blocking because T22 cannot modify an undeclared file under a task-scoped contract.
+
+Similarly T21 `BodyCylinderBaker`/`HeadHitLineTuner`/`MuzzleOffsetBaker` are in `Assets/LiteGame/Editor/Baking`; okay.
+T23 `RootMotionBaker.cs` in `Assets/LiteGame/Editor/Baking/RootMotionBaker.cs`; T23 file list includes it. Good.
+T24 `AoiSettings` in `Assets/LiteSync`; `SimConfig` in `LiteSim/Scripts/Config`; `SimView` in `Modules/Battle/Arena`; `SnapshotSource`/`SnapshotPipeline` in `LiteSync`; `ProtocolConstants` in `LiteSync/Shared`; `Server` for config. File list includes `Assets/LiteSync, Assets/LiteSim/Scripts/Config, Assets/LiteGame/Modules/Battle/Arena, Server`. But `deploy/roomserver.windows.json` missing. Also `LocalServerHandshakeEditModeTests` in `Tests`? T24 file list lacks `Tests`, yet B15 requires `LocalServerHandshakeEditModeTests` (SnapshotHz from JoinAck) per plan test strategy. T24 acceptance doesn't mention updating that test. T24 file list lacks `Tests`. This is a concrete gap: B15 verification requires EditMode/Play cases and `LocalServerHandshakeEditModeTests`, but T24 doesn't declare `Tests`. It says "EditMode/Play" verification but no Tests file. Could be blocking for "验收可独立执行" (can't add/modify tests without file scope). Good finding.
+
+Similarly T17 file list includes Tests. T18 includes Tests. T19 includes Tests. T20 includes Tests. T21 includes Tests. T22 includes Tests. T23 includes Tests. T24 lacks Tests. T25 includes Tests. T26 config. T27 docs. So T24 is the odd one. B15 requires tests; T24's verification says "服务端配置注入；EditMode/Play；grep 静态缓存零命中" but file list no Tests. That's a scope gap.
+
+T23 file list includes `Tests`? T23: `Assets/LiteSim/Scripts/Map, Assets/LiteGame/Modules/Battle/Arena, Assets/LiteGame/App, Assets/GameData/Config/runtime, Assets/LiteGame/Editor/Baking/RootMotionBaker.cs` — no `Tests`! T23 acceptance/verification says "RootMotionDataTests" but file list lacks `Tests`. Another concrete gap. T23's B16/B17/B18 require tests (`RootMotionDataTests`); no Tests directory in scope. Strong.
+
+T22 file list includes Tests. T21 includes Tests. T24/T23 missing Tests. T24 also missing deploy config. T25 includes Tests.
+
+T17 file list includes `Tests`. T13 no Tests? T13 verification "dotnet build 双轨 csproj"; no tests. Fine.
+T14 includes `Tests`. T15 includes `Tests/LiteFramework.Core.Tests`. T16 no Tests. Fine.
+
+T26 `.workflow/config.json` only; `wf verify` command group. Fine.
+T27 docs dirs only; but "人工联测证据" maybe stored in workflow docs; okay.
+
+T23's `Assets/LiteSim/Scripts/Map` deletion of `RootMotionData.g.cs`; file list includes. Good. `RootMotionDataTests` likely in `Tests`; missing.
+
+T24's `AoiSettings` tests likely in `Tests`; missing.
+
+Another issue: T23's `AppComposition` file `Assets/LiteGame/App` included. Good.
+T23's `ContentIdentity` maybe in `Assets/LiteGame/App` or `Assets/LiteGame/Modules`; plan says ContentIdentity doesn't reference LiteSim; likely in App. Fine.
+
+T22's `FeatureDebugTunables` file list missing `Assets/LiteGame/Adapters/Dev`. T25 includes. Could be intentional because T25 owns final retirement; T22 might touch only `GripTuning` etc. But T22 acceptance explicitly lists `FeatureDebugTunables` migration. Strong.
+
+T21's `BodyBakeEditModeTests` etc. in Tests; included. Good.
+T21's `BakeTargets` file? `Assets/LiteGame/Editor/Baking` includes. Good.
+
+T20's `CombatConfigDigest` maybe in `Assets/LiteSim/Scripts`? T20 file list `Assets/LiteGame/Modules/Config, Server/RoomServer, Tests`; if digest code lives in `Assets/LiteSim/Scripts/Config` or `Assets/LiteGame/Modules/Config`, okay. Plan says `CombatConfigDigest` perhaps in LiteSim. If T20 needs to change `Assets/LiteSim/Scripts/Config/CombatConfigDigest.cs`, its file list lacks `Assets/LiteSim/Scripts`. B13 says "Combat/tbcombatgeom 进 JudgmentFiles ⇒ 表字节进 CombatConfigDigest". `JudgmentFiles` in `TableLayout` maybe `Assets/GameData/Generated`? `CombatConfigDigest` maybe in `Assets/LiteSim/Scripts/Config`. T20's file list only `Assets/LiteGame/Modules/Config, Server/RoomServer, Tests` — potentially missing `Assets/LiteSim/Scripts` / `Assets/GameData/Generated`. However T18 changes `TableLayout.Files`; T20 may only update tests/digest. Need check. Plan line 58: `CombatConfigDigest` in `Assets/LiteGame/Modules/Config`? "客户端 ConfigService.ValidateCandidate... CombatConfig.Publish; ... CombatConfigDigest". It could be in `Assets/LiteSim/Scripts/Config`. T20 file list lacks. Could be a gap. But not certain.
+
+T18 file list includes `Luban, Assets/LiteGame/Modules/Config, Server/RoomServer, Tests` — no `Assets/GameData/Generated` (Luban output) but `Luban/gen.bat` generates it. Fine.
+
+T17 file list includes `Assets/LiteSim/Scripts/Config, Assets/LiteGame/Modules/Config, Server/RoomServer, Tests`; good.
+T19 includes `Assets/LiteSim/Scripts, Systems, LiteGame, Server, Tests`; good.
+T20 includes `Assets/LiteGame/Modules/Config, Server/RoomServer, Tests`; if digest in LiteSim, gap.
+T21 includes `Assets/LiteGame/Editor/Baking, Assets/GameData, Tests`; but deletes `BodyBake.g.cs` in `Assets/LiteSim/Scripts/Map`? Wait `BodyBake.g.cs`/`HeadBake`/`MuzzleBake` are in `Assets/LiteSim/Scripts/Map` (plan line 14: `Scripts/Map/*.g.cs`). T21 file list is `Assets/LiteGame/Editor/Baking, Assets/GameData, Tests` — it does **not** include `Assets/LiteSim/Scripts/Map`! That's a major scope gap: T21 must delete `BodyBake.g.cs`, `HeadBake.g.cs`, `MuzzleBake.g.cs` from `Assets/LiteSim/Scripts/Map`, but its file list lacks `Assets/LiteSim/Scripts`. T22 deletes `GripBake.g.cs`; where is it? Plan line 14 says `Scripts/Map/*.g.cs` includes `BodyBake/HeadBake/MuzzleBake/RootMotionData`; `GripBake` maybe in `Assets/LiteGame/Modules/Battle/Characters` or `Scripts/Map`. T22 file list includes `Assets/LiteGame/Modules/Battle/Characters` but not `Assets/LiteSim/Scripts`. T23 includes `Assets/LiteSim/Scripts/Map`, so RootMotionData deletion okay. But T21/T22 `.g.cs` deletions are in `LiteSim/Scripts/Map` and their file lists omit it. This is a concrete blocking issue: task file scope doesn't cover the files it must delete. T21 says "Body/Head/Muzzle 三件 .g.cs 退役" but file list `Assets/GameData` (not LiteSim). Maybe `.g.cs` are in `Assets/GameData/Generated`? Plan line 14 says `LiteSim/Scripts/Map/*.g.cs`; line 21 says `BodyBake/HeadBake/MuzzleBake/RootMotionData/GripBake` five `.g.cs`; B16 says `LiteSim/Scripts` no RootMotionData.g.cs. So T21 must touch `Assets/LiteSim/Scripts/Map`. Its file list lacks it. Strong blocking finding.
+
+T22 `GripBake.g.cs` location? Plan line 14 says `Scripts/Map/*.g.cs` (BodyBake/HeadBake/MuzzleBake/RootMotionData) — GripBake not listed there. It says "五件 .g.cs 全部退役"; `GripBake` maybe `Assets/GameData/Generated` or `Modules/Battle/Characters`. T22 file list includes `Modules/Battle/Characters` and `GameData/Config/runtime`, not `GameData/Generated` or `LiteSim/Scripts`. Uncertain. But T21 definite.
+
+T21 also `SimMapBaker` in `Assets/LiteGame/Editor/Baking`; okay. `BodyCylinderBaker` etc. in Editor/Baking. But deletion of `.g.cs` in LiteSim/Scripts missing. T21's `BakeTargets` maybe in Editor/Baking. Good.
+
+T21 `WriteGenerated` deletion in `BakeTargets` (Editor/Baking). Good.
+
+T21 `BodyBakeEditModeTests` etc. in Tests. Good.
+
+T22 `GripBake.g.cs` likely in `Assets/LiteSim/Scripts/Map`? If so missing. T22 file list `Assets/GameData/Config/runtime` for grip.bin; `Assets/GameData` not `Generated`. Hmm.
+
+T23 `RootMotionData.g.cs` in `LiteSim/Scripts/Map`; included. Good.
+
+T25 `FeatureDebugTunables` in `Assets/LiteGame/Adapters/Dev`; included. Good.
+T25 `SimParamsDebugTunables` maybe in Dev; included.
+T25 `SimParamsExporter` in `Assets/LiteGame/Editor/Baking`; included.
+T25 `GM` page; included.
+T25 `SimParamsOverrides` in `Assets/LiteSim/Scripts/Rules`; included.
+T25 `ServerTableLoader`? T25 acceptance "单合并点" may need `Server/RoomServer`; file list lacks `Server`! T25 file list `Assets/LiteGame/Adapters/Dev, Assets/LiteGame/Editor/Baking, Assets/LiteGame/Editor/Gm, Assets/LiteSim/Scripts/Rules, Tests`. B19 requires `ServerTableLoader.Load/Parse` optional merge delegate and call sites `ConfigService` + `ServerTableLoader` two places. T25 doesn't include `Server/RoomServer` or `Assets/LiteGame/Modules/Config` (ConfigService). That's a major scope gap: T25 can't implement the single merge point in `ConfigService`/`ServerTableLoader` without touching `Assets/LiteGame/Modules/Config` and `Server/RoomServer`. T25 file list lacks both. It says "单合并点" but files don't cover. Strong blocking finding. Unless T18/T20 already added the merge delegate; plan line 132 says `ServerTableLoader.Load/Parse` add optional merge delegate; that's T25's scope. T25 file list is insufficient. This is a clear "任务不可独立执行/范围越界" issue.
+
+T24 file list lacks `Tests` and `deploy`. T25 lacks `Server`/`ConfigService`. T21 lacks `LiteSim/Scripts`. T22 lacks `Adapters/Dev` and possibly `LiteSim/Scripts`. T23 lacks `Tests`. These are strong.
+
+T26 `.workflow/config.json` only; `wf verify` command group. Fine.
+
+T27 docs dirs; fine.
+
+T20 file list maybe lacks `Assets/LiteSim/Scripts` for digest. But less certain.
+
+T17 file list includes `Server/RoomServer` for construction points; good.
+T18 includes `Server/RoomServer`; good.
+T19 includes `Server`; good.
+
+T21 `Assets/GameData` includes `Assets/GameData/Config/runtime`? It says `Assets/GameData` broad; okay for table row? The table source is `Luban/Data`, not `Assets/GameData`. T21 writes table rows via `BodyCylinderBaker` to `Luban/Data/#combatgeom.xlsx`; T21 file list lacks `Luban`! It says "三烘焙器写表" — the table source is `Luban/Data/#combatgeom.xlsx`, and T21 file list `Assets/LiteGame/Editor/Baking, Assets/GameData, Tests` — no `Luban`. T18 owns `Luban` table integration, but T21 writes values to table. If T21 only uses a shared table writer in Editor/Baking and the xlsx is modified by the tool at runtime, the task file list might not need `Luban` (tool writes data). But the task acceptance says "三烘焙器写表" and "gen.bat"? T21 verification doesn't include `Luban/gen.bat`; T18 did. Baking tools writing table rows should run `gen.bat` to regenerate readers. T21 acceptance "三烘焙器写表" but verification "烘焙工具实操；BodyBake/SimMapBaker EditMode；Unity 0 warning" — no `gen.bat` or `gen-build-hash`. This is a gate issue: table source change requires `Luban/gen.bat` + `gen-build-hash.py` regen. T21 missing. Similarly T22/T23 write `.bin` not table, but `.g.cs` deletion changes shared source. T21's table writes definitely require `gen.bat` and BuildHash regen. Strong.
+
+T25 export writes table + auto `gen.bat` + `--check-shared`; good. But T25's "导出到表" should regenerate BuildHash, not just check; it says `--check-shared`, not `gen-build-hash`. Same issue: after `gen.bat`, generated readers change; must run `gen-build-hash.py` to regenerate. B21 says "导出后自动 gen.bat + --check-shared"; plan itself says `--check-shared` only, which is wrong per red line. T25 acceptance "check-shared". This is a systemic BuildHash gate bug in the plan, not just tasks. The plan's B21 says "gen.bat + --check-shared"; B11 says "--check-shared 记录新哈希"; B18 says "--check-shared 通过". The plan repeatedly uses `--check-shared` after shared-source changes without regeneration. T14 has "重生成 BuildHash"; T18/T21/T23/T24/T25/T26 use `--check-shared` only. This is a major plan-level gate issue. The reviewer should flag it as blocking: `--check-shared` only verifies; after changing shared sources it will fail unless `gen-build-hash.py` is run first. The plan's "重生成" appears only T14; batch 7 changes shared sources repeatedly. This is likely the biggest finding.
+
+Let me count blocking issues. The user wants "阻塞问题: <数量>" and list. We need decide PASS/FAIL. Given multiple concrete gaps, FAIL. Need output Chinese plain text with coverage matrix B1-B24 grouped, blocking list, strengths, non-blocking.
+
+Need be careful: max 8 tool calls; used 2. Could read `references/artifact-quality.md` 任务评审 to align criteria. Let me do 1 call. Also maybe check `.workflow/config.json` to see if `sync-and-sim` group exists? Not necessary. Maybe check `Tests/EditMode/Fixtures`? No. Maybe check `Assets/LiteSim/Scripts/Map` for `.g.cs`? That would confirm T21 file scope gap. We can use glob (1 call) or read a file. But user says "只读 tasks.md/plan.md（可读 1-2 个关键文件核对）". We can read artifact-quality and maybe glob for `.g.cs`. But "禁止全仓搜索" — glob targeted `Assets/LiteSim/Scripts/Map/*.g.cs` is not full-repo search. Could use. But we already have plan stating location. No need. We should conserve calls and time.
+
+Let me read artifact-quality.md 任务评审 section. Use grep? Better read file maybe large. Use grep for "任务评审" with include? `grep` tool. Then read relevant lines. But 1-2 calls. Let's do grep.
+dsh: reasoning:
+Path maybe `.workflow/references/artifact-quality.md` or `references/` elsewhere. Let me glob targeted.
+dsh: reasoning:
+Maybe in `.agents/skills/staged-delivery/references/artifact-quality.md`. Glob.
+dsh: reasoning:
+Now grep.
+dsh: reasoning:
+Read around line 68.
+dsh: reasoning:
+Criteria confirm: each task independently deliverable; input includes allowed file scope; construction subagent only task scope, no .workflow/gate. So file list gaps are blocking. Good.
+
+Now we need produce final answer within 6 min. We've used 5 tool calls (read x2, grep fail, glob x2, grep, read = 6? Let's count: 1 tasks, 2 plan, 3 grep fail, 4 glob .workflow, 5 glob root, 6 grep artifact, 7 read artifact = 7 calls). Max 8; one left. No need more.
+
+Let's carefully formulate findings with severity and B/task references. Need decide blocking count. Let's identify strongest, defensible blockers:
+
+1. **BuildHash regeneration missing across batch 7** — T18/T19/T20/T21/T22/T23/T24/T25/T26 only `--check-shared` or nothing after modifying `LiteSim/{Scripts,Systems}` / `GameData/Generated` / `LiteSync/Shared`. `--check-shared` is verification, not regeneration; it will fail. T18 specifically `Luban/gen.bat` changes `Assets/GameData/Generated` then `--check-shared`; must run `gen-build-hash.py` first. T23 deletes `RootMotionData.g.cs` under `LiteSim/Scripts` then `--check-shared`; must regen. T24/T25 change shared sources with no check. This is a gate-unexecutable blocker. Severity 严重. B4/B11/B12/B16/B19/B23, tasks T18-T26.
+
+2. **T21 file scope does not include `Assets/LiteSim/Scripts/Map`** where `BodyBake.g.cs`/`HeadBake.g.cs`/`MuzzleBake.g.cs` live; cannot retire them. Similarly T22 `GripBake.g.cs` / `FeatureDebugTunables` scope; T23 `Tests` missing; T24 `Tests`/`deploy/roomserver.windows.json` missing; T25 `Server`/`ConfigService` missing. We could group as "任务文件范围与验收不一致，多个任务越界/缺权" — blocking. List specific sub-items. This is strong and aligns with "施工子代理只改任务范围内". Need be precise:
+   - T21: deletes 3 `.g.cs` under `Assets/LiteSim/Scripts/Map` but file list lacks `Assets/LiteSim/Scripts`; writes `Luban/Data/#combatgeom.xlsx` but file list lacks `Luban` (maybe tool writes; still table source). B12.
+   - T22: acceptance includes `FeatureDebugTunables` migration but file list lacks `Assets/LiteGame/Adapters/Dev`; if `GripBake.g.cs` is under LiteSim, also lacks.
+   - T23: verification requires `RootMotionDataTests` but file list lacks `Tests`.
+   - T24: B15 requires `LocalServerHandshakeEditModeTests`/EditMode tests and `deploy/roomserver.windows.json` three-tier real injection, but file list lacks `Tests` and `deploy/`.
+   - T25: B19 single merge point at `ConfigService` + `ServerTableLoader` requires `Assets/LiteGame/Modules/Config` and `Server/RoomServer`, but file list lacks both.
+   These are 5 sub-findings. Could count as 1 blocker group or 5. The output asks "阻塞问题: <数量>" and list. We can list 6 blockers, with one grouped file-scope item maybe. Better to list distinct blockers for clarity. But "阻塞问题数量" should be credible. We can have 6-7.
+
+3. **B2 asmdef/csproj reference removal unassigned** — T14 acceptance only says "LiteNet 零 using LiteSim/LiteSync" and "引用收口", not explicit `LiteNet.asmdef`/`LiteNet.csproj` remove LiteSim; T15 only Allowed/roots. B2 requires both. If not removed, T15 guard fails. Could be a blocker (B2 partial). Is this too nitpicky? The task title "引用收口" may cover. But acceptance is what independent executor uses. I'd include as blocking/major: "B2 的 asmdef/csproj 删引用没有落到验收". This is defensible.
+
+4. **B22 scan root missing LiteNet** — T15 acceptance only says roots contain LiteSync; B22 requires LiteNet/LiteSync. This is concrete. Blocking? It could let static mutable in LiteNet pass. Severity 中. The task says "架构守卫与静态可变扫描根" and B5/B22; B22 explicit. I'd call it blocking because B22 not fully covered. But maybe current root already includes LiteNet? Plan says "扫描根含 LiteNet/LiteSync" — likely both new. If LiteNet already root, then not a gap. Plan line 198: "扫描根含 LiteNet/LiteSync" suggests both need inclusion. T15 only says LiteSync. We'll flag as blocking (B22 partial) but maybe non-blocking? Since B22 is an AC, and no task explicitly adds LiteNet, it's a coverage gap. Mark 中.
+
+5. **B9 13-column mapping / mapper unowned** — T17 defers table to T18; T18 only B11 table integration, no explicit `SimConfigMapper.BuildCombatValues(..., tbcombatgeom)` 13-column mapping; T20 only validates. The actual mapping from table columns to `CombatGeometry` is an orphan. This is strong. B9/B11/B14, T17/T18/T20. Mark 严重. This is likely the most important "B 项全覆盖" gap.
+
+6. **B12 sub-items unassigned** — `BakeTargets` five output constants/dead paths, `MatchTestRules` class/field headshot override comment cleanup, XML 0 warning across T22/T23, `restore-check` missing=fail. T21 only "注释 0 warning", "WriteGenerated". No task explicitly owns BakeTargets five constants or MatchTestRules comment cleanup. This is a coverage gap. Could group with B12. Mark 中/严重. If B12 AC not fully covered, blocking.
+
+7. **B19 dev three macros / once-per-session / two call sites** — T25 acceptance only "单门 + 单合并点", "联机禁用覆盖"; does not state `SimParamsOverrides` only in dev three macros, `SimParamsGate.Evaluate` once per session with bool/test, call sites fixed to ConfigService + ServerTableLoader. B19 AC partially uncovered. Combined with T25 file scope gap (ConfigService/ServerTableLoader). Mark 严重. This is a strong blocker: release safety (dev overrides shipping) and single-merge-point not testable.
+
+8. **B10/B12 contradiction on baking reading `CombatConfig.Geometry`** — B10 says "判定/烘焙代码不读 `CombatConfig.Geometry`（有断言）"; plan design line 114 allows display/comparison read; T19 says "判定/烘焙不读 Geometry"; T21 says write source only prefab/anchor. A blanket assertion would fail or be unenforceable. This is an acceptance inconsistency. Mark 中/严重. It affects independent executability. Could include as blocking.
+
+9. **B15 three-tier real injection config file missing** — T24 lacks `deploy/roomserver.windows.json`; plus tests. Strong.
+
+10. **T13/T14 Unity asset move/CLI red line** — T14 moves `.cs` + `.meta` but no `unity-pipeline`/`AssetDatabase.MoveAsset`; T21-T23 delete `.g.cs`/`.meta` without CLI. Red line 4. Could be blocking "施工子代理越权/红线". Mark 严重. Is `.cs`/`.meta` under red line 4? Yes `.meta`. T14 says "+meta" but no method. T21/T22/T23 deletion of `.g.cs` (and their `.meta`) under Assets. The plan constraint says `AssetDatabase.MoveAsset`. Task doesn't. This is a real execution risk. Include.
+
+11. **T26/T27 manual evidence split** — B23 command group includes "两端重建联测"; T26 excludes manual; T27 includes. Fine, not a blocker. Maybe no.
+
+12. **Cancellation reasons generic** — T1-T12 status reason identical, not specific. Artifact quality anti-pattern "用取消任务隐藏未完成工作而不写原因". They did write a reason, but generic. Could be non-blocking. Note as non-blocking: "取消原因只写'按首轮意见拆分/重排'，未逐条说明取代关系，建议补 Tn→T13+ 映射". Good.
+
+13. **T16 dependency on T15 then T17** — Batch 6 rebuild before batch 7, but T17 changes shared source and needs two-end rebuild only at T16 earlier. B8 only batch 6; batch 7 final two-end rebuild at T26/T27? T26 command group includes two-end rebuild? T26 says auto group L1/LiteSync/LiteSim/check-shared/L2, manual evidence T27. T27 includes "两端重建/联测命令与 BuildHash 对账记录归档". But no task explicitly performs batch 7 two-end rebuild after all batch 7 changes! T16 performs rebuild after batch 6 (T13-T15). Then batch 7 changes shared source T17-T25; T26 only gate commands (no rebuild), T27 only docs/manual evidence. B23 says "两端重建联测" but T26 excludes manual; T27 says "两端重建/联测命令与 BuildHash 对账记录归档" — does T27 execute the rebuild or just archive evidence? It says "文档回写与人工联测证据" and acceptance "两端重建/联测命令与 BuildHash 对账记录归档" — likely T27 includes manual rebuild/联测 evidence. But B8 is batch 6 only. Batch 7 needs final two-end rebuild to validate BuildHash/ConfigHash. B23 includes it. T27 might cover. But T27 is docs+manual evidence; does it run `build-player.py` and player-smoke? Acceptance says "两端重建/联测命令与 BuildHash 对账记录归档" — "命令与记录" maybe not actual run. The user's first-round整改 says "T27 文档+人工联测证据". So T27 is supposed to include manual联测 evidence. It might be okay. But T26's command group B23 says "两端重建联测"; T26 excludes. T27 covers. Not a blocker, but note: "批次 7 后的两端重建没有独立施工任务，只有 T27 证据归档；若 T27 不实际执行，B23 的'两端重建联测'无人执行". This is a potential blocker. Let's analyze: T16 "两端重建与联测" after batch 6. Then T17-T25 change shared sources. T26 gate group (auto) includes L1/LiteSync/LiteSim/check-shared/L2, not rebuild. T27 docs+manual联测 evidence. B23 says command group includes "两端重建联测". The plan says T26 auto part excludes manual; T27 manual. So T27 must execute the two-end rebuild and联测. Its acceptance "两端重建/联测命令与 BuildHash 对账记录归档" could mean run and record. The title "文档回写与人工联测证据" suggests evidence collection, possibly execution. Ambiguous. This is a real risk: final two-end rebuild/联测 may be only documentation. Mark as blocking/major: "批次 7 后的最终两端重建联测没有明确的执行任务；T27 只写'命令与记录归档'，未写实际执行/通过判据". This is strong, especially B23/B8. But B8 is batch 6; B23 is final. The plan B23 requires. T27 says "人工联测证据" but not "执行". Could be non-blocking if evidence implies execution. I'd include as blocking (B23/T27) because no explicit execution owner/acceptance.
+
+14. **T26 command group uses L2** — `l2-unity-gate.py` is nightly; `wf verify` may be slow but executable. Not blocker.
+
+15. **T13 creates `Assets/LiteSync` empty asmdef; `dotnet build` of empty csproj** — no issue.
+
+16. **T14 BuildHash regeneration before T15 guard** — okay.
+
+17. **T18 `Luban/gen.bat` and `--check-shared`** — covered in BuildHash blocker.
+
+18. **T21 writes table but no `gen.bat`/BuildHash** — covered.
+
+19. **T22 `grip.bin` not in SHARED_TARGETS; digest expected** — okay.
+
+20. **T23 "先落 loader 再删 .g.cs"** — good.
+
+21. **T24 `AoiSettings` in LiteSync/Shared changes BuildHash; no check** — covered.
+
+22. **T25 `SimParamsOverrides` in LiteSim/Scripts/Rules changes BuildHash; no check** — covered.
+
+23. **T26 `wf verify` after T25; if BuildHash not regenerated, fails** — covered.
+
+24. **Hardcoding**: T24 `ThrottleRadius` coefficient addressed. T17 temporary `Default.Geometry` for 10 construction points could be hardcoded. Need mention: "T17 未说明 10 处构造点在 T18 表接入前的 Geometry 来源；若用 `CombatValues.Default.Geometry`/字面量，会把 13 个硬编码值带回生产构造点，违反禁硬编码，且与'数值一律外部加载'冲突." This is a strong "混入硬编码" finding. Mark 严重/中. B9/T17. This is likely a blocker because it introduces hardcoded defaults into production before table integration. The plan says Default is display fallback only. T17 must either defer constructor change until T18 or use a test-only fixture, not production default. Good.
+
+25. **T25 export writes table; `gen.bat` + `--check-shared`** — BuildHash issue. Also `--check-shared` after `gen.bat` fails. Good.
+
+26. **B21 "导出后自动 gen.bat + --check-shared"** — plan-level bug: should be `gen-build-hash.py` regen then `--check-shared`. The plan itself has this wrong in B21 and design. This is a plan blocker, not just tasks. Flag under BuildHash.
+
+27. **B4 "哈希值必变 → 两端重建 + --check-shared"** — T14 regen; okay.
+
+28. **B18 "--check-shared 通过" after deleting RootMotionData.g.cs** — plan-level wrong. Flag.
+
+29. **B11 "--check-shared 记录新哈希"** — after table integration, wrong. Flag.
+
+30. **T26 command group "check-shared" only** — if prior tasks regenerated, okay. But they didn't.
+
+Let's decide final blocking count. We want a credible, not overlong, review. Maybe 7 blockers:
+
+1. [严重][B4/B11/B12/B16/B18/B19/B23/T18-T26] BuildHash 只 check 不 regen; gate will fail. (systemic)
+2. [严重][B9/B11/B14/T17/T18/T20] 13-column mapping / `SimConfigMapper.BuildCombatValues(..., tbcombatgeom)` unowned; B9 AC not fully covered.
+3. [严重][B12/T21/T22] Task file scope missing `Assets/LiteSim/Scripts/Map` (and `Luban`, `Adapters/Dev`), cannot retire `.g.cs`/write table within scope.
+4. [严重][B15/B19/T24/T25] Task file scope missing `Tests`, `deploy/roomserver.windows.json`, `Server/RoomServer`, `Assets/LiteGame/Modules/Config`; cannot execute B15/B19 acceptance.
+5. [严重][B19/T25] dev three macros / once-per-session / two call sites not in acceptance; release gating unverified; plus T17 hardcoded Default.Geometry risk.
+6. [严重][B2/B22/T14/T15] asmdef/csproj LiteSim ref removal and LiteNet static scan root not explicit; guards cannot pass / B22 incomplete.
+7. [严重][B10/B12/T19/T21] contradiction "烘焙不读 CombatConfig.Geometry" vs allowed display/comparison read; guard unexecutable.
+8. [中][B23/T26/T27] final two-end rebuild/联测 execution owner/acceptance unclear; T27 only "record archive".
+9. [严重][T14/T21/T22/T23] Unity asset move/delete `.meta` not explicitly via unity-pipeline/AssetDatabase.MoveAsset; red line 4 risk.
+10. [中][B12/T21/T22/T23] BakeTargets five output constants/dead paths, MatchTestRules comment cleanup, XML 0 warning unassigned.
+
+That's 10. Maybe too many, but user asked for blocking count. We can group some to 8. Let's make 8 blockers, with sub-bullets. Need not overdo. The final answer should be concise but complete. "阻塞问题: 8". Coverage matrix grouped B1-B24.
+
+Coverage matrix: list B1→T13, B2/B3/B4/B6/B7→T14, B5/B22→T15, B8→T16, B9→T17 (类型/闸门) + T18 (表接入? but gap), B10→T19, B11→T18, B12→T21+T22+T23, B13/B14→T20, B15→T24, B16/B17/B18→T23, B19/B20/B21→T25, B22→T15, B23→T26+T27, B24→T27. Need mention B9's 13-column mapping gap and B12 sub-items gap. B1-B24 all have at least one task, no orphan (except sub-AC). "无孤儿/重复/越界" — no completely orphan B, but sub-items orphaned. Duplicate: B9 bad-table validation in T17 and T18 overlap (T17 "坏表候选校验" and T18 "坏表在 ValidateCandidate 拒启动"). Is that duplicate? T17 validates candidate struct; T18 wires table. Could be okay, but T17's "坏表候选校验（表接入在 T18）" and T18's "坏表在 ValidateCandidate 拒启动" overlap. Mention as non-blocking duplication risk. Also T21/T22 both "注释 0 warning" maybe. T24/T25 both "Aoi..." no.
+
+B12 split across T21/T22/T23: B12 requires five `.g.cs` and `BakeTargets`/`MatchTestRules`; split is okay but sub-items unassigned. B23 split T26/T27 okay. B9 split T17/T18/T20 but mapping unassigned.
+
+Task granularity: T21 is large (3 bakers + SimMap + WriteGenerated + comments); T22 medium; T25 large (13 sliders + gate + merge + export + GM + tests). Could be too large. T21 "Body/Head/Muzzle 烘焙与 SimMap/WriteGenerated" includes three bakers + SimMap + WriteGenerated + comments; maybe acceptable but large. T25 includes entire tuning/export + B20 four assertions; large. Non-blocking suggestion: split T21 into three bakers or at least Body/Head/Muzzle; T25 into tuning/gate vs export. But user asks granularity; mention.
+
+Dependency order: linear T13→T27, no cycles. But T16 two-end rebuild before batch 7; final rebuild only T27. T21 depends T20 (digest) though baking could be independent; over-serialization. T23 depends T22; okay. T24 depends T23; okay. T25 depends T24; okay. T26/T27. No cycles. But T18 depends T17, T19 depends T18, T20 depends T19. Fine. T21 depends T20; T22 depends T21; T23 depends T22. Fine.
+
+Independent execution: Many tasks' verification references other tasks' artifacts (T20 B14 needs T18 table; okay dependency). T25 "B20 四条断言" references plan not self-contained. T26 `wf verify` only at end. T14 BuildHash regen. Fine.
+
+"是否混入硬编码或范围静默扩张": T17 Default.Geometry temporary hardcode risk. T24 `ThrottleRadius` coefficient "常量/表单源" is okay, but plan says `Radius * 0.5f` hardcoded 0.5f; T24 says "系数常量/表单源" which is an improvement, but if it becomes a constant 0.5f still hardcoded; "表单源" suggests table. Could flag non-blocking: define coefficient as config/table or named constant with rationale. T25 `SimParamsGate` dev three macros; no hardcode. T26 config group. T27 docs.
+
+"范围静默扩张": T14 includes BuildHash regen and gen-build-hash.py, okay. T21 includes SimMapBaker/WriteGenerated (user P-6). T22 Grip. T23 RootMotion. T24 Aoi. T25 tuning. No obvious scope creep. T25 "GM/编辑器两处导出同一路径" maybe okay. T27 docs. Good.
+
+"施工子代理越权": T26 main agent exclusive; T27 docs. But T25 "编辑器/GM 导出" touches `Assets/LiteGame/Editor/Gm`, not `.workflow`; okay. T14 touches `scripts/codegen/gen-build-hash.py` (gate script!) — is that "门禁配置"? The user's first-round整改 says "施工子代理不碰门禁配置". T14 includes `scripts/codegen/gen-build-hash.py`, which is a gate/build-hash script, not `.workflow/config.json`. Is that allowed? The user specifically says "T26 为自动命令组（主代理独占 `.workflow/config.json`）；T27 文档+人工联测证据；施工子代理不碰门禁配置." T14 modifies `scripts/codegen/gen-build-hash.py` — is that a "门禁配置"? It's a build hash generator/gate script. The plan says B owns `gen-build-hash.py` `SHARED_TARGETS` increment. This is a source-code/gate script change, likely allowed because it's the build hash source set, but the user's phrase "门禁配置" likely refers to `.workflow/config.json`, not codegen script. However `gen-build-hash.py` is a gate-adjacent script. The task T14 is a construction task; allowing it to modify `gen-build-hash.py` may be a red-line "施工子代理不碰门禁脚本" per artifact-quality line 101: "不改 `.workflow/**`、门禁脚本与配置". `gen-build-hash.py` is a gate script (used by `build-player.py` gate). This is a significant finding: T14's file list includes `scripts/codegen/gen-build-hash.py`, and T14 is a construction task (not main-agent exclusive). If construction subagents are forbidden from touching gate scripts, T14 violates. But the user's first-round整改 says "T14 已并入 SHARED_TARGETS + BuildHash 重生成/--check-shared" — they intentionally put it in T14. Is T14 executed by main agent or construction subagent? The tasks don't specify owner except T26. If T14 is a construction task, it touches a gate script. The user asks "施工子代理越权". This is a strong potential blocker: `scripts/codegen/gen-build-hash.py` is a gate script; only main agent should modify it, or T14 must be marked main-agent exclusive. The plan says B owns `gen-build-hash.py`; maybe main agent. But tasks don't say. The first-round整改 says T14 "并入 SHARED_TARGETS + BuildHash 重生成/--check-shared" — they may intend T14 to modify it. If T14 is a construction task, it's overreach. Need flag: "T14 允许施工子代理改 `scripts/codegen/gen-build-hash.py`（门禁脚本），与'施工子代理不碰门禁脚本/配置'冲突；应拆出主代理任务或明确 T14 主代理执行." This is a solid blocker. Similarly T26 main agent exclusive `.workflow/config.json`; T14 should be main-agent for gen-build-hash. This may be the most important "越权" finding. Add as blocker.
+
+But is `gen-build-hash.py` a "门禁脚本"? It's used by gate `build-player.py --check-shared`; it's a codegen script. Artifact quality says "不改 .workflow/**、门禁脚本与配置". `scripts/codegen/gen-build-hash.py` is a codegen/gate script. Yes. The user specifically says "施工子代理不碰门禁配置" — config, not script. But `gen-build-hash.py` is not `.workflow/config.json`; it's a source-controlled codegen. The plan says B owns it. It might be acceptable for a construction task to edit codegen script if the task is about source set. However, "门禁脚本" likely includes it. We can phrase as "若 T14 由施工子代理执行，则越权；需明确主代理执行或拆出". Mark 严重. This is a nuanced but valuable finding.
+
+Similarly T26 main agent exclusive; T27 docs. T15 modifies tests only; okay. T18 modifies `Luban/gen.bat`? It runs, not modifies. T21/T25 modify editor tools; okay.
+
+Another overreach: T14 modifies `scripts/codegen/gen-build-hash.py` and `Tests`; T14 also moves Assets. If T14 is one task, construction subagent touches gate script. Strong.
+
+Another overreach: T21/T22/T23 delete `.g.cs` and `.meta` under Assets; if construction subagent uses shell, red line. Already.
+
+Another overreach: T24 modifies `deploy/roomserver.windows.json`? Missing file list, but if it did, that's deployment config; maybe main agent. The plan says server reads config; T24 file list lacks deploy, so no overreach, but acceptance requires it. Could be a gap.
+
+Another overreach: T25 modifies `Assets/LiteGame/Editor/Gm` GM page; allowed? It's product editor tool, not gate config. Fine.
+
+Another overreach: T26 `.workflow/config.json` main agent; good.
+
+Now, "门禁不可执行": T26's `wf verify` includes L2; L2 may require Unity. But okay.
+
+"编译中断": T21 deletes `BodyBake.g.cs` before updating `SimMapBaker`? T21 acceptance says "三件 .g.cs 退役；三烘焙器写表；SimMapBaker 读 CC 并断言..." It doesn't specify order "先落表/消费面再删 .g.cs" unlike T23 which explicitly says "先落 loader 再删 .g.cs". T21 could delete `.g.cs` while `SimMapBaker`/tests still reference `BodyBake` → compile break. T21 says "BodyBakeEditModeTests/SimMapBakerEditModeTests" migration, but no explicit order. T22 similarly "GripBake.g.cs 退役" and "WeaponGripConstraint... 迁移" no "先落 catalog 再删". T23 explicitly addresses. This is a compile-interruption risk. Strong finding: T21/T22 lack "先落新数据/消费面，再删 .g.cs" ordering; only T23 has it. T21 has "SimMapBaker 读 CC" but if `BodyBake` constants used, deletion first breaks. The task could order internally, but acceptance doesn't state. Flag as blocker/major: "T21/T22 删除 .g.cs 与消费面迁移未规定先后，存在编译中断；应像 T23 一样先落新数据/消费者再删." This is exactly what user asked. Add.
+
+Also T17 adds `CombatGeometry` and 9-param constructor before T18 table; if all 10 construction points updated with `Default.Geometry`, compile okay, but hardcode. T19 deletes constants; T21/T22 baking still reference old names? T19 migrates. T21 deletes `.g.cs`; if T19 already migrated, okay. But T21's `BodyBake` references may be gone. Fine.
+
+T18 table integration after T17; `ConfigService` and `ServerTableLoader` updated. T19 consumer migration. T20 digest. Fine.
+
+T21/T22/T23 `.g.cs` deletion order: T23 explicit; T21/T22 not. Good.
+
+Another compile issue: T14 moves `RoomClient` etc. out of LiteNet and updates references; T13's LiteSync asmdef references LiteNet+LiteSim. T14 also removes LiteNet→LiteSim asmdef; if it removes before moving all `using LiteSim` files, compile breaks; but task is one unit. Fine.
+
+Another compile issue: T15 guard tests added after T14; okay.
+
+Another compile issue: T26 command group config JSON; no code compile.
+
+Another compile issue: T25 `SimParamsOverrides` in LiteSim/Scripts/Rules; if it references Dev types, LiteSim→Dev dependency? Plan says Dev side; `SimParamsOverrides` maybe in Dev, not LiteSim. T25 file list `Assets/LiteSim/Scripts/Rules` includes `SimParamsOverrides`? Plan line 132 says "SimParamsOverrides（dev 三宏...不进入共享程序集）" — so `SimParamsOverrides` should be in Dev, not LiteSim/Scripts/Rules. T25 file list includes both `Assets/LiteGame/Adapters/Dev` and `Assets/LiteSim/Scripts/Rules`; `SimParamsGate`/`SimParamsOverrides` likely in Dev. The `Assets/LiteSim/Scripts/Rules` may be for `MatchTestRules` deletion of head overrides. Good. T25 file list includes `Assets/LiteSim/Scripts/Rules` for removing `ResolveHead*`? But T19 already did that (B10). Duplicate? T19 deletes `ResolveHead*`/override fields; T25 B19 also says "删除 HeadHitLineOverride/..." — duplicate! B19 includes deleting those, but B10/T19 also does. T25 acceptance "B19/B20/B21" includes "删除 HeadHitLineOverride/HeadshotRadiusOverride/ResolveHeadHitLine/ResolveHeadshotRadius" (plan B19). T19 B10 also requires zero hits. So same deletion is assigned to both T19 and T25. That's duplicate work/overlap, not necessarily blocking but indicates unclear ownership. T25 file list `Assets/LiteSim/Scripts/Rules` might be for that duplicate. Good finding: "B10 与 B19 都要求删除几何覆写字段/方法，T19 与 T25 重复；应明确 T19 删除、T25 只做调参面，避免双改/冲突." This is a non-blocking duplication or blocking? It can cause merge conflict, but sequential T19→T25; T25 would find already deleted. Minor. Mention non-blocking.
+
+Similarly B9 bad-table validation in T17/T18 duplicate. Mention non-blocking.
+
+Another duplicate: T21/T22/T23 "注释 0 warning"; T21 only. Fine.
+
+Another duplicate: T14 and T15 both check BuildHash. Fine.
+
+Another duplicate: T20 and T25 both digest? T20 digest, T25 B20 checks digest. Fine.
+
+Another duplicate: T16 and T27 two-end rebuild. T16 batch 6, T27 final. Fine.
+
+Another issue: B13 "Combat/tbcombatgeom 进 JudgmentFiles ⇒ 表字节进 CombatConfigDigest" — T20 file list `Assets/LiteGame/Modules/Config` maybe digest code; okay. But T18 already changes `TableLayout.Files`; `JudgmentFiles` auto includes. T20 just tests. Fine.
+
+Another issue: B14 "13 值与表装载结果 0 容差" — T20 test compares; okay.
+
+Another issue: B15 "AoiSettings 服务端真实注入三档" — T24 file list lacks `deploy`; strong.
+
+Another issue: B16/B17/B18 T23 file list lacks `Tests`; strong.
+
+Another issue: B19/B20/B21 T25 file list lacks `Server`/`ConfigService`; strong.
+
+Another issue: B23 T26 command group only `.workflow/config.json`; `wf verify` needs a command group. Fine.
+
+Another issue: T27 docs files: plan B24 lists `Docs/设计文档/网络/状态同步专项设计.md` (new/update), `Docs/设计文档/客户端/动画/联机动画与根位移专项设计.md`, `Docs/设计文档/游戏玩法/烘焙工具箱专项设计.md`, `Docs/施工进度/输入与同步链线.md`, `战斗与武器线.md`. T27 files list dirs `Docs/设计文档/网络, Docs/设计文档/客户端/动画, Docs/设计文档/游戏玩法, Docs/施工进度` — matches. Good.
+
+Another issue: B24 "索引登记" — T27 says. Good.
+
+Another issue: B23 "证据列出实际命令与结果" — T26 says "证据列出实际命令"; T27 says "命令与 BuildHash 对账记录归档". Good.
+
+Another issue: Task status "完成 0/27（取消 12，阻塞 0）" but all active tasks "待办"; no evidence. Fine.
+
+Now decide final PASS/FAIL: FAIL.
+
+Need output in Chinese plain text, with sections:
+结论: FAIL
+阻塞问题: 8
+覆盖矩阵: grouped B1~B24
+阻塞问题清单:
+- [严重度][B 项/任务] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...
+
+Need keep within reasonable length. Desired oververbosity 5. We can be detailed but not enormous.
+
+Let's settle blocking count and items. I want 8 blockers, each with specific B/task. Maybe:
+
+1. [严重][B4/B11/B12/B16/B18/B19/B23；T18~T26] BuildHash 重生成缺失，`--check-shared` 不能替代 `gen-build-hash.py`。T18 跑 `gen.bat` 后只 check；T19/T21/T22/T24/T25 改 `LiteSim/{Scripts,Systems}`/`LiteSync/Shared` 后无重生成；T23 删 `.g.cs` 后只 check；T26 `wf verify` 必红。建议每处改共享源集后先 `gen-build-hash.py` 再 `--check-shared`，T18/T21/T23/T24/T25 验收补命令。
+
+2. [严重][B9/B11/B14；T17/T18/T20] 13 列表→`CombatGeometry` 的映射（`SimConfigMapper.BuildCombatValues(..., tbcombatgeom)`）无任务明确承接；T17 把表接入推给 T18，T18 只写 B11 接入/调用点，T20 只校验。建议 T18 增"13 列映射 + `BuildCombatValues` 签名/调用点"验收，或在 T17 明确临时夹具。
+
+3. [严重][B12；T21/T22] 文件范围缺 `Assets/LiteSim/Scripts/Map`（三件 `.g.cs` 所在）与 `Luban`（写表）；T22 缺 `Assets/LiteGame/Adapters/Dev`（`FeatureDebugTunables`）；T23 缺 `Tests`（`RootMotionDataTests`）。施工子代理无法在授权范围内完成验收，或越界改文件。建议补全各任务文件范围/允许文件清单。
+
+4. [严重][B15/B19；T24/T25] T24 缺 `Tests` 与 `deploy/roomserver.windows.json`，无法做 `LocalServerHandshakeEditModeTests` 与三档真实注入；T25 缺 `Server/RoomServer` 与 `Assets/LiteGame/Modules/Config`，无法落"唯一合并点"到 `ConfigService` + `ServerTableLoader` 两处。建议补文件范围/拆主代理配置任务。
+
+5. [严重][B19；T25] 验收只写"单门/单合并点/联机禁用"，缺 `SimParamsOverrides` 仅在 dev 三宏、`SimParamsGate.Evaluate` 每会话一次且以 bool 传递、调用点固定两处、判定路径零静态读；发布包可能带 dev 覆盖。建议补 B19 原文四条断言与"只求值一次"用例。
+
+6. [严重][B2/B22；T14/T15] T14 未明确删 `LiteNet.asmdef`/`LiteNet.csproj` 的 `LiteSim` 引用（B2），T15 只改 Allowed/ClientRoots；T15 只写扫描根含 LiteSync，B22 要求 LiteNet+LiteSync。建议 T14 验收补 asmdef/csproj 删引用，T15 补 LiteNet 根与负例。
+
+7. [严重][B10/B12；T19/T21] "判定/烘焙代码不读 `CombatConfig.Geometry`"（B10）与方案允许烘焙器"显示/对比可读"冲突；T19 的零命中断言若覆盖烘焙会误杀，若排除则 B10 断言不完整。建议把断言限定为"写入源/判定路径不读"，显示/对比读单独白名单。
+
+8. [严重][B23；T26/T27] 批次 7 后最终两端重建/联调没有明确执行任务；T16 只覆盖批 6，T26 排除人工联测，T27 只写"命令与对账记录归档"，未写实际执行与通过判据。建议 T27 增"实际执行 build-player/player-smoke/两端 BuildHash+ConfigHash 对账并留证"验收，或新增 T28 主代理联测任务。
+
+9. [严重][T14/T21/T22/T23] `.cs`/`.meta` 搬迁与删除未要求走 unity-pipeline/`AssetDatabase.MoveAsset`；红线 4。建议补执行方式与"git status 成对/无 GUID 重建"验收。 This is 9. Maybe include as 9th. The user asked "施工子代理越权" — T14 gate script overreach too.
+
+10. [严重][T14] T14 允许施工子代理改 `scripts/codegen/gen-build-hash.py`（门禁/生成脚本），与"施工子代理不碰门禁脚本/配置"冲突。建议 T14 标主代理执行或把该脚本改动拆到 T26 主代理。 This is important. If we include both 9 and 10, 10 blockers. Maybe that's okay. "阻塞问题: 10". But too many? The review should be strict. Let's see if any are weak:
+- 9 (unity-pipeline) is strong red line.
+- 10 (gate script) is strong per artifact-quality.
+- 6 (asmdef/csproj) maybe T14 "引用收口" implies; but acceptance not explicit. Could be non-blocking. If we keep 10, maybe drop 6 to non-blocking? But B2 is an AC. Hmm.
+- 8 (final two-end) maybe T27 implies; could be non-blocking.
+- 7 (baking read contradiction) is strong.
+- 5 (B19 dev macros) strong.
+- 4 (file scope) strong.
+- 3 (file scope) strong.
+- 2 (mapping) strong.
+- 1 (BuildHash) strongest.
+
+We can have 8 blockers and put 6/8/9/10 as "非阻塞/建议"? But 9 is red line; should be blocking. Let's prioritize:
+Blockers (8):
+1 BuildHash regen.
+2 B9 mapping unowned.
+3 T21/T22/T23 file scope gaps.
+4 T24/T25 file scope gaps.
+5 B19 dev gating/once/call sites missing.
+6 T21/T22 delete `.g.cs` before consumer migration (compile interruption) — maybe more concrete than B10 contradiction.
+7 B10/B12 baking read contradiction.
+8 T14 gate script overreach + Unity `.meta` move red line (combine two? Different issues). Could combine "执行权限/红线" into one blocker: T14 改门禁脚本 + T14/T21-T23 未走 unity-pipeline. But that's two distinct. We can make 9.
+
+Alternatively 9 blockers:
+1 BuildHash
+2 B9 mapping
+3 T21/T22/T23 scope
+4 T24/T25 scope
+5 B19 gating
+6 T21/T22 compile order
+7 B10/B12 contradiction
+8 T14 gate script overreach
+9 T14/T21-T23 unity asset move red line
+
+Then B2/B22 and final two-end go to non-blocking (or major non-blocking). But B22 is AC; maybe include as blocker 10. Hmm.
+
+The user wants "阻塞问题: <数量>" and "只核验 B1~B24 全覆盖". If B22 incomplete, it's a coverage blocker. We should include. Maybe 10. That's fine; "最多 8 次工具调用" not max findings.
+
+Let's ensure each finding has "建议". Good.
+
+Coverage matrix: We need list B1~B24 grouped. We can write:
+- B1→T13
+- B2/B3/B4/B6/B7→T14（B2 的 asmdef/csproj 删引用未落验收；B6 的 LiteNet 仅留两接口未落验收）
+- B5/B22→T15（B22 缺 LiteNet 根）
+- B8→T16
+- B9→T17+T18（13 列映射未明确承接）
+- B10→T19（与 B12 的烘焙读断言冲突）
+- B11→T18
+- B12→T21+T22+T23（BakeTargets 五常量/死路径、MatchTestRules 注释未明确承接）
+- B13/B14→T20
+- B15→T24（缺 deploy/Tests 范围）
+- B16/B17/B18→T23（缺 Tests 范围）
+- B19/B20/B21→T25（B19 的 dev 三宏/一次求值/两调用点未落验收；缺 Server/ConfigService 范围）
+- B23→T26+T27（自动/人工拆分合理；最终两端重建执行未明确）
+- B24→T27
+Need B1-B24 all present. B5/B22 both T15. B23 split. Good.
+
+"无孤儿/重复/越界": No complete orphan B; sub-items orphaned. Duplicate: B9 bad-table T17/T18; B10/B19 head override deletion T19/T25. Mention non-blocking. "越界": T14 gen-build-hash; T21/T22 file scope; T25 missing files. Good.
+
+"任务粒度": T21 too large (3 bakers + SimMap + WriteGenerated + comments); T25 too large (tuning + gate + merge + export + GM + B20 four assertions). T26/T27 split okay. Mention non-blocking: split T21 into Body/Head/Muzzle or at least "三烘焙器" vs "SimMap/WriteGenerated"; T25 into "调参/门/合并" vs "导出/GM". But the user said T21/T22 split per first round; T21 still large. Good.
+
+"依赖顺序": Linear T13→T27 no cycles; but T16 two-end rebuild before batch 7, final rebuild only T27; T21 depends T20 (digest) though baking doesn't need digest; over-serialization. Mention non-blocking.
+
+"验收与验证可独立执行": Many verifications reference plan AC (B20 four assertions) rather than restating; acceptable but T25 "B20 四条断言" circular. Mention non-blocking: restate key assertions or link. Also T26 `wf verify` only at end; okay.
+
+"硬编码/范围静默扩张": T17 temporary `Default.Geometry` risk; T24 `0.5f` coefficient; T25 "13 项滑杆" values? Mention:
+- [中][B9/T17] 10 处构造点在 T18 前若用 `CombatValues.Default.Geometry`/字面量，会把 13 个硬编码值带回生产路径；建议 T17 用测试夹具/临时构造，或把构造点更新并入 T18。
+- [中][B15/T24] `ThrottleRadius => Radius * 0.5f` 的 0.5 仍是硬编码；T24 已写"系数常量/表单源"，建议明确为表列/命名常量并加守卫。
+- [中][B21/T25] 导出写表后只 `--check-shared`，需 `gen-build-hash.py`（covered by blocker 1).
+- [中][T27] 文档回写只列目录，未列具体 5 个文件/章节；plan B24 has details. T27 says "3 份设计+2 份进度卷" but file list dirs; okay. Non-blocking: 明确 5 个文件路径与索引条目.
+
+"主要优点":
+- B1-B24 全部有任务映射，无完全孤儿；T13-T27 依赖链无环，顺序可执行。
+- 首轮 6 个阻塞的整改落地：T14 BuildHash、B9 拆 T17/T18、T26 主代理独占 config、B12 拆 T21/T22/T23、T13/T14 dotnet 双轨、T17 Loaded 时序/编辑器不崩/10 构造点。
+- T23 明确"先落 loader 再删 .g.cs"，避免编译中断；T26/T27 自动/人工拆分，施工子代理不碰 `.workflow/config.json`；T24 把 ThrottleRadius 系数收口；T17 ResetForTests+[Collection] 解决测试隔离；T20 0 容差/黄金样本/测试名落档；T25 B20 四条断言/真实操作。
+- 验收大多可执行，证据字段保留。
+
+"非阻塞建议":
+- 取消原因逐条映射 T1-T12→T13+.
+- 统一 B9 坏表校验 T17/T18 边界，避免重复。
+- B10/B19 删除几何覆写字段/方法重复 T19/T25，明确 T19 删除、T25 只消费。
+- T21/T25 粒度拆分。
+- T26 command group 增加 `gen-build-hash.py`（不只 check）; T27 具体文件/章节/索引.
+- T14 补 `git status` 成对/GUID 检查; T15 补 LiteNet 根.
+- T24/T25 file scope.
+- T27 final two-end execution.
+
+Need ensure output is Chinese plain text, no markdown table? "中文纯文本" means plain text; can use simple lines, no markdown table. We can use bullets and "覆盖矩阵:" lines. Avoid Markdown table maybe. Use plain text with dashes. Fine.
+
+Let's formulate final answer. Need be clear "结论: FAIL". "阻塞问题: 10" maybe. Let's decide 10 blockers:
+
+1. BuildHash regen systemic.
+2. B9 13-column mapping unowned.
+3. T21/T22/T23 file scope gaps.
+4. T24/T25 file scope gaps.
+5. B19 dev gating/once/call sites missing.
+6. T21/T22 compile order (delete `.g.cs` before consumers).
+7. B10/B12 baking read contradiction.
+8. T14 gate script overreach.
+9. T14/T21/T22/T23 Unity `.meta` move/delete red line.
+10. B2/B22 asmdef/csproj + LiteNet scan root gaps.
+
+Then B23 final two-end execution maybe non-blocking? It's important. Could add as 11. But "阻塞问题: 10" is enough; put final two-end as "非阻塞建议" or "阻塞"? If T27 only archives, B23 not executed. I think it's a blocker. Let's make 11? The user might expect a focused set. Maybe combine 8+9 into one "施工权限/红线" blocker, and include 10 B2/B22, 11 B23 final. Then 10 blockers:
+1 BuildHash
+2 B9 mapping
+3 T21/T22/T23 scope
+4 T24/T25 scope
+5 B19 gating
+6 T21/T22 compile order
+7 B10/B12 contradiction
+8 T14 gate script + Unity `.meta` red line (two sub-issues)
+9 B2/B22 guards
+10 B23 final two-end execution
+
+This is 10. Good. In blocker 8, mention both T14 gen-build-hash and `.meta` move; suggestion: T14 标主代理 or split; all Assets moves/deletes via unity-pipeline/AssetDatabase.MoveAsset; add git status pair check. This combines two but same "执行权限/红线" theme. Fine.
+
+Block 3 includes T21/T22/T23 file scope; block 4 T24/T25; block 10 T27. Good.
+
+Block 6 compile order: T21/T22 delete `.g.cs` before consumer migration; T23 explicitly "先落 loader 再删" so T23 is good. Mention T21/T22 should mirror T23.
+
+Block 7 B10/B12 contradiction: T19 "判定/烘焙不读 Geometry" vs T21 "写入源只来自 prefab/anchor" and plan allows display/comparison read. Suggest narrow assertion.
+
+Block 9 B2/B22: T14 not explicit asmdef/csproj removal; T15 only LiteSync root. Suggest.
+
+Block 10 B23: T16 only batch 6; T26 auto excludes manual; T27 archive only. Suggest T27 actual execution or T28.
+
+Now coverage matrix with caveats. Need not mention all blockers again; brief.
+
+Let's ensure "B1~B24 是否全覆盖、无孤儿/重复/越界" answered: "全部 B 项至少有一个任务承接，无完全孤儿；但 B9/B12/B19/B22 存在子项未承接；T17/T18 与 T19/T25 有重复；T14/T21-T25 有文件范围越界/缺权." Good.
+
+Let's write in Chinese, plain text. No citations needed. Keep under maybe 2000 Chinese chars? The user wants detail. We can be around 2500-3500 chars.
+
+Let's draft:
+
+结论: FAIL
+阻塞问题: 10
+覆盖矩阵:
+B1→T13
+B2/B3/B4/B6/B7→T14（B2 的 asmdef/csproj 删 LiteSim 引用未写入验收；B6 的 LiteNet 仅留两接口未写入验收）
+...
+B9→T17+T18（T17 类型/闸门，T18 表接入；13 列映射未明确承接）
+B12→T21+T22+T23（三件/ Grip / RootMotion 分拆；BakeTargets 五常量、死路径、MatchTestRules 注释未明确承接）
+B15→T24（缺 deploy/Tests 范围）
+B16/B17/B18→T23（缺 Tests 范围）
+B19/B20/B21→T25（B19 子项不全；缺 Server/ConfigService 范围）
+B23→T26+T27（自动/人工拆分；最终两端重建执行未明确）
+B24→T27
+...
+All B covered, no complete orphan; duplicates/overreach noted.
+
+Blocking list with 10 bullets. Each: [严重][B/T] problem; suggestion.
+
+Need "严重度" perhaps "阻塞/高/中". The output says "[严重度][B 项/任务]". Use "严重" or "中". All 10 blocking; severity "严重" or "高". Maybe use "严重" for 1-5, "高" for 6-10. But all are blocking. Use "严重" for systemic, "高" for scope. Fine.
+
+Let's ensure no claim unsupported:
+- T21 `.g.cs` location: plan line 14 says `Scripts/Map/*.g.cs` includes BodyBake/HeadBake/MuzzleBake/RootMotionData. So T21 must touch `Assets/LiteSim/Scripts/Map`; file list lacks. Strong.
+- T22 `GripBake.g.cs` location uncertain; don't claim; instead say "若 GripBake.g.cs 也在 LiteSim/Scripts/Map（需核对），T22 同样缺范围". Better to avoid uncertain. But T22 `FeatureDebugTunables` in `Adapters/Dev` is likely. We can say "T22 验收含 FeatureDebugTunables，但文件范围未含 Assets/LiteGame/Adapters/Dev（该文件在 T25 范围出现）". That's supported by T25 file list. Good.
+- T23 `RootMotionDataTests` in Tests; T23 file list lacks Tests. Supported.
+- T24 `LocalServerHandshakeEditModeTests` is in plan test strategy, and T24 verification "EditMode/Play"; file list lacks Tests. Supported.
+- T24 `deploy/roomserver.windows.json` in plan line 119; T24 file list lacks deploy. Supported.
+- T25 `ServerTableLoader`/`ConfigService` in plan line 132; T25 file list lacks Server/Modules/Config. Supported.
+- T14 `gen-build-hash.py` in file list; artifact-quality line 101 says no gate scripts. Supported.
+- T14/T21-T23 `.meta` move/delete red line 4. Supported.
+- B2 asmdef/csproj: plan B2 says both; T14 acceptance only grep. Supported.
+- B22 LiteNet root: plan B22 says LiteNet/LiteSync; T15 acceptance only LiteSync. Supported.
+- B23 final two-end: T16 batch 6; T26 auto excludes manual; T27 archive. Supported.
+- B9 mapping: plan B9 says 13 columns loaded; T17 defers table; T18 B11 only table integration/call points. Supported.
+- B10/B12 contradiction: plan B10 says baking code not read Geometry; plan design line 114 says display/comparison can read. Supported.
+- B19 dev macros: plan B19 says dev three macros; T25 acceptance doesn't. Supported.
+- T21/T22 compile order: T23 explicit, T21/T22 not. Supported.
+
+Could mention "T14 15 件+meta 搬迁未写 unity-pipeline" but plan constraint says `AssetDatabase.MoveAsset`; T14 doesn't. Good.
+
+"主要优点": 4-5 bullets.
+
+"非阻塞建议": 4-6 bullets.
+
+Let's write final. Ensure no markdown table; plain text. Use Chinese punctuation. Keep line lengths reasonable.
+
+One more thought: The user said "只核验 ... 是否还有编译中断/门禁不可执行/施工子代理越权" and "最多 8 次工具调用". We used 7. Good. We didn't modify files/run commands. Good.
+
+We should mention "评审依据" maybe not required. Output format exactly:
+结论: PASS 或 FAIL
+阻塞问题: <数量>
+覆盖矩阵: ...
+阻塞问题清单:
+- ...
+主要优点:
+- ...
+非阻塞建议:
+- ...
+
+Use "FAIL". "阻塞问题: 10
+dsh: reasoning:
+". Then coverage matrix lines.
+
+Let's ensure "覆盖矩阵: 按 B1~B24 分组列出对应任务" — we need literally B1 through B24. We'll list all.
+
+Let's draft final now.

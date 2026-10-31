@@ -38,12 +38,15 @@ namespace RoomServer
         /// 从仓库根装载客户端 .bytes 表目录（定位失败或缺表 → 抛，fail-fast）；返回装载实例。
         /// 数值错了必然分叉——宁可起不来，也不要带着错数值跑权威局。
         /// </summary>
-        public static ServerTableLoad LoadFromRepo()
+        /// <param name="combatOverrides">判定参数覆写合并（**唯一合并点**：表值之后、`ToValues`/摘要之前）。
+        /// 由组合根按 <c>SimParamsGate</c> 求值后给入——联机/发布为 null（两端数值必须同源）。</param>
+        public static ServerTableLoad LoadFromRepo(Func<CombatValues, CombatValues> combatOverrides = null)
         {
             string root = FindRepoRoot()
                           ?? throw new InvalidOperationException(
                               $"找不到仓库根（需含 Assets 与 Tests/Tests.slnx）——无法装载 {RelativeDir}");
-            return LoadTableBytes(Path.Combine(root, RelativeDir.Replace('/', Path.DirectorySeparatorChar)));
+            return LoadTableBytes(Path.Combine(root, RelativeDir.Replace('/', Path.DirectorySeparatorChar)),
+                combatOverrides);
         }
 
         /// <summary>
@@ -51,7 +54,8 @@ namespace RoomServer
         /// <c>TableLayout.Files</c> 的领域相对路径取——源链接共编单源；Tables 构造器逐表取字节）。
         /// 预读缓存与客户端 <c>ConfigService.LoadAsync</c> 同形：**裸表名 → 字节**（判定面摘要与建表共用同一批字节）。
         /// </summary>
-        public static ServerTableLoad LoadTableBytes(string configDir)
+        public static ServerTableLoad LoadTableBytes(string configDir,
+            Func<CombatValues, CombatValues> combatOverrides = null)
         {
             if (!Directory.Exists(configDir))
                 throw new DirectoryNotFoundException($"表数据目录缺失：{configDir}（跑 Luban/gen.bat Pass 1）");
@@ -67,11 +71,15 @@ namespace RoomServer
 
             var tables = new cfg.Tables(file => new Luban.ByteBuf(cache[file]));
 
-            var values = ToValues(SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
-                tables.Tbmovementconfig, tables.Tbentityconfig));
+            CombatValues combatValues = SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
+                tables.Tbmovementconfig, tables.Tbentityconfig, tables.Tbcombatgeom);
+            // 唯一合并点（服务端）：表值之后、`ToValues`/摘要之前。委托由组合根按 SimParamsGate 求值后给入，
+            // 常规联机为 null——两端判定几何必须同源，覆写只服务进程内本地服调参。
+            if (combatOverrides != null) combatValues = combatOverrides(combatValues);
+            var values = ToValues(combatValues);
             HostLog.Info("Tables",
                 $"玩法数值（bin 表）：move={values.MoveSpeed} gravity={values.Gravity} " +
-                $"hitscan={values.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
+                $"hitscan={values.HitscanRange} hit={combatValues.Geometry.HitscanRadius}(表) body={combatValues.Geometry.BodyRadius}:{combatValues.Geometry.HitscanHeight}(表) " +
                 $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}");
 
             WeaponTable weapons = BuildWeaponTable(tables);
@@ -90,12 +98,16 @@ namespace RoomServer
         /// 只解析三张数值来源表，不要求武器或表现配置。
         /// </summary>
         public static ServerCombatValues Parse(byte[] combatnumBytes, byte[] movementconfigBytes,
-            byte[] entityconfigBytes)
+            byte[] entityconfigBytes, byte[] combatgeomBytes,
+            Func<CombatValues, CombatValues> combatOverrides = null)
         {
             var combat = new cfg.Tbcombatnum(new Luban.ByteBuf(combatnumBytes));
             var movement = new cfg.Tbmovementconfig(new Luban.ByteBuf(movementconfigBytes));
             var entity = new cfg.Tbentityconfig(new Luban.ByteBuf(entityconfigBytes));
-            return ToValues(SimConfigMapper.BuildCombatValues(combat, movement, entity));
+            var geometry = new cfg.Tbcombatgeom(new Luban.ByteBuf(combatgeomBytes));
+            CombatValues values = SimConfigMapper.BuildCombatValues(combat, movement, entity, geometry);
+            if (combatOverrides != null) values = combatOverrides(values);   // 同一条合并点（纯解析入口亦同口径）
+            return ToValues(values);
         }
 
         /// <summary>共用映射产物 → 宿主载体；字段含跨表投影，非单张 combatnum 表行。</summary>
@@ -110,6 +122,7 @@ namespace RoomServer
             EntityHp = row.EntityHp,
             AimMoveSpeed = row.AimMoveSpeed,
             FireStanceFrames = row.FireStanceFrames,
+            Geometry = row.Geometry,
         };
 
         /// <summary>武器表装载（服务端与客户端同链——权威 Sim 的武器系统必须拿到同一份武器定义；
@@ -197,12 +210,16 @@ namespace RoomServer
         public float AimMoveSpeed;
         public int FireStanceFrames;
 
+        /// <summary>判定几何（`#combatgeom` 13 列的表值投影）。必须随装载产物传递——服务端判定与
+        /// 客户端预测同源；不得在 <see cref="ToValues"/> 回落默认几何。</summary>
+        public CombatGeometry Geometry;
+
         /// <summary>表行 → 玩法数值实例（装载产物；由调用方**显式传入**宿主/房间——
         /// 技术债 #1：不再回填全局静态面）。</summary>
         public CombatValues ToValues()
         {
             return new CombatValues(MoveSpeed, Gravity, HitscanRange, BaseDamage, DamageSpread, EntityHp,
-                AimMoveSpeed, FireStanceFrames);
+                AimMoveSpeed, FireStanceFrames, Geometry);
         }
     }
 }

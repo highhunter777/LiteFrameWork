@@ -57,6 +57,10 @@ namespace LiteSim
         /// <summary>比赛状态（room 级；公共面——随每份快照全量下发）。</summary>
         public MatchStateData Match;
 
+        /// <summary>帧上下文：SimStep 每帧写入；供无 `in CombatValues` 参数的辅助系统（DamageSystem）读取。
+        /// 不进快照、不进 checksum；默认值仅用于直接构造世界的测试。</summary>
+        public CombatValues Values = CombatValues.Default;
+
         // 非 readonly：可变结构体字段，readonly 会触发防御性拷贝丢写（见 CommandBuffer 注释）。
         public CommandBuffer Cmds;
         public FrameEventBuffer Events;

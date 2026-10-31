@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Assets\LiteNet\LiteNet.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteSync\LiteSync.csproj" />
     <ProjectReference Include="..\..\Assets\LiteSim\LiteSim.csproj" />
     <ProjectReference Include="..\..\Server\RoomServer\RoomServer.csproj" />
     <ProjectReference Include="..\..\Server\ReplayTool\ReplayTool.csproj" />
@@ -31,7 +32,8 @@
        测**真工厂**非复制品（与 LiteSim.Core.Tests 链接 Input 件同款纪律）。
        Match 半边依赖 BattleContext（SimView → UnityEngine），Unity 面，验收归 DI-4。 -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteNet\Core\Diagnostics\WeakNet\*.cs" Link="WeakNet\%(Filename)%(Extension)" />
+    <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Debug\WeakNet\*.cs" Link="WeakNet\%(Filename)%(Extension)" />
+    <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Debug\Tunables\DebugTunable.cs" Link="WeakNet\DebugTunable.cs" />
   </ItemGroup>
 
   <ItemGroup>

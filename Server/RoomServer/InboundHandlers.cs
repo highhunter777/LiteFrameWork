@@ -1,6 +1,7 @@
 using System;
 using LiteNet;
 using LiteNet.Protocol;
+using LiteSync.Input;
 using LiteNet.Proto;
 using LiteSim;
 using RoomServer.Application;
@@ -109,7 +110,7 @@ namespace RoomServer
                 _host.Ops.CountAck(session.TryAcceptAck(msg.AckSnapshot));
 
             // proto → 纯数据（App 职责；Runtime 不见 proto）。**逐字段映射单源在
-            // LiteNet.Protocol.InputPacker**（P0-3）：此前真服/本地服各手抄一份，AimPoint 六字段
+            // LiteSync.Input.InputPacker**（P0-3）：此前真服/本地服各手抄一份，AimPoint 六字段
             // 已真实漂移过一次（真服链路断点而本地服照常）；共享 mapper 后该类漂移结构性消除。
             // Count 传原始条数——超冗余窗的整条拒绝由闸门判定（形状纪律不在 App 预筛，避免两处口径漂移）。
             int raw = InputPacker.UnpackFrames(msg, _batchFrames);

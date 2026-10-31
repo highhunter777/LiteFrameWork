@@ -4,6 +4,7 @@ using LiteNet.Protocol;
 using LiteSim;
 using RoomServer.Runtime;
 
+using LiteSync.Client;
 namespace RoomServer.Application
 {
     /// <summary>

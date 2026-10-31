@@ -6,6 +6,7 @@
   <Project Path="LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj" />
   <Project Path="../Assets/LiteSim/LiteSim.csproj" />
   <Project Path="../Assets/LiteNet/LiteNet.csproj" />
+  <Project Path="../Assets/LiteSync/LiteSync.csproj" />
   <Project Path="../Assets/Tools/DisciplineScanner/DisciplineScanner.csproj" />
   <Project Path="../Server/RoomServer/RoomServer.csproj" />
   <Project Path="../Assets/RoomServer/Core/RoomServer.Runtime.csproj" />

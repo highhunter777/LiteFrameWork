@@ -175,7 +175,7 @@ namespace LiteNet.Tests
             for (int i = 0; i < state.Cmds.Count; i++)
                 if (state.Cmds.Items[i].Kind == SimCommandKind.Damage
                     && state.Cmds.Items[i].Target == state.Entities[1].Id)
-                    critDamage = state.Cmds.Items[i].Amount % (1 << CombatConfig.HeadshotDamageShift) == 0;
+                    critDamage = state.Cmds.Items[i].Amount % (1 << CombatValues.Default.Geometry.HeadshotDamageShift) == 0;
             Assert.True(critDamage, "回溯爆头应产出移位后的伤害值");
         }
 

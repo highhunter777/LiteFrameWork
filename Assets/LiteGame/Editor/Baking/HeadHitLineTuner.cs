@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using UnityEditor;
@@ -11,7 +12,8 @@ namespace LiteGame.EditorTools
     /// 爆头区调带器（烘焙工具箱「爆头带」页承载——《固定斜视角射击方案专项设计》§5 的视觉调带裁决工具）：
     /// Scene 视图里对 <see cref="BakeTargets.PrefabPath"/>（AimIdle 参考姿态）画判定几何——命中柱圈（灰）/
     /// 爆头柱切片（黄下沿·红上沿）/ 锚点参考线（颈/面顶/帽顶/发冠顶），**拖黄球或滑杆**调爆头带下沿、
-    /// **滑杆**调爆头柱半径（窄于命中柱），导出写 <see cref="BakeTargets.HeadBakeOutput"/>（下沿比例随烘焙身高缩放；半径独立值）。
+    /// **滑杆**调爆头柱半径（窄于命中柱），导出写判定几何表 `#combatgeom` 的 <c>head_ratio</c>/<c>head_radius</c>
+    /// （下沿比例随表内 hitscan_height 缩放；半径独立值）。
     ///
     /// 双模式口径：本工具（编辑器模式）与**GM 面板**（对局内滑杆 + 导出按钮）共用同一导出
     /// <see cref="Export"/>；对局内实时预调走 <c>MatchTestRules</c> 爆头带覆写（<c>HeadHitLineOverride</c>/
@@ -29,13 +31,20 @@ namespace LiteGame.EditorTools
         private const float RadiusMax = 0.45f;
 
         private GameObject _preview;
-        private float _ratio = LiteSim.HeadBake.Ratio;
-        private float _radius = LiteSim.HeadBake.Radius;
+        private float _ratio = RatioMin;
+        private float _radius = RadiusMin;
+        private float _tableRatio = RatioMin;
+        private float _tableRadius = RadiusMin;
+        private float _tableHeight;
+        private float _tableHitscanRadius;
+        private bool _tableLoaded;
+        private string _tableError;
 
         /// <summary>挂 Scene 绘制与预览（工具箱进入「爆头带」页时调）。</summary>
         public void Activate()
         {
             CreatePreview();
+            ReloadTable();
             SceneView.duringSceneGui += OnSceneGui;
         }
 
@@ -48,17 +57,20 @@ namespace LiteGame.EditorTools
 
         public void DrawGUI()
         {
-            float height = LiteSim.CombatConfig.HitscanHeight;
+            if (!_tableLoaded) ReloadTable();
+            float height = _tableLoaded ? _tableHeight : LiteSim.CombatConfig.Geometry.HitscanHeight;
 
             EditorGUILayout.LabelField("爆头柱切片（下沿高 × 水平半径）", EditorStyles.boldLabel);
             EditorGUI.BeginChangeCheck();
             _ratio = EditorGUILayout.Slider("下沿比例（×HitscanHeight）", _ratio, RatioMin, RatioMax);
-            _radius = EditorGUILayout.Slider("爆头柱半径（m，窄于命中柱 0.45）", _radius, RadiusMin, RadiusMax);
+            _radius = EditorGUILayout.Slider("爆头柱半径（m，窄于命中柱）", _radius, RadiusMin, RadiusMax);
             if (EditorGUI.EndChangeCheck()) RepaintScene();
 
             float line = height * _ratio;
             EditorGUILayout.LabelField($"下沿 Y = {line:F3} m    带高 = {height - line:F3} m（身高的 {(1f - _ratio):P0}）    半径 = {_radius:F3} m");
-            EditorGUILayout.LabelField($"当前导出值：比例 {LiteSim.HeadBake.Ratio:F3}（下沿 {height * LiteSim.HeadBake.Ratio:F3} m）  半径 {LiteSim.HeadBake.Radius:F3} m");
+            EditorGUILayout.LabelField($"当前导出值（表 #combatgeom）：比例 {_tableRatio:F3}（下沿 {height * _tableRatio:F3} m）  半径 {_tableRadius:F3} m");
+            if (!string.IsNullOrEmpty(_tableError))
+                EditorGUILayout.HelpBox("表值读取失败：" + _tableError, MessageType.Warning);
 
             EditorGUILayout.Space(6);
             if (_preview == null)
@@ -70,76 +82,87 @@ namespace LiteGame.EditorTools
             using (new EditorGUI.DisabledScope(_preview == null))
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("导出到 HeadBake.g.cs"))
+                if (GUILayout.Button("导出到表（#combatgeom）"))
                 {
                     string report = Export(_ratio, _radius);
                     EditorUtility.DisplayDialog("爆头区导出", report, "OK");
+                    ReloadTable();
                 }
-                if (GUILayout.Button("取当前覆写值"))
+                if (GUILayout.Button("取当前值"))
                 {
-                    var match = LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteGame.IDevSession>()?.MatchRules;
-                    float lineNow = match != null
-                        ? LiteSim.MatchTestRules.ResolveHeadHitLine(match)
-                        : TestModeRuntime.Current.HeadHitLineOverride;
-                    if (lineNow >= 0f)
-                        _ratio = Mathf.Clamp(lineNow / height, RatioMin, RatioMax);
-                    float radiusNow = match != null
-                        ? LiteSim.MatchTestRules.ResolveHeadshotRadius(match)
-                        : TestModeRuntime.Current.HeadshotRadiusOverride;
-                    if (radiusNow >= 0f)
-                        _radius = Mathf.Clamp(radiusNow, RadiusMin, RadiusMax);
+                    float lineNow = TestModeRuntime.Current.HeadHitLineOverride >= 0f
+                        ? TestModeRuntime.Current.HeadHitLineOverride
+                        : height * _tableRatio;
+                    _ratio = Mathf.Clamp(lineNow / height, RatioMin, RatioMax);
+                    float radiusNow = TestModeRuntime.Current.HeadshotRadiusOverride >= 0f
+                        ? TestModeRuntime.Current.HeadshotRadiusOverride
+                        : _tableRadius;
+                    _radius = Mathf.Clamp(radiusNow, RadiusMin, RadiusMax);
                 }
+                if (GUILayout.Button("刷新表值")) ReloadTable();
                 if (GUILayout.Button("复位覆写"))
                 {
                     TestModeRuntime.Current.HeadHitLineOverride = -1f;
                     TestModeRuntime.Current.HeadshotRadiusOverride = -1f;
-                    var live = LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteGame.IDevSession>()?.MatchRules;
-                    if (live != null) { live.HeadHitLineOverride = -1f; live.HeadshotRadiusOverride = -1f; }
                 }
             }
 
             EditorGUILayout.HelpBox(
                 "对局内实机调：F9 进测试模式 → GM 面板开身位可视化 → 拖「爆头线下沿/爆头柱半径」滑杆（判定实时随动），"
-                + "定型后回本页/面板「导出」。buildHash 开发期不重跑——出包时由 build-player.ps1 --check 门禁拦截。",
+                + "定型后回本页/面板「导出」。导出只写表源——需跑 Luban/gen.bat → python scripts/codegen/gen-build-hash.py 后进房生效。",
                 MessageType.Info);
         }
 
-        /// <summary>导出口径（编辑器调带器与测试面板共用）：下沿比例 + 爆头柱半径写 HeadBake.g.cs，触发重编译。</summary>
+        /// <summary>导出口径（编辑器调带器与测试面板共用）：下沿比例 + 爆头柱半径写 `#combatgeom` 表行。</summary>
         public static string Export(float ratio, float radius)
         {
             ratio = Mathf.Clamp(ratio, RatioMin, RatioMax);
             radius = Mathf.Clamp(radius, RadiusMin, RadiusMax);
-            string write = BakeTargets.WriteGenerated(BakeTargets.HeadBakeOutput, nameof(HeadHitLineTuner),
-                new[]
-                {
-                    "// 语义：爆头带下沿 = HitscanHeight × Ratio（比例单源，随烘焙身高自动缩放——《固定斜视角射击方案专项设计》§5）；",
-                    "//       爆头柱半径 = Radius（窄于命中柱 0.45——头部带是窄柱切片，非命中柱全径切片）。",
-                    "// 消费：CombatConfig.HeadHitLine / HeadshotRadius（爆头判据竖直下沿 + 水平闸）。",
-                    "// 来源：视觉调带裁决值（编辑器 Scene 视图拖带 / 测试模式实机滑杆，二者共用同一导出口径）。",
-                }, BuildBody(ratio, radius));
-            float height = LiteSim.CombatConfig.HitscanHeight;
-            return $"已导出：下沿比例 {ratio:R}（下沿 {height * ratio:F3} m，带高 {height * (1f - ratio):F3} m）；爆头柱半径 {radius:R} m\n"
-                + $"{write}\n"
-                + "后续：F9 进测试模式 + GM 面板开身位可视化实机复核；buildHash 开发期不重跑（出包时 --check 门禁拦截）。";
+            var inv = CultureInfo.InvariantCulture;
+            var sets = new[]
+            {
+                new[] { "head_ratio", ratio.ToString("R", inv) },
+                new[] { "head_radius", radius.ToString("R", inv) },
+            };
+            if (!CombatGeomTableWriter.TryWrite(sets, true, out string report, out string error))
+                return "ABORT 写 #combatgeom 表失败：" + error;
+
+            string derived = string.Empty;
+            if (CombatGeomTableWriter.TryReadRow(out Dictionary<string, string> row, out _)
+                && CombatGeomTableWriter.TryGetFloat(row, "hitscan_height", out float height, out _))
+            {
+                derived = $"（下沿 {height * ratio:F3} m，带高 {height * (1f - ratio):F3} m）";
+            }
+            return $"已导出：下沿比例 {ratio:R}{derived}；爆头柱半径 {radius:R} m\n"
+                + report;
         }
 
-        /// <summary>常量体（R 格式逐位往返；注释不含日期/批次痕迹——遵守注释卫生）。</summary>
-        private static string BuildBody(float ratio, float radius)
+        /// <summary>从表源重读现值（工具进入页面、导出后与手动刷新时调）。</summary>
+        private void ReloadTable()
         {
-            var inv = CultureInfo.InvariantCulture;
-            var sb = new StringBuilder();
-            sb.AppendLine("namespace LiteSim");
-            sb.AppendLine("{");
-            sb.AppendLine("    /// <summary>爆头区常量（视觉裁决值；重调 = 烘焙工具箱爆头带页拖带后导出）。</summary>");
-            sb.AppendLine("    public static class HeadBake");
-            sb.AppendLine("    {");
-            sb.AppendLine($"        public const float Ratio = {ratio.ToString("R", inv)}f;");
-            sb.AppendLine();
-            sb.AppendLine("        /// <summary>爆头柱半径（m）：判定点水平距目标 ≤ 本值才计爆头（命中与否仍由命中柱承担）。</summary>");
-            sb.AppendLine($"        public const float Radius = {radius.ToString("R", inv)}f;");
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
-            return sb.ToString();
+            _tableLoaded = false;
+            _tableError = null;
+            if (!CombatGeomTableWriter.TryReadRow(out Dictionary<string, string> row, out string error))
+            {
+                _tableError = error;
+                return;
+            }
+            if (!CombatGeomTableWriter.TryGetFloat(row, "head_ratio", out float ratio, out error)
+                || !CombatGeomTableWriter.TryGetFloat(row, "head_radius", out float radius, out error)
+                || !CombatGeomTableWriter.TryGetFloat(row, "hitscan_height", out float height, out error)
+                || !CombatGeomTableWriter.TryGetFloat(row, "hitscan_radius", out float hitscanRadius, out error))
+            {
+                _tableError = error;
+                return;
+            }
+
+            _tableRatio = ratio;
+            _tableRadius = radius;
+            _tableHeight = height;
+            _tableHitscanRadius = hitscanRadius;
+            _tableLoaded = true;
+            _ratio = Mathf.Clamp(ratio, RatioMin, RatioMax);
+            _radius = Mathf.Clamp(radius, RadiusMin, RadiusMax);
         }
 
         // ---- 预览与 Scene 绘制 ----
@@ -171,8 +194,8 @@ namespace LiteGame.EditorTools
         {
             if (_preview == null) return;
             Vector3 foot = _preview.transform.position;
-            float hitR = LiteSim.CombatConfig.HitscanRadius;
-            float height = LiteSim.CombatConfig.HitscanHeight;
+            float hitR = LiteSim.CombatConfig.Geometry.HitscanRadius;
+            float height = LiteSim.CombatConfig.Geometry.HitscanHeight;
 
             DrawAnchorLines();                                                      // 模型锚点（蓝细线+标签）
 
@@ -218,7 +241,7 @@ namespace LiteGame.EditorTools
             if (_preview == null) return;
             var an = _preview.GetComponentInChildren<Animator>();
             Vector3 foot = _preview.transform.position;
-            float radius = LiteSim.CombatConfig.HitscanRadius * 1.35f;
+            float radius = LiteSim.CombatConfig.Geometry.HitscanRadius * 1.35f;
 
             void Anchor(float y, string label)
             {

@@ -2,6 +2,7 @@ using LiteNet;
 using LiteTesting.Unity;
 using NUnit.Framework;
 
+using LiteSync.Client;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>

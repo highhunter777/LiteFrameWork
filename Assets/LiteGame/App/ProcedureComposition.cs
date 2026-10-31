@@ -11,6 +11,7 @@ using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.Ui;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>⑱ 应用壳：流程机（阶段表）＋ 页面流 ＋ 错误恢复 ＋ 账号重入 ＋ 产品桥装订口。

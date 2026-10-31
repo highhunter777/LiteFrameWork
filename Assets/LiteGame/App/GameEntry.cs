@@ -200,6 +200,10 @@ namespace LiteGame
             if (!_active) return;                            // 重复引导件销毁前的最后一步不参与
             _bootCts?.Cancel();                              // 引导期残留异步取消（AppLifetime 负责完整关闭）
             _active = false;
+            // 宿主关停后 UI 动效时钟必须清绑：静态残留会指向已销毁时钟，后续裸建 UIService
+            // （PlayMode 夹具/工具）仍走 Manual 轨而无人泵 → 转场 2s 超时。
+            LiteFramework.UI.UiAnimationClock.ResetForEditorReload();
+            s_booted = false;                                 // 同一 Play 会话允许重新引导（测试/编辑器重建）
         }
     }
 }

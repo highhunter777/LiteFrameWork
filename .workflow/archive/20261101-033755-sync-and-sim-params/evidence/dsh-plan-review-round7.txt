@@ -1,0 +1,40 @@
+结论: FAIL
+验收标准: FAIL
+阻塞问题: 2
+
+阻塞问题清单:
+- [中高][plan.md:132 ↔ plan.md:187 ↔ MatchTestRules.cs:14] 摘要认定标准仍是三套互相矛盾的说法。plan.md:132 写“本地覆盖摘要按生效值算，**联机摘要只按表字节算**”；B13（:187）写“表字节进 `CombatConfigDigest`；**本局规则覆盖位（若启用）一并进摘要**”；而 MatchTestRules.cs:14 现行契约是“入口初值同时进 `CombatValues`（**联机身份摘要**）；中局开合不进摘要、不可重放”。三句对“联机摘要含不含 `CombatValues` 内的规则位”给出互斥答案；按 :132 实现会静默丢掉入口规则位（两端 NoDeath/InfiniteAmmo 不一致时不拒局），按 :187 实现又与 :132 冲突。建议：把 :132 改成“联机摘要 = 判定表字节 + `CombatValues` 内非 dev 入口规则位；不含 `SimParamsOverrides`/中局 GM 开合；本地测试房摘要按生效几何值算”，并让 B13 引用该句，而非另起一套说法。
+- [中][plan.md:112 ↔ plan.md:132/193] `MatchTestRules` 现有几何覆写通道归属未定，等于给“唯一门/唯一合并点”留了第二条旁路。plan.md:112 要求 `MatchTestRules.cs:73/77`“改读 `values.Geometry.*`”（隐含 `ResolveHeadHitLine`/`ResolveHeadshotRadius` 继续存在，只换数据源）；:132 与 B19 又要求“旧 HeadHitLine/HeadshotRadius 覆盖退役并入新 13 项”（隐含删除 `HeadHitLineOverride`/`HeadshotRadiusOverride`，MatchTestRules.cs:26-34/71-77）。两条指令互斥；若按 :112 保留，则该通道不受 `SimParamsGate.IsLocalTestRoom` 约束、也不进摘要，联机下同样能改几何，与“唯一门”直接冲突，且 B20 断言三（联机 `Geometry` 逐字段等于表装载产物）仍会假绿。建议：明确删除 `HeadHitLineOverride`/`HeadshotRadiusOverride` 与两个 `Resolve*` 静态方法（几何唯一来源 = `Values.Geometry` + `SimParamsOverrides`），把 :112 改写为“删除两个 `Resolve*`、调用点改读 `values.Geometry.*`”，并加 grep 守卫 `ResolveHeadHitLine|ResolveHeadshotRadius|HeadshotRadiusOverride` 零命中（含负例）。
+
+逐项核验:
+1. 单门/单合并点：表述层面已统一（:132/:116/:193/:230/:236 一致，且“GM 几何只改表或禁用”已替换旧分发路径）；但收口不完整——“唯一合并点”与 :59 列出的服务端两处 `BuildCombatValues`（`ServerTableLoader.cs:70/98`）未对齐，作者侧承担者（见非阻塞 2/3）未写，另加上述 `MatchTestRules` 旁路。
+2. 旧句删除：是，已无“GM 房参数经 `MatchTestRules` 下发且进摘要”的规范表述；与 `MatchTestRules` 现行“不进摘要/不可重放”不再正面冲突。残留见非阻塞 1，另有 :132 的摘要用词冲突（阻塞 1）。
+3. B19/B20 可判定性：B19 的“门 false / 联机不读覆盖 / 禁用滑杆”基本可判定；B20 三条断言形式可判定，但“本地权威命中/checksum 与客户端预测同值”在单进程本地测试房可能平凡成立（见非阻塞 5），且阻塞 1/2 未解前其判定结果无意义。
+
+主要优点:
+- 单门/单合并点被写成可执行位置约束（`BuildCombatValues` 后、`Publish`/`FixedCombatConfig.Capture` 前），不再依赖“组合根/边界”这类模糊措辞，且明确“禁止先发布后抛”。
+- `SimParamsGate` 改为组合根一次求值、Dev 侧派生、不入共享程序集，正面回应了第六轮“门是跨层谓词”。
+- 已明确“联机/云 sandbox 不读客户端覆盖，GM 几何只改表或禁用”，并把本地/联机摘要口径分开陈述，方向正确。
+- `MatchTestRules.cs:73/77` 的静态读被点名进全判定面迁移清单，B10 守卫扩到 `Assets/**`+`Server/**`，配套负例。
+
+非阻塞建议:
+- [低][plan.md:223] 整改记录仍留“SimParamsOverrides：只在装载/开局并入 `CombatValues.Geometry`/**`MatchTestRules` 实例**”这段已被第六轮取代的旧口径；建议标注“已被单门/单合并点取代”或改写，避免“文档只描述最新设计”被审计打回。
+- [中][plan.md:132/:59] 写明两侧落地形态：客户端在 `ConfigService.ApplyCombatValues` 前、服务端在 `ServerTableLoader.cs:70/98` 两处共用一个 `MergeOverrides` 包装后再 `Capture`；加守卫断言 `SimParamsOverrides.Apply` 调用点集合固定且全部先于 `FixedCombatConfig.Capture`。
+- [中] 未写 `SimParamsOverrides` 的承载程序集：`不进入共享程序集` 之后，`ServerTableLoader`（RoomServer）如何看到它需说明——建议落 `LiteGame.Adapters.Dev` 并由组合根注入 `Func<CombatValues, CombatValues>`，避免 RoomServer → Dev 的反向依赖；B19 加一条断言。
+- [中][B19] “组合根一次求值”无断言，且静态谓词名 `SimParamsGate.IsLocalTestRoom` 天然诱导跨层调用；建议改为 `Evaluate(...)` 求值一次后以 bool/实例传递，并加“每会话仅求值一次”用例。
+- [中][B20 断言二] 补测试名与真实路径：单进程下若客户端与本地服共享同一 `CombatValues` 实例，断言平凡通过；建议“同一局 tick 级权威 checksum vs 客户端预测 checksum 相等”+“两侧 `CombatValues` 实例逐字段相等”双断言，并写进测试策略（:157-168 现无此条）。
+- [低][B20 断言一] 给“覆盖值零消费”下可观察定义：13 项全部设哨兵值 + 门 false ⇒ 逐字段等于 loader 产物且摘要等于纯表摘要。
+- [低][B20] “GM 页联机下禁用几何滑杆”需按红线 13 走真实操作路径与可点性自检，不能只断言 `interactable=false`。
+
+抽查证据:
+- plan.md:132：单门/单合并点原文；“联机摘要只按表字节算”→ 与 B13 冲突（阻塞 1）。
+- plan.md:116：`ValidateCandidate → BuildCombatValues（唯一合并点）→ Publish，禁止先发布后抛`，与 :132 一致。
+- plan.md:193（B19）：门/合并点/零静态读三句齐备；“组合根一次求值”无配套断言。
+- plan.md:194（B20）：三条断言 + 禁用滑杆；断言二缺测试载体，存在平凡通过风险。
+- plan.md:236：第六轮整改说明“删除旧句、`MatchTestRules` 不被覆盖通道复用”，与正文相符。
+- plan.md:59：`BuildCombatValues` 调用点含 `ServerTableLoader.cs:70/98` 两处，与“唯一合并点”未对账（非阻塞 2）。
+- plan.md:112：`MatchTestRules.cs:73/77` 仅要求改读 `values.Geometry.*`，未说要删通道（阻塞 2）。
+- plan.md:187（B13）：“本局规则覆盖位（若启用）一并进摘要”与 :132、与 MatchTestRules.cs:14 三说互斥（阻塞 1）。
+- MatchTestRules.cs:73/77：`ResolveHeadHitLine`/`ResolveHeadshotRadius` 仍直读 `CombatConfig.HeadHitLine`/`HeadshotRadius`，静态常量将被 B10 删除，迁移必须落到具体方法去向。
+- MatchTestRules.cs:26-34：`HeadHitLineOverride`/`HeadshotRadiusOverride` 为可写 public 字段，是绕过单门的现成几何覆写通道（阻塞 2）。
+- MatchTestRules.cs:14-15、:28-29、:37-38：入口初值进 `CombatValues` 联机摘要、中局开合与 dev 覆写“不进摘要/不可重放”——现行契约本身自洽，需 plan 侧与之对齐。

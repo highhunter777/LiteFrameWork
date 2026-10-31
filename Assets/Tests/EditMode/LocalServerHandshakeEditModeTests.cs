@@ -67,7 +67,7 @@ namespace LiteGame.Tests.EditMode
                 Assert.IsTrue(ack.IsOwner, "单客户端=首入座者=房主");
                 Assert.AreEqual(3, ack.ExpectedPlayers, "房规模权威值（客户端定容/房间页分母）");
                 Assert.AreEqual(0, ack.MapId);
-                Assert.AreEqual(SimConfig.SnapshotHz, ack.SnapshotHz);
+                Assert.AreEqual(LiteSync.Shared.ProtocolConstants.DefaultSnapshotHz, ack.SnapshotHz);   // 房级快照频率（本地房缺省 30Hz）
                 Assert.AreEqual(SimConfig.TickRate, ack.TickRate);
                 Assert.IsNotEmpty(ack.ReconnectToken, "本地形态为占位串但须非空");
 

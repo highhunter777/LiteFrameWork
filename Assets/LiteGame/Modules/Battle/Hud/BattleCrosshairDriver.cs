@@ -18,7 +18,7 @@ namespace LiteGame
     /// - **可见性**：上下文门被拦（模态 UI 开）→ 藏准心；本地表现未建 → 整体隐藏。**光标/指针锁定
     ///   已收编 <c>PointerLockService</c>**（TPS 指针锁定形态——BattleViewRig 驱动、Cursor 唯一写者）；
     ///   本驱动的 <paramref name="setCursorVisible"/> 注入位仅供测试断言驱动意向，默认 no-op。
-    /// - **散布张开（静态）**：有效散布角（瞄准 = 表值 spread、腰射 ×<see cref="CombatConfig.HipSpreadFactor"/>）
+    /// - **散布张开（静态）**：有效散布角（瞄准 = 表值 spread、腰射 ×<see cref="CombatConfig.Geometry.HipSpreadFactor"/>）
     ///   → 准心整体缩放；**满张倍率按武器行**（tbcrosshair.static_max_scale——按武器表化；出件为单贴图
     ///   准心，"张开"= 整体缩放）。未装备/无散布信息 → 基线 <see cref="MinSpreadScale"/>（如实降级，不猜）。
     /// - **连发临时张开**：本地 Fire 帧事件（<see cref="IHitFeedbackConsumer"/>——<c>HitFeedbackDispatcher</c>
@@ -158,11 +158,11 @@ namespace LiteGame
         }
 
         /// <summary>静态散布张开：有效散布角 → 准心缩放（线性钳制；满张倍率 = 当前武器行
-        /// static_max_scale——腰射倍率单源 <see cref="CombatConfig.HipSpreadFactor"/>）。</summary>
+        /// static_max_scale——腰射倍率单源 <see cref="CombatConfig.Geometry.HipSpreadFactor"/>）。</summary>
         private float StaticScaleOf(in CrosshairFeel feel, bool hasSlot, int slot, bool aiming)
         {
             if (!hasSlot || !_view.TryGetSpreadDegrees(slot, out float degrees)) return MinSpreadScale;
-            float effective = aiming ? degrees : degrees * CombatConfig.HipSpreadFactor;
+            float effective = aiming ? degrees : degrees * CombatConfig.Geometry.HipSpreadFactor;
             float k = Mathf.Clamp01(effective / SpreadFullDegrees);
             float max = CrosshairTuning.StaticMaxOf(feel.StaticMaxScale);
             return MinSpreadScale + (max - MinSpreadScale) * k;

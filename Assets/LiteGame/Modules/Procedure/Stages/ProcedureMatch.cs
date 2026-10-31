@@ -5,6 +5,7 @@ using LiteFramework;
 using LiteFramework.UI;
 using LiteNet.Proto;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>

@@ -4,6 +4,7 @@ using LiteNet.Protocol;
 using LiteNet.Transport;
 using Xunit;
 
+using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>
@@ -34,7 +35,7 @@ namespace LiteNet.Tests
         public void 旧快照与同帧重复包_不覆盖已应用帧()
         {
             var transport = new FakeTransport();
-            using var client = new LiteNet.RoomClient(transport);
+            using var client = new LiteSync.Client.RoomClient(transport);
             int delivered = 0;
             client.OnSnapshot += _ => delivered++;
 

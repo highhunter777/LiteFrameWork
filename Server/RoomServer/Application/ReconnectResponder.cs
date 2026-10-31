@@ -1,4 +1,5 @@
-using LiteNet.Protocol;
+using LiteSync.Input;
+using LiteSync.Snapshot;
 using LiteSim;
 using RoomServer.Runtime;
 using Proto = LiteNet.Proto;

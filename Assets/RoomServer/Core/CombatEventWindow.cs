@@ -1,6 +1,7 @@
 using System;
 using LiteSim;
 
+using LiteSync.Snapshot;
 namespace RoomServer.Runtime
 {
     /// <summary>

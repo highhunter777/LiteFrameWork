@@ -4,6 +4,7 @@ using Google.Protobuf;
 using LiteFramework;
 using LiteNet;
 using LiteNet.Protocol;
+using LiteSync.Snapshot;
 using LiteNet.Proto;
 using LiteNet.Transport;
 using LiteSim;
@@ -15,6 +16,7 @@ using LiteGame;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
 
+using LiteSync.Client;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
@@ -32,6 +34,14 @@ namespace LiteGame.Tests.EditMode
         private const int Port = 17777;
         private const string RoomId = "Room-A";
         private const string Token = "c2-dev-token";
+
+        /// <summary>对局上下文开局读装载实例（<see cref="CombatConfig.Loaded"/> 受发布闸门把守）——
+        /// 本 fixture 用默认值发布；未发布态断言归 L1（`LiteSim` 的 internal 复位口只对 L1 开放）。</summary>
+        [SetUp]
+        public void PublishCombatValues()
+        {
+            CombatConfig.Publish(CombatValues.Default);
+        }
 
         /// <summary>
         /// 假传输：连接/断线事件手工驱动；Send 解码记账（断言上行包型与内容）。

@@ -5,6 +5,7 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Dev;
 
+using LiteGame.Adapters.Dev.Debug.WeakNet;
 namespace LiteGame
 {
     /// <summary>
@@ -78,13 +79,21 @@ namespace LiteGame
                 new CommandOptions(gmOnly: true, description: "抑制/恢复自动重连（断线停在 SuspectedLost）"));
 
             // 调试内核：读模型/动作模型/发现协议的唯一门面；投影（编辑器页/HUD/控制台）只消费它。
+            var tunableProviders = new System.Collections.Generic.List<IDebugTunableProvider>
+            {
+                // 持枪数据在 BattleViewRig.LoadAsync 才装载——对局外无数值来源（catalog 传 null：
+                // 持枪滑杆以「未装载」态出现，不冒充烘焙值）。
+                new FeatureDebugTunables(services.Session),
+                new WeaponDebugTunables(services.Session),
+                _weakNet,
+            };
+            // 判定参数组（#combatgeom 13 列）：覆写实例由组合根装配期登记；取不到即不注册该组（面板不出现）。
+            LiteGame.Modules.Config.SimParamsOverrides simParams =
+                services.Context.Get<LiteGame.Modules.Config.SimParamsOverrides>();
+            if (simParams != null) tunableProviders.Add(new SimParamsDebugTunables(simParams));
+
             var kernel = new DebugKernel(services.Commands, services.Input,
-                new IDebugTunableProvider[]
-                {
-                    new FeatureDebugTunables(services.Session),
-                    new WeaponDebugTunables(services.Session),
-                    _weakNet,
-                },
+                tunableProviders,
                 _weakNet, networkDebug, services.Session);
             services.Context.Put(kernel);
             DevRuntime.SetKernel(kernel);

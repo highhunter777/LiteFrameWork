@@ -4,6 +4,7 @@ using System.Reflection;
 using LiteSim;
 using Xunit;
 
+using LiteSync.Snapshot;
 namespace LiteSim.Tests
 {
     /// <summary>

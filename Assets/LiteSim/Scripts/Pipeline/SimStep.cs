@@ -18,6 +18,7 @@ namespace LiteSim
             WeaponTable weapons, bool advanceMatch = true, MatchTestRules rules = null, bool resolveCombat = true)
         {
             if (s.Match.Phase == SimMatchPhase.Finished) { s.Cmds.Clear(); return; } // lint-allow R3（整数阶段）
+            s.Values = values;
             SortInputs(inputs);
 
             RespawnSystem.Run(s, map, values);

@@ -10,6 +10,7 @@
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
         "LiteNet",
+        "LiteSync",
         "LiteSim",
         "Luban.Runtime",
         "Luban.Tables",

@@ -2,6 +2,7 @@ using System.Threading;
 using LiteNet.Proto;
 using LiteNet.Diagnostics;   // DiagStage / DiagCode（诊断段落与分类码单源，跨模块共享词表）
 
+using LiteSync.Client;
 namespace RoomServer.Application
 {
     /// <summary>

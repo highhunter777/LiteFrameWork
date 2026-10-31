@@ -1,0 +1,19 @@
+{
+	"name": "LiteSync",
+	"rootNamespace": "LiteSync",
+	"references": [
+		"LiteNet",
+		"LiteSim"
+	],
+	"includePlatforms": [],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"Google.Protobuf.dll"
+	],
+	"autoReferenced": true,
+	"defineConstraints": [],
+	"versionDefines": [],
+	"noEngineReferences": true
+}

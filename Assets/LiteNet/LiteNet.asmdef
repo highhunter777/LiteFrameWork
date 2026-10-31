@@ -1,9 +1,7 @@
 {
 	"name": "LiteNet",
 	"rootNamespace": "LiteNet",
-	"references": [
-		"LiteSim"
-	],
+	"references": [],
 	"includePlatforms": [],
 	"excludePlatforms": [],
 	"allowUnsafeCode": false,

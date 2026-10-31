@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using LiteNet.Protocol;
+using LiteSync.Snapshot;
 using LiteNet.Transport;
 using LiteSim;
 using LiteSim.Tests;

@@ -29,3 +29,7 @@
 | 2026-10-26T20:19:57+08:00 | ui-p2-style-closure | UI 系统 P2-3 B4：存量样式收敛与收口 | 8/8 | PASS | [20261026-201957-ui-p2-style-closure](20261026-201957-ui-p2-style-closure/) |
 | 2026-10-27T16:22:33+08:00 | client-audit-a3 | 客户端审计 A3：三大件拆分（BattleViewRig / UIBindIndex / HierarchicalStageMachine） | 6/6 | PASS | [20261027-162233-client-audit-a3](20261027-162233-client-audit-a3/) |
 | 2026-10-31T14:29:11+08:00 | client-modularization | 客户端模块化（竖向切分 + 装配就地 + 边界机械化） | 9/9 | PASS | [20261031-142911-client-modularization](20261031-142911-client-modularization/) |
+| 2026-10-31T15:34:54+08:00 | module-boundaries | 客户端模块边界收口（Composition 薄装配 + 外层域边界） | 0/0 | - | [20261031-153454-module-boundaries](20261031-153454-module-boundaries/) |
+
+> module-boundaries 未施工：方案被 2026-10-30 用户裁决拆分为 A（client-modularization）/ B（sync-and-sim-params）/ C（codegen-consolidation），本运行仅作证据母本归档。
+| 2026-11-01T03:37:55+08:00 | sync-and-sim-params | 同步层拆分与判定参数化（LiteSync 去耦 + LiteSim 参数装载） | 17/84 | PASS | [20261101-033755-sync-and-sim-params](20261101-033755-sync-and-sim-params/) |

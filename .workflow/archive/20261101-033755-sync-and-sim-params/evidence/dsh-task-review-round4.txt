@@ -1,0 +1,41 @@
+结论: FAIL
+阻塞问题: 6
+
+覆盖矩阵:
+B1 → T43
+B2/B3/B4/B6/B7 → T44（B4/B6/B7 的细项不完整）
+B5/B22 → T45
+B8 → T46（两端重建证据只覆盖客户端）
+B9 → T47（类型/闸门）+ T48（表装载）
+B10 → T49（断言归属待明确）
+B11 → T48
+B12 → T51 + T52 + T53（rootmotion 部分落 T53）
+B13/B14 → T50（B13 少“改表后 digest 变化可观测”）
+B15 → T54（真实注入验证偏弱）
+B16/B17/B18 → T53
+B19/B20/B21 → T55（四项删除由 T49 执行）
+B23 → T56（自动部分）+ T57（人工部分），未整体进 wf verify
+B24 → T57
+
+B1~B24 均有任务归属，无孤儿任务；B9、B12、B23 是跨任务拆分，边界基本写明。共享源集类任务 T44/T47/T48/T49/T50/T51/T53/T54/T55 均写了“重生成 BuildHash（主代理）”，验证列了 `--check-shared`；T52 以“GripBake 不在共享源集”为由豁免重生成，理由成立。第 3 轮 7 项整改在文本上均已落地：T44 补了 App/Editor/RoomServer/csproj/slnx，T47 补了重生成，T51 补了 BakeTargets/PrefabPath，T54 补了两路注入，T55 补了零静态读与联机断言，T49/T55 的唯一删除关系写明。
+
+阻塞问题清单:
+- [高][B11/T48] T48 文件范围只有 `Luban`、`Assets/LiteGame/Modules/Config`、`Server/RoomServer`、`Tests`，但验收要求跑 `Luban/gen.bat`；生成读码面会落到 `Assets/GameData/Generated`、表字节落到 `Assets/GameData/Config`，且 `Assets/GameData/Generated` 本身在 SHARED_TARGETS 内。生成物不在任务范围，可能导致未提交/两端编译红或 BuildHash 陈旧。建议把 `Assets/GameData/Generated`、`Assets/GameData/Config` 列入 T48 范围，或明确由主代理在 T48 末尾统一生成并留存证据。
+- [高][B23/T56,T57] T56 的 `sync-and-sim` 命令组明示“不含人工联测”，只含 L1/LiteSync/LiteSim 定向/check-shared/L2；B23 却要求 `wf verify` 覆盖“两端重建联测”。T57 的 build-player/player-smoke 在 verify 之外，且 T46/T57 的“两端重建”验证未列 RoomServer 重建/发布命令，存在“旧服务端 + 新客户端”对账 BuildHash 的虚假通过。建议把服务端 publish、两端 BuildHash/ConfigHash 对账纳入可执行 verify 步骤；若确实无法自动化，应改写 B23 并取得用户裁决，不能仅在 T56 写“自动部分”。
+- [高][B12/T51] `BakeTargets` 五条输出常量“逐条去向”、四条死路径、`PrefabPath` 绑定仍只是验收短语：未列常量→新去向清单，未列四条死路径具体路径，plan 也只给五条去向（Body/Head/Muzzle→表，RootMotion/Grip→.bin），没有四条死路径清单；`SimMapBaker` 读 `BakeTargets.PrefabPath` 的 CC 与 `Tests/EditMode/Fixtures/BodyCc.json` 断言未写成可执行验收。施工子代理无法独立执行/验收，容易漏项或把未发布默认回退当写入源。建议在 tasks 或 plan 增表：五常量→新去向、四条死路径→修正后路径、SimMapBaker 读 PrefabPath + 夹具断言（半径+高）及负例。
+- [中][B15/T54] “GM 房参数 + deploy 配置两路真实注入”只在验收短语出现，验证方式仍是“服务端配置注入；LocalServerHandshake/EditMode/Play”，没有要求真实读取 `deploy/roomserver.windows.json` 三档、经 GM `start` 创建 sandbox 房并回读生效值，也未写 B15 的“非测试自造实例”。直接 `new AoiSettings` 的单元测试即可虚假通过。建议补两路真实注入证据（启动横幅/房间配置回读、GM 创建房后生效断言）及全开/30m/15m 三档断言。
+- [中][权限/T51,T53,T47,T48,T49,T50,T54,T55] T52 写了“资产删除主代理、代码/测试施工子代理”，但 T51/T53 的 `.g.cs` 删除只写“走 unity-pipeline”，未写主代理执行；T47/T48/T49/T50/T54/T55 也没有任务执行者，仅重生成标了主代理。资产删除、搬迁与生成器执行权限不一致，施工子代理可能越权跑 unity-pipeline/gen-build-hash。建议每个任务补“执行者”字段，资产搬迁/删除与重生成一律主代理，代码/测试为施工子代理。
+- [中][B9/B10/T47,T49,T55] B9 的 `CombatConfig.Geometry` 未发布返回 `CombatValues.Default.Geometry` 展示兜底、`BattleContext.cs:305` 在 `Publish` 后的时序断言，以及 B10 的“判定/烘焙代码不读 `CombatConfig.Geometry`（有断言）”，在 T47/T49 中仍只有“DisplayOnly”“Loaded 时序”“grep 白名单”等模糊表述；T47 范围不含 `Assets/LiteGame/Modules/Battle/Arena`，时序断言无明确落点。另 T55 文件范围仍含 `Assets/LiteSim/Scripts/Rules`，而其验收说四几何覆写“只做零命中复核（删除在 T49）”，与 T49 唯一删除冲突，可能重复改 `MatchTestRules`。建议把断言测试名/落点写入 T47/T49，补 Arena 范围；删除 T55 的 Rules 写范围或注明只读复核。
+
+主要优点:
+- 第 3 轮 7 项整改均已落到 T43~T57：T47 重生成、T44 文件范围、T51/T52/T53 生成器归属、T51 BakeTargets、T54 两路注入、T55 零静态读/联机断言、T49/T55 唯一删除关系，文本上可追溯。
+- B1~B24 均有任务承接，无孤儿任务；B9/B12/B23 的跨任务拆分边界基本明确，依赖链 T43→T57 线性清晰。
+- `Tests.slnx` 实际路径为 `Tests/Tests.slnx`，与 T44 文件范围一致；共享源集重生成任务普遍带 `--check-shared`，T52 的豁免理由成立。
+- 资产搬迁总体坚持 unity-pipeline，T44/T52 明确了主代理执行，较前几轮权限表述明显改善。
+
+非阻塞建议:
+- T44 补齐 B4 的“BuildHash.g.cs 路径与 `namespace LiteNet` 未变”、B6 的 `IClientTransport/IClientTransportErrorSource` grep 断言、B7 的 DiagTrace 登记理由与“Dev 只经 DebugKernel 读”；WeakNet 搬迁方式也建议明确为 unity-pipeline。
+- T50 补“改表后 `GameplayDigestBase` 变化可观测”的测试名/断言，避免 B13 只验证“表字节进摘要”而漏掉变化可观测。
+- T46/T57 的“两端重建”建议写明 RoomServer 的 `dotnet publish`/部署命令与两端 BuildHash+ConfigHash 对账证据，避免只跑客户端 build-player。
+- T55 验证列补实际 grep/负例命令（目前只在验收文字中），便于独立复核“判定路径零静态读”。
+- T57 可把“批次 7 后最终联测”的证据格式（命令、时间、两端摘要值、失败回滚）写成固定模板，减少口头证据。

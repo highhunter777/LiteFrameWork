@@ -10,6 +10,7 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Input;
 
+using LiteGame.Adapters.Dev.Debug.WeakNet;
 namespace LiteGame
 {
     /// <summary>

@@ -4,12 +4,13 @@ using LiteGame;
 using LiteFramework;
 using LiteGame.Modules.Input;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
     /// 本地输入上行管线（《角色状态与动作专项设计》§3"输入三件"的落点，从对局上下文外提）：
     /// ① 本帧采样入史（<see cref="RollbackSim.OnRealInput"/>）——第 F 步用真实输入而非沿用；
-    /// ② 同一份上行（<see cref="LiteNet.Client.RoomClient.SendInput"/>）——两端同帧同值；
+    /// ② 同一份上行（<see cref="LiteSync.Client.RoomClient.SendInput"/>）——两端同帧同值；
     /// ③ **沿用帧预发**——本渲染帧将走 ≥2 逻辑帧时把额外帧提前上行；
     /// ④ **追帧补发**——<c>Tick</c> 跑完后取回实际执行帧补发（预发未覆盖的边角）。
     ///

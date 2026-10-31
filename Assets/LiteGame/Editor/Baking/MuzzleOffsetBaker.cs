@@ -11,16 +11,16 @@ namespace LiteGame.EditorTools
     ///
     /// **做什么**：把 <see cref="BakeTargets.PrefabPath"/> 的 `Weapon_Rifle/Muzzle` 锚点，在参考片段
     /// <see cref="BakeTargets.ReferenceClip"/> 的 t=0 姿态下采样，算出相对 prefab 根（SimView 旋转作用的视图根）的
-    /// 局部偏移，输出为 Sim 坐标系的常量（视觉 +Z→Sim 前向、+X→Sim 右向、+Y→高度），
-    /// 写入生成文件 <see cref="BakeTargets.MuzzleBakeOutput"/>（`MuzzleBake.g.cs`，勿手改——重跑本工具即重烘）。
+    /// 局部偏移，写成判定几何表 `#combatgeom` 的 <c>muzzle_fwd</c>/<c>muzzle_right</c>/<c>muzzle_height</c>
+    /// 三列（视觉 +Z→Sim 前向、+X→Sim 右向、+Y→高度）。
     ///
     /// **为什么用参考动画姿态而不是 prefab 静态姿态**：武器挂点 `add_weapon_r` 被全部战斗片段驱动，
     /// prefab 静态姿态是 bind pose（持枪位完全不同）；射弹时刻的视觉姿态在 AimIdle 族
     /// （瞄准 = AimIdle；腰射开火窗 FireIdle 也以 AimIdle 循环填窗，
     /// 见 `CombatGirlsAnimationProfile`/`CombatAnimMachine`），故单套常量取 AimIdle t=0。
     ///
-    /// **换枪/换姿态时**：改 <see cref="BakeTargets"/> 目标常量后重跑；
-    /// 表化（tb_weapon per-weapon 列）落地前，本生成文件是双端编译期同值单源。
+    /// **换枪/换姿态时**：改 <see cref="BakeTargets"/> 目标常量后重跑；表值写完后需
+    /// `Luban/gen.bat` → `python scripts/codegen/gen-build-hash.py` 才进入判定与联机身份。
     /// </summary>
     public static class MuzzleOffsetBaker
     {
@@ -45,37 +45,21 @@ namespace LiteGame.EditorTools
                 clip.SampleAnimation(scope.Contents, 0f);      // t=0 净姿态（避开呼吸/后坐段）
                 Vector3 off = rootT.InverseTransformPoint(muzzle.position);
 
-                string write = BakeTargets.WriteGenerated(BakeTargets.MuzzleBakeOutput, nameof(MuzzleOffsetBaker),
-                    new[]
-                    {
-                        $"// 来源：{BakeTargets.PrefabPath} 的 Weapon_Rifle/Muzzle 锚点，",
-                        "//       参考动画姿态 AimIdle t=0（射弹时刻视觉姿态单族：瞄准=AimIdle、腰射开火窗亦以 AimIdle 填窗）。",
-                        "// 坐标：相对 prefab 根的视觉局部系（+Z 前 → Sim 前向；+X 右 → Sim 右向；+Y → 高度），",
-                        "//       与 SimView 的 FacingRotation（yaw → 旋转 90°−yaw）配套。",
-                    }, BuildBody(off), writeScope);
+                var inv = CultureInfo.InvariantCulture;
+                var sets = new[]
+                {
+                    new[] { "muzzle_fwd", off.z.ToString("R", inv) },
+                    new[] { "muzzle_right", off.x.ToString("R", inv) },
+                    new[] { "muzzle_height", off.y.ToString("R", inv) },
+                };
+                bool dryRun = writeScope != null && writeScope.DryRun;
+                if (!CombatGeomTableWriter.TryWrite(sets, !dryRun, writeScope, out string tableReport, out string error))
+                    return "ABORT 写 #combatgeom 表失败：" + error;
 
                 sb.AppendLine($"已烘焙：F={off.z:R} R={off.x:R} H={off.y:R}");
                 sb.AppendLine($"来源：{BakeTargets.PrefabPath} 的 Weapon_Rifle/Muzzle @ {BakeTargets.ReferenceClip} t=0");
-                sb.AppendLine(write);
+                sb.Append(tableReport);
             }
-            return sb.ToString();
-        }
-
-        /// <summary>常量体（R 格式逐位往返；注释不含日期/批次痕迹——遵守注释卫生）。</summary>
-        private static string BuildBody(Vector3 off)
-        {
-            var inv = CultureInfo.InvariantCulture;
-            var sb = new StringBuilder();
-            sb.AppendLine("namespace LiteSim");
-            sb.AppendLine("{");
-            sb.AppendLine("    /// <summary>逻辑枪口常量（烘焙值；消费见 CombatConfig.MuzzleOrigin——三常量随代码进 buildHash 闭包——AOT 稳定层，运行期摘要只覆盖判定面表字节）。</summary>");
-            sb.AppendLine("    public static class MuzzleBake");
-            sb.AppendLine("    {");
-            sb.AppendLine($"        public const float Forward = {off.z.ToString("R", inv)}f;");
-            sb.AppendLine($"        public const float Right = {off.x.ToString("R", inv)}f;");
-            sb.AppendLine($"        public const float Height = {off.y.ToString("R", inv)}f;");
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
             return sb.ToString();
         }
     }

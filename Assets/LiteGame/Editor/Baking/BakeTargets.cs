@@ -1,5 +1,5 @@
+using System;
 using System.IO;
-using System.Text;
 using LiteGame.Toolchain;
 using UnityEditor;
 using UnityEngine;
@@ -15,6 +15,8 @@ namespace LiteGame.EditorTools
         /// <see cref="SimMapBaker"/>）共用的常量与原语**全部收口在此**——任何工具不得再私有复制同值路径字面量（修改指南 §1.1/§1.2）。
         /// 三族来源：prefab 采样族（PrefabPath/ControllerPath/ReferenceClip）、片段采样族（RootMotionConfigPath）
         /// 与场景采样族（MapScenePath——地图烘焙）。
+        /// 产物写盘面：文本产物走 <see cref="WriteArtifact"/>、字节产物走 <see cref="WriteArtifactBytes"/>，
+        /// 两者共用 write-if-changed 原语（<see cref="WriteIfChanged"/>/<see cref="WriteIfChangedBytes"/>）。
         /// </summary>
     public static class BakeTargets          // public：run_script 以本文件为编译单元直调烘焙入口，需可见（Editor 程序集，无产品面）
     {
@@ -33,24 +35,27 @@ namespace LiteGame.EditorTools
 
         // ---- 各工具产物 ----
 
-        public const string HeadBakeOutput = "Assets/LiteSim/Core/Scripts/HeadBake.g.cs";
-        public const string MuzzleBakeOutput = "Assets/LiteSim/Core/Scripts/MuzzleBake.g.cs";
-        public const string BodyBakeOutput = "Assets/LiteSim/Core/Scripts/BodyBake.g.cs";
-        /// <summary>持枪偏移常量产物。**刻意不进 LiteSim/Core/Scripts**（BuildHash 源集）——
-        /// 纯表现参数进闭包会复刻"hash 变了但判定没变"的全员拒进房噪声（gen-build-hash 头注释明令的病症）。</summary>
-        public const string GripBakeOutput = "Assets/LiteGame/Modules/Battle/Characters/GripBake.g.cs";
+        /// <summary>入库身位夹具（prefab CharacterController 的 radius/height 快照；**Assets 之外的普通文件**——
+        /// 供三方对账与地图烘焙出生点校验，不生成 .meta）。</summary>
+        public const string BodyCcFixturePath = "Tests/EditMode/Fixtures/BodyCc.json";
 
         // ---- 片段采样族（根位移——来源是 RootMotionBakeConfig 引用的 CombatGirls 片段包，不入版本管理）----
 
         public const string RootMotionConfigPath = "Assets/LiteGame/Editor/Baking/RootMotionBakeConfig.asset";
-        public const string RootMotionOutput = "Assets/LiteSim/Core/Scripts/RootMotionData.g.cs";
+
+        /// <summary>根位移数据产物去向（运行时经内容包装载；与 <c>RootMotionCatalog.DefaultAssetPath</c> 同串，
+        /// 烘焙器写入前比对）。不进 BuildHash 源集——改后需重发内容包。</summary>
+        public const string RootMotionBinOutput = "Assets/GameData/Config/runtime/rootmotion.bin";
+
+        /// <summary>持枪偏移运行时 .bin 去向（烘焙产物，字节产物通道）。</summary>
+        public const string GripBinOutput = "Assets/GameData/Config/runtime/grip.bin";
 
         // ---- 场景采样族（地图烘焙——来源是地图场景，非 prefab/片段）----
 
         /// <summary>地图场景（首图母版）：判定几何（<see cref="MapCollisionRoot"/> 代理树）＋出生标记（<see cref="SpawnPrefix"/>）＋边界（<see cref="MapBoundsObject"/>）。</summary>
         public const string MapScenePath = "Assets/Scenes/Arena01.unity";
 
-        /// <summary>地图产物：Luban 数据源 JSON（非 .g.cs 通道——写盘走 <see cref="WriteArtifact"/>；不自动跑 gen.bat，见 <see cref="SimMapBaker"/>）。
+        /// <summary>地图产物：Luban 数据源 JSON（文本产物通道——写盘走 <see cref="WriteArtifact"/>；不自动跑 gen.bat，见 <see cref="SimMapBaker"/>）。
         /// **每图一文件**（`Luban/Data/Map/`；表注册 `input="Map"` 读整目录）——加图＝加文件，不改表声明。</summary>
         public const string MapOutput = "Luban/Data/Map/map_arena01.json";
 
@@ -102,8 +107,8 @@ namespace LiteGame.EditorTools
         public const string SurfacePrefix = "surf_";
 
         /// <summary>
-        /// write-if-changed 写盘原语（全部产物的唯一写盘面）：与既有文件逐字节一致则不动文件
-        /// （重烘不触碰产物文件，防"重烘即抖"）。UTF-8 无 BOM。返回是否实际写盘。
+        /// 文本 write-if-changed 写盘原语（<see cref="WriteArtifact(string,string)"/> 的落盘基座）：
+        /// 与既有文件逐字节一致则不动文件（重烘不触碰产物文件，防"重烘即抖"）。UTF-8 无 BOM。返回是否实际写盘。
         /// </summary>
         private static bool WriteIfChanged(string outputPath, string text)
         {
@@ -112,14 +117,29 @@ namespace LiteGame.EditorTools
             return true;
         }
 
-        /// <summary>非 .g.cs 产物统一 emit（数据通道，如地图 Luban JSON）：write-if-changed；
+        /// <summary>字节版 write-if-changed（数据产物通道，如 grip.bin）：内容逐字节相同则不动文件
+        /// （重烘不触碰产物、资产导入不抖动）。返回是否实际写盘。</summary>
+        private static bool WriteIfChangedBytes(string outputPath, byte[] bytes)
+        {
+            if (File.Exists(outputPath))
+            {
+                byte[] existing = File.ReadAllBytes(outputPath);
+                if (existing.Length == bytes.Length && existing.AsSpan().SequenceEqual(bytes)) return false;
+            }
+            string directory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+            File.WriteAllBytes(outputPath, bytes);
+            return true;
+        }
+
+        /// <summary>文本数据产物统一 emit（数据通道，如地图 Luban JSON）：write-if-changed；
         /// 产物在 Assets 外、无 ImportAsset。返回落盘结论行（planned/up to date/written），由工具拼进报告。</summary>
         public static string WriteArtifact(string outputPath, string text)
         {
             return WriteArtifact(outputPath, text, null);
         }
 
-        /// <summary>带写盘 scope 的非 .g.cs 产物 emit（dry-run/allowlist/Undo 由 scope 统一处理）。</summary>
+        /// <summary>带写盘 scope 的文本数据产物 emit（dry-run/allowlist/Undo 由 scope 统一处理）。</summary>
         public static string WriteArtifact(string outputPath, string text, ToolWriteScope scope)
         {
             if (scope == null) return (WriteIfChanged(outputPath, text) ? "written：" : "up to date：") + outputPath;
@@ -127,38 +147,26 @@ namespace LiteGame.EditorTools
             return OutcomeLabel(outcome) + outputPath;
         }
 
-        /// <summary>
-        /// .g.cs 产物统一 emit（各烘焙器唯一代码产物写盘面）：固定头（生成器名 + 工具箱入口 + 勿手改）→ 工具语义注释行 → 代码体。
-        /// LF 行尾、UTF-8 无 BOM、R 格式由调用方保证；**write-if-changed**——与既有产物逐字节一致则不动文件，
-        /// 变化才写盘 + ImportAsset 触发重编译。返回落盘结论行（planned/up to date/written），由工具拼进报告。
-        /// </summary>
-        public static string WriteGenerated(string outputPath, string generatorName, string[] semanticLines, string body)
+        /// <summary>字节版数据产物 emit（如 grip.bin）：write-if-changed；产物在 Assets 内，
+        /// 实际写盘后 <see cref="AssetDatabase.ImportAsset"/> 触发导入。
+        /// 返回落盘结论行（planned/up to date/written），由工具拼进报告。</summary>
+        public static string WriteArtifactBytes(string outputPath, byte[] bytes)
         {
-            return WriteGenerated(outputPath, generatorName, semanticLines, body, null);
+            return WriteArtifactBytes(outputPath, bytes, null);
         }
 
-        /// <summary>带写盘 scope 的 .g.cs 产物 emit（dry-run/allowlist/Undo 由 scope 统一处理）。</summary>
-        public static string WriteGenerated(
-            string outputPath,
-            string generatorName,
-            string[] semanticLines,
-            string body,
-            ToolWriteScope scope)
+        /// <summary>带写盘 scope 的字节版数据产物 emit（dry-run/allowlist/Undo 由 scope 统一处理）。</summary>
+        public static string WriteArtifactBytes(string outputPath, byte[] bytes, ToolWriteScope scope)
         {
-            var sb = new StringBuilder();
-            sb.AppendLine($"// 本文件由 {generatorName} 生成（烘焙工具箱：LiteGame/工具链 → 烘焙工具箱，或 run_script 直调）——勿手改。");
-            foreach (var line in semanticLines) sb.AppendLine(line);
-            sb.Append(body);
-            string text = sb.ToString().Replace("\r\n", "\n");   // AppendLine 在 Windows 是 CRLF；产物统一 LF（BuildHash 侧行尾归一化，两者等价）
-
+            if (bytes == null) throw new System.ArgumentNullException(nameof(bytes));
             if (scope == null)
             {
-                bool wrote = WriteIfChanged(outputPath, text);
+                bool wrote = WriteIfChangedBytes(outputPath, bytes);
                 if (wrote) AssetDatabase.ImportAsset(outputPath);
                 return (wrote ? "written：" : "up to date：") + outputPath;
             }
 
-            ToolWriteOutcome outcome = scope.WriteText(outputPath, text);
+            ToolWriteOutcome outcome = scope.WriteBytes(outputPath, bytes);
             if (outcome == ToolWriteOutcome.Written) AssetDatabase.ImportAsset(outputPath);
             return OutcomeLabel(outcome) + outputPath;
         }

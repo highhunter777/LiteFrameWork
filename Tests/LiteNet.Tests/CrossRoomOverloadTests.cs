@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Google.Protobuf;
 using LiteNet.Protocol;
+using LiteSync.Shared;
 using LiteNet.Proto;
 using LiteSim;
 using LiteSim.Tests;

@@ -1,6 +1,7 @@
 using LiteFramework;
 using LiteGame.Modules.Config;
 
+using LiteSync.Client;
 namespace LiteGame.Modules.Map
 {
     /// <summary>

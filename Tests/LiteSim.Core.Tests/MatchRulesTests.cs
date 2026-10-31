@@ -28,10 +28,10 @@ namespace LiteSim.Tests
         [Fact]
         public void DeathPreservesPlayerIdAndRegistersOneKill()
         {
-            var s = World(new MatchRules(0, 0, CombatConfig.CorpseFrames + 5, 2));
+            var s = World(new MatchRules(0, 0, CombatValues.Default.Geometry.CorpseFrames + 5, 2));
             long id = s.Entities[1].Id;
             Kill(s);
-            for (int i = 0; i <= CombatConfig.CorpseFrames; i++) Step(s);
+            for (int i = 0; i <= CombatValues.Default.Geometry.CorpseFrames; i++) Step(s);
             Assert.True(s.TryResolve(id, out int slot));
             Assert.Equal(1, slot);
             Assert.Equal(0, s.Entities[slot].Hp);

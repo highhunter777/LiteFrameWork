@@ -1,0 +1,30 @@
+你是本项目的独立任务评审子代理（外部 dsh 代理）。只读评审：禁止修改文件/运行命令。
+
+仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。
+评审对象：`.workflow/active/sync-and-sim-params/tasks.md`（有效任务：T43、T44、T69~T82；T1~T68 已取消，原因见状态）与 `plan.md`（B1~B24 最终方案）。
+
+第 5 轮 4 个阻塞的整改：
+1. `WriteGenerated` 删除从烘焙任务移出，单列 T78“WriteGenerated 删除收口”（依赖 T77，五件 .g.cs 全部退役后执行）；T75 明确“本任务不删 WriteGenerated”。
+2. 执行者补齐：T69（守卫 C#/测试=施工子代理，门禁配置=主代理）、T70（主代理）、T74（代码/测试子代理，重生成主代理）、T75（资产删除/重生成主代理，代码/测试子代理）。
+3. T73 写明测试名：BattleCrosshairEditModeTests/BattleLaserEditModeTests/BattleSmokePlayModeTests + ArchitectureGuardTests 负例 + Arena 只读展示断言。
+4. T75 写明 BodyCylinderBaker 同次原子写 BodyCc 夹具（含来源 prefab）、prefab 缺失=失败不 skip。
+
+只核验：
+- B1~B24 全覆盖、无孤儿/重复/越界；
+- 共享源集任务的重生成+check 与执行者；
+- 文件范围/验收一致；权限与资产搬迁方式；
+- 是否还有编译中断/门禁不可执行/虚假通过；
+- 任务粒度/依赖/验证可独立执行。
+
+约束：最多 8 次工具调用；只读 tasks.md/plan.md（可读 1-2 个关键文件核对）；禁止全仓搜索/运行命令；6 分钟内出结论。
+
+输出（中文纯文本）：
+结论: PASS 或 FAIL
+阻塞问题: <数量>
+覆盖矩阵: 按 B1~B24 分组列出对应任务
+阻塞问题清单:
+- [严重度][B 项/任务] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...

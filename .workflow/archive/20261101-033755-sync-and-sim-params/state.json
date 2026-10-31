@@ -1,0 +1,2036 @@
+{
+  "schema_version": 1,
+  "slug": "sync-and-sim-params",
+  "title": "同步层拆分与判定参数化（LiteSync 去耦 + LiteSim 参数装载）",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-30T19:40:29+08:00",
+  "updated_at": "2026-11-01T03:37:55+08:00",
+  "completed_at": "2026-11-01T03:37:52+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-31T15:49:21+08:00"
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "completed_at": "2026-10-31T16:55:08+08:00"
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "completed_at": "2026-10-31T16:58:53+08:00",
+      "approved_by": "用户"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-31T16:59:18+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "子代理评审任务",
+      "completed_at": "2026-10-31T17:32:24+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "子代理先写测试",
+      "completed_at": "2026-10-31T17:55:03+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "子代理正式施工",
+      "completed_at": "2026-11-01T00:05:02+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-11-01T03:37:47+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "主代理评审代码",
+      "completed_at": "2026-11-01T03:37:49+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-11-01T03:37:52+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-30T19:40:29+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-31T15:49:21+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-31T16:55:08+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-31T16:58:53+08:00",
+      "event": "advance",
+      "from": "confirm-acceptance",
+      "to": "breakdown",
+      "approved_by": "用户"
+    },
+    {
+      "at": "2026-10-31T16:59:18+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-31T17:32:24+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-31T17:55:03+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-01T00:05:02+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-01T03:37:47+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-01T03:37:49+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-01T03:37:52+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-01T03:37:55+08:00",
+      "event": "archive",
+      "path": "20261101-033755-sync-and-sim-params"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "LiteSync 程序集与空壳",
+      "description": "",
+      "acceptance": "B1：Assets/LiteSync 存在，asmdef references=[LiteNet,LiteSim]+noEngineReferences+Google.Protobuf 预编译，双轨 csproj 齐备；Unity 重编译 0 error",
+      "verify": "Unity 重编译；文件/asmdef/csproj 检查",
+      "files": [
+        "Assets/LiteSync"
+      ],
+      "deps": [],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:01+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:05+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "同步件搬迁与引用收口",
+      "description": "",
+      "acceptance": "B2/B3/B6/B7：15 件文件+meta 按目录搬迁，LiteNet 零 using LiteSim，WeakNet 移 Dev，DiagTrace 保留登记，引用者/测试改引用后编译绿",
+      "verify": "grep using LiteSim 零命中；Unity 重编译；Tests/LiteNet.Tests",
+      "files": [
+        "Assets/LiteSync",
+        "Assets/LiteNet",
+        "Assets/LiteGame/Adapters/Dev",
+        "Tests"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:11+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:05+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "BuildHash 源集与架构守卫",
+      "description": "",
+      "acceptance": "B4/B5/B22：SHARED_TARGETS 含 LiteSync/{Shared,Snapshot,Input,Events} 不含 Client；BuildHash 路径/命名空间不变；Allowed 删 LiteNet->LiteSim 加 LiteSync；ClientRoots/StaticMutable 扫描根含 LiteSync；硬边与负例生效",
+      "verify": "gen-build-hash.py --check-shared；ClientAsmdefAllowlistTests/ArchitectureGuardTests/StaticMutableAllowlistTests",
+      "files": [
+        "scripts/codegen/gen-build-hash.py",
+        "Tests/LiteFramework.Core.Tests"
+      ],
+      "deps": [
+        "T2"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:11+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:05+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "两端重建与联测",
+      "description": "",
+      "acceptance": "B8：L1 全量绿；两端重建后联机冒烟通过且 BuildHash 一致",
+      "verify": "gate/test.py --suite L1；build-player.py；player-smoke；两端 BuildHash 对账",
+      "files": [
+        "Builds",
+        "Server",
+        "scripts/build"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:11+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:05+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "CombatGeometry 与发布闸门",
+      "description": "",
+      "acceptance": "B9：CombatValues 11 字段/9 参数；CombatGeometry 13 列；CombatConfig _published 三态与 Geometry 展示兜底；10 处构造点更新；候选表校验坏表拒启动",
+      "verify": "CombatGeometry/CombatValues EditMode；ResetForTests；坏表用例；L1",
+      "files": [
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T4"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:12+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:06+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "判定面与外部消费者迁移",
+      "description": "",
+      "acceptance": "B10：Assets/Server/Tests 旧几何名零命中；ResolveHead*/override 字段零命中；HUD/Dev/Editor/测试读者迁移；判定/烘焙不读 Geometry；SimStep 与 9 System 签名不变",
+      "verify": "grep 守卫含负例；Unity 0 error；定向 EditMode",
+      "files": [
+        "Assets/LiteSim/Scripts",
+        "Assets/LiteSim/Systems",
+        "Assets/LiteGame",
+        "Server",
+        "Tests"
+      ],
+      "deps": [
+        "T5"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:12+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:06+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "表接入、摘要与值校验",
+      "description": "",
+      "acceptance": "B11/B13/B14：TableLayout.Files=Combat/tbcombatgeom；__tables__/ConfigService/ServerTableLoader 调用点全更新；表字节进摘要且联机不含覆盖；13 值与装载结果 0 容差 + 黄金样本",
+      "verify": "Luban/gen.bat；gen-build-hash --check-shared；CombatConfigDigest/GameplayDigestBase 用例",
+      "files": [
+        "Luban",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T6"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:12+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:06+08:00"
+    },
+    {
+      "id": "T8",
+      "title": "烘焙全迁与消费面",
+      "description": "",
+      "acceptance": "B12：五件 .g.cs 不存在；五烘焙器改产表/数据；SimMapBaker 读 CC 并断言表 row≡入库夹具；Grip 消费面迁移；restore-check 前置；注释 0 warning；WriteGenerated 删除",
+      "verify": "烘焙工具实操；BodyBake/SimMapBaker/WeaponGrip EditMode；Unity 0 warning",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Modules/Battle/Characters",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Assets/GameData/Config/runtime",
+        "Tests"
+      ],
+      "deps": [
+        "T7"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:12+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:06+08:00"
+    },
+    {
+      "id": "T9",
+      "title": "AOI 与广播拆分",
+      "description": "",
+      "acceptance": "B15：AoiSettings 服务端真实注入三档；AoiFilter 无静态缓存；SnapshotHz 与 AoiSettings 分离，客户端从 JoinAck 取；SimView 无静态 SimConfig.SnapshotHz 读",
+      "verify": "服务端配置注入；EditMode/Play 用例；grep 静态缓存零命中",
+      "files": [
+        "Assets/LiteSync",
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Server"
+      ],
+      "deps": [
+        "T8"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:12+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:06+08:00"
+    },
+    {
+      "id": "T10",
+      "title": "RootMotion 数据产物",
+      "description": "",
+      "acceptance": "B16/B17/B18：LiteSim 无 RootMotion*；rootmotion.bin 在 GameData/Config/runtime；RootMotionCatalog.Load 在 Battle/Arena；ContentIdentity 用字节摘要；.bin 不进 SHARED_TARGETS",
+      "verify": "RootMotionDataTests；gen-build-hash --check-shared；文档登记",
+      "files": [
+        "Assets/LiteSim/Scripts/Map",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Assets/LiteGame/App",
+        "Assets/GameData/Config/runtime",
+        "Assets/LiteGame/Editor/Baking/RootMotionBaker.cs"
+      ],
+      "deps": [
+        "T9"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:12+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:06+08:00"
+    },
+    {
+      "id": "T11",
+      "title": "调参面与导出",
+      "description": "",
+      "acceptance": "B19/B20/B21：13 项滑杆；单门 SimParamsGate + 单合并点；联机禁用覆盖；四条断言；编辑器/GM 导出到表 + diff/备份/check-shared；.bin 导出显示摘要",
+      "verify": "provider/门/合并点用例；B20 四条断言；工具实操；红线 13 真实操作",
+      "files": [
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Editor/Gm",
+        "Assets/LiteSim/Scripts/Rules",
+        "Tests"
+      ],
+      "deps": [
+        "T10"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:13+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:06+08:00"
+    },
+    {
+      "id": "T12",
+      "title": "门禁与文档收口",
+      "description": "",
+      "acceptance": "B23/B24：sync-and-sim 命令组通过；四份设计文档+两份进度卷回写；索引登记；doc-lint 全过",
+      "verify": "wf verify；doc-lint.py；L2",
+      "files": [
+        ".workflow/config.json",
+        "Docs/设计文档/网络",
+        "Docs/设计文档/客户端/动画",
+        "Docs/设计文档/游戏玩法",
+        "Docs/施工进度"
+      ],
+      "deps": [
+        "T11"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审整改：按 dsh 首轮意见拆分/重排，由 T13+ 取代",
+      "created_at": "2026-10-31T16:59:13+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:02:06+08:00"
+    },
+    {
+      "id": "T13",
+      "title": "LiteSync 程序集与空壳",
+      "description": "",
+      "acceptance": "B1：Assets/LiteSync 存在，asmdef references=[LiteNet,LiteSim]+noEngineReferences+Google.Protobuf 预编译；双轨 csproj 齐备；Unity 与 dotnet 双轨均编译通过",
+      "verify": "Unity 重编译 0 error；dotnet build 双轨 csproj（Tests.slnx/LiteNet.csproj/LiteSync.csproj）；文件/asmdef 检查",
+      "files": [
+        "Assets/LiteSync"
+      ],
+      "deps": [],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:07+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:49+08:00"
+    },
+    {
+      "id": "T14",
+      "title": "15 件搬迁、引用收口与 BuildHash 重生成",
+      "description": "",
+      "acceptance": "B2/B3/B4/B6/B7：15 件+meta 搬迁，LiteNet 零 using LiteSim/LiteSync，SHARED_TARGETS 增 LiteSync/{Shared,Snapshot,Input,Events}（不含 Client），重生成 BuildHash；WeakNet 移 Dev，DiagTrace 保留登记，引用者/测试编译绿",
+      "verify": "grep 零命中；Unity+dotnet 编译；Tests/LiteNet.Tests；DebugKernelEditModeTests；gen-build-hash.py 重生成 + --check-shared",
+      "files": [
+        "Assets/LiteSync",
+        "Assets/LiteNet",
+        "Assets/LiteGame/Adapters/Dev",
+        "scripts/codegen/gen-build-hash.py",
+        "Tests"
+      ],
+      "deps": [
+        "T13"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:07+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:49+08:00"
+    },
+    {
+      "id": "T15",
+      "title": "架构守卫与静态可变扫描根",
+      "description": "",
+      "acceptance": "B5/B22：Allowed 删 LiteNet->LiteSim 加 LiteSync；ClientRoots/StaticMutable 根含 LiteSync；两条硬边与植入违规负例生效；无新增 public static 可变字段",
+      "verify": "ClientAsmdefAllowlistTests/ArchitectureGuardTests/StaticMutableAllowlistTests；gen-build-hash --check-shared",
+      "files": [
+        "Tests/LiteFramework.Core.Tests"
+      ],
+      "deps": [
+        "T14"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:07+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:49+08:00"
+    },
+    {
+      "id": "T16",
+      "title": "两端重建与联测",
+      "description": "",
+      "acceptance": "B8：L1 全量绿；两端重建后本地测试房+KCP lossy 冒烟通过；两端 BuildHash 一致（留证据）",
+      "verify": "gate/test.py --suite L1；build-player.py；player-smoke；两端 BuildHash 对账",
+      "files": [
+        "scripts/build",
+        "Server",
+        "Builds"
+      ],
+      "deps": [
+        "T15"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:07+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:49+08:00"
+    },
+    {
+      "id": "T17",
+      "title": "CombatGeometry 类型与发布闸门",
+      "description": "",
+      "acceptance": "B9（类型/闸门部分）：CombatValues 11 字段/9 参数；_published 三态；Geometry 展示兜底 DisplayOnly；10 处构造点更新；ResetForTests+[Collection]；Loaded 时序/编辑器未发布不崩 用例；坏表候选校验（表接入在 T18）",
+      "verify": "CombatGeometry/CombatValues EditMode；ResetForTests；Loaded 三态；dotnet+Unity 编译",
+      "files": [
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T16"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:07+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:49+08:00"
+    },
+    {
+      "id": "T18",
+      "title": "表接入与装载",
+      "description": "",
+      "acceptance": "B11：__tables__ + TableLayout.Files=Combat/tbcombatgeom；JudgmentFiles 自动包含；ConfigService/ServerTableLoader/测试调用点全更新；坏表在 ValidateCandidate 拒启动",
+      "verify": "Luban/gen.bat；gen-build-hash --check-shared；表装载/坏表用例",
+      "files": [
+        "Luban",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T17"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:07+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:50+08:00"
+    },
+    {
+      "id": "T19",
+      "title": "判定面与外部消费者迁移",
+      "description": "",
+      "acceptance": "B10：Assets/Server/Tests 旧几何名零命中；ResolveHead*/override 零命中；HUD/Dev/Editor/测试读者迁移；判定/烘焙不读 Geometry；SimStep 与 9 System 签名不变",
+      "verify": "grep 守卫含负例；Unity 0 error；定向 EditMode",
+      "files": [
+        "Assets/LiteSim/Scripts",
+        "Assets/LiteSim/Systems",
+        "Assets/LiteGame",
+        "Server",
+        "Tests"
+      ],
+      "deps": [
+        "T18"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:07+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:50+08:00"
+    },
+    {
+      "id": "T20",
+      "title": "摘要与值校验",
+      "description": "",
+      "acceptance": "B13/B14：Combat/tbcombatgeom 进 JudgmentFiles⇒表字节进摘要；联机摘要不含覆盖；13 值与表装载结果 0 容差；黄金样本/更新流程与测试名落档",
+      "verify": "CombatConfigDigest/GameplayDigestBase 用例；黄金样本；gen-build-hash --check-shared",
+      "files": [
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T19"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:07+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:50+08:00"
+    },
+    {
+      "id": "T21",
+      "title": "Body/Head/Muzzle 烘焙与 SimMap/WriteGenerated",
+      "description": "",
+      "acceptance": "B12（部分）：Body/Head/Muzzle 三件 .g.cs 退役；三烘焙器写表（写入源只来自 prefab/anchor）；SimMapBaker 读 CC 并断言表 row≡入库 CC 夹具；restore-check 前置；WriteGenerated 零引用删除；注释 0 warning",
+      "verify": "烘焙工具实操；BodyBake/SimMapBaker EditMode；Unity 0 warning",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/GameData",
+        "Tests"
+      ],
+      "deps": [
+        "T20"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:08+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:50+08:00"
+    },
+    {
+      "id": "T22",
+      "title": "Grip 烘焙与消费面",
+      "description": "",
+      "acceptance": "B12（Grip）：GripBake.g.cs 退役；WeaponGripBaker 产 grip.bin；WeaponGripCatalog.Load 落 Battle/Characters；WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver/GripTuning/FeatureDebugTunables 迁移；grip.bin 摘要预期",
+      "verify": "WeaponGripConstraintEditMode；catalog 用例；烘焙摘要",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Modules/Battle/Characters",
+        "Assets/GameData/Config/runtime",
+        "Tests"
+      ],
+      "deps": [
+        "T21"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:08+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:50+08:00"
+    },
+    {
+      "id": "T23",
+      "title": "RootMotion 数据产物",
+      "description": "",
+      "acceptance": "B16/B17/B18：先落 RootMotionCatalog.Load/rootmotion.bin/Digest/AppComposition 绑定，再删 RootMotionData.g.cs；LiteSim 无 RootMotion*；.bin 不进 SHARED_TARGETS；已烘焙未接线登记",
+      "verify": "RootMotionDataTests；gen-build-hash --check-shared；文档登记",
+      "files": [
+        "Assets/LiteSim/Scripts/Map",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Assets/LiteGame/App",
+        "Assets/GameData/Config/runtime",
+        "Assets/LiteGame/Editor/Baking/RootMotionBaker.cs"
+      ],
+      "deps": [
+        "T22"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:08+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:50+08:00"
+    },
+    {
+      "id": "T24",
+      "title": "AOI 与广播拆分",
+      "description": "",
+      "acceptance": "B15：AoiSettings 落 LiteSync/Shared；服务端真实配置注入三档；AoiFilter 无静态缓存；SnapshotHz 分离，客户端从 JoinAck 取；SimView 无静态读；ThrottleRadius 系数常量/表单源",
+      "verify": "服务端配置注入；EditMode/Play；grep 静态缓存零命中",
+      "files": [
+        "Assets/LiteSync",
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Server"
+      ],
+      "deps": [
+        "T23"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:08+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:50+08:00"
+    },
+    {
+      "id": "T25",
+      "title": "调参面与导出",
+      "description": "",
+      "acceptance": "B19/B20/B21：13 项滑杆；单门 SimParamsGate.Evaluate+单合并点；联机禁用覆盖；B20 四条断言；编辑器/GM 导出到表+diff/备份/check-shared；.bin 导出显示摘要",
+      "verify": "provider/门/合并点用例；B20 四条断言；工具实操；红线 13 真实操作",
+      "files": [
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Editor/Gm",
+        "Assets/LiteSim/Scripts/Rules",
+        "Tests"
+      ],
+      "deps": [
+        "T24"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:08+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:50+08:00"
+    },
+    {
+      "id": "T26",
+      "title": "自动门禁命令组（主代理）",
+      "description": "",
+      "acceptance": "B23（自动部分）：.workflow/config.json 增 sync-and-sim 命令组（L1/LiteSync/LiteSim 定向/check-shared/L2），wf verify 通过；人工联测证据不在本任务",
+      "verify": "wf verify；证据列出实际命令",
+      "files": [
+        ".workflow/config.json"
+      ],
+      "deps": [
+        "T25"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:08+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:51+08:00"
+    },
+    {
+      "id": "T27",
+      "title": "文档回写与人工联测证据",
+      "description": "",
+      "acceptance": "B24+B23（人工部分）：3 份设计+2 份进度卷回写、索引登记、doc-lint 全过；两端重建/联测命令与 BuildHash 对账记录归档",
+      "verify": "doc-lint.py；人工联测证据",
+      "files": [
+        "Docs/设计文档/网络",
+        "Docs/设计文档/客户端/动画",
+        "Docs/设计文档/游戏玩法",
+        "Docs/施工进度"
+      ],
+      "deps": [
+        "T26"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第二轮整改：补共享源集 BuildHash 重生成、文件范围、资产搬迁方式与主代理/子代理权限；由 T28+ 取代",
+      "created_at": "2026-10-31T17:02:09+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:08:51+08:00"
+    },
+    {
+      "id": "T28",
+      "title": "LiteSync 程序集与双轨编译",
+      "description": "",
+      "acceptance": "B1：Assets/LiteSync 存在，asmdef refs=[LiteNet,LiteSim]+noEngineReferences+Protobuf 预编译；双轨 csproj 齐备；Unity 与 dotnet 双轨编译通过。执行者：施工子代理（纯 C#/asmdef，不碰门禁脚本）",
+      "verify": "Unity 0 error；dotnet build LiteSync.csproj/LiteNet.csproj/Tests.slnx；文件/asmdef 检查",
+      "files": [
+        "Assets/LiteSync"
+      ],
+      "deps": [],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:51+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:13+08:00"
+    },
+    {
+      "id": "T29",
+      "title": "15 件搬迁、引用收口与 BuildHash 重生成",
+      "description": "",
+      "acceptance": "B2/B3/B4/B6/B7：15 件+.meta 走 unity-pipeline/AssetDatabase.MoveAsset；LiteNet.asmdef/csproj 删 LiteSim；SHARED_TARGETS 增 LiteSync/{Shared,Snapshot,Input,Events}（不含 Client）并重生成 BuildHash；WeakNet 移 Dev；DiagTrace 保留登记。执行者：资产搬迁+gen-build-hash.py 由主代理，C#/测试由施工子代理",
+      "verify": "unity-pipeline 回读+git status 成对；grep 零命中；Unity+dotnet 编译；Tests/LiteNet.Tests；DebugKernelEditModeTests；gen-build-hash.py 重生成 + --check-shared",
+      "files": [
+        "Assets/LiteSync",
+        "Assets/LiteNet",
+        "Assets/LiteGame/Adapters/Dev",
+        "scripts/codegen/gen-build-hash.py",
+        "Tests"
+      ],
+      "deps": [
+        "T28"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:51+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:13+08:00"
+    },
+    {
+      "id": "T30",
+      "title": "架构守卫与静态可变扫描根",
+      "description": "",
+      "acceptance": "B5/B22：Allowed 删 LiteNet->LiteSim 加 LiteSync；ClientRoots 含 LiteSync；StaticMutable 根含 LiteNet+LiteSync；两条硬边与植入违规负例生效",
+      "verify": "ClientAsmdefAllowlistTests/ArchitectureGuardTests/StaticMutableAllowlistTests；gen-build-hash --check-shared",
+      "files": [
+        "Tests/LiteFramework.Core.Tests"
+      ],
+      "deps": [
+        "T29"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:51+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:14+08:00"
+    },
+    {
+      "id": "T31",
+      "title": "两端重建与联测（批 6）",
+      "description": "",
+      "acceptance": "B8：L1 全量绿；两端重建后本地测试房+KCP lossy 冒烟通过；两端 BuildHash 一致；证据落盘",
+      "verify": "gate/test.py --suite L1；build-player.py；player-smoke；BuildHash 对账",
+      "files": [
+        "scripts/build",
+        "Server",
+        "Builds"
+      ],
+      "deps": [
+        "T30"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:51+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:14+08:00"
+    },
+    {
+      "id": "T32",
+      "title": "CombatGeometry 类型与发布闸门",
+      "description": "",
+      "acceptance": "B9（类型/闸门）：11 字段/9 参数；_published 三态；Geometry 展示兜底 DisplayOnly；10 处构造点；ResetForTests+[Collection]；Loaded 时序/编辑器未发布不崩；坏表候选校验（表接入在 T33）",
+      "verify": "CombatGeometry/CombatValues EditMode；Loaded 三态/时序；dotnet+Unity 编译",
+      "files": [
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T31"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:51+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:14+08:00"
+    },
+    {
+      "id": "T33",
+      "title": "表接入、13 列映射与调用点",
+      "description": "",
+      "acceptance": "B11+B9（表部分）：__tables__ + TableLayout.Files=Combat/tbcombatgeom；JudgmentFiles 自动包含；BuildCombatValues(...,tbcombatgeom) 13 列映射；ConfigService/ServerTableLoader/测试调用点全更新；坏表 ValidateCandidate 拒启动；改共享源后重生成 BuildHash",
+      "verify": "Luban/gen.bat；gen-build-hash.py 重生成+--check-shared；表/坏表/映射用例",
+      "files": [
+        "Luban",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T32"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:51+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:14+08:00"
+    },
+    {
+      "id": "T34",
+      "title": "判定面与外部消费者迁移",
+      "description": "",
+      "acceptance": "B10：Assets/Server/Tests 旧几何名零命中；删除 ResolveHead*/override 四几何项；HUD/Dev/Editor/测试读者迁移；判定路径与烘焙写入源不读 Geometry（显示/对比白名单）；SimStep 与 9 System 签名不变；改共享源后重生成 BuildHash",
+      "verify": "grep 守卫（含白名单/负例）；Unity 0 error；定向 EditMode；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteSim/Scripts",
+        "Assets/LiteSim/Systems",
+        "Assets/LiteGame",
+        "Server",
+        "Tests"
+      ],
+      "deps": [
+        "T33"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:52+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:14+08:00"
+    },
+    {
+      "id": "T35",
+      "title": "摘要与值校验",
+      "description": "",
+      "acceptance": "B13/B14：Combat/tbcombatgeom 进 JudgmentFiles⇒表字节进摘要；联机摘要不含覆盖；13 值与表装载结果 0 容差；黄金样本/更新流程/测试名落档；改共享源后重生成 BuildHash",
+      "verify": "CombatConfigDigest/GameplayDigestBase 用例；黄金样本；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T34"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:52+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:14+08:00"
+    },
+    {
+      "id": "T36",
+      "title": "Body/Head/Muzzle 烘焙与 SimMap/WriteGenerated",
+      "description": "",
+      "acceptance": "B12（部分）：先落表写入器/新行；三件 .g.cs 走 unity-pipeline 删除；三烘焙器写表（源只来自 prefab/anchor）；SimMapBaker 读 CC 并断言表 row≡入库 CC 夹具；restore-check 前置；WriteGenerated 零引用删除；注释 0 warning；改共享源后重生成 BuildHash。执行者：资产删除由主代理，代码/测试由施工子代理",
+      "verify": "烘焙工具实操；BodyBake/SimMapBaker EditMode；Unity 0 warning；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteSim/Scripts/Map",
+        "Luban/Data",
+        "Assets/GameData",
+        "Tests"
+      ],
+      "deps": [
+        "T35"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:52+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:14+08:00"
+    },
+    {
+      "id": "T37",
+      "title": "Grip 烘焙与消费面",
+      "description": "",
+      "acceptance": "B12（Grip）：先落 WeaponGripCatalog/grip.bin 与消费面，再删 GripBake.g.cs（unity-pipeline）；WeaponGripBaker 产 grip.bin；WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver/GripTuning/FeatureDebugTunables 迁移；内容摘要含 grip.bin。执行者：资产删除主代理，代码/测试施工子代理",
+      "verify": "WeaponGripConstraintEditMode；catalog 用例；烘焙摘要；Unity 0 error",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Modules/Battle/Characters",
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/GameData/Config/runtime",
+        "Tests"
+      ],
+      "deps": [
+        "T36"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:52+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:14+08:00"
+    },
+    {
+      "id": "T38",
+      "title": "RootMotion 数据产物",
+      "description": "",
+      "acceptance": "B16/B17/B18：先落 RootMotionCatalog.Load/rootmotion.bin/Digest/AppComposition 绑定，再删 RootMotionData.g.cs（unity-pipeline）；LiteSim 无 RootMotion*；.bin 不进 SHARED_TARGETS；已烘焙未接线登记。执行者：资产删除主代理，代码/测试施工子代理",
+      "verify": "RootMotionDataTests；gen-build-hash 重生成+--check-shared；文档登记",
+      "files": [
+        "Assets/LiteSim/Scripts/Map",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Assets/LiteGame/App",
+        "Assets/GameData/Config/runtime",
+        "Assets/LiteGame/Editor/Baking/RootMotionBaker.cs",
+        "Tests"
+      ],
+      "deps": [
+        "T37"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:52+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:15+08:00"
+    },
+    {
+      "id": "T39",
+      "title": "AOI 与广播拆分",
+      "description": "",
+      "acceptance": "B15：AoiSettings 落 LiteSync/Shared；服务端真实配置（deploy/roomserver.windows.json）注入三档；AoiFilter 无静态缓存；SnapshotHz 分离，客户端从 JoinAck 取；SimView 无静态读；ThrottleRadius 为命名常量/表列；改共享源后重生成 BuildHash",
+      "verify": "服务端配置注入；LocalServerHandshake/EditMode/Play；grep 零命中；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteSync",
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Server/RoomServer",
+        "deploy/roomserver.windows.json",
+        "Tests"
+      ],
+      "deps": [
+        "T38"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:52+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:15+08:00"
+    },
+    {
+      "id": "T40",
+      "title": "调参面与导出",
+      "description": "",
+      "acceptance": "B19/B20/B21：13 项滑杆；dev 三宏；单门 SimParamsGate.Evaluate 每会话一次 bool；单合并点 ConfigService+ServerTableLoader；联机禁用覆盖；删除四几何覆写、保留 Damage/Rpm；B20 四条断言；导出/diff/备份/check-shared；.bin 摘要；改共享源后重生成 BuildHash",
+      "verify": "provider/门/合并点用例；B20 四条断言；工具实操；红线 13 真实操作；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Editor/Gm",
+        "Assets/LiteSim/Scripts/Rules",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T39"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:53+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:15+08:00"
+    },
+    {
+      "id": "T41",
+      "title": "自动门禁命令组（主代理）",
+      "description": "",
+      "acceptance": "B23（自动部分）：.workflow/config.json 增 sync-and-sim 自动命令组（L1/LiteSync/LiteSim 定向/check-shared/L2），wf verify 通过；不含人工联测。执行者：主代理独占（施工子代理禁改）",
+      "verify": "wf verify；证据列出实际命令",
+      "files": [
+        ".workflow/config.json"
+      ],
+      "deps": [
+        "T40"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:53+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:15+08:00"
+    },
+    {
+      "id": "T42",
+      "title": "文档回写与最终两端联测",
+      "description": "",
+      "acceptance": "B24+B23（人工部分）：3 份设计+2 份进度卷回写、索引登记、doc-lint；批次 7 后实际执行 build-player/player-smoke，两端 BuildHash+ConfigHash 对账并留证。执行者：文档由施工子代理，最终联测由主代理",
+      "verify": "doc-lint.py；build-player.py/player-smoke；两端摘要对账证据",
+      "files": [
+        "Docs/设计文档/网络",
+        "Docs/设计文档/客户端/动画",
+        "Docs/设计文档/游戏玩法",
+        "Docs/施工进度",
+        "scripts/build",
+        "Server",
+        "Builds"
+      ],
+      "deps": [
+        "T41"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第3轮整改：补 BuildHash 重生成归属/文件范围/去重/GM 参数；由 T43+ 取代",
+      "created_at": "2026-10-31T17:08:53+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:15:15+08:00"
+    },
+    {
+      "id": "T43",
+      "title": "LiteSync 程序集与双轨编译",
+      "description": "",
+      "acceptance": "B1：Assets/LiteSync 存在，asmdef refs=[LiteNet,LiteSim]+noEngineReferences+Protobuf 预编译；双轨 csproj 齐备；Unity+dotnet 双轨编译通过。执行者：施工子代理（纯 C#/asmdef）",
+      "verify": "Unity 0 error；dotnet build LiteSync.csproj/LiteNet.csproj/Tests.slnx；文件/asmdef 检查",
+      "files": [
+        "Assets/LiteSync"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "新增 Assets/LiteSync/{LiteSync.asmdef,LiteSync.csproj,Directory.Build.props}；dotnet build Assets/LiteSync/LiteSync.csproj --no-restore --nologo 0 error（输出 .dotnet/bin）；unity command recompile_status=completed, failed=false（0 error）",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:15:15+08:00",
+      "started_at": "2026-10-31T17:55:03+08:00",
+      "completed_at": "2026-10-31T18:16:58+08:00"
+    },
+    {
+      "id": "T44",
+      "title": "15 件搬迁、引用收口与 BuildHash 重生成",
+      "description": "",
+      "acceptance": "B2/B3/B4/B6/B7：15 件+.meta 走 unity-pipeline；LiteNet.asmdef/csproj 删 LiteSim；LiteGame.App/Editor、Server/RoomServer、Tests.slnx 补 LiteSync 引用；SHARED_TARGETS 增 Four dirs（不含 Client）并重生成 BuildHash（主代理执行）；WeakNet 移 Dev；DiagTrace 保留。执行者：资产搬迁/gen-build-hash 主代理，C#/测试施工子代理",
+      "verify": "unity-pipeline 回读+git status 成对；grep 零命中；Unity+dotnet 编译；Tests/LiteNet.Tests；DebugKernelEditModeTests；gen-build-hash 重生成+--check-shared",
+      "files": [
+        "Assets/LiteSync",
+        "Assets/LiteNet",
+        "Assets/LiteNet/LiteNet.csproj",
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/LiteGame/App",
+        "Assets/LiteGame/Editor",
+        "Server/RoomServer",
+        "scripts/codegen/gen-build-hash.py",
+        "Tests",
+        "Tests/Tests.slnx"
+      ],
+      "deps": [
+        "T43"
+      ],
+      "status": "done",
+      "evidence": "15 件+WeakNet 经 unity-pipeline 搬迁（GUID/meta 保留）；LiteNet.asmdef refs=[]、csproj 无 LiteSim 引用、using LiteSim 零命中；SHARED_TARGETS 增 LiteSync 四目录并重生成 BuildHash=d2bdeac476dcea77（109 文件）；dotnet build Tests.slnx 0 error；Unity recompile 0 error；Tests/LiteNet.Tests 681/681；DebugKernelEditModeTests 26/26",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:15:15+08:00",
+      "started_at": "2026-10-31T19:24:09+08:00",
+      "completed_at": "2026-10-31T20:08:17+08:00"
+    },
+    {
+      "id": "T45",
+      "title": "架构守卫与静态可变扫描根",
+      "description": "",
+      "acceptance": "B5/B22：Allowed 删 LiteNet->LiteSim 加 LiteSync；ClientRoots 含 LiteSync；StaticMutable 根含 LiteNet+LiteSync；两条硬边与植入违规负例生效",
+      "verify": "ClientAsmdefAllowlistTests/ArchitectureGuardTests/StaticMutableAllowlistTests；gen-build-hash --check-shared",
+      "files": [
+        "Tests/LiteFramework.Core.Tests"
+      ],
+      "deps": [
+        "T44"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:15:16+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:06+08:00"
+    },
+    {
+      "id": "T46",
+      "title": "两端重建与联测（批 6）",
+      "description": "",
+      "acceptance": "B8：L1 全量绿；两端重建后本地测试房+KCP lossy 冒烟通过；两端 BuildHash 一致；证据落盘",
+      "verify": "gate/test.py --suite L1；build-player.py；player-smoke；BuildHash 对账",
+      "files": [
+        "scripts/build",
+        "Server",
+        "Builds"
+      ],
+      "deps": [
+        "T45"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:15:16+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:06+08:00"
+    },
+    {
+      "id": "T47",
+      "title": "CombatGeometry 类型与发布闸门",
+      "description": "",
+      "acceptance": "B9（类型/闸门）：11 字段/9 参数；_published 三态；Geometry DisplayOnly；10 构造点；ResetForTests+[Collection]；Loaded 时序/编辑器不崩；坏表候选校验（表接入在 T48）；改 Shared 源后重生成 BuildHash（主代理）",
+      "verify": "CombatGeometry/CombatValues EditMode；Loaded 三态/时序；dotnet+Unity 编译；gen-build-hash 重生成+--check-shared",
+      "files": [
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T46"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:16+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:51+08:00"
+    },
+    {
+      "id": "T48",
+      "title": "表接入、13 列映射与调用点",
+      "description": "",
+      "acceptance": "B11+B9（表）：__tables__ + TableLayout.Files=Combat/tbcombatgeom；JudgmentFiles 自动包含；BuildCombatValues(...,tbcombatgeom) 13 列映射；ConfigService/ServerTableLoader/测试调用点全更新；坏表 ValidateCandidate 拒启动；重生成 BuildHash（主代理）",
+      "verify": "Luban/gen.bat；gen-build-hash 重生成+--check-shared；表/坏表/映射用例",
+      "files": [
+        "Luban",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T47"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:16+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:51+08:00"
+    },
+    {
+      "id": "T49",
+      "title": "判定面与外部消费者迁移",
+      "description": "",
+      "acceptance": "B10：Assets/Server/Tests 旧几何名零命中；**T49 唯一负责删除** ResolveHead*/override 四项；HUD/Dev/Editor/测试读者迁移；判定路径与烘焙写入源不读 Geometry（显示/对比白名单）；SimStep 与 9 System 签名不变；重生成 BuildHash（主代理）",
+      "verify": "grep 守卫（含白名单/负例）；Unity 0 error；定向 EditMode；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteSim/Scripts",
+        "Assets/LiteSim/Systems",
+        "Assets/LiteGame",
+        "Server",
+        "Tests"
+      ],
+      "deps": [
+        "T48"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:16+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:51+08:00"
+    },
+    {
+      "id": "T50",
+      "title": "摘要与值校验",
+      "description": "",
+      "acceptance": "B13/B14：Combat/tbcombatgeom 进 JudgmentFiles⇒表字节进摘要；联机摘要不含覆盖；13 值与表装载结果 0 容差；黄金样本/更新流程/测试名落档；两端摘要不等拒局用例",
+      "verify": "CombatConfigDigest/GameplayDigestBase 用例；黄金样本；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T49"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:16+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:51+08:00"
+    },
+    {
+      "id": "T51",
+      "title": "Body/Head/Muzzle 烘焙与 SimMap/WriteGenerated",
+      "description": "",
+      "acceptance": "B12（部分）：先落表写入器/新行；三件 .g.cs 走 unity-pipeline 删除；三烘焙器写表（源只来自 prefab/anchor）；SimMapBaker 读 CC 并断言表 row≡入库 CC 夹具；`BakeTargets` 五条输出常量逐条去向+四条死路径修正+`PrefabPath` 绑定；restore-check 前置；WriteGenerated 删除；注释 0 warning；重生成 BuildHash（主代理）",
+      "verify": "烘焙实操；BodyBake/SimMapBaker EditMode；Unity 0 warning；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteSim/Scripts/Map",
+        "Luban/Data",
+        "Assets/GameData",
+        "Tests"
+      ],
+      "deps": [
+        "T50"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:17+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:51+08:00"
+    },
+    {
+      "id": "T52",
+      "title": "Grip 烘焙与消费面",
+      "description": "",
+      "acceptance": "B12（Grip）：先落 WeaponGripCatalog/grip.bin 与消费面，再删 GripBake.g.cs（unity-pipeline，位于 LiteGame/Modules/Battle 非共享源集，无需 BuildHash 重生成）；WeaponGripBaker 产 grip.bin；WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver/GripTuning/FeatureDebugTunables 迁移；内容摘要含 grip.bin。执行者：资产删除主代理，代码/测试施工子代理",
+      "verify": "WeaponGripConstraintEditMode；catalog 用例；烘焙摘要；Unity 0 error",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Modules/Battle/Characters",
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/GameData/Config/runtime",
+        "Tests"
+      ],
+      "deps": [
+        "T51"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:17+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:52+08:00"
+    },
+    {
+      "id": "T53",
+      "title": "RootMotion 数据产物",
+      "description": "",
+      "acceptance": "B16/B17/B18：先落 RootMotionCatalog.Load/rootmotion.bin/Digest/AppComposition 绑定，再删 RootMotionData.g.cs（unity-pipeline）；LiteSim 无 RootMotion*；.bin 不进 SHARED_TARGETS；ContentIdentity 不引 LiteSim/SHA-256/无名称字段；已烘焙未接线登记；重生成 BuildHash（主代理）",
+      "verify": "RootMotionDataTests；gen-build-hash 重生成+--check-shared；文档登记",
+      "files": [
+        "Assets/LiteSim/Scripts/Map",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Assets/LiteGame/App",
+        "Assets/GameData/Config/runtime",
+        "Assets/LiteGame/Editor/Baking/RootMotionBaker.cs",
+        "Tests"
+      ],
+      "deps": [
+        "T52"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:17+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:52+08:00"
+    },
+    {
+      "id": "T54",
+      "title": "AOI 与广播拆分",
+      "description": "",
+      "acceptance": "B15：AoiSettings 落 LiteSync/Shared；服务端真实配置（deploy/roomserver.windows.json 三档 + GM 房参数两路）注入；AoiFilter 无静态缓存；SnapshotHz 分离，客户端从 JoinAck 取；SimView 无静态读；ThrottleRadius 命名常量/表列；重生成 BuildHash（主代理）",
+      "verify": "服务端配置注入；LocalServerHandshake/EditMode/Play；grep 零命中；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteSync",
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Server/RoomServer",
+        "deploy/roomserver.windows.json",
+        "Tests"
+      ],
+      "deps": [
+        "T53"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:17+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:52+08:00"
+    },
+    {
+      "id": "T55",
+      "title": "调参面与导出",
+      "description": "",
+      "acceptance": "B19/B20/B21：13 项滑杆；dev 三宏；单门 SimParamsGate.Evaluate 每会话一次 bool；单合并点 ConfigService+ServerTableLoader；联机/云 sandbox 禁用覆盖（断言）；判定路径零静态读（grep/负例）；四几何覆写**只做零命中复核**（删除在 T49）；Damage/Rpm 保留；B20 四条断言；导出/diff/备份/check-shared；.bin 摘要；重生成 BuildHash（主代理）",
+      "verify": "provider/门/合并点用例；B20 四条断言；工具实操；红线 13 真实操作；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Editor/Gm",
+        "Assets/LiteSim/Scripts/Rules",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T54"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:17+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:52+08:00"
+    },
+    {
+      "id": "T56",
+      "title": "自动门禁命令组（主代理）",
+      "description": "",
+      "acceptance": "B23（自动部分）：.workflow/config.json 增 sync-and-sim 自动命令组（L1/LiteSync/LiteSim 定向/check-shared/L2），wf verify 通过；不含人工联测。执行者：主代理独占",
+      "verify": "wf verify；证据列出实际命令",
+      "files": [
+        ".workflow/config.json"
+      ],
+      "deps": [
+        "T55"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:18+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:52+08:00"
+    },
+    {
+      "id": "T57",
+      "title": "文档回写与最终两端联测",
+      "description": "",
+      "acceptance": "B24+B23（人工部分）：3 设计+2 进度卷回写/索引/doc-lint；批次 7 后实际执行 build-player/player-smoke，两端 BuildHash+ConfigHash 对账并留证。执行者：文档施工子代理，最终联测主代理",
+      "verify": "doc-lint.py；build-player.py/player-smoke；两端摘要对账证据",
+      "files": [
+        "Docs/设计文档/网络",
+        "Docs/设计文档/客户端/动画",
+        "Docs/设计文档/游戏玩法",
+        "Docs/施工进度",
+        "scripts/build",
+        "Server",
+        "Builds"
+      ],
+      "deps": [
+        "T56"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第4轮整改：补生成物范围/自动 e2e/BakeTargets 明细/GM 实注入/执行者；由 T58+ 取代",
+      "created_at": "2026-10-31T17:15:18+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:21:52+08:00"
+    },
+    {
+      "id": "T58",
+      "title": "CombatGeometry 类型与发布闸门",
+      "description": "",
+      "acceptance": "B9（类型/闸门）：11 字段/9 参数；_published 三态；Geometry DisplayOnly；10 构造点；ResetForTests+[Collection]；Loaded 时序断言（`BattleContextTests`，范围含 `Assets/LiteGame/Modules/Battle/Arena`）；编辑器未发布不崩；坏表候选校验（表接入 T59）；重生成 BuildHash 主代理。执行者：主代理（重生成），施工子代理（代码/测试）",
+      "verify": "CombatGeometry/CombatValues/BattleContext EditMode；Loaded 三态/时序；dotnet+Unity；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Config",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T46"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:52+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:06+08:00"
+    },
+    {
+      "id": "T59",
+      "title": "表接入、13 列映射与调用点",
+      "description": "",
+      "acceptance": "B11+B9（表）：__tables__ + TableLayout.Files=Combat/tbcombatgeom；JudgmentFiles 自动包含；BuildCombatValues(...,tbcombatgeom) 13 列映射；ConfigService/ServerTableLoader/测试调用点全更新；坏表 ValidateCandidate 拒启动；生成读码/表字节落 `Assets/GameData/Generated`/`Config`；重生成 BuildHash 主代理。执行者：主代理（gen/build-hash），施工子代理（代码/测试）",
+      "verify": "Luban/gen.bat；gen-build-hash 重生成+check；表/坏表/映射用例；GameData 生成物检查",
+      "files": [
+        "Luban",
+        "Assets/LiteGame/Modules/Config",
+        "Assets/GameData/Generated",
+        "Assets/GameData/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T58"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:52+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:06+08:00"
+    },
+    {
+      "id": "T60",
+      "title": "判定面与外部消费者迁移",
+      "description": "",
+      "acceptance": "B10：Assets/Server/Tests 旧几何名零命中；T60 唯一删除四几何覆写；HUD/Dev/Editor/测试读者迁移；判定路径与烘焙写入源不读 Geometry（显示/对比白名单）；Arena 时序/断言；SimStep 与 9 System 签名不变；重生成 BuildHash 主代理。执行者：主代理（重生成），施工子代理（代码/测试）",
+      "verify": "grep 守卫（含白名单/负例）；Unity 0 error；定向 EditMode；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteSim/Scripts",
+        "Assets/LiteSim/Systems",
+        "Assets/LiteGame",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Server",
+        "Tests"
+      ],
+      "deps": [
+        "T59"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:53+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:06+08:00"
+    },
+    {
+      "id": "T61",
+      "title": "摘要与值校验",
+      "description": "",
+      "acceptance": "B13/B14：表字节进摘要；联机摘要不含覆盖；13 值与表装载结果 0 容差；改表后 GameplayDigestBase 变化可观测（测试名）；黄金样本/更新流程；两端摘要不等拒局。执行者：施工子代理",
+      "verify": "CombatConfigDigest/GameplayDigestBase 用例；黄金样本；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T60"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:53+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:07+08:00"
+    },
+    {
+      "id": "T62",
+      "title": "Body/Head/Muzzle 烘焙与 SimMap/WriteGenerated",
+      "description": "",
+      "acceptance": "B12：先落表写入器/新行；三件 .g.cs 走 unity-pipeline 删除（主代理执行）；三烘焙器写表（源只来自 prefab/anchor）；SimMapBaker 读 `BakeTargets.PrefabPath=Assets/ShareResource/Characters/Player(Rifle).prefab` 的 CC 并断言表 row≡`Tests/EditMode/Fixtures/BodyCc.json`（半径+高）；**BakeTargets 五常量去向**：Head/Muzzle/Body→#combatgeom 列，RootMotion→rootmotion.bin，Grip→grip.bin；四条死路径 = BakeTargets.cs:36-38/46 的 `Assets/LiteSim/Core/Scripts/*`→新去向；restore-check 前置；WriteGenerated 删除；注释 0 warning；重生成 BuildHash 主代理",
+      "verify": "烘焙实操；BodyBake/SimMapBaker EditMode；夹具断言；Unity 0 warning；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteSim/Scripts/Map",
+        "Luban/Data",
+        "Assets/GameData",
+        "Tests"
+      ],
+      "deps": [
+        "T61"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:53+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:07+08:00"
+    },
+    {
+      "id": "T63",
+      "title": "Grip 烘焙与消费面",
+      "description": "",
+      "acceptance": "B12（Grip）：先落 WeaponGripCatalog/grip.bin 与消费面，再删 GripBake.g.cs（unity-pipeline，主代理；非共享源集，无需 BuildHash）；WeaponGripBaker 产 grip.bin；WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver/GripTuning/FeatureDebugTunables 迁移；内容摘要含 grip.bin。执行者：主代理（删除），施工子代理（代码/测试）",
+      "verify": "WeaponGripConstraintEditMode；catalog 用例；烘焙摘要；Unity 0 error",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Modules/Battle/Characters",
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/GameData/Config/runtime",
+        "Tests"
+      ],
+      "deps": [
+        "T62"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:53+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:07+08:00"
+    },
+    {
+      "id": "T64",
+      "title": "RootMotion 数据产物",
+      "description": "",
+      "acceptance": "B16/B17/B18：先落 RootMotionCatalog.Load/rootmotion.bin/Digest/AppComposition 绑定，再删 RootMotionData.g.cs（unity-pipeline，主代理）；LiteSim 无 RootMotion*；.bin 不进 SHARED_TARGETS；ContentIdentity 不引 LiteSim/SHA-256/无名称字段；已烘焙未接线登记；重生成 BuildHash 主代理。执行者：主代理（删除/重生成），施工子代理（代码/测试）",
+      "verify": "RootMotionDataTests；gen-build-hash 重生成+check；文档登记",
+      "files": [
+        "Assets/LiteSim/Scripts/Map",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Assets/LiteGame/App",
+        "Assets/GameData/Config/runtime",
+        "Assets/LiteGame/Editor/Baking/RootMotionBaker.cs",
+        "Tests"
+      ],
+      "deps": [
+        "T63"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:53+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:07+08:00"
+    },
+    {
+      "id": "T65",
+      "title": "AOI 与广播拆分",
+      "description": "",
+      "acceptance": "B15：AoiSettings 落 LiteSync/Shared；**两路真实注入**：deploy/roomserver.windows.json 全开/30m/15m 三档 + GM `start` 创建 sandbox 房后回读生效值（scripts/deploy/gm.py）；AoiFilter 无静态缓存；SnapshotHz 分离，客户端从 JoinAck 取；SimView 无静态读；ThrottleRadius 命名常量/表列；重生成 BuildHash 主代理。执行者：主代理（重生成/云侧操作），施工子代理（代码/测试）",
+      "verify": "三档配置回读；GM 房生效断言；LocalServerHandshake/EditMode/Play；grep 零命中；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteSync",
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Server/RoomServer",
+        "deploy/roomserver.windows.json",
+        "scripts/deploy/gm.py",
+        "Tests"
+      ],
+      "deps": [
+        "T64"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:53+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:07+08:00"
+    },
+    {
+      "id": "T66",
+      "title": "调参面与导出",
+      "description": "",
+      "acceptance": "B19/B20/B21：13 滑杆；dev 三宏；单门 SimParamsGate.Evaluate 每会话一次 bool；单合并点 ConfigService+ServerTableLoader；联机/云 sandbox 禁用覆盖（断言）；判定路径零静态读（grep/负例命令）；四几何覆写只做零命中复核（删除在 T60）；Damage/Rpm 保留；B20 四条断言；编辑器+GM 两处导出/diff/备份/check-shared；.bin 摘要；重生成 BuildHash 主代理。执行者：主代理（重生成），施工子代理（代码/测试）",
+      "verify": "provider/门/合并点用例；B20 四条断言；工具实操；红线 13 真实操作；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Editor/Gm",
+        "Assets/LiteSim/Scripts/Rules",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T65"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:54+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:07+08:00"
+    },
+    {
+      "id": "T67",
+      "title": "自动门禁与两端 e2e（主代理）",
+      "description": "",
+      "acceptance": "B23：新增 `scripts/gate/sync-and-sim-e2e.py`：RoomServer publish + build-player + player-smoke + 两端 BuildHash/ConfigHash 对账；`.workflow/config.json` 的 sync-and-sim 命令组包含 L1/LiteSync/LiteSim 定向/check-shared/L2/e2e；wf verify 通过。执行者：主代理独占（施工子代理禁改）",
+      "verify": "wf verify；e2e 脚本输出两端摘要；证据列命令/时间/摘要",
+      "files": [
+        "scripts/gate/sync-and-sim-e2e.py",
+        ".workflow/config.json",
+        "scripts/build",
+        "Server",
+        "Builds"
+      ],
+      "deps": [
+        "T66"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:54+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:07+08:00"
+    },
+    {
+      "id": "T68",
+      "title": "文档回写",
+      "description": "",
+      "acceptance": "B24：3 设计+2 进度卷回写/索引/doc-lint；记录 T66 e2e 证据链接。执行者：施工子代理",
+      "verify": "doc-lint.py；文档检查",
+      "files": [
+        "Docs/设计文档/网络",
+        "Docs/设计文档/客户端/动画",
+        "Docs/设计文档/游戏玩法",
+        "Docs/施工进度"
+      ],
+      "deps": [
+        "T67"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "任务评审第5轮整改：补执行者/WriteGenerated 收口/测试名/CC 夹具同源；由 T69~T82 重建",
+      "created_at": "2026-10-31T17:21:54+08:00",
+      "started_at": null,
+      "completed_at": "2026-10-31T17:28:08+08:00"
+    },
+    {
+      "id": "T69",
+      "title": "架构守卫与静态可变扫描根",
+      "description": "",
+      "acceptance": "B5/B22：Allowed 删 LiteNet->LiteSim 加 LiteSync；ClientRoots 含 LiteSync；StaticMutable 根含 LiteNet+LiteSync；两条硬边与植入违规负例生效。执行者：守卫 C#/测试=施工子代理；门禁配置=主代理",
+      "verify": "ClientAsmdefAllowlistTests/ArchitectureGuardTests/StaticMutableAllowlistTests；gen-build-hash --check-shared",
+      "files": [
+        "Tests/LiteFramework.Core.Tests"
+      ],
+      "deps": [
+        "T44"
+      ],
+      "status": "done",
+      "evidence": "Allowed: LiteNet->[] 且新增 LiteSync；ClientRoots/StaticMutable 根含 LiteSync+LiteNet（kcp2k vendor 排除）；ArchitectureGuard 两条硬边+植入违规负例；ClientAsmdef/ArchitectureGuard/StaticMutable 12/12 通过；gen-build-hash --check-shared OK=79fde2453cdc1880（109 文件）",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:08+08:00",
+      "started_at": "2026-10-31T20:08:59+08:00",
+      "completed_at": "2026-10-31T20:17:28+08:00"
+    },
+    {
+      "id": "T70",
+      "title": "两端重建与联测（批 6）",
+      "description": "",
+      "acceptance": "B8：L1 全量绿；客户端 build-player + RoomServer publish；本地测试房+KCP lossy 冒烟；两端 BuildHash 对账；证据落盘。执行者：主代理",
+      "verify": "gate/test.py --suite L1；build-player.py；dotnet publish RoomServer；player-smoke；BuildHash 对账",
+      "files": [
+        "scripts/build",
+        "Server",
+        "Builds"
+      ],
+      "deps": [
+        "T69"
+      ],
+      "status": "cancelled",
+      "evidence": "",
+      "status_reason": "TDD 先红与批6 L1 全绿冲突：20 个批7红测需 T71+ 才转绿；批6/批7联合回归改由 T83 承担",
+      "created_at": "2026-10-31T17:28:23+08:00",
+      "started_at": "2026-10-31T20:20:20+08:00",
+      "completed_at": "2026-10-31T20:22:35+08:00"
+    },
+    {
+      "id": "T71",
+      "title": "CombatGeometry 类型与发布闸门",
+      "description": "",
+      "acceptance": "B9（类型/闸门）：11 字段/9 参数；读口三态（未发布抛/已发布读/展示兜底）；10 构造点；ResetForTests+[Collection]；`BattleContextTests` 时序断言（范围含 Arena）；编辑器未发布不崩；坏表候选校验（表接入下一任务）；重生成 BuildHash 主代理。执行者：代码/测试=施工子代理；重生成=主代理",
+      "verify": "CombatGeometry/CombatValues/BattleContext EditMode；Loaded 三态/时序；dotnet+Unity；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Config",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T70"
+      ],
+      "status": "done",
+      "evidence": "新增 CombatGeometry（13 字段+派生）；CombatValues 11 字段/9 参；CombatConfig _published/Loaded 抛/HasPublished/TryGetLoaded/Geometry 兜底/ResetForTests；10 处构造点更新；UT05/06/07/21 绿；dotnet Tests.slnx 0 error；Unity recompile 0 error。UT08/09/10/11/12 属 T72/T73 待转绿",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:24+08:00",
+      "started_at": "2026-10-31T20:22:35+08:00",
+      "completed_at": "2026-10-31T20:26:27+08:00"
+    },
+    {
+      "id": "T72",
+      "title": "表接入、13 列映射与调用点",
+      "description": "",
+      "acceptance": "B11+B9（表）：__tables__ + TableLayout.Files=Combat/tbcombatgeom；JudgmentFiles 自动包含；BuildCombatValues(...,tbcombatgeom) 13 列映射；ConfigService/ServerTableLoader/测试调用点全更新；坏表 ValidateCandidate 拒启动；生成读码/表字节落 `Assets/GameData/Generated`/`Config`；重生成 BuildHash 主代理。执行者：代码/测试=施工子代理；gen/重生成=主代理",
+      "verify": "Luban/gen.bat；gen-build-hash 重生成+check；表/坏表/映射用例；GameData 生成物检查",
+      "files": [
+        "Luban",
+        "Assets/LiteGame/Modules/Config",
+        "Assets/GameData/Generated",
+        "Assets/GameData/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T71"
+      ],
+      "status": "done",
+      "evidence": "新增 Luban/Data/#combatgeom.xlsx 与 __tables__.xlsx 登记；gen_luban 产出 Tbcombatgeom/combatgeom/tbcombatgeom.bytes；TableLayout.Files 增 Combat/tbcombatgeom；BuildCombatValues 4 参+13 列映射；ConfigService/ServerTableLoader/测试调用点更新；UT10/UT11 绿；LiteNet 表测试 28/28；BuildHash=d4a2251ca37f8158（112 文件）；Unity 0 error。UT08/09/12 属 T73",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:24+08:00",
+      "started_at": "2026-10-31T20:26:27+08:00",
+      "completed_at": "2026-10-31T20:29:04+08:00"
+    },
+    {
+      "id": "T73",
+      "title": "判定面与外部消费者迁移",
+      "description": "",
+      "acceptance": "B10：Assets/Server/Tests 旧几何名零命中；本任务唯一删除四几何覆写；HUD/Dev/Editor/测试读者迁移；判定路径与烘焙写入源不读 Geometry（显示/对比白名单）；测试名：BattleCrosshairEditModeTests/BattleLaserEditModeTests/BattleSmokePlayModeTests + ArchitectureGuardTests 负例；Arena 侧 BattleContext/BattleCrosshairDriver/AutoHeadshotRig/BattleHeadshotDebugDrawer 只读展示断言；SimStep 与 9 System 签名不变；重生成 BuildHash 主代理。执行者：代码/测试=施工子代理；重生成=主代理",
+      "verify": "grep 守卫（含白名单/负例）；Unity 0 error；上述测试名全绿；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteSim/Scripts",
+        "Assets/LiteSim/Systems",
+        "Assets/LiteGame",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Server",
+        "Tests"
+      ],
+      "deps": [
+        "T72"
+      ],
+      "status": "done",
+      "evidence": "CombatConfig 旧几何常量/MuzzleOrigin 删除；MatchTestRules 几何覆写四件删除；SimRaycast 收 Geometry 参数；Movement/Input/Shooting/Damage 改读 values.Geometry（Damage 经 SimWorldState.Values 帧上下文，9 个 System.Run 签名未变）；HUD/Dev/Editor/测试读者迁移；UT08/09/12 绿；LiteSim 388/388；LiteNet 681/681；BattleLaser 14/14；Unity 0 error；BuildHash=e3252e3ca1500704（112 文件）。旧 Dev TestModeRuntime head 覆写字段留待 T80 退役",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:24+08:00",
+      "started_at": "2026-10-31T20:42:44+08:00",
+      "completed_at": "2026-10-31T20:42:44+08:00"
+    },
+    {
+      "id": "T74",
+      "title": "摘要与值校验",
+      "description": "",
+      "acceptance": "B13/B14：表字节进摘要；联机摘要不含覆盖；13 值与表装载结果 0 容差；改表后 GameplayDigestBase 变化可观测（测试名）；黄金样本/更新流程/测试名；两端摘要不等拒局。执行者：代码/测试=施工子代理；重生成=主代理",
+      "verify": "CombatConfigDigest/GameplayDigestBase 用例；黄金样本测试名；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T73"
+      ],
+      "status": "done",
+      "evidence": "ConfigurationSourceTests 23/23：13 列几何表值=默认横截面（0 容差，含派生 HeadHitLine/HeadshotRadius）+ tbcombatgeom 改字节摘要变；SimDeterminism/CombatConfigDigest/SimChecksum 17/17；BuildHash=e3252e3ca1500704",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:24+08:00",
+      "started_at": "2026-10-31T20:42:45+08:00",
+      "completed_at": "2026-10-31T20:43:48+08:00"
+    },
+    {
+      "id": "T75",
+      "title": "Body/Head/Muzzle 烘焙与 SimMap",
+      "description": "",
+      "acceptance": "B12：先落表写入器/新行；三件 .g.cs 走 unity-pipeline 删除（主代理）；三烘焙器写表（源只来自 prefab/anchor）；SimMapBaker 读 BakeTargets.PrefabPath 的 CC 并断言表 row≡BodyCc 夹具（半径+高）；BodyCylinderBaker 同次原子写夹具（含来源 prefab）；prefab 缺失=失败不 skip；BakeTargets 五常量去向（Head/Muzzle/Body→#combatgeom，RootMotion→rootmotion.bin，Grip→grip.bin）；四条死路径=BakeTargets.cs:36-38/46 的 `Assets/LiteSim/Core/Scripts/*`→新去向；本任务不删 WriteGenerated；注释 0 warning；重生成 BuildHash 主代理。执行者：资产删除/重生成=主代理；代码/测试=施工子代理",
+      "verify": "烘焙实操；BodyBake/SimMapBaker EditMode；夹具同源/缺失失败用例；Unity 0 warning；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteSim/Scripts/Map",
+        "Luban/Data",
+        "Assets/GameData",
+        "Tests"
+      ],
+      "deps": [
+        "T74"
+      ],
+      "status": "done",
+      "evidence": "新增 scripts/codegen/_combatgeom_row.py（unittest 13/13 OK）+ scripts/tests/test_combatgeom_row.py；新增 Assets/LiteGame/Editor/Baking/CombatGeomTableWriter.cs；改写 BodyCylinderBaker/HeadHitLineTuner/MuzzleOffsetBaker 为写 #combatgeom 表行（Body 同次写 Tests/EditMode/Fixtures/BodyCc.json，先夹具后表）；SimMapBaker 改读 prefab CC 并做 prefab=表行=夹具 0 容差对账（顺手修登记债 :84 死分支）；BakeTargets 删三输出常量、修正四条死路径、新增 RootMotionBin/GripBin/BodyCcFixturePath；BakingToolbox/GmTestModePage/CombatConfig 注释与文案同步；BodyBakeEditModeTests/SimMapBakerEditModeTests 迁移；主代理删除三件 .g.cs（AssetDatabase.DeleteAsset）；scripts/gate/toolchain.json 两条烘焙输出改指表源 + 重生成 Docs/说明/工具索引.md。验证：python unittest 13/13 OK；toolchain check OK(1 既有 warning)；Unity 重编译 0 error（改动文件零 warning）；EditMode BodyBake+SimMapBaker 18/18 通过。L1 契约 UT13/14/15 仍红属 T76/T77/T78 边界。",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:24+08:00",
+      "started_at": "2026-10-31T20:48:52+08:00",
+      "completed_at": "2026-10-31T21:01:07+08:00"
+    },
+    {
+      "id": "T76",
+      "title": "Grip 烘焙与消费面",
+      "description": "",
+      "acceptance": "B12（Grip）：先落 WeaponGripCatalog/grip.bin 与消费面，再删 GripBake.g.cs（unity-pipeline，主代理；非共享源集，无需 BuildHash）；WeaponGripBaker 产 grip.bin；WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver/GripTuning/FeatureDebugTunables 迁移；内容摘要含 grip.bin。执行者：资产删除=主代理；代码/测试=施工子代理",
+      "verify": "WeaponGripConstraintEditMode；catalog 用例；烘焙摘要；Unity 0 error",
+      "files": [
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Modules/Battle/Characters",
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/GameData/Config/runtime",
+        "Tests"
+      ],
+      "deps": [
+        "T75"
+      ],
+      "status": "done",
+      "evidence": "新增 WeaponGripCatalog（GRIP/ver1/长度前缀路径/6 float 位姿/float 幅度，小端；InvalidDataException 校验；Digest=SHA-256 字节）+ BinTextAssetImporter（.bin 导入为 Base64 TextAsset，实测 DefaultAsset 无法打包且 TextAsset 无 byte[] 构造）；WeaponGripBaker 改产 Assets/GameData/Config/runtime/grip.bin（139B，sha256 c05c3c15...，write-if-changed）；BakeTargets 删 GripBakeOutput、加 WriteArtifactBytes；ToolWriteScope 加 WriteBytes；消费面实例化：WeaponGripConstraint/WeaponAimConstraint/AimPitchPostureDriver 收 catalog、GripTuning.Resolve(baked)、CharacterLocomotionDriver 可选注入并在缺失时三约束不建（一次告警）、BattleViewRig.LoadAsync 经 IContentService 取 TextAsset→Base64→Load（缺/坏=降级）、FeatureDebugTunables 收可选 catalog（生产 null 显示未装载）；测试：WeaponGripCatalogEditModeTests 8 例 + WeaponGripConstraintEditModeTests 迁移。验证：Unity 0 error 0 warning；烘焙实跑 written/up-to-date；探针 TextAsset+139B+digest 一致；EditMode 五组 82/82；守卫 4 组全绿；主代理删 GripBake.g.cs（引用清零）；toolchain.json baking.grip→grip.bin 且 docs/check OK。剩余：UT13/UT14 只差 RootMotionData.g.cs 与 rootmotion.bin（T77）；UT15 待 T78。偏差：生产 GM 持枪滑杆无 catalog 来源（未装载占位）。",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:24+08:00",
+      "started_at": "2026-10-31T21:02:42+08:00",
+      "completed_at": "2026-10-31T21:13:31+08:00"
+    },
+    {
+      "id": "T77",
+      "title": "RootMotion 数据产物",
+      "description": "",
+      "acceptance": "B16/B17/B18：先落 RootMotionCatalog.Load/rootmotion.bin/Digest/AppComposition 绑定，再删 RootMotionData.g.cs（unity-pipeline，主代理）；LiteSim 无 RootMotion*；.bin 不进 SHARED_TARGETS；ContentIdentity 不引 LiteSim/SHA-256/无名称字段；已烘焙未接线登记；重生成 BuildHash 主代理。执行者：资产删除/重生成=主代理；代码/测试=施工子代理",
+      "verify": "RootMotionDataTests；gen-build-hash 重生成+check；文档登记",
+      "files": [
+        "Assets/LiteSim/Scripts/Map",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Assets/LiteGame/App",
+        "Assets/GameData/Config/runtime",
+        "Assets/LiteGame/Editor/Baking/RootMotionBaker.cs",
+        "Tests"
+      ],
+      "deps": [
+        "T76"
+      ],
+      "status": "done",
+      "evidence": "RootMotion 迁出 LiteSim 到 Modules/Battle/Arena（RootMotionEntry/Catalog/Digest 零引擎，源链接进 LiteSim.Core.Tests）；格式 RMO1/v1/tickRate/entryCount/逐条(actionId,motionVersion,sampleCount,三策略,yPeakMm,2N×i16 XZ, N×i16 yaw)，小端无时间戳，Digest=字节 SHA-256，装载期断言 tickRate==SimConfig.TickRate；RootMotionBaker 改产 Assets/GameData/Config/runtime/rootmotion.bin（1195B, 3 条, sha256 55d13829...，write-if-changed），BakeTargets 删 RootMotionOutput、BakingToolbox 文案改导出 bin；BattleViewRig.LoadAsync 增 AcquireRootMotionAsync（fail-fast，不降级）并写 RootMotionDigestHolder；BattleComposition/GroupFactory 注册端口 IRootMotionContentDigest，AppComposition.BindIdentity 改经端口取摘要（ContentIdentity 字段不动）；主代理删 RootMotionData.g.cs；重生成 BuildHash shared=a2d826839c1327fc(107 文件) 且 check OK；toolchain.json baking.root-motion→rootmotion.bin + docs/check OK。验证：Unity 0 error；LiteSim.Core.Tests 387/387（RootMotion 4/4）；架构守卫 15/15；EditMode（RootMotionCatalog/MatchLoopLeak/BattleSession/PageFlowBattleMenu）30/30；契约 UT13/UT14 转绿。偏差：装载点从计划写的 ConfigService 改为对局装配（共享能力域不得依赖业务域），摘要首个对局前为空串（该字段生产零读者）。修复：L1 用例漏参 2 处、BattleSession 4 条补 CombatValues.Publish 的 SetUp。",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:24+08:00",
+      "started_at": "2026-10-31T21:14:16+08:00",
+      "completed_at": "2026-10-31T21:24:17+08:00"
+    },
+    {
+      "id": "T78",
+      "title": "WriteGenerated 删除收口",
+      "description": "",
+      "acceptance": "B12（收口）：五件 .g.cs 全部退役后，`BakeTargets.WriteGenerated` 零引用并删除；编译 0 warning。执行者：施工子代理（Editor 代码，无共享源变更）",
+      "verify": "grep WriteGenerated 零命中；Unity 0 warning",
+      "files": [
+        "Assets/LiteGame/Editor/Baking"
+      ],
+      "deps": [
+        "T77"
+      ],
+      "status": "done",
+      "evidence": "删除 BakeTargets.WriteGenerated 两个重载及注释（276→232 行），清理仅其使用的 using System.Text；WriteArtifact/WriteArtifactBytes/WriteIfChanged(+/Bytes)/OutcomeLabel 保留；类头与 MapOutput/GripBinOutput 摘要去掉 .g.cs 口径。验证（主代理解冻后复核）：Unity 重编译 0 error 0 warning；BakeTargets lines=232 WriteGenerated=0；SyncAndSimContractTests 6 通过/5 失败，UT15 转绿（剩 UT16~UT20 归 T79/T80）。事故：子代理在 exec_editor_script 内同步等待 git 子进程致编辑器主线程死锁，由用户重启编辑器恢复；已登记为红线复现。文档旧口径清单转 T82。",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:25+08:00",
+      "started_at": "2026-10-31T21:24:37+08:00",
+      "completed_at": "2026-10-31T22:03:32+08:00"
+    },
+    {
+      "id": "T79",
+      "title": "AOI 与广播拆分",
+      "description": "",
+      "acceptance": "B15：AoiSettings 落 LiteSync/Shared；两路真实注入：deploy/roomserver.windows.json 三档（改配置后重启 LiteGame-Room 再回读）+ GM `start` 创建 sandbox 房后回读生效值（scripts/deploy/gm.py）；AoiFilter 无静态缓存；SnapshotHz 分离，客户端从 JoinAck 取；SimView 无静态读；ThrottleRadius 命名常量/表列；重生成 BuildHash 主代理。执行者：重生成/云侧操作=主代理；代码/测试=施工子代理",
+      "verify": "三档配置回读；GM 房生效断言；LocalServerHandshake/EditMode/Play；grep 零命中；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteSync",
+        "Assets/LiteSim/Scripts/Config",
+        "Assets/LiteGame/Modules/Battle/Arena",
+        "Server/RoomServer",
+        "deploy/roomserver.windows.json",
+        "scripts/deploy/gm.py",
+        "Tests"
+      ],
+      "deps": [
+        "T78"
+      ],
+      "status": "done",
+      "evidence": "新增 LiteSync/Shared/AoiSettings.cs（cell 10/radius 30/extent 640，ThrottleRadius=Radius/2，fail-fast 校验）；AoiFilter 去 static readonly 改实例；SimConfig 删 SnapshotHz/Aoi* 四常量；ProtocolConstants 删 ThrottleAoiRadius（改 DefaultSnapshotHz=30/Min1/Max120）；房级链路：deploy/roomserver.windows.json 模板加 snapshot_hz+aoi（standard 30 / four+eight 15 / sandbox 0）→ RoomServerConfig.RoomTemplate/ParseAoi 校验 → RoomConfig/RoomRuntime → SnapshotPipeline(stride=TickRate/snapshotHz, 节流=ThrottleRadius) → HandshakePacker(snapshotHz) → RoomSession/RoomClient.SnapshotHz → BattleContext → SimView 实例 SnapshotInterval（IBattleView.SetSnapshotHz）。验证：Unity 0 error；LiteNet.Tests 682/682；LiteSim.Core.Tests 387/387；契约 UT16~UT19 转绿（仅剩 UT20 归 T80）；EditMode SimView/本地服握手/BattleSession/MatchLoopLeak 36/36；BuildHash 重生成 shared=be285f5c37e147d9(108 文件) check OK；服务端用三档配置真实启动 exit 0 且横幅/buildHash 一致。修复缺口：SnapshotStickyTests 6 处旧半径、HandshakePacker 缺 using。未做：RoomServerConfigTests 新用例、GM 房 AOI 回读（归 T81/T83）。",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:25+08:00",
+      "started_at": "2026-10-31T22:03:52+08:00",
+      "completed_at": "2026-10-31T22:12:46+08:00"
+    },
+    {
+      "id": "T80",
+      "title": "调参面与导出",
+      "description": "",
+      "acceptance": "B19/B20/B21：13 滑杆；dev 三宏；单门 SimParamsGate.Evaluate 每会话一次 bool；单合并点 ConfigService+ServerTableLoader；联机/云 sandbox 禁用覆盖（断言）；判定路径零静态读（grep/负例命令）；四几何覆写只做零命中复核（删除在判定面任务）；Damage/Rpm 保留；B20 四条断言；编辑器+GM 两处导出/diff/备份/check-shared；.bin 摘要；重生成 BuildHash 主代理。执行者：重生成=主代理；代码/测试=施工子代理；GM 真实操作=主代理",
+      "verify": "provider/门/合并点用例；B20 四条断言；工具实操；红线 13 真实操作；gen-build-hash 重生成+check",
+      "files": [
+        "Assets/LiteGame/Adapters/Dev",
+        "Assets/LiteGame/Editor/Baking",
+        "Assets/LiteGame/Editor/Gm",
+        "Assets/LiteSim/Scripts/Rules",
+        "Assets/LiteGame/Modules/Config",
+        "Server/RoomServer",
+        "Tests"
+      ],
+      "deps": [
+        "T79"
+      ],
+      "status": "done",
+      "evidence": "参数面已交付并验证：SimParamsOverrides（13 列可空覆写+同口径校验，零引擎、L1 源链接）、SimParamsGate（纯函数）、SimParamsActivation（门+合并唯一求值点）、SimParamsDebugTunables（13 滑杆）、SimParamsExporter（复用 CombatGeomTableWriter：dry-run/写入/备份/下一步提示）、ConfigService.TableCombatValues、BakingToolbox 预览+写入两键、Dev 装配注册 provider。验证：Unity 0 error；LiteSim.Core.Tests 412/412（含 SimParamsOverridesTests 25 例）；SyncAndSimContractTests 11/11（UT20 转绿）；StaticMutableAllowlist 通过。运行期生效链路在同批 T84 落地（门下移到进房时点、两端同值），故本任务的 B19/B20 运行期面随 T84 兑现。",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:25+08:00",
+      "started_at": "2026-10-31T22:40:34+08:00",
+      "completed_at": "2026-10-31T23:00:56+08:00"
+    },
+    {
+      "id": "T81",
+      "title": "自动门禁与两端 e2e（主代理）",
+      "description": "",
+      "acceptance": "B23：新增 `scripts/gate/sync-and-sim-e2e.py`：RoomServer publish + build-player + player-smoke + 两端 BuildHash/ConfigHash 对账；`.workflow/config.json` 的 sync-and-sim 命令组含 L1/LiteSync/LiteSim 定向/check-shared/L2/e2e；wf verify 通过。执行者：主代理独占",
+      "verify": "wf verify；e2e 输出两端摘要；证据列命令/时间/摘要/清理",
+      "files": [
+        "scripts/gate/sync-and-sim-e2e.py",
+        ".workflow/config.json",
+        "scripts/build",
+        "Server",
+        "Builds"
+      ],
+      "deps": [
+        "T80"
+      ],
+      "status": "done",
+      "evidence": "sync-and-sim-e2e.py 全链实测通过（20261031-232226）：read-client-hash / check-shared(be285f5c37e147d9) / server-reconcile(服务端启动横幅同哈希) / build-player(PASSED, GameAssembly.dll 10-31 23:46) / player-smoke(OK '[Asset] ready', 进程存活) 全部 OK，summary.ok=true。.workflow/config.json 追加 sync-and-sim-{litesync,litesim,contract,check-shared,l2,e2e} 六条命令（JSON 校验通过，commands=65）。修复前置阻塞：build-player.py 的 Builder.pipeline 未透传 `unity --timeout`（CLI 缺省 30s）→ bundle 构建必然超时失败；已改为 --timeout 1800，构建随即通过。说明：LiteNet 682/682、LiteSim 412/412、契约 11/11 均本会话内独立跑过；wf verify 全量（60+ 命令含多组重 Unity 套件）留待阶段 8 统一执行。",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:25+08:00",
+      "started_at": "2026-10-31T23:50:19+08:00",
+      "completed_at": "2026-10-31T23:50:19+08:00"
+    },
+    {
+      "id": "T82",
+      "title": "文档回写",
+      "description": "",
+      "acceptance": "B24：3 设计+2 进度卷回写/索引/doc-lint；记录自动 e2e 证据链接。执行者：施工子代理",
+      "verify": "doc-lint.py；文档检查",
+      "files": [
+        "Docs/设计文档/网络",
+        "Docs/设计文档/客户端/动画",
+        "Docs/设计文档/游戏玩法",
+        "Docs/施工进度"
+      ],
+      "deps": [
+        "T81"
+      ],
+      "status": "done",
+      "evidence": "文档回写完成：状态同步专项设计（新增 §2.1 LiteSync 边界与协议面、§3 房级快照频率、§8 AoiSettings）、联机动画与根位移（新增 §3.1 RMO1 格式/§3.2 装载器与 fail-fast/§3.3 身份摘要时序/§3.4 .bin 引擎事实与 BinTextAssetImporter）、烘焙工具箱（重写 v2.0：三类产物/13 列/写盘原语/SimParams 五件/.bin 导入）、进度卷 输入与同步链线第8章 + 战斗与武器线第18章 + README 索引。旧口径清理：现行文档中 WriteGenerated/*.g.cs/SimConfig.Aoi*/ThrottleAoiRadius 已改指表列或 .bin（历史施工章与归档按规则保留）。验证：python scripts/gate/doc-lint.py 0/0；python scripts/gate/test.py --suite Doc PASS。",
+      "status_reason": "",
+      "created_at": "2026-10-31T17:28:25+08:00",
+      "started_at": "2026-10-31T23:51:46+08:00",
+      "completed_at": "2026-11-01T00:04:32+08:00"
+    },
+    {
+      "id": "T83",
+      "title": "批6+批7 联合回归",
+      "description": "",
+      "acceptance": "B8/B23最终：L1 全量绿（含 20 个红测全转绿）；客户端 build-player + RoomServer publish；本地测试房+KCP lossy 冒烟；两端 BuildHash/ConfigHash 对账并留证。执行者：主代理",
+      "verify": "gate/test.py --suite L1；build-player.py；RoomServer publish；player-smoke；两端摘要对账",
+      "files": [
+        "scripts/build",
+        "Server",
+        "Builds"
+      ],
+      "deps": [
+        "T82"
+      ],
+      "status": "done",
+      "evidence": "联合回归证据：L1 全量 `python scripts/gate/test.py --suite L1` PASS（1970 tests：LiteFramework 819 / LiteNet 569 / LiteSim 412 / LiteTesting 7 / MetaServer 163），此前两条红（复杂度预算、RoomClient<350）已修：抽出 SimMapSpawnGate（SimMapBaker 774→636 行）、SlotWeaponConstraints（CharacterLocomotionDriver→≤524）、BattleContext 收入 WireSimView（→491 上限内）、RoomClient 349 行；EditMode 定向 70/70（SimMapBaker/CharacterLocomotion/BodyBake/WeaponGripConstraint/RootMotionCatalog）；两端联测 `sync-and-sim-e2e.py` 全链 OK（TestResults/sync-and-sim-e2e/20261031-232226：客户端与 RoomServer 真实启动 `be285f5c37e147d9` 一致、build-player PASSED、player-smoke '[Asset] ready'）；doc-lint 0/0 与 Doc lane PASS；契约 SyncAndSimContractTests 11/11（UT13~UT20 红测全转绿）。未做：`wf verify` 全量（65 条命令，含多组重 Unity 套件）留待阶段 8 统一执行。",
+      "status_reason": "",
+      "created_at": "2026-10-31T20:22:35+08:00",
+      "started_at": "2026-11-01T00:04:32+08:00",
+      "completed_at": "2026-11-01T00:04:33+08:00"
+    },
+    {
+      "id": "T84",
+      "title": "本地测试房参数覆盖生效链路",
+      "description": "",
+      "acceptance": "B19/B20 运行期面：①门 SimParamsGate.Evaluate 在进入本地测试模式/进房时求值一次（不是装配期），结果以 bool 传入；②同一份合并值同时供给客户端 CombatConfig 与本地服 RoomRuntime（LocalServerTransport 建房用合并值而非 CombatValues.Default），保证 B20② 的'本地权威 checksum == 客户端预测 checksum 且两侧 CombatValues 逐字段相等'；③联机/云 sandbox 路径恒不读覆盖（断言）；④对局中改滑杆只提示'下一局生效'。",
+      "verify": "L1：新增/扩展用例（门--会话一次、两端同值、联机禁用）；EditMode：进本地测试局后两侧 CombatValues 逐字段相等；Play：本地测试局命中判定随滑杆变化",
+      "files": [
+        "Assets/LiteGame/App/AppComposition.cs",
+        "Assets/LiteGame/Modules/Config/SimParamsGate.cs",
+        "Assets/LiteGame/Adapters/Dev/LocalServer/LocalServerTransport.cs",
+        "Assets/LiteGame/Modules/Session",
+        "Assets/LiteGame/Modules/Procedure/Stages/ProcedureBattle.cs",
+        "Tests"
+      ],
+      "deps": [
+        "T80"
+      ],
+      "status": "done",
+      "evidence": "门下移到进房时点：新增零引擎 SimParamsActivation.Resolve(applyOverrides, table, overrides)（只重建几何 13 列）；IConfigService.TableCombatValues（表装载值、合并前保存）；ProductTransportFactory.ResolveRoomValues 每会话一次求值（testRoom && IsDevelopment → SimParamsGate.Evaluate(dev.Active, localTestRoom)）→ CombatConfig.Publish(active) + 把同一份 CombatValues 传给 ILocalTransportFactory.Create → DevLocalTransportFactory → LocalServerTransport.ForRoom/ctor → RoomRuntime（替代内部 CombatValues.Default，NoDeath/InfiniteAmmo 盖在传入值上）；真联机分支不接触覆写；AppComposition 不再在装配期求门（仅 Put 覆写实例）。验证：Unity 0 error；LiteSim.Core.Tests 412/412（新增 4 条：门关=表值、门开无覆写=表值、overrides null=表值、门开有覆写只改目标列且规则位不动）；LiteNet.Tests 682/682；gen-build-hash --check-shared 不变（本次未触共享源集）。未做：本地测试房 Play 级两端逐字段/checksum 证据（归 T83 联合回归）；服务端真服 ServerTableLoader.ToValues 几何走 CombatGeometry.Default 的既有缺口（本地房路径不经它，已登记）。",
+      "status_reason": "",
+      "created_at": "2026-10-31T22:48:29+08:00",
+      "started_at": "2026-10-31T23:00:56+08:00",
+      "completed_at": "2026-10-31T23:00:57+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-11-01T03:33:03+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "c35c057ffee112706f8563c5e76382fc302a76715f18e12c85e79f6cc3fe9321",
+    "summary": {
+      "total": 64,
+      "passed": 64
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-31T17:54:04+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "9da2f2e2abf9dbff19aa9c6ffdb61de67bec6ad3899d67181dfaf35dc2ccd755",
+    "summary": {
+      "total": 13,
+      "passed": 2
+    }
+  },
+  "archived_at": "2026-11-01T03:37:55+08:00"
+}

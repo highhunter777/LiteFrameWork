@@ -1,6 +1,7 @@
 using LiteNet;
 using NUnit.Framework;
 
+using LiteSync.Client;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>

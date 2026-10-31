@@ -35,7 +35,7 @@ namespace LiteNet.Tests
             }));
             recorder.RecordCommand(RoomCommand.Tick(16));
             recorder.RecordStep(1, 0xDEADBEEFu);
-            recorder.RecordTestRules(1, new MatchTestRules { NoDeath = true, HeadHitLineOverride = 1.5f });
+            recorder.RecordTestRules(1, new MatchTestRules { NoDeath = true });
             return recorder.Seal();
         }
 
@@ -81,7 +81,6 @@ namespace LiteNet.Tests
 
             var rulesEvent = decoded.Record.Events.First(e => e.Kind == RoomRunEventKind.TestRules);
             Assert.True(rulesEvent.TestRules.NoDeath);
-            Assert.Equal(1.5f, rulesEvent.TestRules.HeadHitLineOverride);
         }
 
         [Fact]

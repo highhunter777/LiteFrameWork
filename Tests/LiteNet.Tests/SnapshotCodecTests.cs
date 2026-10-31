@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using LiteNet.Protocol;
+using LiteSync.Snapshot;
 using LiteSim;
 using Xunit;
 
@@ -23,7 +23,7 @@ namespace LiteNet.Tests
             s.Entities[slot0].Deaths = 1;
             s.Entities[slot0].SelectedWeapon = 1;
             s.Entities[slot1].FireStanceFrames = (byte)CombatConfig.FireStanceFrames;   // 开火驻留窗往返覆盖（公共面——回滚基线重建面）
-            s.Entities[slot1].CorpseFrames = (byte)CombatConfig.CorpseFrames;           // 尸体期往返覆盖（corpse_frames=20——
+            s.Entities[slot1].CorpseFrames = (byte)CombatValues.Default.Geometry.CorpseFrames;           // 尸体期往返覆盖（corpse_frames=20——
             // 公共面且**进公共口径 checksum**：wire 缺失 ⇒ 客户端重建恒 0 ⇒ 尸体期内每帧假和解）
             s.Actions[slot0 * SimConfig.ActionSlotsPerEntity] = new ActionRuntime
             {
@@ -207,7 +207,7 @@ namespace LiteNet.Tests
             s.Frame = 7;                                       // 公共口径 checksum 含 Frame——两端须同帧号
             int dead = 0;
             s.Entities[dead].Hp = 0;
-            s.Entities[dead].CorpseFrames = (byte)CombatConfig.CorpseFrames;   // 死亡帧置满（DamageSystem 同点）
+            s.Entities[dead].CorpseFrames = (byte)CombatValues.Default.Geometry.CorpseFrames;   // 死亡帧置满（DamageSystem 同点）
 
             Proto.StateSnapshot msg = SnapshotCodec.PackFull(frame: s.Frame, s: s, ackInput: 6);
             var mirror = new SimWorldState();
@@ -215,7 +215,7 @@ namespace LiteNet.Tests
 
             // 镜像必须真带上尸体期（否则下面两条 checksum 等式会靠"两端都是 0"侥幸成立，
             // 测不出 wire 缺字段——这正是原缺陷的伪装形态）
-            Assert.Equal((byte)CombatConfig.CorpseFrames, mirror.Entities[dead].CorpseFrames);
+            Assert.Equal((byte)CombatValues.Default.Geometry.CorpseFrames, mirror.Entities[dead].CorpseFrames);
             Assert.True(mirror.IsAlive(dead));   // 尸体期未满：死者仍占槽位（期内零交互，期满才回收）
 
             // 和解锚点的真实判据：本地预测态与权威镜像的公共口径 checksum 必须相等

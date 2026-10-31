@@ -793,6 +793,55 @@
         "--check"
       ],
       "timeout": 120
+    },
+    {
+      "name": "sync-and-sim-litesync",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+        "--nologo"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "sync-and-sim-litesim",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteSim.Core.Tests/LiteSim.Core.Tests.csproj",
+        "--nologo"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "sync-and-sim-contract",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SyncAndSimContract",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "sync-and-sim-check-shared",
+      "cmd": [
+        "python",
+        "scripts/codegen/gen-build-hash.py",
+        "--check-shared"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "sync-and-sim-e2e",
+      "cmd": [
+        "python",
+        "scripts/gate/sync-and-sim-e2e.py"
+      ],
+      "timeout": 3600
     }
   ],
   "red_commands": [
@@ -944,6 +993,30 @@
         "--nologo"
       ],
       "timeout": 600
+    },
+    {
+      "name": "sync-and-sim-geometry-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteSim.Core.Tests/LiteSim.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SyncAndSimGeometryContract",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "sync-and-sim-contract-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SyncAndSimContract",
+        "--nologo"
+      ],
+      "timeout": 600
     }
   ],
   "stages": [
@@ -1051,7 +1124,7 @@
     },
     {
       "id": "review-tasks",
-      "title": "评审任务",
+      "title": "子代理评审任务",
       "artifacts": [
         {
           "path": "reviews/task-review.md",
@@ -1069,6 +1142,9 @@
         {
           "path": "reviews/task-review.md",
           "fields": {
+            "评审方式": [
+              "独立子代理"
+            ],
             "结论": [
               "PASS",
               "通过"
@@ -1083,7 +1159,7 @@
     },
     {
       "id": "tests-first",
-      "title": "先写测试",
+      "title": "子代理先写测试",
       "artifacts": [
         {
           "path": "test-plan.md",
@@ -1100,7 +1176,7 @@
     },
     {
       "id": "implement",
-      "title": "正式施工",
+      "title": "子代理正式施工",
       "artifacts": [
         {
           "path": "build-log.md",
@@ -1123,7 +1199,7 @@
     },
     {
       "id": "review-code",
-      "title": "评审代码",
+      "title": "主代理评审代码",
       "artifacts": [
         {
           "path": "reviews/code-review.md",
@@ -1144,6 +1220,9 @@
         {
           "path": "reviews/code-review.md",
           "fields": {
+            "评审方式": [
+              "主代理"
+            ],
             "结论": [
               "PASS",
               "通过"

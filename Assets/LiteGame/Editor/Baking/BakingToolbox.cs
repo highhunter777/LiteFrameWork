@@ -69,10 +69,11 @@ namespace LiteGame.EditorTools
         private void DrawBodyPage()
         {
             EditorGUILayout.HelpBox(
-                "身位圆柱：读 prefab 的 CharacterController（美术可调、可视、唯一）烘成 BodyBake.g.cs——"
-                + "服务端命中柱 / 移动去穿插 / 本地视图 CC 三方同值。校验 center.y == height/2（圆柱底=脚底），不满足不烘。\n"
-                + "重跑时机：美术调 CC 后。命中柱半径 HitscanRadius 是判定裁决常量，非本页产物。", MessageType.Info);
-            if (GUILayout.Button("烘焙 BodyBake.g.cs")) Run(BodyCylinderBaker.All);
+                "身位圆柱：读 prefab 的 CharacterController（美术可调、可视、唯一）写 `#combatgeom` 表行的 "
+                + "body_radius/hitscan_height，并同步入库夹具 BodyCc.json——服务端命中柱 / 移动去穿插 / 本地视图 CC 同值。"
+                + "校验 center.y == height/2（圆柱底=脚底），不满足不写。\n"
+                + "重跑时机：美术调 CC 后。命中柱半径 hitscan_radius 是判定裁决常量，非本页产物。", MessageType.Info);
+            if (GUILayout.Button("导出到表（#combatgeom）")) Run(BodyCylinderBaker.All);
             DrawReport();
         }
 
@@ -80,9 +81,9 @@ namespace LiteGame.EditorTools
         {
             EditorGUILayout.HelpBox(
                 "枪口偏移：采样 prefab 的 Weapon_Rifle/Muzzle 锚点 @ AimIdle t=0（射弹时刻视觉姿态单族），"
-                + "输出相对 prefab 根的 Sim 系三常量 → MuzzleBake.g.cs（随代码进 buildHash 闭包）。\n"
-                + "重跑时机：美术调锚点/换枪/换参考姿态后。", MessageType.Info);
-            if (GUILayout.Button("烘焙 MuzzleBake.g.cs")) Run(MuzzleOffsetBaker.All);
+                + "写 `#combatgeom` 表行的 muzzle_fwd/muzzle_right/muzzle_height（相对 prefab 根的 Sim 系）。\n"
+                + "重跑时机：美术调锚点/换枪/换参考姿态后；写完跑 Luban/gen.bat → python scripts/codegen/gen-build-hash.py。", MessageType.Info);
+            if (GUILayout.Button("导出到表（#combatgeom）")) Run(MuzzleOffsetBaker.All);
             DrawReport();
         }
 
@@ -90,9 +91,11 @@ namespace LiteGame.EditorTools
         {
             EditorGUILayout.HelpBox(
                 "持枪偏移：参考持枪姿态（AimIdle t=0）下采样「武器骨 add_weapon_r 相对持枪手（RightHand）」的局部变换，"
-                + "烘成 GripBake.g.cs 常量（落 LiteGame.Modules.Battle——战斗域自持的表现参数，刻意不进 BuildHash 源集）——换弹期枪位姿态覆写（WeaponGripConstraint）的唯一来源。\n"
-                + "重跑时机：换绑定骨/换枪后；对局内观感幅度走 GM 面板「持枪幅度」滑杆（GripTuning 覆写，不落盘）。", MessageType.Info);
-            if (GUILayout.Button("烘焙 GripBake.g.cs")) Run(WeaponGripBaker.All);
+                + "导出 grip.bin 数据产物（Assets/GameData/Config/runtime/，战斗域自持的表现数据，刻意不进 BuildHash 源集）"
+                + "——换弹期枪位姿态覆写（WeaponGripConstraint）的唯一来源。\n"
+                + "数据产物：改后无需重生成 BuildHash，但需重发内容包（Config 收集组）；重跑时机：换绑定骨/换枪后。"
+                + "对局内观感幅度走 GM 面板「持枪幅度」滑杆（GripTuning 覆写，不落盘）。", MessageType.Info);
+            if (GUILayout.Button("导出 grip.bin")) Run(WeaponGripBaker.All);
             DrawReport();
         }
 
@@ -102,9 +105,11 @@ namespace LiteGame.EditorTools
         {
             EditorGUILayout.HelpBox(
                 "根位移：按 RootMotionBakeConfig 逐动作登记（ActionId/片段/策略），采样人形 RootT 曲线 60Hz 帧间差分"
-                + "→ 毫米量化 → fail-fast 校验（NaN/超速/重复 ID）→ RootMotionData.g.cs（两端共享，进 BuildHash 源集）+ digest。\n"
+                + "→ 毫米量化 → fail-fast 校验（NaN/超速/重复 ID）→ 导出数据产物 "
+                + BakeTargets.RootMotionBinOutput + "（整段字节 SHA-256 为摘要）。\n"
+                + "数据产物：改后无需重生成 BuildHash，但需重发内容包（Config 收集组）——运行时装载见对局视图装配。\n"
                 + "重跑时机：改片段/导入设置/配置登记后；同配置重烘逐字节一致。片段包不入版本管理——需本地在位。", MessageType.Info);
-            if (GUILayout.Button("烘焙 RootMotionData.g.cs")) Run(RootMotionBaker.All);
+            if (GUILayout.Button("导出 rootmotion.bin")) Run(RootMotionBaker.All);
             DrawReport();
         }
 
@@ -140,6 +145,25 @@ namespace LiteGame.EditorTools
         private void DrawHeadPage()
         {
             _headTuner.DrawGUI();
+
+            GUILayout.Space(8);
+            EditorGUILayout.HelpBox(
+                "导出判定参数到表：把调参面板「判定参数」组的 13 列覆写写回 `#combatgeom` 表行"
+                + "（覆写实例随装配登记——需在 Play 模式下调过参；编辑模式无运行态实例）。\n"
+                + "预览 = dry-run 不写盘；写入由表行助手落备份。写完须手动跑 Luban/gen.bat → "
+                + "python scripts/codegen/gen-build-hash.py，两端需重建。", MessageType.Info);
+            if (GUILayout.Button("导出判定参数到表（预览）")) Run(() => ExportSimParams(false));
+            if (GUILayout.Button("导出判定参数到表（写入 + 备份）")) Run(() => ExportSimParams(true));
+        }
+
+        /// <summary>判定参数导出（覆写实例经运行态容器取件；未装配即空态报告）。</summary>
+        private static string ExportSimParams(bool confirm)
+        {
+            LiteGame.Modules.Config.SimParamsOverrides overrides =
+                LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteGame.Modules.Config.SimParamsOverrides>();
+            return SimParamsExporter.TryExport(overrides, confirm, out string report, out string error)
+                ? report
+                : "ABORT " + error;
         }
 
         // ---- 公共执行与报告 ----

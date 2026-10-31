@@ -26,13 +26,10 @@ namespace LiteGame
 
             // 每局规则持有件：初值随入口定（常规入口一律 false——与既有"随入口复位"同语义）；
             // 登记后客户端预测（对局运行端口 StartGame 绑定）与本地服（ForRoom 注入）同实例。
-            // 爆头带覆写随端口待用值（本地服形态的调参延续；真服务器无此链）。
             var rules = new MatchTestRules
             {
                 NoDeath = testRoom && dev.NoDeath,
                 InfiniteAmmo = testRoom && dev.InfiniteAmmo,
-                HeadHitLineOverride = dev.HeadHitLineOverride,
-                HeadshotRadiusOverride = dev.HeadshotRadiusOverride,
                 DamageOverride = dev.WeaponDamageOverride,
                 RpmOverride = dev.WeaponRpmOverride,
             };

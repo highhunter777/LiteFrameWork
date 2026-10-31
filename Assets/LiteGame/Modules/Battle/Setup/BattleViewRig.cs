@@ -4,10 +4,11 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteSim;
 using LiteGame.View;
+using LiteGame.View.Animation;
 using UnityEngine;
 using LiteFramework.UI;
-using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Battle.Arena;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Settings;
@@ -34,10 +35,15 @@ namespace LiteGame
     /// 分发器 → 视角/指针 → 上下文/视图根/租约作用域。
     ///
     /// **降级口径**：缺资源/缺服务一律"警告 + 显式降级"（缺角色 prefab → 无角色视图，不造假人；缺 HUD/激光/飘字/
-    /// 音效 → 该项静默降级），不把表现增益当成对局失败。
+    /// 音效 → 该项静默降级），不把表现增益当成对局失败。**例外是内容包必备件**：`rootmotion.bin` 缺失/损坏
+    /// = 对局失败（fail-fast），因为根位移是权威位移的输入而不是表现增益。
+    ///
+    /// **已烘焙、执行层未接线**：本件只把 `rootmotion.bin` 装载为 <see cref="RootMotionCatalog"/> 并登记摘要
+    /// （<see cref="RootMotionDigestHolder"/>）＋日志；动作位移的 Sim 执行层尚未接线，**当前无生产消费者**。
     /// </summary>
     internal sealed class BattleViewRig : IBattleViewGroup
     {
+        private readonly IContentService _content;   // 内容服务（grip.bin 数据产物取件）
         private readonly IInputService _input;       // 输入服务（设备源注入/清派发状态）
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
         private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
@@ -56,6 +62,9 @@ namespace LiteGame
         private IDisposable _teleportReg;            // 传送命令处理器注册（进房登记 / 离场注销）
         private readonly Action<SimVector3> _teleportDispatch;   // 传送分发（产品侧注入本地服宿主钩子）
         private IBattleDevOverlay _devOverlay;             // 开发叠加层（爆头绘制/自瞄验证；开发装配提供，发布 = null）
+        private WeaponGripCatalog _gripCatalog;            // 持枪数据（grip.bin 装载；null = 降级）
+        private readonly RootMotionDigestHolder _rootMotionDigest;   // 根位移摘要登记口（容器装配期注册；null = 测试装配）
+        private RootMotionCatalog _rootMotionCatalog;                // 根位移数据（rootmotion.bin 装载；对局必备）
 
         /// <param name="account">Account 作用域（本件在其下建 `BattleView` 子作用域——离场即整体回收）。</param>
         /// <param name="worldClock">世界钟（伤害数字寿命/合并窗；null = 飘字降级）。</param>
@@ -64,16 +73,18 @@ namespace LiteGame
             AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null,
             Func<UiThemeAsset> themeProvider = null, LiteGame.IDevSession dev = null,
             IBattleDevOverlay devOverlay = null, Action<SimVector3> teleportDispatch = null,
-            ILookPreferences lookPreferences = null)
+            ILookPreferences lookPreferences = null, RootMotionDigestHolder rootMotionDigest = null)
         {
             if (content == null) throw new ArgumentNullException(nameof(content));
             if (account == null) throw new ArgumentNullException(nameof(account));
+            _content = content;
             _input = input;
             _camera = camera;
             _commands = commands;
             _dev = dev;
             _devOverlay = devOverlay;
             _teleportDispatch = teleportDispatch;
+            _rootMotionDigest = rootMotionDigest;
 
             _viewScope = account.CreateChild("BattleView");
             _viewRootGo = new GameObject("[BattleView]");
@@ -100,11 +111,79 @@ namespace LiteGame
         /// <summary>战斗反馈装配件（观测面：伤害数字在册数）。</summary>
         internal BattleFeedbackAssembler Feedback => _feedbackAssembler;
 
+        /// <summary>根位移目录（观测面：装载结果/摘要；动作位移执行层接线前无生产消费者）。</summary>
+        internal RootMotionCatalog RootMotion => _rootMotionCatalog;
+
         // ---- 取件（资源租约；逐项降级）----
 
-        /// <summary>取全部对局表现资源（角色 prefab → 激光束 → HUD → 保护壳 → 飘字底件 → 逐档材质 → 片段清单 → 音效 clip）。
-        /// 逐项失败只降级该项（缺角色资源＝无角色视图），不把缺美术当对局失败。</summary>
-        public UniTask LoadAsync(CancellationToken ct) => _assets.LoadAsync(ct);
+        /// <summary>取全部对局表现资源（角色 prefab → 激光束 → HUD → 保护壳 → 飘字底件 → 逐档材质 → 片段清单 → 音效 clip → grip.bin）。
+        /// 逐项表现资源失败只降级该项（缺角色资源＝无角色视图），不把缺美术当对局失败；
+        /// **最后取 rootmotion.bin（内容包必备件）——缺失/损坏即失败**。</summary>
+        public async UniTask LoadAsync(CancellationToken ct)
+        {
+            await _assets.LoadAsync(ct);
+            _gripCatalog = await AcquireGripCatalogAsync(ct);
+            _rootMotionCatalog = await AcquireRootMotionAsync(ct);
+        }
+
+        /// <summary>取 rootmotion.bin（内容通道）并装载为根位移目录，同时登记内容摘要（fail-fast）：
+        /// 根位移是权威位移的输入，缺文件/损坏＝对局不受支持（抛 <see cref="InvalidOperationException"/>，
+        /// 由流程层按对局失败收尾）——**不像 grip 那样降级**。
+        /// `bin` 资产在导入层以 Base64 文本承载（见 BinTextAssetImporter）。</summary>
+        private async UniTask<RootMotionCatalog> AcquireRootMotionAsync(CancellationToken ct)
+        {
+            try
+            {
+                AssetLease<TextAsset> lease = await _content.AcquireAsync<TextAsset>(
+                    RootMotionCatalog.DefaultAssetPath, ct: ct);
+                try
+                {
+                    byte[] bytes = Convert.FromBase64String(lease.Asset.text);
+                    RootMotionCatalog catalog = RootMotionCatalog.Load(bytes);
+                    _rootMotionDigest?.Set(catalog.Digest);   // 首个对局装载成功前摘要为空串（身份面可读）
+                    Log.Info("root-motion loaded entries=" + catalog.Entries.Count
+                        + " tickRate=" + catalog.TickRate + " digest=" + catalog.Digest, LogTag.Battle);
+                    return catalog;
+                }
+                finally
+                {
+                    lease.Dispose();                          // 字节已复制，租约立即归还
+                }
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                throw new InvalidOperationException(
+                    "根位移数据缺失/损坏（内容包必备件，对局不可继续）：" + RootMotionCatalog.DefaultAssetPath, ex);
+            }
+        }
+
+        /// <summary>取 grip.bin（内容通道）并装载为持枪数据目录：缺文件/损坏 = 警告 + 持枪约束降级
+        /// （纯表现数据，不阻断对局）。`bin` 资产在导入层以 Base64 文本承载（见 BinTextAssetImporter）。</summary>
+        private async UniTask<WeaponGripCatalog> AcquireGripCatalogAsync(CancellationToken ct)
+        {
+            try
+            {
+                AssetLease<TextAsset> lease = await _content.AcquireAsync<TextAsset>(
+                    WeaponGripCatalog.DefaultAssetPath, ct: ct);
+                try
+                {
+                    byte[] bytes = Convert.FromBase64String(lease.Asset.text);
+                    WeaponGripCatalog catalog = WeaponGripCatalog.Load(bytes);
+                    Log.Info("grip-catalog loaded digest=" + catalog.Digest, LogTag.Battle);
+                    return catalog;
+                }
+                finally
+                {
+                    lease.Dispose();                          // 字节已复制，租约立即归还
+                }
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Log.Warning("持枪偏移数据缺失/损坏，持枪约束降级（换弹期枪由片段曲线驱动）："
+                    + WeaponGripCatalog.DefaultAssetPath + "（" + ex.Message + "）", LogTag.Battle);
+                return null;
+            }
+        }
 
         // ---- 装配（建视图 + 接线；须在 StartGame 之后调用）----
 
@@ -126,7 +205,8 @@ namespace LiteGame
                 openBattleMenu != null ? new UnityEngine.Events.UnityAction(openBattleMenu) : null;
 
             _viewAssembler.AttachCore(_context, _viewRoot, _assets.Prefab, _camera,
-                _assets.ClipManifestLease?.Asset, aimPointOf: () => _lookController.AimPoint);
+                _assets.ClipManifestLease?.Asset, aimPointOf: () => _lookController.AimPoint,
+                gripCatalog: _gripCatalog);
 
             HitFeedbackDispatcher dispatcher = _feedbackAssembler.CreateDispatcher(_viewAssembler.View);
             // 读模型在装配点构造（唯一翻译点是 BattleReadModel）：HUD 族只接读模型实例，不认 Sim 布局。
@@ -234,6 +314,8 @@ namespace LiteGame
             _viewRoot = null;
             _assets.ClearReferences();                   // 租约本性随 _viewScope 归还
             _viewScope.Dispose();
+            _gripCatalog = null;
+            _rootMotionCatalog = null;                   // 目录是纯数据（无租约）；置空防跨局误读
         }
 
         // ---- 装配细节 ----

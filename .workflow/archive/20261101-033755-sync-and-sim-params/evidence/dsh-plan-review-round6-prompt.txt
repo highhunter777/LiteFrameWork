@@ -1,0 +1,19 @@
+你是本项目的独立方案评审子代理（外部 dsh 代理），做**第六轮复评**。只读：禁止修改文件/运行命令。
+
+仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。评审对象：`.workflow/active/sync-and-sim-params/plan.md`（第五轮 2 个阻塞已整改）。
+第五轮 2 项：①联机覆盖缺少可判定门/通道；②`CombatValues.Default` 双语义（风险段仍要求与表值一致）。
+
+只核验这两项是否闭合、B19/B20 是否可判定、是否引入新矛盾。最多 4 次工具调用；只读 plan.md 全文 + 最多 2 个文件（建议 CombatConfig.cs、MatchTestRules.cs/TestModeRuntime.cs 之一）；禁止全仓搜索；4 分钟内出结论。
+
+输出（中文纯文本）：
+结论: PASS 或 FAIL
+验收标准: PASS 或 FAIL
+阻塞问题: <数量>
+阻塞问题清单:
+- [严重度][文件/章节] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...
+抽查证据:
+- 文件:行号 + 结论

@@ -5,7 +5,7 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// 爆头判定与伤害倍率：命中高度带（弹道 = 逻辑枪口 → AimPoint；爆头判据 = 判定高度落
-    /// 头部带 [<see cref="CombatConfig.HeadHitLine"/>, <see cref="CombatConfig.HitscanHeight"/>]）× `2^HeadshotDamageShift` 位级倍率——
+    /// 头部带 [<see cref="CombatValues.Default.Geometry.HeadHitLine"/>, <see cref="CombatValues.Default.Geometry.HitscanHeight"/>]）× `2^HeadshotDamageShift` 位级倍率——
     /// 倍率在命中判定处应用，Damage 命令/Hit 事件携带即最终值，结算侧零改动。
     /// 死亡守卫半边（同批）：死亡射手不开火 / 死亡目标不可命中 / 死亡实体输入作废（尸体不受操控）。
     /// </summary>
@@ -82,10 +82,10 @@ namespace LiteSim.Tests
             ShootingSystem.Run(world, NoObstacles, FireAt(shooter, py: 1.7f), CombatValues.Default, WeaponTable.Default);
 
             int hit = HitValue(world);
-            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
-            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatValues.Default.Geometry.HeadshotDamageShift;
+            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatValues.Default.Geometry.HeadshotDamageShift;
             Assert.InRange(hit, lower, upper);
-            Assert.Equal(0, hit % (1 << CombatConfig.HeadshotDamageShift));   // 移位后的位级痕迹
+            Assert.Equal(0, hit % (1 << CombatValues.Default.Geometry.HeadshotDamageShift));   // 移位后的位级痕迹
             Assert.Equal(hit, DamageAmount(world));
             // **爆头事件必须是 Crit**（三维化裁决：爆头发 Crit、普通发 Hit——表现层靠它分档飘红字）
             Assert.True(HasEvent(world, FrameEventKind.Crit), "爆头应产出 Crit 事件（普通命中才是 Hit）");
@@ -119,8 +119,8 @@ namespace LiteSim.Tests
             Assert.True(HasEvent(world, FrameEventKind.Crit),
                 $"平地远距 + 仰角应爆头（事件={DescribeKinds(world)}）");
             int crit = EventValue(world, FrameEventKind.Crit);
-            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
-            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatValues.Default.Geometry.HeadshotDamageShift;
+            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatValues.Default.Geometry.HeadshotDamageShift;
             Assert.InRange(crit, lower, upper);
         }
 
@@ -166,8 +166,8 @@ namespace LiteSim.Tests
             Assert.True(HasEvent(world, FrameEventKind.Crit),
                 $"大俯角近距离应命中头部带爆头（事件={DescribeKinds(world)}）");
             int crit = EventValue(world, FrameEventKind.Crit);
-            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
-            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatValues.Default.Geometry.HeadshotDamageShift;
+            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatValues.Default.Geometry.HeadshotDamageShift;
             Assert.InRange(crit, lower, upper);
             _ = target;
         }
@@ -189,7 +189,7 @@ namespace LiteSim.Tests
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(20f, 0f, 0f) }, out _);
 
             // 准心射线命中点P：目标正前方、**恰好在头部带下沿**（含端点，闭区间）
-            float pY = CombatConfig.HeadHitLine;
+            float pY = CombatValues.Default.Geometry.HeadHitLine;
             ShootingSystem.Run(world, NoObstacles, new[] { new SimInputFrame
             {
                 EntityId = shooter,
@@ -200,8 +200,8 @@ namespace LiteSim.Tests
             Assert.True(HasEvent(world, FrameEventKind.Crit),
                 $"AimPoint 恰在下沿应爆头（事件={DescribeKinds(world)}）");
             int crit = EventValue(world, FrameEventKind.Crit);
-            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
-            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatValues.Default.Geometry.HeadshotDamageShift;
+            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatValues.Default.Geometry.HeadshotDamageShift;
             Assert.InRange(crit, lower, upper);
         }
 
@@ -227,7 +227,7 @@ namespace LiteSim.Tests
             ShootingSystem.Run(world, map, new[] { new SimInputFrame
             {
                 EntityId = shooter,
-                AimPointX = 20f, AimPointY = CombatConfig.HeadHitLine, AimPointZ = 0f,
+                AimPointX = 20f, AimPointY = CombatValues.Default.Geometry.HeadHitLine, AimPointZ = 0f,
                 Buttons = SimInputFrame.ButtonFire,
             } }, CombatValues.Default, WeaponTable.Default);
 
@@ -249,8 +249,8 @@ namespace LiteSim.Tests
             long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(15f, 0f, 0f) }, out _);
 
-            float headCenter = CombatConfig.HeadHitLine
-                + (CombatConfig.HitscanHeight - CombatConfig.HeadHitLine) * 0.5f;
+            float headCenter = CombatValues.Default.Geometry.HeadHitLine
+                + (CombatValues.Default.Geometry.HitscanHeight - CombatValues.Default.Geometry.HeadHitLine) * 0.5f;
 
             ShootingSystem.Run(world, NoObstacles, new[] { new SimInputFrame
             {
@@ -262,8 +262,8 @@ namespace LiteSim.Tests
             Assert.True(HasEvent(world, FrameEventKind.Crit),
                 $"压头部带中心应爆头（事件={DescribeKinds(world)}，中心高 {headCenter}）");
             int crit = EventValue(world, FrameEventKind.Crit);
-            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
-            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatValues.Default.Geometry.HeadshotDamageShift;
+            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatValues.Default.Geometry.HeadshotDamageShift;
             Assert.InRange(crit, lower, upper);
         }
 

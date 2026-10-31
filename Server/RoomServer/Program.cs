@@ -186,7 +186,7 @@ else
 }
 
 Console.WriteLine($"[RoomServer] 配置：{serverConfig.Describe()}（{serverConfig.SourcePath}）");
-Console.WriteLine($"[RoomServer] 启动（端口 {serverConfig.Port} / 容量 {serverConfig.MaxRooms} 房 / 模板 [{string.Join(",", serverConfig.TemplateIds)}] / {SimConfig.TickRate}Hz 权威步 / {SimConfig.SnapshotHz}Hz 快照）");
+Console.WriteLine($"[RoomServer] 启动（端口 {serverConfig.Port} / 容量 {serverConfig.MaxRooms} 房 / 模板 [{string.Join(",", serverConfig.TemplateIds)}] / {SimConfig.TickRate}Hz 权威步 / 快照频率与 AOI 按房间模板）");
 Console.WriteLine($"[RoomServer] buildHash={ServerHost.ServerBuildHash}（源码内容哈希——Sim 或协议一改即变）");
 Console.WriteLine($"[RoomServer] 玩法数值（装载实例——所有房间同一份）：move={combat.MoveSpeed} " +
     $"gravity={combat.Gravity} hp={combat.EntityHp} dmg={combat.BaseDamage}±{combat.DamageSpread}");

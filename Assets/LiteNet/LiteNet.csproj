@@ -16,10 +16,10 @@
 
   <ItemGroup>
     <Compile Include="Properties/AssemblyInfo.cs" />
-    <Compile Include="Core/Protocol/**/*.cs" />
+    <Compile Include="Core/Protocol/**/*.cs" Exclude="Core/Protocol/Abstractions/**/*.cs;Core/Protocol/AoiFilter.cs;Core/Protocol/CombatEventCodec.cs;Core/Protocol/InputPacker.cs;Core/Protocol/ProtocolConstants.cs;Core/Protocol/Snapshot*.cs" />
     <Compile Include="Core/Transport/**/*.cs" />
-    <Compile Include="Core/Client/**/*.cs" />
-    <Compile Include="Core/Diagnostics/**/*.cs" />
+    <Compile Include="Core/Client/**/*.cs" Exclude="Core/Client/Room*.cs;Core/Client/InputWindow.cs;Core/Client/ReconnectState.cs" />
+    <Compile Include="Core/Diagnostics/**/*.cs" Exclude="Core/Diagnostics/WeakNet/**/*.cs" />
     <Compile Include="Core/Proto/Generated/**/*.cs" />
     <Compile Include="Adapters/**/*.cs" />
   </ItemGroup>
@@ -27,11 +27,6 @@
   <ItemGroup>
     <!-- protobuf：dotnet 侧走 NuGet（传递引用流转到 RoomServer/Tests）；Unity 侧用 Vendor DLL + link.xml，同一版本号 -->
     <PackageReference Include="Google.Protobuf" Version="3.36.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- 协议层打包 Sim 输入/槽位（asmdef 侧 references: LiteSim 的 dotnet 对应物） -->
-    <ProjectReference Include="..\LiteSim\LiteSim.csproj" />
   </ItemGroup>
 
 </Project>

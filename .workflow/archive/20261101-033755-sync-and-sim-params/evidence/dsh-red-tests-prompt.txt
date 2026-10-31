@@ -1,0 +1,28 @@
+你是本项目的施工子代理（外部 dsh 代理），负责**先写红测**，不写生产代码。
+
+仓库：E:\unityProject\Test（当前工作目录）。基线：git HEAD 8a8fe0bf。
+先读：
+1. `.workflow/active/sync-and-sim-params/test-plan.md`（唯一施工规格，UT-01~UT-20）
+2. `.workflow/active/sync-and-sim-params/plan.md`（验收 B1~B24）
+3. `AGENTS.md` 与 `.agents/skills/staged-delivery/SKILL.md` 的「施工子代理」约束
+4. 现有测试示例：`Tests/LiteSim.Core.Tests/BaselineRecorder.cs`（RepoRoot 用法）、`Tests/LiteSim.Core.Tests/ValuesParameterizationTests.cs`（xUnit）、`Tests/LiteFramework.Core.Tests/ClientAsmdefAllowlistTests.cs`（RepoRoot 与文本/文件断言）
+
+任务：
+- 新建且只新建两个文件：
+  - `Tests/LiteSim.Core.Tests/SyncAndSimGeometryContractTests.cs`（覆盖 UT-05~UT-12，必要时含 UT-04）
+  - `Tests/LiteFramework.Core.Tests/SyncAndSimContractTests.cs`（覆盖 UT-01~UT-03、UT-13~UT-20）
+- 全部用 xUnit `[Fact]`；按 test-plan 的 UT 编号命名方法（可用英文/中文）。
+- 必须能在**当前基线编译通过**：
+  - 对已有类型（`CombatValues`、`CombatConfig`、`MatchTestRules`）用反射或直接调用；不得引用尚不存在的类型。
+  - 对尚不存在的类型/文件用 `File.Exists`/`Directory.Exists` 与文本断言；RepoRoot 从仓库根计算（参照现有测试的 RepoRoot 辅助函数）。
+- 禁止：改生产代码、改 `.workflow/**`、改门禁脚本/配置、删既有用例、降低断言强度、用编译失败冒充红测。
+- 红测验证：运行以下两条命令，确认是**断言失败**（缺文件/反射 null/旧标识符仍在/文本未命中/`CombatConfig.Loaded` 不抛），不是编译错误：
+  1. `dotnet test Tests/LiteSim.Core.Tests/LiteSim.Core.Tests.csproj --filter FullyQualifiedName~SyncAndSimGeometryContract --nologo`
+  2. `dotnet test Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj --filter FullyQualifiedName~SyncAndSimContract --nologo`
+- 若命令构建失败或出现非预期错误，先修正测试代码本身再重跑；不要为让用例变绿而改生产代码。
+
+返回（中文，纯文本）：
+- 改动文件清单（应为上述两个新文件）
+- 关键实现说明（RepoRoot、反射/文本断言策略、为何不会编译失败）
+- 两条命令的实际结果：各用例通过/失败计数、失败原因摘要（断言失败 vs 编译/环境错误）
+- 未验证项与风险

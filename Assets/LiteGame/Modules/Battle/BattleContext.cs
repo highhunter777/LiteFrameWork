@@ -1,9 +1,11 @@
-﻿using System;
+using System;
+using LiteSync.Client;
 using System.Threading;
 using LiteFramework;
 using LiteFramework.Diagnostics;
 using LiteNet;
 using LiteNet.Protocol;
+using LiteSync.Snapshot;
 using LiteSim;
 using LiteFramework;
 using LiteGame;
@@ -364,6 +366,7 @@ namespace LiteGame
         /// <summary>Sim → 视图接线（单写者：重复绑定先摘旧视图，避免 event 叠加重复投递）。</summary>
         private void WireSimView(IBattleView view)
         {
+            view.SetSnapshotHz(_battle.Client.SnapshotHz > 0 ? _battle.Client.SnapshotHz : LiteSync.Shared.ProtocolConstants.DefaultSnapshotHz);
             if (_sim == null) return;
             if (_wiredView != null)
             {

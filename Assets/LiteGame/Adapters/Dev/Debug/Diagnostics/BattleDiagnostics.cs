@@ -4,6 +4,7 @@ using LiteFramework;
 using LiteFramework.Diagnostics;
 using LiteNet;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>

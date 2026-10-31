@@ -7,6 +7,7 @@ using RoomServer.Diagnostics;
 using RoomServer.Runtime;
 using RoomServer.Runtime.Diagnostics;
 
+using LiteSync.Client;
 namespace RoomServer
 {
     /// <summary>
@@ -348,12 +349,12 @@ namespace RoomServer
             {
                 WorkerSeats = new RoomBroadcastSeat[Runtime.ExpectedPlayers];
                 for (int i = 0; i < WorkerSeats.Length; i++) WorkerSeats[i] = new RoomBroadcastSeat();
-                Pipeline = new SnapshotPipeline(WorkerSeats);
+                Pipeline = new SnapshotPipeline(WorkerSeats, aoi: config.Aoi, snapshotHz: config.SnapshotHz);
                 Events = new CombatEventPipeline(Runtime.Events, WorkerSeats);   // 与状态面同一份席位表
             }
             else
             {
-                Pipeline = new SnapshotPipeline(Seats);
+                Pipeline = new SnapshotPipeline(Seats, aoi: config.Aoi, snapshotHz: config.SnapshotHz);
                 Events = new CombatEventPipeline(Runtime.Events, Seats);         // 与状态面同一份席位表
             }
             Mailbox = new RoomMailbox<RoomInputEnvelope, RoomControlEnvelope, RoomOutboundEnvelope>(

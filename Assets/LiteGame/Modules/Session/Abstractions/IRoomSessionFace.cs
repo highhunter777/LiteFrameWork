@@ -1,6 +1,7 @@
 using System;
 using LiteNet.Proto;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>房间会话端口（产品模块域——Lua 桥与流程只认本口；由 App 侧适配

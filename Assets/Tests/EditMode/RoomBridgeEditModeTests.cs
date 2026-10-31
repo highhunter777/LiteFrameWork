@@ -4,6 +4,7 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using XLua;
 
+using LiteSync.Client;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>

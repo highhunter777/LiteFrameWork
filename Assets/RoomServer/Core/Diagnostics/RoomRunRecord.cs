@@ -110,26 +110,20 @@ namespace RoomServer.Runtime.Diagnostics
         public bool HasRules { get; }
         public bool NoDeath { get; }
         public bool InfiniteAmmo { get; }
-        public float HeadHitLineOverride { get; }
-        public float HeadshotRadiusOverride { get; }
 
-        public RoomRunTestRules(int frame, bool hasRules, bool noDeath, bool infiniteAmmo,
-            float headHitLineOverride, float headshotRadiusOverride)
+        public RoomRunTestRules(int frame, bool hasRules, bool noDeath, bool infiniteAmmo)
         {
             Frame = frame;
             HasRules = hasRules;
             NoDeath = noDeath;
             InfiniteAmmo = infiniteAmmo;
-            HeadHitLineOverride = headHitLineOverride;
-            HeadshotRadiusOverride = headshotRadiusOverride;
         }
 
         public static RoomRunTestRules From(int frame, MatchTestRules rules)
         {
             if (rules == null)
-                return new RoomRunTestRules(frame, false, false, false, -1f, -1f);
-            return new RoomRunTestRules(frame, true, rules.NoDeath, rules.InfiniteAmmo,
-                rules.HeadHitLineOverride, rules.HeadshotRadiusOverride);
+                return new RoomRunTestRules(frame, false, false, false);
+            return new RoomRunTestRules(frame, true, rules.NoDeath, rules.InfiniteAmmo);
         }
 
         public MatchTestRules ToRules()
@@ -139,8 +133,6 @@ namespace RoomServer.Runtime.Diagnostics
             {
                 NoDeath = NoDeath,
                 InfiniteAmmo = InfiniteAmmo,
-                HeadHitLineOverride = HeadHitLineOverride,
-                HeadshotRadiusOverride = HeadshotRadiusOverride,
             };
         }
     }

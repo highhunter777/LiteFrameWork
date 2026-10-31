@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Google.Protobuf;
 using LiteNet.Protocol;
+using LiteSync.Shared;
+using LiteSync.Snapshot;
 using LiteNet.Proto;
 using LiteSim;
 using LiteSim.Tests;
@@ -107,7 +109,7 @@ namespace LiteNet.Tests
             Step(room, pipeline, 10);
 
             // 10 逻辑帧 → 30Hz 抽帧 → 5 次广播 × 2 客户端 = 10 个快照包
-            int stride = SimConfig.TickRate / SimConfig.SnapshotHz;
+            int stride = SimConfig.TickRate / LiteSync.Shared.ProtocolConstants.DefaultSnapshotHz;
             Assert.Equal(10, room.AuthSim.Frame);
             Assert.Equal(10 / stride * 2, capture.CountOf(PacketType.StateSnapshot));
             Assert.True(capture.SnapshotsFor(s1).Count > 0 && capture.SnapshotsFor(s2).Count > 0);
@@ -128,7 +130,7 @@ namespace LiteNet.Tests
             // 杀一个实体 → 含该帧的广播必须转全量（缺席无法表达"死了"）。
             // 先推进到下一广播边界的前一帧，再杀——保证"活体变化"这一帧本身就是广播帧
             capture.Sent.Clear();
-            while ((room.AuthSim.Frame + 1) % (SimConfig.TickRate / SimConfig.SnapshotHz) != 0) Step(room, pipeline, 1);
+            while ((room.AuthSim.Frame + 1) % (SimConfig.TickRate / LiteSync.Shared.ProtocolConstants.DefaultSnapshotHz) != 0) Step(room, pipeline, 1);
             room.AuthSim.Despawn(room.EntityIdOf(1));
             Step(room, pipeline, 4);
             List<StateSnapshot> after = capture.SnapshotsFor(s1);
@@ -353,7 +355,7 @@ namespace LiteNet.Tests
 
             // 客户端凭票取"权威快照 + 输入历史"（服务器侧能力，§5.6 首选路径）
             var recovered = pipeline.Differ.Build(room.AuthSim.Frame, room.AuthSim, 0,
-                room.AuthSim.Entities[0].Pos, SimConfig.AoiRadius, forceFull: true);
+                room.AuthSim.Entities[0].Pos, LiteSync.Shared.AoiSettings.Default.Radius, forceFull: true);
             var mirror = new SimWorldState();
             SnapshotReassembler.Apply(recovered, mirror, out _);
 

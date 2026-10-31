@@ -197,11 +197,11 @@ namespace LiteGame.Tests.EditMode
             view.TryGetView(0, out go);
             Assert.AreEqual(0f, go.transform.position.x, 0.01f, "窗口起点 = 旧快照位置");
 
-            view.Tick(SimView.SnapshotInterval);                   // alpha = 1 → 到 B
+            view.Tick(view.SnapshotInterval);                   // alpha = 1 → 到 B
             view.TryGetView(0, out go);
             Assert.AreEqual(2f, go.transform.position.x, 0.01f, "窗口终点 = 新快照位置");
 
-            view.Tick(SimView.SnapshotInterval * 10f);             // 快照停摆：停在最新不外推
+            view.Tick(view.SnapshotInterval * 10f);             // 快照停摆：停在最新不外推
             view.TryGetView(0, out go);
             Assert.AreEqual(2f, go.transform.position.x, 0.01f, "快照停摆不无限外推");
         }
@@ -237,7 +237,7 @@ namespace LiteGame.Tests.EditMode
             view.TryGetView(0, out go);
             Assert.AreEqual(50f, go.transform.position.x, 0.01f, "跳变超阈值 → 远端硬切（§6.2 远端必要时 snap）");
 
-            view.Tick(SimView.SnapshotInterval * 0.5f);           // 窗口中点：稳定在新位置，不回头插值
+            view.Tick(view.SnapshotInterval * 0.5f);           // 窗口中点：稳定在新位置，不回头插值
             view.TryGetView(0, out go);
             Assert.AreEqual(50f, go.transform.position.x, 0.01f, "硬切后不横穿（无中途飞越帧）");
         }

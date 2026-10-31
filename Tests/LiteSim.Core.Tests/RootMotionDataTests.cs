@@ -1,82 +1,185 @@
-using System.Collections.Generic;
+using System;
+using System.Buffers.Binary;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using LiteGame.Modules.Battle.Arena;
 using Xunit;
 
-namespace LiteSim.Tests
+namespace LiteGame.Tests
 {
     /// <summary>
-    /// 根位移烘焙产物守卫（《联机动画与根位移专项设计》§3 校验面在 L1 的锚）：
-    /// 生成物 RootMotionData.g.cs 由编辑器烘焙器产出（服务端不加载 AnimationClip——两端经同一份
-    /// 生成数据消费），此处钉住"结构合法 + 摘要可复算 + 手改必红"。
-    /// 摘要与结构在两端/构建/回放场景必须逐字节一致——改片段或配置后重烘并重跑 buildHash 生成器。
+    /// 根位移数据产物（rootmotion.bin）的 L1 装载契约：格式解析/校验/摘要与编码往返。
+    /// 数据单源是 .bin 字节（服务端不加载 AnimationClip），本用例在内存里构造最小产物，
+    /// 不依赖 Unity 侧烘焙产物文件。
     /// </summary>
     public class RootMotionDataTests
     {
-        private const int MaxDeltaMm = 2000;   // 与烘焙器同上限（单 tick 2m——超此按非法样本）
+        private const int HeaderSize = 4 + 4 + 4 + 4;
+        private const int EntryFixedSize = 4 + 4 + 4 + 3 + 4;
 
         [Fact]
-        public void 根位移_摘要复算一致_手改生成物必红()
+        public void 最小产物_装载字段与整段字节摘要()
         {
-            Assert.Equal(RootMotionCatalog.BakedContentDigest, RootMotionCatalog.ContentDigest);
+            byte[] bytes = Build(new[] { 101 }, sampleCount: 2);
+            RootMotionCatalog catalog = RootMotionCatalog.Load(bytes);
+
+            Assert.Equal(LiteSim.SimConfig.TickRate, catalog.TickRate);
+            Assert.Equal(1, catalog.Entries.Count);
+            RootMotionEntry entry = catalog.Entries[0];
+            Assert.Equal(101, entry.ActionId);
+            Assert.Equal(1, entry.MotionVersion);
+            Assert.Equal(2, entry.SampleCount);
+            Assert.Equal(RootMotionDirectionPolicy.StartFacingLocked, entry.DirectionPolicy);
+            Assert.Equal(3, entry.YPeakMm);
+            Assert.Equal(new short[] { 1, 2, 3, 4 }, entry.DeltaLocalXzMm);
+            Assert.Equal(new short[] { 0, 5 }, entry.DeltaYawCentiDeg);
+
+            Assert.Equal(64, catalog.Digest.Length);
+            Assert.Equal(Sha256Hex(bytes), catalog.Digest);
+            Assert.Equal(catalog.Digest, RootMotionCatalog.Load(bytes).Digest);
         }
 
         [Fact]
-        public void 根位移_条目按ActionId升序且唯一()
+        public void 坏输入_统一抛InvalidDataException()
         {
-            var seen = new HashSet<int>();
-            int previous = int.MinValue;
-            for (int e = 0; e < RootMotionCatalog.Entries.Length; e++)
+            AssertBad(bytes => bytes[0] = (byte)'X');
+            AssertBad(bytes => BinaryPrimitives.WriteInt32LittleEndian(
+                bytes.AsSpan(4, 4), RootMotionCatalog.FormatVersion + 1));
+            AssertBad(bytes => BinaryPrimitives.WriteInt32LittleEndian(
+                bytes.AsSpan(8, 4), LiteSim.SimConfig.TickRate + 1));
+            AssertBad(bytes => BinaryPrimitives.WriteInt32LittleEndian(
+                bytes.AsSpan(12, 4), RootMotionCatalog.MaxEntries + 1));
+            AssertBad(bytes => BinaryPrimitives.WriteInt32LittleEndian(
+                bytes.AsSpan(HeaderSize + 8, 4),
+                BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(HeaderSize + 8, 4)) + 1));   // sampleCount 越界
+
+            byte[] full = Build(new[] { 101 }, 2);
+            byte[] truncated = new byte[full.Length - 1];
+            Array.Copy(full, truncated, truncated.Length);
+            Assert.Throws<InvalidDataException>(() => RootMotionCatalog.Load(truncated));
+            Assert.Throws<InvalidDataException>(() => RootMotionCatalog.Load(Build(new[] { 7, 7 }, 2)));
+            Assert.Throws<InvalidDataException>(() => RootMotionCatalog.Load(Build(new[] { 9, 3 }, 2)));
+
+            static void AssertBad(Action<byte[]> mutate)
             {
-                int id = RootMotionCatalog.Entries[e].ActionId;
-                Assert.True(id > previous, $"条目 {e}（ActionId {id}）破坏升序——生成器排序规则被绕过");
-                Assert.True(seen.Add(id), $"ActionId {id} 重复——重复动作绑定是准入隐患");
-                previous = id;
+                byte[] bytes = Build(new[] { 101 }, 2);
+                mutate(bytes);
+                Assert.Throws<InvalidDataException>(() => RootMotionCatalog.Load(bytes));
             }
         }
 
         [Fact]
-        public void 根位移_每条结构合法_数组长度与量化上限()
+        public void 编码往返_与独立实现逐字节一致()
         {
-            for (int e = 0; e < RootMotionCatalog.Entries.Length; e++)
+            var entries = new[]
             {
-                RootMotionEntry entry = RootMotionCatalog.Entries[e];
-                Assert.True(entry.SampleCount >= 1, $"ActionId {entry.ActionId}：SampleCount ≥ 1（零样本条目无意义）");
-                Assert.Equal(entry.SampleCount * 2, entry.DeltaLocalXzMm.Length);
-                Assert.Equal(entry.SampleCount, entry.DeltaYawCentiDeg.Length);
-
-                for (int i = 0; i < entry.SampleCount; i++)
+                new RootMotionEntry
                 {
-                    Assert.True(entry.DeltaLocalXzMm[2 * i] >= -MaxDeltaMm && entry.DeltaLocalXzMm[2 * i] <= MaxDeltaMm,
-                        $"ActionId {entry.ActionId} tick {i}：X 增量超上限");
-                    Assert.True(entry.DeltaLocalXzMm[2 * i + 1] >= -MaxDeltaMm && entry.DeltaLocalXzMm[2 * i + 1] <= MaxDeltaMm,
-                        $"ActionId {entry.ActionId} tick {i}：Z 增量超上限");
-                }
-            }
+                    ActionId = 7, MotionVersion = 2, SampleCount = 2,
+                    DirectionPolicy = RootMotionDirectionPolicy.FrameByFrame,
+                    MovementPolicy = RootMotionMovementPolicy.Limited,
+                    CancelPolicy = RootMotionCancelPolicy.Windowed,
+                    YPeakMm = -4,
+                    DeltaLocalXzMm = new short[] { -1, 2, -3, 4 },
+                    DeltaYawCentiDeg = new short[] { 5, -6 },
+                },
+            };
+            byte[] encoded = RootMotionCatalog.Encode(LiteSim.SimConfig.TickRate, entries);
+            Assert.Equal(EncodeIndependent(entries), encoded);
+
+            RootMotionCatalog catalog = RootMotionCatalog.Load(encoded);
+            Assert.Equal(7, catalog.Entries[0].ActionId);
+            Assert.Equal(RootMotionMovementPolicy.Limited, catalog.Entries[0].MovementPolicy);
+            Assert.Equal(new short[] { 5, -6 }, catalog.Entries[0].DeltaYawCentiDeg);
         }
 
         [Fact]
-        public void 根位移_采样率锁定60Hz()
+        public void 规范化摘要_同样本同摘要_异样本异摘要()
         {
-            Assert.Equal(SimConfig.TickRate, RootMotionCatalog.TickRate);
-            Assert.Equal(60, RootMotionCatalog.TickRate);
-        }
-
-        [Fact]
-        public void 根位移_摘要文本变化必变_同文本必同()
-        {
-            // 两份不同样本 → 摘要必不同；同文本 → 必相同（复算口径的确定性锚）
-            var a = new RootMotionEntry[]
+            var a = new[]
             {
                 new RootMotionEntry { ActionId = 1, MotionVersion = 1, SampleCount = 1, YPeakMm = 0,
                     DeltaLocalXzMm = new short[] { 10, 0 }, DeltaYawCentiDeg = new short[] { 0 } },
             };
-            var b = new RootMotionEntry[]
+            var b = new[]
             {
                 new RootMotionEntry { ActionId = 1, MotionVersion = 1, SampleCount = 1, YPeakMm = 0,
                     DeltaLocalXzMm = new short[] { 11, 0 }, DeltaYawCentiDeg = new short[] { 0 } },
             };
-            string textA = RootMotionDigest.CanonicalText(a);
-            Assert.Equal(RootMotionDigest.Compute(textA), RootMotionDigest.Compute(RootMotionDigest.CanonicalText(a)));
-            Assert.NotEqual(RootMotionDigest.Compute(textA), RootMotionDigest.Compute(RootMotionDigest.CanonicalText(b)));
+            string textA = RootMotionDigest.CanonicalText(a, LiteSim.SimConfig.TickRate);
+            Assert.Equal(RootMotionDigest.Compute(textA),
+                RootMotionDigest.Compute(RootMotionDigest.CanonicalText(a, LiteSim.SimConfig.TickRate)));
+            Assert.NotEqual(RootMotionDigest.Compute(textA),
+                RootMotionDigest.Compute(RootMotionDigest.CanonicalText(b, LiteSim.SimConfig.TickRate)));
+        }
+
+        // ---- 测试侧独立格式实现（格式回归的一道闸）----
+
+        private static byte[] Build(int[] actionIds, int sampleCount)
+        {
+            var entries = new RootMotionEntry[actionIds.Length];
+            for (int e = 0; e < actionIds.Length; e++)
+            {
+                var dxz = new short[sampleCount * 2];
+                var dyaw = new short[sampleCount];
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    dxz[2 * i] = (short)(2 * i + 1);
+                    dxz[2 * i + 1] = (short)(2 * i + 2);
+                    dyaw[i] = sampleCount == 2 && i == 1 ? (short)5 : (short)0;
+                }
+                entries[e] = new RootMotionEntry
+                {
+                    ActionId = actionIds[e], MotionVersion = 1, SampleCount = sampleCount, YPeakMm = 3,
+                    DeltaLocalXzMm = dxz, DeltaYawCentiDeg = dyaw,
+                };
+            }
+            return EncodeIndependent(entries);
+        }
+
+        private static byte[] EncodeIndependent(RootMotionEntry[] entries)
+        {
+            int size = HeaderSize;
+            foreach (RootMotionEntry entry in entries) size += EntryFixedSize + entry.SampleCount * 6;
+            var bytes = new byte[size];
+            Encoding.ASCII.GetBytes("RMO1").CopyTo(bytes, 0);
+            BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(4, 4), RootMotionCatalog.FormatVersion);
+            BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(8, 4), LiteSim.SimConfig.TickRate);
+            BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(12, 4), entries.Length);
+            int offset = HeaderSize;
+            foreach (RootMotionEntry entry in entries)
+            {
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset, 4), entry.ActionId); offset += 4;
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset, 4), entry.MotionVersion); offset += 4;
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset, 4), entry.SampleCount); offset += 4;
+                bytes[offset++] = (byte)entry.DirectionPolicy;
+                bytes[offset++] = (byte)entry.MovementPolicy;
+                bytes[offset++] = (byte)entry.CancelPolicy;
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset, 4), entry.YPeakMm); offset += 4;
+                for (int i = 0; i < entry.SampleCount; i++)
+                {
+                    BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(offset, 2), entry.DeltaLocalXzMm[2 * i]);
+                    offset += 2;
+                    BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(offset, 2), entry.DeltaLocalXzMm[2 * i + 1]);
+                    offset += 2;
+                }
+                for (int i = 0; i < entry.SampleCount; i++)
+                {
+                    BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(offset, 2), entry.DeltaYawCentiDeg[i]);
+                    offset += 2;
+                }
+            }
+            return bytes;
+        }
+
+        private static string Sha256Hex(byte[] bytes)
+        {
+            byte[] hash;
+            using (SHA256 sha = SHA256.Create()) hash = sha.ComputeHash(bytes);
+            var sb = new StringBuilder(hash.Length * 2);
+            for (int i = 0; i < hash.Length; i++) sb.Append(hash[i].ToString("x2"));
+            return sb.ToString();
         }
     }
 }

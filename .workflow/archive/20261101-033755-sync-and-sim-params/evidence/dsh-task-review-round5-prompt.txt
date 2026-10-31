@@ -1,0 +1,32 @@
+你是本项目的独立任务评审子代理（外部 dsh 代理）。只读评审：禁止修改文件/运行命令。
+
+仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。
+评审对象：`.workflow/active/sync-and-sim-params/tasks.md`（有效任务：T43~T46 + T58~T68；T1~T42、T47~T57 已取消，原因见状态）与 `plan.md`（B1~B24 最终方案）。
+
+第 4 轮 6 个阻塞的整改：
+1. T59 文件范围补 `Assets/GameData/Generated`、`Assets/GameData/Config`，生成由主代理。
+2. T67 新增 `scripts/gate/sync-and-sim-e2e.py`（RoomServer publish + build-player + smoke + 两端摘要对账），sync-and-sim 命令组包含 e2e；B23 自动部分可执行。
+3. T62 写明 BakeTargets 五常量去向、四条死路径（BakeTargets.cs:36-38/46）、PrefabPath 与 BodyCc 夹具断言。
+4. T65 写明 deploy 三档 + GM `start` sandbox 房回读两路真实注入。
+5. 每个任务补执行者：资产搬迁/删除、gen-build-hash、门禁配置、云侧 GM 为主代理；代码/测试为施工子代理。
+6. T58/T60 补 Arena 范围与测试名；T66 的 Rules 只做只读零命中复核，删除仍在 T60。
+
+只核验：
+- B1~B24 全覆盖、无孤儿/重复/越界；
+- 共享源集任务的重生成+check 与执行者；
+- 文件范围/验收一致；权限与资产搬迁方式；
+- 是否还有编译中断/门禁不可执行/虚假通过；
+- 任务粒度/依赖/验证可独立执行。
+
+约束：最多 8 次工具调用；只读 tasks.md/plan.md（可读 1-2 个关键文件核对）；禁止全仓搜索/运行命令；6 分钟内出结论。
+
+输出（中文纯文本）：
+结论: PASS 或 FAIL
+阻塞问题: <数量>
+覆盖矩阵: 按 B1~B24 分组列出对应任务
+阻塞问题清单:
+- [严重度][B 项/任务] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...

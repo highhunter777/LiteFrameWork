@@ -7,6 +7,7 @@ using LiteSim;
 using LiteGame.Modules.Dev;
 using LiteGame.Modules.Input;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>

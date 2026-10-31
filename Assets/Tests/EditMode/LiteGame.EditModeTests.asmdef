@@ -23,6 +23,7 @@
         "LiteGame.Editor.UiTools",
         "LiteGame.Adapters.LuaBridge",
         "LiteNet",
+        "LiteSync",
         "LiteSim",
         "LiteSim.Editor",
         "RoomServer.Runtime",

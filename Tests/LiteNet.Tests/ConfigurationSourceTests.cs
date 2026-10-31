@@ -30,7 +30,7 @@ namespace LiteNet.Tests
         public void 真实表映射_数值与默认实例一致()
         {
             CombatValues values = Parse(Read("tbmovementconfig"), Read("tbentityconfig"));
-            var expected = new CombatValues(5f, -20f, 100f, 25, 1, 100, 2.5f, 60);
+            var expected = new CombatValues(5f, -20f, 100f, 25, 1, 100, 2.5f, 60, CombatGeometry.Default);
             Assert.Equal(expected.MoveSpeed, values.MoveSpeed);
             Assert.Equal(expected.Gravity, values.Gravity);
             Assert.Equal(expected.HitscanRange, values.HitscanRange);
@@ -39,6 +39,23 @@ namespace LiteNet.Tests
             Assert.Equal(expected.EntityHp, values.EntityHp);
             Assert.Equal(expected.AimMoveSpeed, values.AimMoveSpeed);
             Assert.Equal(expected.FireStanceFrames, values.FireStanceFrames);
+
+            // 判定几何 13 列：表装载 = 默认横截面（B14 精确值；派生 HeadHitLine/HeadshotRadius 同源）
+            Assert.Equal(expected.Geometry.BodyRadius, values.Geometry.BodyRadius);
+            Assert.Equal(expected.Geometry.HitscanHeight, values.Geometry.HitscanHeight);
+            Assert.Equal(expected.Geometry.HitscanRadius, values.Geometry.HitscanRadius);
+            Assert.Equal(expected.Geometry.HeadRatio, values.Geometry.HeadRatio);
+            Assert.Equal(expected.Geometry.HeadRadius, values.Geometry.HeadRadius);
+            Assert.Equal(expected.Geometry.MuzzleForward, values.Geometry.MuzzleForward);
+            Assert.Equal(expected.Geometry.MuzzleRight, values.Geometry.MuzzleRight);
+            Assert.Equal(expected.Geometry.MuzzleHeight, values.Geometry.MuzzleHeight);
+            Assert.Equal(expected.Geometry.HeadshotDamageShift, values.Geometry.HeadshotDamageShift);
+            Assert.Equal(expected.Geometry.HipSpreadFactor, values.Geometry.HipSpreadFactor);
+            Assert.Equal(expected.Geometry.CorpseFrames, values.Geometry.CorpseFrames);
+            Assert.Equal(expected.Geometry.HardMaxSpeed, values.Geometry.HardMaxSpeed);
+            Assert.Equal(expected.Geometry.FaceTurnRadPerSec, values.Geometry.FaceTurnRadPerSec);
+            Assert.Equal(expected.Geometry.HeadHitLine, values.Geometry.HeadHitLine);
+            Assert.Equal(expected.Geometry.HeadshotRadius, values.Geometry.HeadshotRadius);
         }
 
         [Fact]
@@ -96,6 +113,11 @@ namespace LiteNet.Tests
             weaponTouched["tbweapon"][0] ^= 0xFF;
             Assert.NotEqual(load.Digest, TableLayout.ComputeGameplayDigestBase(weaponTouched));
 
+            // 判定几何表（Combat/tbcombatgeom）改一字节 → 身份变（B13）
+            Dictionary<string, byte[]> geometryTouched = ReadCache(dir);
+            geometryTouched["tbcombatgeom"][0] ^= 0xFF;
+            Assert.NotEqual(load.Digest, TableLayout.ComputeGameplayDigestBase(geometryTouched));
+
             // 表现面表（Animation/tbanimationprofile 与 UI/tbltext）改字节 → 身份不动（单端热更不换联机身份）
             Dictionary<string, byte[]> presentationTouched = ReadCache(dir);
             presentationTouched["tbanimationprofile"][0] ^= 0xFF;
@@ -135,7 +157,7 @@ namespace LiteNet.Tests
             byte[] combat = emptyTable == "tbcombatnum" ? new byte[] { 0 } : Read("tbcombatnum");
             byte[] movement = emptyTable == "tbmovementconfig" ? new byte[] { 0 } : Read("tbmovementconfig");
             byte[] entity = emptyTable == "tbentityconfig" ? new byte[] { 0 } : Read("tbentityconfig");
-            var ex = Assert.Throws<InvalidDataException>(() => ServerTableLoader.Parse(combat, movement, entity));
+            var ex = Assert.Throws<InvalidDataException>(() => ServerTableLoader.Parse(combat, movement, entity, Read("tbcombatgeom")));
             Assert.Contains(emptyTable, ex.Message);
         }
 
@@ -145,8 +167,9 @@ namespace LiteNet.Tests
             var combat = new cfg.Tbcombatnum(new ByteBuf(Read("tbcombatnum")));
             var movement = new cfg.Tbmovementconfig(new ByteBuf(Read("tbmovementconfig")));
             var entity = new cfg.Tbentityconfig(new ByteBuf(EntityBytes(2, 100)));
-            Assert.Contains("tbentityconfig", SimConfigMapper.Validate(combat, movement, entity));
-            Assert.Throws<InvalidDataException>(() => SimConfigMapper.BuildCombatValues(combat, movement, entity));
+            var geometry = new cfg.Tbcombatgeom(new ByteBuf(Read("tbcombatgeom")));
+            Assert.Contains("tbentityconfig", SimConfigMapper.Validate(combat, movement, entity, geometry));
+            Assert.Throws<InvalidDataException>(() => SimConfigMapper.BuildCombatValues(combat, movement, entity, geometry));
         }
 
         [Theory]
@@ -177,7 +200,7 @@ namespace LiteNet.Tests
         }
 
         private static CombatValues Parse(byte[] movement, byte[] entity)
-            => ServerTableLoader.Parse(Read("tbcombatnum"), movement, entity).ToValues();
+            => ServerTableLoader.Parse(Read("tbcombatnum"), movement, entity, Read("tbcombatgeom")).ToValues();
 
         private static byte[] EntityBytes(int id, int hp)
         {

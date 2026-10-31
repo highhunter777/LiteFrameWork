@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteSim;
+using LiteGame.Modules.Battle.Arena;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Settings;
@@ -31,12 +32,13 @@ namespace LiteGame
         private readonly Func<UiThemeAsset> _themeProvider;
         private readonly IDevSession _dev;
         private readonly ILookPreferences _lookPreferences;
+        private readonly RootMotionDigestHolder _rootMotionDigest;   // 根位移摘要登记口（容器装配期单实例）
         private BattleViewRig _last;                     // 真 rig（诊断读口；Dispose 即置空）
 
         public BattleViewGroupFactory(IContentService content, IInputService input, ICameraService camera,
             IVFXService vfx, IWorldClock worldClock, AudioService audio, CommandCenter commands,
             CrosshairFeelProfile crosshairFeel, Func<UiThemeAsset> themeProvider, IDevSession dev,
-            ILookPreferences lookPreferences)
+            ILookPreferences lookPreferences, RootMotionDigestHolder rootMotionDigest)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _input = input;
@@ -49,6 +51,7 @@ namespace LiteGame
             _themeProvider = themeProvider;
             _dev = dev;
             _lookPreferences = lookPreferences;
+            _rootMotionDigest = rootMotionDigest;
         }
 
         /// <inheritdoc />
@@ -58,7 +61,8 @@ namespace LiteGame
             Action<SimVector3> teleportDispatch)
         {
             var rig = new BattleViewRig(_content, _input, _camera, account, _vfx, _worldClock, _audio, _commands,
-                _crosshairFeel, _themeProvider, _dev, devOverlay, teleportDispatch, _lookPreferences);
+                _crosshairFeel, _themeProvider, _dev, devOverlay, teleportDispatch, _lookPreferences,
+                _rootMotionDigest);
             Volatile.Write(ref _last, rig);
             return new LastCreatedDecorator(this, rig);
         }

@@ -1,3 +1,4 @@
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>

@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using LiteNet;
-using LiteNet.Protocol;
+using LiteSync.Snapshot;
 using LiteNet.Transport;
 using LiteSim;
 using RoomServer;
 using RoomServer.Runtime;
 
+using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>

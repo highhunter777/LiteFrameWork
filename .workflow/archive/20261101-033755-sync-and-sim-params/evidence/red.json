@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-31T17:54:04+08:00",
+  "ok": true,
+  "command_fingerprint": "9da2f2e2abf9dbff19aa9c6ffdb61de67bec6ad3899d67181dfaf35dc2ccd755",
+  "commands": [
+    {
+      "name": "build-player-platform-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_build_player.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 252,
+      "ok": false,
+      "output_tail": "[stderr]\ntest_android_player_extension_is_apk (test_build_player.BuildPlayerPlatformContractTests.test_android_player_extension_is_apk) ... ok\ntest_android_profile_named_target (test_build_player.BuildPlayerPlatformContractTests.test_android_profile_named_target) ... ok\ntest_artifact_glob_defaults_by_platform (test_build_player.BuildPlayerPlatformContractTests.test_artifact_glob_defaults_by_platform) ... ok\ntest_artifact_glob_prefers_profile_value (test_build_player.BuildPlayerPlatformContractTests.test_artifact_glob_prefers_profile_value) ... ok\ntest_backend_switch_android_uses_android_named_target (test_build_player.BuildPlayerPlatformContractTests.test_backend_switch_android_uses_android_named_target) ... ok\ntest_backend_switch_honors_mono_profile (test_build_player.BuildPlayerPlatformContractTests.test_backend_switch_honors_mono_profile) ... ok\ntest_backend_switch_windows_keeps_standalone (test_build_player.BuildPlayerPlatformContractTests.test_backend_switch_windows_keeps_standalone) ... ok\ntest_bundles_cs_targets_profile_platform (test_build_player.BuildPlayerPlatformContractTests.test_bundles_cs_targets_profile_platform) ... ok\ntest_bundles_supported_platforms (test_build_player.BuildPlayerPlatformContractTests.test_bundles_supported_platforms) ... ok\ntest_explicit_build_target_group_wins (test_build_player.BuildPlayerPlatformContractTests.test_explicit_build_target_group_wins) ... ok\ntest_output_expr_android_ends_with_apk (test_build_player.BuildPlayerPlatformContractTests.test_output_expr_android_ends_with_apk) ... ok\ntest_output_expr_windows_ends_with_exe (test_build_player.BuildPlayerPlatformContractTests.test_output_expr_windows_ends_with_exe) ... ok\ntest_profiles_carry_platform_contract_fields (test_build_player.BuildPlayerPlatformContractTests.test_profiles_carry_platform_contract_fields) ... ok\ntest_unknown_platform_extension_rejected (test_build_player.BuildPlayerPlatformContractTests.test_unknown_platform_extension_rejected) ... ok\ntest_unknown_platform_rejected (test_build_player.BuildPlayerPlatformContractTests.test_unknown_platform_rejected) ... ok\ntest_windows_player_extension_is_exe (test_build_player.BuildPlayerPlatformContractTests.test_windows_player_extension_is_exe) ... ok\ntest_windows_profile_named_target (test_build_player.BuildPlayerPlatformContractTests.test_windows_profile_named_target) ... ok\ntest_build_command_uses_double_dash_profile (test_build_player.ToolchainBuildCommandTests.test_build_command_uses_double_dash_profile) ... ok\ntest_build_command_without_profile (test_build_player.ToolchainBuildCommandTests.test_build_command_without_profile) ... ok\n\n----------------------------------------------------------------------\nRan 19 tests in 0.067s\n\nOK"
+    },
+    {
+      "name": "ui-selectable-theme-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 14088,
+      "ok": false,
+      "output_tail": "  \"summary\": {\n    \"total\": 4,\n    \"passed\": 4,\n    \"failed\": 0,\n    \"skipped\": 0,\n    \"inconclusive\": 0\n  },\n  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.Null解析器_不抛且保持现值\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.019834,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.五色写入_保留multiplier与fade\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0017668,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.未知令牌_保留该字段现值\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0018288,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.非ColorTint_不写\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0007852,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 4/4 passed"
+    },
+    {
+      "name": "ui-selectable-applier-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeApplierEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 15152,
+      "ok": false,
+      "output_tail": "{\n  \"status\": \"completed\",\n  \"duration\": 4.23,\n  \"summary\": {\n    \"total\": 3,\n    \"passed\": 3,\n    \"failed\": 0,\n    \"skipped\": 0,\n    \"inconclusive\": 0\n  },\n  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeApplierEditModeTests.EnsureAll_不改ColorBlock序列化值\",\n      \"Status\": \"Passed\",\n      \"Duration\": 2.0772114,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeApplierEditModeTests.EnsureAll_直挂补组件_嵌套跳过_幂等\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.2792714,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeApplierEditModeTests.EnsureAll_非ColorTint跳过\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.6055458,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 3/3 passed"
+    },
+    {
+      "name": "ui-theme-binder-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeBinderEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10829,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_SelectableTheme节点上的基色ref仍可应用\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0007832,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_writer不拥有的子标签ref仍应用\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.000644,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_writer认领的tab目标跳过ref\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0005737,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_未知令牌只告警一次\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0018731,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_真HUD_ButtonSettings变色_Slider不抛\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.2817516,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 7/7 passed"
+    },
+    {
+      "name": "ui-style-selectable-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleSelectableRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 14486,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.无Selectable_Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7148892,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.未知令牌_Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.1254927,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.正例_ColorTint有组件且值命中_零问题\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.8567656,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.缺组件_Warning\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.8366156,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.非ColorTint_跳过\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.8095566,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 7/7 passed"
+    },
+    {
+      "name": "ui-text-migration-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiTextStyleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 21802,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.应用_UGUI映射与加粗\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.5807217,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.应用_加粗位只动Bold不动斜体\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0904367,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.迁移_UGUI按Legacy档匹配\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0406883,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.迁移_不匹配不加_36号留债\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7969298,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.迁移_直挂加Body_嵌套跳过_幂等\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.1479491,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 13/13 passed"
+    },
+    {
+      "name": "ui-style-ref-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRefEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 18386,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.ApplyRefs_未知令牌_不写值并计数\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.6885884,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.ApplyRefs_跳过IThemeBound节点\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7320112,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_不命中不填\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7065622,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_不填selectable专用令牌\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7425431,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_最近匹配填入\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0675756,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 9/9 passed"
+    },
+    {
+      "name": "ui-validation-b4-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 23185,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.表路径_端口标识与族\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0005995,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.视觉规则_端口标识与族\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.000267,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.负例_代码建Canvas_报一条Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.2210392,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 4.2924196,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_规则族全部接入登记_待接入子项描述含原因\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.9008637,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 14/14 passed"
+    },
+    {
+      "name": "module-dependency-decl-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~ModuleDependencyDeclTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 11318,
+      "ok": false,
+      "output_tail": "re.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\CommandAdvancedTests.cs(139,70): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\CommandAdvancedTests.cs(159,70): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Animation\\AnimationContractTests.cs(1114,13): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(31,77): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\FsmAuditStatsTests.cs(157,13): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(51,84): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(52,84): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(73,72): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LogRingConcurrencyTests.cs(44,18): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(97,68): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(98,68): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(99,68): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(133,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(134,80): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(165,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:     2，已跳过:     0，总计:     2，持续时间: 40 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "composition-budget-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~CompositionBudgetTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 4161,
+      "ok": false,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Assets\\LiteFramework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Assets\\LiteFramework\\Runtime\\Modules\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:     3，已跳过:     0，总计:     3，持续时间: 26 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "domain-boundary-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~DomainBoundaryTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 3916,
+      "ok": false,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Assets\\LiteFramework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Assets\\LiteFramework\\Runtime\\Modules\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:     5，已跳过:     0，总计:     5，持续时间: 34 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "sync-and-sim-geometry-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteSim.Core.Tests/LiteSim.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SyncAndSimGeometryContract",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 4795,
+      "ok": true,
+      "output_tail": "  堆栈跟踪:\n     at LiteSim.Tests.SyncAndSimGeometryContractTests.UT11_SimConfigMapper_HasCombatGeomParameter() in E:\\unityProject\\Test\\Tests\\LiteSim.Core.Tests\\SyncAndSimGeometryContractTests.cs:line 176\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 UT05_CombatValues_HasGeometryFieldAndNineParamCtor [< 1 ms]\n  错误消息:\n   CombatValues 缺少 public Geometry 字段（B9）\n  堆栈跟踪:\n     at LiteSim.Tests.SyncAndSimGeometryContractTests.UT05_CombatValues_HasGeometryFieldAndNineParamCtor() in E:\\unityProject\\Test\\Tests\\LiteSim.Core.Tests\\SyncAndSimGeometryContractTests.cs:line 59\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 UT09_MatchTestRules_GeometryOverrideRemoved [< 1 ms]\n  错误消息:\n   MatchTestRules 仍有几何覆写面（B10/B19）：HeadHitLineOverride | HeadshotRadiusOverride | ResolveHeadHitLine | ResolveHeadshotRadius\n  堆栈跟踪:\n     at LiteSim.Tests.SyncAndSimGeometryContractTests.UT09_MatchTestRules_GeometryOverrideRemoved() in E:\\unityProject\\Test\\Tests\\LiteSim.Core.Tests\\SyncAndSimGeometryContractTests.cs:line 147\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 UT06_CombatConfig_Loaded_ThrowsBeforePublish [1 ms]\n  错误消息:\n   Assert.Throws() Failure: No exception was thrown\nExpected: typeof(System.InvalidOperationException)\n  堆栈跟踪:\n     at LiteSim.Tests.SyncAndSimGeometryContractTests.UT06_CombatConfig_Loaded_ThrowsBeforePublish() in E:\\unityProject\\Test\\Tests\\LiteSim.Core.Tests\\SyncAndSimGeometryContractTests.cs:line 87\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n\n失败!  - 失败:     9，通过:     0，已跳过:     0，总计:     9，持续时间: 78 ms - LiteSim.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[stderr]\n[xUnit.net 00:00:00.23]     UT07_CombatConfig_GeometryPropertyExists [FAIL]\n[xUnit.net 00:00:00.25]     UT12_GeometryStaticReadGuard_NoOldNames [FAIL]\n[xUnit.net 00:00:00.26]     UT10_TableLayout_ContainsCombatGeom [FAIL]\n[xUnit.net 00:00:00.30]     UT04_LiteNet_NoUsingLiteSim [FAIL]\n[xUnit.net 00:00:00.30]     UT08_CombatConfig_OldGeometryConstantsRemoved [FAIL]\n[xUnit.net 00:00:00.30]     UT11_SimConfigMapper_HasCombatGeomParameter [FAIL]\n[xUnit.net 00:00:00.30]     UT05_CombatValues_HasGeometryFieldAndNineParamCtor [FAIL]\n[xUnit.net 00:00:00.30]     UT09_MatchTestRules_GeometryOverrideRemoved [FAIL]\n[xUnit.net 00:00:00.30]     UT06_CombatConfig_Loaded_ThrowsBeforePublish [FAIL]"
+    },
+    {
+      "name": "sync-and-sim-contract-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SyncAndSimContract",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 4991,
+      "ok": true,
+      "output_tail": "     at LiteFramework.Core.Tests.SyncAndSimContractTests.UT16_SimView_SnapshotIntervalIsInstance() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\SyncAndSimContractTests.cs:line 173\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 UT01_SharedDirsAndAsmdefExist [4 ms]\n  错误消息:\n   缺少 Assets/LiteSync/（LiteSync 同步协议层程序集，B1）\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.SyncAndSimContractTests.UT01_SharedDirsAndAsmdefExist() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\SyncAndSimContractTests.cs:line 28\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 UT18_AoiSettings_InLiteSyncShared [< 1 ms]\n  错误消息:\n   缺少 Assets/LiteSync/Shared/AoiSettings.cs（B15）\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.SyncAndSimContractTests.UT18_AoiSettings_InLiteSyncShared() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\SyncAndSimContractTests.cs:line 206\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 UT20_SimParamsGateAndOverridesExist [143 ms]\n  错误消息:\n   缺少 SimParams 参数面文件（B19-B21）：SimParamsGate.cs | SimParamsOverrides.cs | SimParamsDebugTunables.cs | SimParamsExporter.cs\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.SyncAndSimContractTests.UT20_SimParamsGateAndOverridesExist() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\SyncAndSimContractTests.cs:line 257\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n\n失败!  - 失败:    11，通过:     0，已跳过:     0，总计:    11，持续时间: 732 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[stderr]\n[xUnit.net 00:00:00.57]     UT19_ProtocolConstants_ThrottleAoiRadiusRemoved [FAIL]\n[xUnit.net 00:00:00.71]     UT13_OldBakeArtifactsRemoved [FAIL]\n[xUnit.net 00:00:00.73]     UT03_ClientAsmdefAllowlist_ContainsLiteSync [FAIL]\n[xUnit.net 00:00:00.73]     UT02_SharedTargets_ContainLiteSyncSharedNotClient [FAIL]\n[xUnit.net 00:00:00.87]     UT17_AoiFilter_NoStaticReadonlyCache [FAIL]\n[xUnit.net 00:00:00.87]     UT14_RootMotionAndGripBinariesExist [FAIL]\n[xUnit.net 00:00:00.87]     UT15_WriteGeneratedRemoved [FAIL]\n[xUnit.net 00:00:00.87]     UT16_SimView_SnapshotIntervalIsInstance [FAIL]\n[xUnit.net 00:00:00.88]     UT01_SharedDirsAndAsmdefExist [FAIL]\n[xUnit.net 00:00:00.91]     UT18_AoiSettings_InLiteSyncShared [FAIL]\n[xUnit.net 00:00:01.02]     UT20_SimParamsGateAndOverridesExist [FAIL]"
+    }
+  ]
+}

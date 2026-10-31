@@ -82,7 +82,7 @@ namespace LiteSim
                     // 步长内到位＝精确落位并解除武装（分支即语义——**禁浮点等值比较**，R3）；
                     // 非武装态即时跟向（常态移动，既有手感不变）。差值/结果归约到 (-π, π]。
                     float target = SimTrig.Atan2(inputs[i].MoveZ, inputs[i].MoveX);
-                    float maxStep = CombatConfig.FaceTurnRadPerSec * SimConfig.Dt;
+                    float maxStep = values.Geometry.FaceTurnRadPerSec * SimConfig.Dt;
                     float d = target - e.Yaw;
                     while (d > SimTrig.Pi) d -= SimTrig.TwoPi;
                     while (d < -SimTrig.Pi) d += SimTrig.TwoPi;

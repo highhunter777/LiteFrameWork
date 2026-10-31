@@ -1,6 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using LiteFramework;
 
+using LiteGame.Adapters.Dev.Debug.WeakNet;
 namespace LiteGame
 {
     /// <summary>切换弱网预设（低频动作，走命令中心审计）。</summary>

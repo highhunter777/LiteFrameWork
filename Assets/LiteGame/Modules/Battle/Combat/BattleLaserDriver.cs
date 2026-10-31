@@ -129,7 +129,7 @@ namespace LiteGame
         private float TraceBeam(float ox, float oy, float oz, float dx, float dz, float dy, float maxT, int skipSlot)
         {
             SimRaycast.RaycastEntities(_sim.State, skipSlot,
-                new SimVector3(ox, oy, oz), new SimVector3(dx, dy, dz), maxT, out _, out float t, _rules);
+                new SimVector3(ox, oy, oz), new SimVector3(dx, dy, dz), maxT, out _, out float t, CombatConfig.Geometry);
 
             float h = Mathf.Sqrt(dx * dx + dz * dz);
             if (h > SimRaycast.ParallelEpsilon)

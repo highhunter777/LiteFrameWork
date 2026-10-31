@@ -30,7 +30,7 @@ namespace LiteSim.Tests
             map.Obstacles[0] = new SimObstacle { Kind = SimObstacleKind.Circle, Center = new SimVector3(0f, 0f, 0f), Radius = 2f, Height = 10f };
             map.ObstacleCount = 1;
 
-            float r = CombatConfig.BodyRadius;
+            float r = CombatValues.Default.Geometry.BodyRadius;
             var (s, slot) = SpawnAt(2f + r * 0.5f, 0f); // 已切入圆障碍（表面 2 + 半个身位）
             MovementSystem.Run(s.Entities, s.AliveBitmap, map, CombatValues.Default);
 
@@ -49,7 +49,7 @@ namespace LiteSim.Tests
             var (s, slot) = SpawnAt(5f, 5f);             // 与障碍圆心重合
             MovementSystem.Run(s.Entities, s.AliveBitmap, map, CombatValues.Default);
 
-            Assert.Equal(5f + 2f + CombatConfig.BodyRadius, s.Entities[slot].Pos.X, 5);   // 圆心 X + 半径 + 身位
+            Assert.Equal(5f + 2f + CombatValues.Default.Geometry.BodyRadius, s.Entities[slot].Pos.X, 5);   // 圆心 X + 半径 + 身位
             Assert.Equal(5f, s.Entities[slot].Pos.Z, 5);
         }
 
@@ -60,7 +60,7 @@ namespace LiteSim.Tests
             map.Obstacles[0] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(0f, 0f, 0f), HalfX = 3f, HalfZ = 1f, Height = 10f };
             map.ObstacleCount = 1;
 
-            float r = CombatConfig.BodyRadius;
+            float r = CombatValues.Default.Geometry.BodyRadius;
             var (s, slot) = SpawnAt(3f + r * 0.5f, 0f); // 切入 +X 面（面 3 + 半个身位）
             MovementSystem.Run(s.Entities, s.AliveBitmap, map, CombatValues.Default);
 
@@ -78,7 +78,7 @@ namespace LiteSim.Tests
             var (s, slot) = SpawnAt(1f, 0f);             // 盒内：X 穿透 2 < Z 穿透 3 → 沿 +X 推出
             MovementSystem.Run(s.Entities, s.AliveBitmap, map, CombatValues.Default);
 
-            Assert.Equal(3f + CombatConfig.BodyRadius, s.Entities[slot].Pos.X, 5);
+            Assert.Equal(3f + CombatValues.Default.Geometry.BodyRadius, s.Entities[slot].Pos.X, 5);
             Assert.Equal(0f, s.Entities[slot].Pos.Z, 5);
         }
 
@@ -92,7 +92,7 @@ namespace LiteSim.Tests
             var (s, slot) = SpawnAt(0f, 0.2f);          // 盒内：Z 穿透 0.8 < X 穿透 3.3 → 沿 +Z 推出
             MovementSystem.Run(s.Entities, s.AliveBitmap, map, CombatValues.Default);
 
-            Assert.Equal(1f + CombatConfig.BodyRadius, s.Entities[slot].Pos.Z, 5);
+            Assert.Equal(1f + CombatValues.Default.Geometry.BodyRadius, s.Entities[slot].Pos.Z, 5);
             Assert.Equal(0f, s.Entities[slot].Pos.X, 5);
         }
 
@@ -124,7 +124,7 @@ namespace LiteSim.Tests
 
             // 30 帧（2.5m 行程 > 入墙行程）：X 被墙截在 面+r，Z 照常积分（贴墙滑行）
             for (int i = 0; i < 30; i++) MovementSystem.Run(s.Entities, s.AliveBitmap, map, CombatValues.Default);
-            Assert.Equal(3f + CombatConfig.BodyRadius, s.Entities[slot].Pos.X, 5);
+            Assert.Equal(3f + CombatValues.Default.Geometry.BodyRadius, s.Entities[slot].Pos.X, 5);
             Assert.Equal(30f * CombatConfig.MoveSpeed * SimConfig.Dt, s.Entities[slot].Pos.Z, 5);
             Assert.Equal(-CombatConfig.MoveSpeed, s.Entities[slot].Vel.X);   // 速度不衰减
 
@@ -142,7 +142,7 @@ namespace LiteSim.Tests
             Assert.Equal(5, map.ObstacleCount);   // 4 段围墙 + 1 个测试方块（TestMaps.Greybox 夹具）
 
             // 北墙（−Z 面 −68）：从 −55 向 −Z 持续走 600 帧（50m > 12.5m 行程）应停在 −68 + 身位
-            float r = CombatConfig.BodyRadius;
+            float r = CombatValues.Default.Geometry.BodyRadius;
             var (s, slot) = SpawnAt(0f, -55f);
             for (int i = 0; i < 600; i++)
             {
@@ -165,7 +165,7 @@ namespace LiteSim.Tests
         public void 标准地图_出生网格不在任何障碍内()
         {
             var map = TestMaps.Greybox();
-            float r = CombatConfig.BodyRadius;
+            float r = CombatValues.Default.Geometry.BodyRadius;
             for (int i = 0; i < map.SpawnPointCount; i++)
             {
                 for (int o = 0; o < map.ObstacleCount; o++)
@@ -200,8 +200,8 @@ namespace LiteSim.Tests
                     SimStep.Step(s, map, inputs, CombatValues.Default, WeaponTable.Default);
                 }
                 // 帧内既推离墙又保持被推住——终态不得穿墙
-                Assert.True(s.Entities[slot].Pos.X <= 68f - CombatConfig.BodyRadius);
-                Assert.True(s.Entities[slot].Pos.Z >= -68f + CombatConfig.BodyRadius);
+                Assert.True(s.Entities[slot].Pos.X <= 68f - CombatValues.Default.Geometry.BodyRadius);
+                Assert.True(s.Entities[slot].Pos.Z >= -68f + CombatValues.Default.Geometry.BodyRadius);
                 return SimChecksum.ComputeChecksum(s);
             }
         }

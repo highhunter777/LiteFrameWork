@@ -29,7 +29,10 @@ namespace LiteFramework.UI
         /// <summary>装配点绑定（进程唯一 UI 时钟）。</summary>
         public static void Bind(IUIClock clock) => _clock = clock;
 
-        /// <summary>清绑（Domain-Reload-Off 编辑场景）。</summary>
+        /// <summary>是否已绑定 UI 时钟（未绑定时动效走引擎自动更新兜底，见 FadeSlideTransition）。</summary>
+        public static bool IsBound => _clock != null;
+
+        /// <summary>清绑（Domain-Reload-Off 编辑场景 / 宿主关停）。</summary>
         public static void ResetForEditorReload() => _clock = null;
 
         /// <summary>动效步进：UIClock 已含时停/变速语义（未绑定时退化为真实帧步进）。</summary>

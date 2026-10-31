@@ -1,5 +1,6 @@
 using System.Collections.Generic;
-using LiteNet.Protocol;
+using LiteSync.Shared;
+using LiteSync.Snapshot;
 using LiteSim;
 using Xunit;
 
@@ -23,13 +24,13 @@ namespace LiteNet.Tests
         [Fact]
         public void 网格外实体_半径内兜底可见_半径外仍裁剪()
         {
-            float edge = SimConfig.AoiGridExtentMeters;          // 栅格覆盖半径
+            float edge = AoiSettings.Default.GridExtentMeters;          // 栅格覆盖半径
             var s = At((edge + 100f, 0f), (edge + 200f, 0f), (0f, 0f));
             var visible = new List<int>();
-            var aoi = new AoiFilter();
+            var aoi = new AoiFilter(AoiSettings.Default);
 
             // 视点也在网格外，距 slot0 约 100m（> AoiRadius 30）→ 只有它自己附近的可见
-            aoi.CollectVisible(in s, new SimVector3(edge + 100f, 0f, 0f), SimConfig.AoiRadius, visible);
+            aoi.CollectVisible(in s, new SimVector3(edge + 100f, 0f, 0f), AoiSettings.Default.Radius, visible);
             Assert.Contains(0, visible);                          // 视点自身在（修前会被漏掉）
             Assert.True(aoi.OutsideCount >= 1, "应记录到网格外实体（诊断信号）");
             Assert.DoesNotContain(2, visible);                    // 700+m 外的实体仍被 AOI 裁掉
@@ -44,20 +45,20 @@ namespace LiteNet.Tests
         [Fact]
         public void 栅格范围_由配置派生_边界内外行为正确()
         {
-            float extent = SimConfig.AoiGridExtentMeters;
-            float inside = extent - SimConfig.AoiCellSize;        // 覆盖半径内侧一格
+            float extent = AoiSettings.Default.GridExtentMeters;
+            float inside = extent - AoiSettings.Default.CellSize;        // 覆盖半径内侧一格
             var sIn = At((inside, 0f));
-            var aoiIn = new AoiFilter();
+            var aoiIn = new AoiFilter(AoiSettings.Default);
             var vIn = new List<int>();
-            aoiIn.CollectVisible(in sIn, new SimVector3(inside, 0f, 0f), SimConfig.AoiRadius, vIn);
+            aoiIn.CollectVisible(in sIn, new SimVector3(inside, 0f, 0f), AoiSettings.Default.Radius, vIn);
             Assert.Equal(0, aoiIn.OutsideCount);                  // 覆盖范围内 → 不入兜底
             Assert.Contains(0, vIn);
 
-            float outside = extent + SimConfig.AoiCellSize;       // 覆盖半径外侧一格
+            float outside = extent + AoiSettings.Default.CellSize;       // 覆盖半径外侧一格
             var sOut = At((outside, 0f));
-            var aoiOut = new AoiFilter();
+            var aoiOut = new AoiFilter(AoiSettings.Default);
             var vOut = new List<int>();
-            aoiOut.CollectVisible(in sOut, new SimVector3(outside, 0f, 0f), SimConfig.AoiRadius, vOut);
+            aoiOut.CollectVisible(in sOut, new SimVector3(outside, 0f, 0f), AoiSettings.Default.Radius, vOut);
             Assert.Equal(1, aoiOut.OutsideCount);                 // 超出覆盖范围 → 进兜底（但仍可见）
             Assert.Contains(0, vOut);
         }
@@ -67,12 +68,34 @@ namespace LiteNet.Tests
         public void 标准地图_全在栅格内()
         {
             var s = At((50f, 50f), (-50f, -50f), (50f, -50f), (-50f, 50f));
-            var aoi = new AoiFilter();
+            var aoi = new AoiFilter(AoiSettings.Default);
             var visible = new List<int>();
 
             aoi.CollectVisible(in s, SimVector3.Zero, 0f, visible);   // radius=0 也会建格
 
             Assert.Equal(0, aoi.OutsideCount);
+        }
+
+        /// <summary>实例网格互不影响（去静态缓存）：不同 settings 的 filter 在同一世界上诊断量不同。</summary>
+        [Fact]
+        public void 实例网格互不影响_不同设置各自生效()
+        {
+            var s = At((0f, 0f), (100f, 0f));
+            var tight = new AoiFilter(new AoiSettings(10f, 30f, 20f));    // 覆盖半径 20m → 100m 处实体在网格外
+            var wide = new AoiFilter(new AoiSettings(10f, 30f, 640f));    // 覆盖半径 640m → 全部在网格内
+            var vTight = new List<int>();
+            var vWide = new List<int>();
+
+            tight.CollectVisible(in s, SimVector3.Zero, 30f, vTight);
+            wide.CollectVisible(in s, SimVector3.Zero, 30f, vWide);
+
+            Assert.Equal(1, tight.OutsideCount);
+            Assert.Equal(0, wide.OutsideCount);
+            Assert.Contains(0, vTight);
+            Assert.Contains(0, vWide);
+            Assert.DoesNotContain(1, vTight);                          // 100m 外仍被半径裁掉
+            Assert.DoesNotContain(1, vWide);
+            Assert.Equal(15f, AoiSettings.Default.ThrottleRadius);     // 节流半径 = 基础半径一半
         }
 
         /// <summary>把槽位按位置摆放（**显式给 Id**，不与生成序耦合；槽位号 = 传入顺序）。</summary>
@@ -89,7 +112,7 @@ namespace LiteNet.Tests
         {
             var s = At((0f, 0f), (200f, 200f), (-300f, 15f));
             var visible = new List<int>();
-            var aoi = new AoiFilter();
+            var aoi = new AoiFilter(AoiSettings.Default);
 
             aoi.CollectVisible(in s, SimVector3.Zero, 0f, visible);
 
@@ -101,9 +124,9 @@ namespace LiteNet.Tests
         {
             var s = At((0f, 0f), (500f, 500f));                 // 视点（0,0）/ 远邻（500,500）
             var visible = new List<int>();
-            var aoi = new AoiFilter();
+            var aoi = new AoiFilter(AoiSettings.Default);
 
-            aoi.CollectVisible(in s, SimVector3.Zero, SimConfig.AoiRadius, visible);
+            aoi.CollectVisible(in s, SimVector3.Zero, AoiSettings.Default.Radius, visible);
 
             Assert.Contains(0, visible);                        // 视点自身（不漏发）
             Assert.DoesNotContain(1, visible);                  // 500m 外（远超过 30m 半径的格邻域）
@@ -116,9 +139,9 @@ namespace LiteNet.Tests
             // 视点在格边界 x=10 上：左邻格（x=5）与右邻格（x=15，同格内的另一点）都必须可达
             var s = At((10f, 0f), (5f, 0f), (15f, 0f), (0f, 0f), (20f, 0f));
             var visible = new List<int>();
-            var aoi = new AoiFilter();
+            var aoi = new AoiFilter(AoiSettings.Default);
 
-            aoi.CollectVisible(in s, new SimVector3(10f, 0f, 0f), SimConfig.AoiRadius, visible);
+            aoi.CollectVisible(in s, new SimVector3(10f, 0f, 0f), AoiSettings.Default.Radius, visible);
 
             for (int i = 0; i < s.AliveCount(); i++)
                 Assert.True(visible.Contains(i), $"槽位 {i} 在半径内却被漏发（格边界取整产生空洞）");
@@ -129,9 +152,9 @@ namespace LiteNet.Tests
         {
             var s = At((-30f, 0f), (-25f, 0f), (-35f, 0f));
             var visible = new List<int>();
-            var aoi = new AoiFilter();
+            var aoi = new AoiFilter(AoiSettings.Default);
 
-            aoi.CollectVisible(in s, new SimVector3(-30f, 0f, 0f), SimConfig.AoiRadius, visible);
+            aoi.CollectVisible(in s, new SimVector3(-30f, 0f, 0f), AoiSettings.Default.Radius, visible);
 
             Assert.Equal(3, visible.Count);   // 全部在 30m 邻域内（截断取整会把 -35/-25 分到错误格）
         }
@@ -170,7 +193,7 @@ namespace LiteNet.Tests
                 inputs[1] = new SimInputFrame { EntityId = withoutAoi.Entities[1].Id, MoveX = -0.5f };
                 SimStep.Step(withoutAoi, map, inputs, CombatValues.Default, WeaponTable.Default);
 
-                differAoi.Build(withAoi.Frame, withAoi, 0, withAoi.Entities[0].Pos, SimConfig.AoiRadius, false);
+                differAoi.Build(withAoi.Frame, withAoi, 0, withAoi.Entities[0].Pos, AoiSettings.Default.Radius, false);
                 differFull.Build(withoutAoi.Frame, withoutAoi, 0, SimVector3.Zero, 0f, false);
             }
 

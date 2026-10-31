@@ -329,17 +329,18 @@ namespace LiteGame.Editor
                 EditorGUILayout.HelpBox("DebugKernel 未装配——先进入 Play（当前值读数经内核调参发现面）。", MessageType.Warning);
                 return;
             }
-            float height = LiteSim.CombatConfig.HitscanHeight;
+            float height = LiteSim.CombatConfig.Geometry.HitscanHeight;
             float shown = TunableValue(kernel, "head.line");
             float radiusShown = TunableValue(kernel, "head.radius");
-            EditorGUILayout.LabelField($"比例 {shown / height:F3}    带高 {height - shown:F3} m    当前导出值：下沿 {LiteSim.CombatConfig.HeadHitLine:F3} m / 半径 {LiteSim.CombatConfig.HeadshotRadius:F3} m");
-            if (GUILayout.Button("导出当前爆头区到 HeadBake.g.cs"))
+            EditorGUILayout.LabelField($"比例 {shown / height:F3}    带高 {height - shown:F3} m    当前导出值：下沿 {LiteSim.CombatConfig.Geometry.HeadHitLine:F3} m / 半径 {LiteSim.CombatConfig.Geometry.HeadshotRadius:F3} m");
+            if (GUILayout.Button("导出当前爆头区到 #combatgeom 表"))
             {
                 string report = LiteGame.EditorTools.HeadHitLineTuner.Export(shown / height, radiusShown);
                 EditorUtility.DisplayDialog("爆头区导出", report, "OK");
             }
             EditorGUILayout.HelpBox(
-                "对局中点导出会触发重编译并中断对局（domain reload）——先记下数值，出对局后再导。",
+                "导出只写 `#combatgeom` 表源（不触发重编译）；需在出对局后跑 Luban/gen.bat → "
+                + "python scripts/codegen/gen-build-hash.py，再进房才生效。",
                 MessageType.Info);
         }
 

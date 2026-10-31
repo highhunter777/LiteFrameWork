@@ -1,5 +1,5 @@
 using System;
-using LiteNet.Protocol;
+using LiteSync.Input;
 using LiteSim;
 using Xunit;
 

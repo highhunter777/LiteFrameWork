@@ -1,0 +1,30 @@
+结论: FAIL
+
+阻塞问题: 4
+
+覆盖矩阵:
+批 6：B1→T43；B2/B3/B4/B6/B7→T44；B5/B22→T45；B8→T46。
+批 7：B9→T58（类型/发布闸门/10 处构造点）+T59（13 列装载/坏表拒启动）；B10→T60；B11→T59；B12→T62（Body/Head/Muzzle、SimMap、BakeTargets/CC 夹具）+T63（Grip）+T64（RootMotion）；B13/B14→T61；B15→T65；B16/B17/B18→T64；B19/B20/B21→T66；B23→T67；B24→T68。
+无孤儿/无重复/无越界：T43~T46、T58~T68 全部落在 B1~B24 内；B9 按“类型/闸门”与“表/装载”拆、B12 按三资产族拆，均为显式拆分；B10 的“删除四几何覆写”只在 T60，T66 仅只读零命中复核，职责未重复。
+
+阻塞问题清单:
+- [高][B12/T62] `WriteGenerated` 删除时机与 T63/T64 冲突：T62 验收写明“WriteGenerated 删除”，但 T63 的 `WeaponGripBaker`、T64 的 `RootMotionBaker` 尚未迁移，仍调用该共享写入器；按 T62 执行会留下 CS0117/编译中断，若保留则不满足 T62 验收。plan“烘焙全迁”明确要求“五件 `.g.cs` 全部退役后删除（零引用）”。建议：T62 只迁 Body/Head/Muzzle 并保留 `WriteGenerated`，将“零引用并删除”移到 T64 末步（或单列收口任务）。
+- [中][执行者/T45、T46、T61、T62] 第 5 条整改未闭合：T45、T46 验收无“执行者”；T62 只写“删除/重生成主代理”，未写代码/测试由施工子代理；T61 验证含 `gen-build-hash 重生成+check`，但执行者仅列施工子代理，若触发共享源变更会越权。建议：T45 明确“守卫 C#/测试=施工子代理、门禁配置=主代理”；T46 明确主代理（build-player/两端联测）；T61 补“重生成主代理”；T62 补“代码/测试=施工子代理”。
+- [中][B10/T60] 第 6 条整改只完成 T58：T60 文件范围已含 `Assets/LiteGame/Modules/Battle/Arena`，但验收仅有“Arena 时序/断言”，没有测试名或断言点，无法独立验证。plan 第 113 行已点名 `BattleCrosshairEditModeTests`/`BattleLaserEditModeTests`/`BattleSmokePlayModeTests`。建议：T60 写明具体测试名（含 `ArchitectureGuardTests` 植入负例），以及 Arena 侧 `BattleContext`/`BattleCrosshairDriver`/`AutoHeadshotRig`/`BattleHeadshotDrawer` 只读展示投影的断言。
+- [中][B12/T62] CC 夹具同源与失败语义缺失：T62 只写“restore-check 前置”，未写 plan 要求的“prefab 缺失=失败、不 skip”，也未写 `BodyCylinderBaker` 写表时同次原子更新 `Tests/EditMode/Fixtures/BodyCc.json`（含来源 prefab）。当前断言只能证明“表 row ≡ JSON”，不能证明 JSON 与当前 prefab 同源，存在陈旧夹具下虚假通过。建议：补失败语义与夹具同次更新要求。
+
+主要优点:
+- 6 项整改中第 1、2、3、4 项实质落地：T59 已把 `Assets/GameData/Generated`、`Assets/GameData/Config` 纳入范围并写明生成/重生成归主代理；T67 已新增 `scripts/gate/sync-and-sim-e2e.py` 并把 e2e 纳入 sync-and-sim 命令组；T65 已写出配置三档 + GM `start` 创建 sandbox 房回读两路。
+- T62 的 BakeTargets 描述与源码精确对应：实读 `Assets/LiteGame/Editor/Baking/BakeTargets.cs`，`PrefabPath` 在第 25 行、Head/Muzzle/Body 输出在第 36~38 行、Grip 在第 41 行、RootMotion 在第 46 行；四条死路径（36-38/46）与“Grip 在 LiteGame 非共享源集”均成立，T63“无需 BuildHash”判断正确。
+- 覆盖矩阵完整、拆分合理；依赖链 T43→T46→T58→…→T68 单向无环；共享源集（LiteSync 四目录、LiteSim/Scripts/Systems、GameData/Generated）的重生成基本都落在对应任务并归主代理；资产搬迁/删除总体走 unity-pipeline 且主代理执行（T44/T62/T63/T64）。
+
+非阻塞建议:
+- T65：`scripts/deploy/gm.py` 当前仅支持 room/player/flags/file/no-death/infinite-ammo，没有 AOI 参数；GM `start` 实际只能做“sandbox 房生效值回读”，建议明确回读面（RoomServer 日志字段或 GM `rooms` 响应），避免与“GM 房参数真实注入”混淆；若确需按 GM 参数注入，应把 MetaServer GM 契约纳入 T65 文件范围。另注明改 `deploy/roomserver.windows.json` 后必须重启 LiteGame-Room 再回读（配置为启动期快照），并写明三档是三套 room profile 还是三次改配置重启。
+- T61：B14 要求“给出测试名”，现仅对 GameplayDigestBase 标了“（测试名）”；建议补确定性 checksum/回放黄金样本的测试名与黄金样本更新流程落点。
+- T68：验收“记录 T66 e2e 证据链接”应为 T67。
+- T43：`dotnet build Tests.slnx` 依赖 T44 才把 LiteSync 加入 slnx；建议把 slnx 登记挪到 T43，或验证改为仅直建 `LiteSync.csproj`。
+- T44：补 B4 的“BuildHash.g.cs 路径/namespace 不变 + 记录新哈希”、B6 的“LiteNet 仅留 `IClientTransport`/`IClientTransportErrorSource`”grep 断言、B7 的 DiagTrace 登记理由。
+- T58：“_published 三态”与 plan 的布尔两态（未发布/已发布）表述不一致，建议统一为“读口三态（未发布抛/已发布读/展示兜底）”。
+- T66：补 B21 的“导出后自动 `gen.bat`”和“两端需重建”提示；真实 GM 页操作建议明确由主代理执行（红线 13）。
+- T67：建议写明 e2e 运行环境（本地/云隧道）、是否双开真实进同一房、超时与失败清理；“两端摘要对账”本身不等同于“两端联测”，需与 B23 的人工证据边界对齐。
+- T62/T63/T64：“输出摘要等于预期”建议落成具体期望值或测试名；T62 注明“先迁移消费者再删三件 `.g.cs`”，避免任务中间态编译红。

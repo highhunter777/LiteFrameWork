@@ -2,7 +2,8 @@
     "name": "RoomServer.Runtime",
     "rootNamespace": "RoomServer.Runtime",
     "references": [
-        "LiteSim"
+        "LiteSim",
+        "LiteSync"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

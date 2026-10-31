@@ -19,7 +19,8 @@ namespace LiteNet.Tests
         {
             var admitted = new PlayerAdmitted(2, new[] { 0, 1, 2 }, isOwner: false);
 
-            var ack = HandshakePacker.BuildJoinAck(admitted, "ticket-1", 300, mapId: 7, expectedPlayers: 4);
+            var ack = HandshakePacker.BuildJoinAck(admitted, "ticket-1", 300, mapId: 7, expectedPlayers: 4,
+                snapshotHz: LiteSync.Shared.ProtocolConstants.DefaultSnapshotHz);
 
             Assert.Equal(2, ack.PlayerId);
             Assert.Equal(3, ack.Members.Count);
@@ -30,7 +31,7 @@ namespace LiteNet.Tests
             Assert.Equal(7, ack.MapId);
             Assert.Equal("ticket-1", ack.ReconnectToken);
             Assert.Equal(300, ack.ReconnectWindowSeconds);
-            Assert.Equal(SimConfig.SnapshotHz, ack.SnapshotHz);
+            Assert.Equal(LiteSync.Shared.ProtocolConstants.DefaultSnapshotHz, ack.SnapshotHz);
             Assert.Equal(SimConfig.TickRate, ack.TickRate);
         }
 

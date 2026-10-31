@@ -113,6 +113,42 @@ namespace LiteFramework.Core.Tests
                 "禁止新增静态门面（走构造注入/端口；确需例外先在设计文档登记）：" + string.Join(" | ", offenders));
         }
 
+        [Fact]
+        public void 硬边_LiteNet不得引用LiteSim或LiteSync()
+        {
+            string root = RepoRoot();
+            AssertNoReference(root, "Assets/LiteNet/LiteNet.asmdef", "LiteSim");
+            AssertNoReference(root, "Assets/LiteNet/LiteNet.asmdef", "LiteSync");
+        }
+
+        [Fact]
+        public void 硬边_LiteSync不得引用LiteGame或UnityEngine()
+        {
+            string root = RepoRoot();
+            AssertNoReferencePrefix(root, "Assets/LiteSync/LiteSync.asmdef", "LiteGame.");
+            AssertNoReference(root, "Assets/LiteSync/LiteSync.asmdef", "UnityEngine");
+        }
+
+        [Fact]
+        public void 硬边守卫_植入违规应红()
+        {
+            string root = RepoRoot();
+            string rel = "Tests/LiteFramework.Core.Tests/__guard_probe.asmdef";
+            string path = Path.Combine(root, rel.Replace('/', Path.DirectorySeparatorChar));
+            try
+            {
+                File.WriteAllText(path, "{\"references\":[\"LiteSim\",\"LiteSync\",\"LiteGame.Bad\",\"UnityEngine\"]}");
+                Assert.ThrowsAny<Exception>(() => AssertNoReference(root, rel, "LiteSim"));
+                Assert.ThrowsAny<Exception>(() => AssertNoReference(root, rel, "LiteSync"));
+                Assert.ThrowsAny<Exception>(() => AssertNoReferencePrefix(root, rel, "LiteGame."));
+                Assert.ThrowsAny<Exception>(() => AssertNoReference(root, rel, "UnityEngine"));
+            }
+            finally
+            {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
         private static void AssertNoReference(string root, string asmdefRelative, string forbidden)
         {
             string text = File.ReadAllText(Path.Combine(root, asmdefRelative.Replace('/', Path.DirectorySeparatorChar)));

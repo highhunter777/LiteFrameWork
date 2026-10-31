@@ -220,7 +220,7 @@ namespace LiteGame.Tests.UI.PlayMode
         // ---- 断言细节 ----
 
         /// <summary>越肩几何：相机位于角色**右**后方——肩偏角 ∈ [15°,45°]、水平距离 ∈ [1.5,4.0]m、
-        /// 相机高度高于胸口 ≤ 1.0m（胸口参照 <see cref="CombatConfig.HeadHitLine"/>，与命中柱同源）。
+        /// 相机高度高于胸口 ≤ 1.0m（胸口参照 <see cref="CombatConfig.Geometry.HeadHitLine"/>，与命中柱同源）。
         /// **参照系 = 相机视线水平轴**（不是角色 transform.forward：角色 prefab 的模型朝向轴属美术约定，
         /// 实测该角色 view 的 forward 为 +X，拿它当"身后"会把 20° 肩偏读成 155°）。
         /// **容差就是判据**：场景 vcam 的 FollowOffset 可调，本断言判的是"确实是越肩机位而不是正后/头顶/贴脸"。</summary>
@@ -252,7 +252,7 @@ namespace LiteGame.Tests.UI.PlayMode
             var flatDir = horizontal > 0.01f ? flat.normalized : behindAxis;
             float shoulderAngle = Vector3.Angle(behindAxis, flatDir);
             float lateral = Vector3.Dot(flatDir, rightAxis);
-            float aboveChest = cameraPos.y - (characterPos.y + CombatConfig.HeadHitLine);
+            float aboveChest = cameraPos.y - (characterPos.y + CombatConfig.Geometry.HeadHitLine);
 
             Debug.Log("[BattleSmoke] 越肩几何：肩偏=" + shoulderAngle.ToString("0.0") + "度 横向="
                       + lateral.ToString("0.00") + " 水平距离=" + horizontal.ToString("0.00")

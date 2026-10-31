@@ -1,0 +1,26 @@
+结论: FAIL
+验收标准: FAIL（B19/B20 的“门”和“权威侧合并点”仍不可判定；B9 的 `Default` 语义已可判定）
+阻塞问题: 1
+
+阻塞问题清单:
+- [高][plan.md §132、B19/B20、§230 + MatchTestRules.cs:26-38] 联机几何覆盖仍有三套互斥的说法：§230 说“联机覆盖走 GM 房参数、经 `MatchTestRules` 下发且进规则摘要”，B19/B20 说“GM 几何滑杆禁用或只走表”，而 `MatchTestRules` 现行契约明确爆头线/柱径/伤害/射速覆写“不进摘要、不可重放”。此外 §132 允许“装载/开局时并入 `CombatValues.Geometry` 或 `MatchTestRules` 实例”，却没指定**本地测试房的权威侧（`LocalServerTransport` 本地服）**在哪里合并：若只在客户端 `ConfigService` 合并，判定仍读表值，滑杆只改预测，必然分叉。第三，“`TestModeRuntime.Current.Active` 且 `LocalServerTransport`”是跨层谓词，客户端无法独立求值，不是可判定门。建议：①定名单一门（如 `SimParamsGate.IsLocalTestRoom`，在组合根一次求值、客户端与本地服同值），并写死唯一合并点（`ValidateCandidate`/`BuildCombatValues` 之后、`Publish` 之前，或入口构造 `MatchTestRules` 时）；②删除 §230“GM 房参数进 `MatchTestRules` 摘要”的旧句，统一为“GM 几何=改表（表字节自动进 `CombatConfigDigest`）或禁用”；③B20 补三条断言：门 false 时覆盖值零消费、本地权威命中/checksum 与客户端预测同值、联机下 `Geometry` 逐字段等于 `ServerTableLoader` 装载产物。
+
+主要优点:
+- ②基本闭合：`Default` 语义已收敛为“未发布展示兜底、非权威”，风险 #4 的“必须与表值一致”已删，`ValidateCandidate` 明确只校验候选表行、不读 `Default`，“不存在 `CombatConfig.Default`”与代码事实一致。
+- 公布闸门三态（`Loaded` 抛 / `HasPublished`/`TryGetLoaded` / `Geometry` 展示兜底）区分清楚，判定读者仅 `BattleContext.cs:305` 且有时序断言。
+- B19/B20 已给出“dev 三宏 + 本地测试房”的范围收敛方向和“对局中改→下一局生效”的可观察口径，比第五轮大幅进步。
+- 覆盖值同源方向正确：客户端覆盖不进联机摘要，联机身份只由表字节/规则位决定。
+
+非阻塞建议:
+- `CombatConfig.cs:12` 仍写“默认 = `CombatValues.Default`（必须与表值一致，L1 守卫卡漂移）”，与 §206 直接冲突；虽列入 T9b 注释清理，但 B9/B10 无注释断言。建议提前到 T7（改闸门同批）并加 grep 断言“非权威”表述唯一。
+- `CombatConfig.cs:22` `_loaded = CombatValues.Default` 与 B9“未发布 `Loaded` 抛”必须同批改；T7 应显式列出 `_published=false` 初值与 `_loaded` 初始值处理（现在只写“`Publish` 置 true”）。
+- 未核验 `TestModeRuntime.Current.Active` 的实际 API 形态（受 4 次调用上限未读该文件）；若属性名/类型不存在，需在 T12 之前定名并给出求值点。
+- `Default.Geometry` 展示兜底仍是旧编译期常量，编辑器工具首开会显示与表不同的 13 值；建议 UI 标注“未装载/展示值”而不是静默显示。
+
+抽查证据:
+- plan.md:193-194 — B19/B20 已有具名判据与部分断言，但未给出门的实现载体、权威侧合并点、同值断言 ⇒ ①未闭合。
+- plan.md:230 — “联机覆盖走 GM 房参数经 `MatchTestRules` 下发并进规则摘要”，与 B19“GM 几何滑杆禁用或只走表”、B20“联机下禁用”互斥 ⇒ 新矛盾。
+- plan.md:206、234 — 风险 #4 已改为“`Default` 仅展示兜底、不设与表值一致守卫；权威来自 `Publish`/表；`ValidateCandidate` 只校验候选行” ⇒ ②语义闭合。
+- plan.md:116、183 — “默认值单源是 `CombatValues.Default`”“`Geometry` 未发布返回 `CombatValues.Default.Geometry`（展示兜底、非权威）”前后一致 ⇒ 无双语义。
+- Assets/LiteSim/Scripts/Rules/MatchTestRules.cs:26-38 — 现行契约“不进摘要、不可重放”，与 plan.md:230“进规则摘要”冲突；且:4-8 的“中局开合直接写当前活动局”与 B20“对局中改→下一局生效”存在口径差。
+- Assets/LiteSim/Scripts/Config/CombatConfig.cs:12、22 — 旧“必须与表值一致”注释与 `_loaded` 默认初始化残留，属 T7 必须同批处理项；:55/82/130/161/176 的“表化计划/不进 digest”注释已被 plan.md:131 列入清理，② 的清理面有据。

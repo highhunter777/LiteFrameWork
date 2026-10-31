@@ -28,10 +28,10 @@ namespace LiteSim
                 // 软上限"）：配置错误/增益叠加/未来机制 bug 也不会让实体超速吹飞；用 SimMath 位级
                 // 确定原语（MulAdd2 + Sqrt），护栏本身不引运行时差异。
                 float velSq = SimMath.MulAdd2(e.Vel.X, e.Vel.X, e.Vel.Z, e.Vel.Z);
-                float hardSq = CombatConfig.HardMaxSpeed * CombatConfig.HardMaxSpeed;
+                float hardSq = values.Geometry.HardMaxSpeed * values.Geometry.HardMaxSpeed;
                 if (velSq > hardSq)
                 {
-                    float scale = CombatConfig.HardMaxSpeed / SimMath.Sqrt(velSq);
+                    float scale = values.Geometry.HardMaxSpeed / SimMath.Sqrt(velSq);
                     e.Vel.X *= scale;
                     e.Vel.Z *= scale;
                 }
@@ -67,20 +67,20 @@ namespace LiteSim
                 ref EntitySlot e = ref entities[i];
                 for (int o = 0; o < obstacleCount; o++)
                 {
-                    ResolveObstacle(ref e, map.Obstacles[o]);
+                    ResolveObstacle(ref e, map.Obstacles[o], values.Geometry);
                 }
             }
         }
 
         /// <summary>单个实体 × 单个障碍的 XZ 去穿插。y 区间闸先判（悬空/贴顶不碰撞）；
         /// 圆/盒分派走 switch——LiteSim 禁 == 比较（R3），枚举判别同房内惯例（RoomRuntime.Execute 同款）。</summary>
-        private static void ResolveObstacle(ref EntitySlot e, in SimObstacle ob)
+        private static void ResolveObstacle(ref EntitySlot e, in SimObstacle ob, in CombatGeometry geometry)
         {
-            float bodyTop = e.Pos.Y + CombatConfig.HitscanHeight;
+            float bodyTop = e.Pos.Y + geometry.HitscanHeight;
             float obTop = ob.Center.Y + ob.Height;
             if (e.Pos.Y >= obTop || bodyTop <= ob.Center.Y) return;
 
-            float r = CombatConfig.BodyRadius;
+            float r = geometry.BodyRadius;
 
             switch (ob.Kind)
             {

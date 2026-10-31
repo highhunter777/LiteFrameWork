@@ -1,0 +1,24 @@
+结论: FAIL
+验收标准: FAIL
+阻塞问题: 2
+阻塞问题清单:
+- [高][plan.md:19、112、132、185；MatchTestRules.cs:36-43、79-89] 第七轮只删除了爆头几何覆写，`MatchTestRules` 仍保留 `DamageOverride`/`RpmOverride` 及 `ResolveWeaponDamage`/`ResolveFireIntervalFrames`，这是绕过 `SimParamsGate` 与唯一合并点的第二条判定参数通道，使“唯一参数通道”“唯一门”的表述不成立；同时 B19 用“删除 `Resolve*`/override 字段”的通配表述，既可理解为只删两个爆头方法，也可理解为删光全部 Resolve/override，验收不可判定。建议明确：二者是退役并入 `SimParamsOverrides`，还是保留为独立 dev 通道（若是后者，须写明联机禁用、摘要口径，并在 B19 精确列名）；同时把 plan.md:19 改为“几何/判定数值唯一通道为 `CombatValues`，`MatchTestRules` 仅承载规则位/dev 覆写”。
+- [高][plan.md:133、188、195] 摘要单源已写成“判定表字节 + 入口规则位（NoDeath/InfiniteAmmo）”，B13 复述一致；但 B20① 仍要求“摘要等于纯表摘要”，且未说明该用例中入口规则位为 false、也未定义“纯表摘要”是否含规则位。若按字面理解为仅表字节，则与 133/188 直接冲突，等于残留第三套口径；若指“无覆盖摘要”，应改名并固定规则位取值与编码。该验收项当前不可判定。
+
+主要优点:
+- plan.md:133 建立了单一摘要定义，plan.md:188 的 B13 与其一致；“联机不含 SimParamsOverrides/中局 GM 开合/dev 覆写、本地测试房按生效值算”与 `MatchTestRules.cs:14-15、26-34` 的现行“入口位进摘要、中局开合不进摘要”契约基本对齐。
+- plan.md:112 明确点名删除 `ResolveHeadHitLine`/`ResolveHeadshotRadius`/`HeadHitLineOverride`/`HeadshotRadiusOverride`，plan.md:185 的 B10 给出 `Assets/**`、`Server/**`、`Tests/**` 扫描根及负例，几何覆写旁路本身已闭合。
+- 外部消费面迁移、`CombatConfig.Geometry` 仅作展示兜底、判定/烘焙不得读取该投影等配套约束较完整。
+
+非阻塞建议:
+- 删除字段后同步清理 `MatchTestRules.cs:4、26-34` 中“爆头带试验覆写”的类头/字段说明，避免文档残留。
+- B10 对四个几何标识符明确是否排除注释/字符串，并同步删除相关 XML `cref`，防止 warnaserror 下编译告警。
+- 为摘要中的规则位定义规范化编码（字段顺序、零值省略/固定长度），避免“逐值拼摘要”的口径漂移。
+
+抽查证据:
+- `.workflow/active/sync-and-sim-params/plan.md:112`：明确删除四个几何标识符，几何旁路已点名清除。
+- `plan.md:185`：B10 对四项给出零命中 grep 守卫及负例，但未覆盖 `DamageOverride`/`RpmOverride`。
+- `Assets/LiteSim/Scripts/Rules/MatchTestRules.cs:31、34、72-77`：基线仍有几何覆写字段与两个 Resolve 方法，按计划应删除。
+- `MatchTestRules.cs:36-43、79-89`：`DamageOverride`/`RpmOverride` 与两个 Resolve 方法未被计划删除，构成第二判定通道。
+- `plan.md:133` 与 `plan.md:188`：摘要口径一致；`plan.md:195` B20①“纯表摘要”残留第三表述。
+- `plan.md:19、58、132`：声称“唯一参数通道”，但 `SimStep.Step` 仍接收 `MatchTestRules`，且唯一合并点只覆盖 `SimParamsOverrides`，表述自相矛盾。

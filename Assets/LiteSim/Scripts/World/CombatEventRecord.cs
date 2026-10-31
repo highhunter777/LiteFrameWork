@@ -1,5 +1,4 @@
 using System;
-
 namespace LiteSim
 {
     /// <summary>
@@ -75,7 +74,7 @@ namespace LiteSim
     /// 协议层（`LiteNet`）也只引用 <c>LiteSim</c>——把端口放在任何一端都会逼出一条反向引用。
     /// 放在词汇单源旁边，两端各自实现/消费，谁也不认识谁的类型。
     ///
-    /// 实现方：<c>RoomServer.Runtime.CombatEventWindow</c>；消费方：<c>LiteNet.Protocol.CombatEventCodec</c>。
+    /// 实现方：<c>RoomServer.Runtime.CombatEventWindow</c>；消费方：<c>LiteSync.Events.CombatEventCodec</c>。
     /// </summary>
     public interface ICombatEventSource
     {

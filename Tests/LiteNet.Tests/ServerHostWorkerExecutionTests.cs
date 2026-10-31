@@ -10,6 +10,7 @@ using RoomServer.Runtime;
 using Xunit;
 using LiteSim.Tests;
 
+using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>

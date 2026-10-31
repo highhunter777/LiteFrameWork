@@ -1,6 +1,7 @@
 using System;
 using LiteSim;
 
+using LiteSync.Shared;
 namespace RoomServer.Runtime
 {
     /// <summary>
@@ -41,7 +42,7 @@ namespace RoomServer.Runtime
         public const int FutureFrameTolerance = 8;
 
         /// <summary>
-        /// Move 单分量绝对值上限（复述 <c>LiteNet.Protocol.ProtocolConstants.MoveComponentLimit</c>——
+        /// Move 单分量绝对值上限（复述 <c>LiteSync.Shared.ProtocolConstants.MoveComponentLimit</c>——
         /// Runtime 层不得引用 LiteNet，一致性由 L1 契约用例钉死）。
         /// </summary>
         public const float MoveComponentLimit = 1f;
@@ -56,7 +57,7 @@ namespace RoomServer.Runtime
         public const float AimPointRangeTolerance = 1.1f;
 
         /// <summary>
-        /// Move 向量长度平方上限（复述 <c>LiteNet.Protocol.ProtocolConstants.VectorLengthSquaredLimit</c>；
+        /// Move 向量长度平方上限（复述 <c>LiteSync.Shared.ProtocolConstants.VectorLengthSquaredLimit</c>；
         /// 用平方比较避免开方——开方属超越函数纪律管辖区）。
         /// </summary>
         public const float VectorLengthSquaredLimit = 1f;

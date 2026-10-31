@@ -5,6 +5,8 @@ using LiteFramework;
 using LiteNet;
 using LiteNet.Diagnostics;
 
+using LiteGame.Adapters.Dev.Debug.WeakNet;
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>

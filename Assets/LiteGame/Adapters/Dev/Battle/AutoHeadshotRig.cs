@@ -82,15 +82,15 @@ namespace LiteGame
                 // 瞄准点 = 目标正上方**头部带中心**（带内正中 ⇒ 不贴边界，容错最大）。
                 // **AimPoint 单口径**（《固定斜视角射击方案专项设计》§3）：朝向（Yaw）与弹道方向
                 // 都由服务端/预测两端自本点派生——本件只产点，不再构造方向（方向字段已退役）。
-                float headY = CombatConfig.HeadHitLine
-                    + (CombatConfig.HitscanHeight - CombatConfig.HeadHitLine) * 0.5f;
+                float headY = CombatConfig.Geometry.HeadHitLine
+                    + (CombatConfig.Geometry.HitscanHeight - CombatConfig.Geometry.HeadHitLine) * 0.5f;
                 float px = t.Pos.X;
                 float py = t.Pos.Y + headY;
                 float pz = t.Pos.Z;
 
                 // 与本体/枪口重合时点退化（无方向可用）——让出本帧（不打）
                 float ax = px - localPos.X;
-                float ay = py - (localPos.Y + CombatConfig.MuzzleOffsetHeight);
+                float ay = py - (localPos.Y + CombatConfig.Geometry.MuzzleHeight);
                 float az = pz - localPos.Z;
                 if (ax * ax + ay * ay + az * az <= 1e-6f) return new IntentSample(frame);
 

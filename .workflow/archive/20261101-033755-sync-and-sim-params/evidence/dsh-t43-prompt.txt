@@ -1,0 +1,25 @@
+你是本项目的施工子代理（外部 dsh 代理），执行任务 T43「LiteSync 程序集与双轨编译」。仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。
+
+先读：
+- `.workflow/active/sync-and-sim-params/tasks.md` 的 T43 验收
+- `Assets/LiteNet/LiteNet.asmdef`、`Assets/LiteNet/LiteNet.csproj`、`Assets/LiteSim/LiteSim.csproj`（格式与双轨模式）
+- `AGENTS.md` 红线（C# 9、noEngineReferences、Protobuf 预编译引用）
+
+只做：
+1. 新建 `Assets/LiteSync/` 目录。
+2. 新建 `Assets/LiteSync/LiteSync.asmdef`：
+   - `references`: ["LiteNet", "LiteSim"]
+   - `noEngineReferences`: true
+   - `overrideReferences`: true
+   - `precompiledReferences`: ["Google.Protobuf.dll"]
+   - 其余字段按 LiteNet.asmdef 的合法格式补齐（rootNamespace、includePlatforms/excludePlatforms、allowUnsafeCode、autoReferenced、defineConstraints、versionDefines 等）。
+3. 新建 `Assets/LiteSync/LiteSync.csproj`（双轨，仿 LiteNet.csproj/LiteSim.csproj）：
+   - `TargetFramework=net8.0`、`LangVersion=9.0`、`Nullable=disable`、`ImplicitUsings=disable`、`EnableDefaultCompileItems=false`、`IsPackable=false`
+   - 显式 Compile Include：`Shared/**/*.cs`、`Snapshot/**/*.cs`、`Input/**/*.cs`、`Events/**/*.cs`、`Client/**/*.cs`、`Properties/**/*.cs`
+   - `PackageReference Google.Protobuf 3.36.1`
+   - `ProjectReference`：`..\LiteNet\LiteNet.csproj` 与 `..\LiteSim\LiteSim.csproj`
+   - 不添加任何 .cs 生产代码（空壳）。
+4. 验证：`dotnet build Assets/LiteSync/LiteSync.csproj --nologo`（会连带构建 LiteNet/LiteSim）。必须 0 error；有 warning 记录。
+
+约束：不改 `.workflow/**`、不改门禁脚本/配置、不改既有生产代码/测试。只新增上述目录与两个文件。
+返回：文件清单、asmdef/csproj 关键字段、dotnet build 结果（退出码/错误/警告）、未验证项（Unity 重编译由主代理做）。

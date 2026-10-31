@@ -49,12 +49,19 @@ namespace LiteGame.Toolchain
 
         public ToolWriteOutcome WriteText(string relativePath, string content, string kind = "generated")
         {
+            return WriteBytes(relativePath, new UTF8Encoding(false).GetBytes(content ?? string.Empty));
+        }
+
+        /// <summary>字节写盘（数据产物通道，如 grip.bin）：与文本写盘同一时段（write-if-changed / dry-run /
+        /// allowlist / Undo）——before/after 都按字节比较，不做编码转换。</summary>
+        public ToolWriteOutcome WriteBytes(string relativePath, byte[] content)
+        {
             string relative = NormalizeRelative(relativePath);
             string fullPath = Resolve(relative);
             EnsureAllowed(relative);
 
             byte[] beforeBytes = File.Exists(fullPath) ? File.ReadAllBytes(fullPath) : null;
-            byte[] afterBytes = new UTF8Encoding(false).GetBytes(content ?? string.Empty);
+            byte[] afterBytes = content ?? Array.Empty<byte>();
             string beforeHash = beforeBytes == null ? null : Hash(beforeBytes);
             string afterHash = Hash(afterBytes);
             if (beforeHash == afterHash) return ToolWriteOutcome.Unchanged;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using LiteFramework;
@@ -41,8 +42,8 @@ namespace LiteNet.Tests
             Assert.Equal(CombatValues.Default.MoveSpeed, v.MoveSpeed);
             Assert.Equal(CombatValues.Default.Gravity, v.Gravity);
             Assert.Equal(CombatValues.Default.HitscanRange, v.HitscanRange);
-            // 身位半径/高度不属表——烘焙常量（CombatConfig.HitscanRadius/HitscanHeight = BodyBake，
-            // 单源 = prefab CharacterController；表列已退役）
+            // 判定几何 13 列也以表为唯一真相（身位半径/高度/枪口/爆头带）——默认实例只是兜底
+            AssertGeometryEqual(CombatValues.Default.Geometry, v.ToValues().Geometry);
             Assert.Equal(CombatValues.Default.BaseDamage, v.BaseDamage);
             Assert.Equal(CombatValues.Default.DamageSpread, v.DamageSpread);
             Assert.Equal(CombatValues.Default.EntityHp, v.EntityHp);
@@ -100,6 +101,33 @@ namespace LiteNet.Tests
             Assert.Equal(v.BaseDamage, values.BaseDamage);
             Assert.Equal(v.DamageSpread, values.DamageSpread);
             Assert.Equal(v.EntityHp, values.EntityHp);
+            AssertGeometryEqual(v.Geometry, values.Geometry);
+        }
+
+        /// <summary>
+        /// 正式服装载链路必须携带表几何（B11/B14）：旧 `ServerCombatValues.ToValues()` 曾回落
+        /// `CombatGeometry.Default`，表改了几何不会进权威判定——本用例改表字节的体半径，验证
+        /// `Parse → ToValues` 逐字节传递而非默认兜底。
+        /// </summary>
+        [Fact]
+        public void 装载产出实例_几何来自表列而非默认兜底()
+        {
+            byte[] geometry = File.ReadAllBytes(TableBin("tbcombatgeom"));
+            // 表首两字节 = ReadSize(1) + Id(1)（varint），其后紧跟 body_radius float32（小端）。
+            Assert.Equal(1, geometry[0]);
+            Assert.Equal(1, geometry[1]);
+            const float patchedBodyRadius = 0.5f;
+            BinaryPrimitives.WriteSingleLittleEndian(geometry.AsSpan(2, 4), patchedBodyRadius);
+
+            ServerCombatValues v = ServerTableLoader.Parse(
+                File.ReadAllBytes(TableBin("tbcombatnum")),
+                File.ReadAllBytes(TableBin("tbmovementconfig")),
+                File.ReadAllBytes(TableBin("tbentityconfig")),
+                geometry);
+
+            Assert.Equal(patchedBodyRadius, v.Geometry.BodyRadius);
+            Assert.Equal(patchedBodyRadius, v.ToValues().Geometry.BodyRadius);
+            Assert.NotEqual(CombatValues.Default.Geometry.BodyRadius, v.ToValues().Geometry.BodyRadius);
         }
 
         /// <summary>实例直传：自定义数值实例经参数直达房间（技术债 #1——无全局装载、无还原面；
@@ -107,7 +135,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 自定义实例经参数直达房间_无全局面参与()
         {
-            var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);
+            var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60, CombatGeometry.Default);
             var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "CfgInst", ExpectedPlayers = 1, Seed = 9 }, custom,
                 gameplayDigestBase: 0x00C0FFEEu);                                       // 基摘要同链显式传入（批 E）
             var outputs = new List<RoomOutput>();
@@ -124,7 +152,8 @@ namespace LiteNet.Tests
         {
             return ServerTableLoader.Parse(combatBytes,
                 File.ReadAllBytes(TableBin("tbmovementconfig")),
-                File.ReadAllBytes(TableBin("tbentityconfig")));
+                File.ReadAllBytes(TableBin("tbentityconfig")),
+                File.ReadAllBytes(TableBin("tbcombatgeom")));
         }
 
         /// <summary>领域相对路径单源 = TableLayout.Files（与 ConfigService/ServerTableLoader 同源）。</summary>
@@ -137,6 +166,23 @@ namespace LiteNet.Tests
                     return Path.Combine(RepoRoot(), "Assets", "GameData", "Config", entry[..slash], table + ".bytes");
             }
             throw new FileNotFoundException($"TableLayout 无此表：{table}");
+        }
+
+        private static void AssertGeometryEqual(CombatGeometry expected, CombatGeometry actual)
+        {
+            Assert.Equal(expected.BodyRadius, actual.BodyRadius);
+            Assert.Equal(expected.HitscanHeight, actual.HitscanHeight);
+            Assert.Equal(expected.HitscanRadius, actual.HitscanRadius);
+            Assert.Equal(expected.HeadRatio, actual.HeadRatio);
+            Assert.Equal(expected.HeadRadius, actual.HeadRadius);
+            Assert.Equal(expected.MuzzleForward, actual.MuzzleForward);
+            Assert.Equal(expected.MuzzleRight, actual.MuzzleRight);
+            Assert.Equal(expected.MuzzleHeight, actual.MuzzleHeight);
+            Assert.Equal(expected.HeadshotDamageShift, actual.HeadshotDamageShift);
+            Assert.Equal(expected.HipSpreadFactor, actual.HipSpreadFactor);
+            Assert.Equal(expected.CorpseFrames, actual.CorpseFrames);
+            Assert.Equal(expected.HardMaxSpeed, actual.HardMaxSpeed);
+            Assert.Equal(expected.FaceTurnRadPerSec, actual.FaceTurnRadPerSec);
         }
 
         private static string RepoRoot()

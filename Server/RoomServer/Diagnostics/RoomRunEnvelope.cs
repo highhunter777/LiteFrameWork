@@ -219,8 +219,6 @@ namespace RoomServer.Diagnostics
         public bool HasRules { get; set; }
         public bool NoDeath { get; set; }
         public bool InfiniteAmmo { get; set; }
-        public float HeadHitLineOverride { get; set; }
-        public float HeadshotRadiusOverride { get; set; }
 
         public static RoomRunTestRulesDto From(in RoomRunTestRules r) => new RoomRunTestRulesDto
         {
@@ -228,12 +226,9 @@ namespace RoomServer.Diagnostics
             HasRules = r.HasRules,
             NoDeath = r.NoDeath,
             InfiniteAmmo = r.InfiniteAmmo,
-            HeadHitLineOverride = r.HeadHitLineOverride,
-            HeadshotRadiusOverride = r.HeadshotRadiusOverride,
         };
 
-        public RoomRunTestRules ToRules() => new RoomRunTestRules(Frame, HasRules, NoDeath, InfiniteAmmo,
-            HeadHitLineOverride, HeadshotRadiusOverride);
+        public RoomRunTestRules ToRules() => new RoomRunTestRules(Frame, HasRules, NoDeath, InfiniteAmmo);
     }
 
     public sealed class RoomRunEventDto

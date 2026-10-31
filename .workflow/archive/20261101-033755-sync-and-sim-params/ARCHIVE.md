@@ -1,0 +1,96 @@
+# 归档：同步层拆分与判定参数化（LiteSync 去耦 + LiteSim 参数装载）
+
+- 运行: sync-and-sim-params
+- 创建时间: 2026-10-30T19:40:29+08:00
+- 完成时间: 2026-11-01T03:37:52+08:00
+- 归档时间: 2026-11-01T03:37:55+08:00
+- 阶段: 10/10
+- 任务: 完成 17/84，取消 67
+- 验证: PASS（2026-11-01T03:33:03+08:00）
+
+## 交付摘要
+
+- **同步层去耦**：新增 `Assets/LiteSync/`（`Shared`/`Snapshot`/`Input`/`Events`/`Client`），15 件同步协议/会话文件从 `LiteNet` 迁出，`LiteNet.asmdef` 清空引用（不再依赖 `LiteSim`）；`WeakNet` 归 Dev，`DiagTrace` 留传输层。BuildHash `SHARED_TARGETS` 增 `LiteSync/{Shared,Snapshot,Input,Events}`、不含 `Client`，`shared=be285f5c37e147d9`。
+- **判定几何装载化**：`Luban/Data/#combatgeom.xlsx` 13 列 → `CombatValues.Geometry`；`CombatConfig.Loaded` 发布闸门 + `Geometry` 展示兜底；五件烘焙 `.g.cs` 退役，Body/Head/Muzzle 写表、Grip/RootMotion 写 `.bin`（`grip.bin`/`rootmotion.bin` + `BinTextAssetImporter`）。
+- **判定参数调参面**：`SimParamsOverrides`/`SimParamsGate`/`SimParamsActivation`/`SimParamsDebugTunables`/`SimParamsExporter`；唯一边界=`每局进房时点`，本地测试房两端同值，联机/云 sandbox 恒不读覆写。
+- **房级广播参数**：`AoiSettings` 实例化（去静态缓存），`snapshot_hz` + `aoi{cell_size,radius,grid_extent_meters}` 从 `deploy/roomserver.windows.json` 三档注入 → `RoomConfig/RoomRuntime/SnapshotPipeline/HandshakePacker` → 客户端 `SimView.SetSnapshotHz`。
+- **门禁**：`scripts/gate/sync-and-sim-e2e.py`（check-shared → 服务端真实启动对账 → build-player → player-smoke）与 `.workflow/config.json` 六条 `sync-and-sim-*` 命令；`build-player.py` 修复 `unity --timeout` 未透传（30s 默认致 bundle 构建必超时）。
+- **评审整改**：正式服 `ServerTableLoader` 增 `ServerCombatValues.Geometry` 透传（原 `ToValues()` 回落默认几何）；新增改表字节的服务端回归用例；C-2~C-5 注释/格式/跨语言列序守卫清理。
+- **文档**：T82 回写状态同步/联机动画与根位移/烘焙工具箱三份设计 + 输入与同步链线第8章/战斗与武器线第18章，索引与 doc-lint 通过。
+
+## 产物
+
+- acceptance.md
+- build-log.md
+- evidence/dsh-credcheck.stderr.txt
+- evidence/dsh-credcheck.txt
+- evidence/dsh-credcheck2.stderr.txt
+- evidence/dsh-credcheck2.txt
+- evidence/dsh-plan-review-attempt2.stderr.txt
+- evidence/dsh-plan-review-attempt2.txt
+- evidence/dsh-plan-review-attempt3.stderr.txt
+- evidence/dsh-plan-review-attempt3.txt
+- evidence/dsh-plan-review-attempt4.stderr.txt
+- evidence/dsh-plan-review-attempt4.txt
+- evidence/dsh-plan-review-attempt5.stderr.txt
+- evidence/dsh-plan-review-attempt5.txt
+- evidence/dsh-plan-review-prompt.txt
+- evidence/dsh-plan-review-resume.stderr.txt
+- evidence/dsh-plan-review-resume.txt
+- evidence/dsh-plan-review-round2-prompt.txt
+- evidence/dsh-plan-review-round2.stderr.txt
+- evidence/dsh-plan-review-round2.txt
+- evidence/dsh-plan-review-round3-prompt.txt
+- evidence/dsh-plan-review-round3.stderr.txt
+- evidence/dsh-plan-review-round3.txt
+- evidence/dsh-plan-review-round4-prompt.txt
+- evidence/dsh-plan-review-round4.stderr.txt
+- evidence/dsh-plan-review-round4.txt
+- evidence/dsh-plan-review-round5-prompt.txt
+- evidence/dsh-plan-review-round5.stderr.txt
+- evidence/dsh-plan-review-round5.txt
+- evidence/dsh-plan-review-round6-prompt.txt
+- evidence/dsh-plan-review-round6.stderr.txt
+- evidence/dsh-plan-review-round6.txt
+- evidence/dsh-plan-review-round7-prompt.txt
+- evidence/dsh-plan-review-round7.stderr.txt
+- evidence/dsh-plan-review-round7.txt
+- evidence/dsh-plan-review-round8-prompt.txt
+- evidence/dsh-plan-review-round8-resume.stderr.txt
+- evidence/dsh-plan-review-round8-resume.txt
+- evidence/dsh-plan-review-round9-prompt.txt
+- evidence/dsh-plan-review-round9.stderr.txt
+- evidence/dsh-plan-review-round9.txt
+- evidence/dsh-plan-review.stderr.txt
+- evidence/dsh-plan-review.txt
+- evidence/dsh-red-tests-prompt.txt
+- evidence/dsh-t43-prompt.txt
+- evidence/dsh-t44-references-prompt.txt
+- evidence/dsh-task-review-round1-prompt.txt
+- evidence/dsh-task-review-round1.stderr.txt
+- evidence/dsh-task-review-round1.txt
+- evidence/dsh-task-review-round2-prompt.txt
+- evidence/dsh-task-review-round2.stderr.txt
+- evidence/dsh-task-review-round2.txt
+- evidence/dsh-task-review-round3-prompt.txt
+- evidence/dsh-task-review-round3.stderr.txt
+- evidence/dsh-task-review-round3.txt
+- evidence/dsh-task-review-round4-prompt.txt
+- evidence/dsh-task-review-round4.stderr.txt
+- evidence/dsh-task-review-round4.txt
+- evidence/dsh-task-review-round5-prompt.txt
+- evidence/dsh-task-review-round5.stderr.txt
+- evidence/dsh-task-review-round5.txt
+- evidence/dsh-task-review-round6-prompt.txt
+- evidence/dsh-task-review-round6.stderr.txt
+- evidence/dsh-task-review-round6.txt
+- evidence/red.json
+- evidence/verify-run.log
+- evidence/verify.json
+- plan.md
+- reviews/code-review.md
+- reviews/plan-review.md
+- reviews/task-review.md
+- state.json
+- tasks.md
+- test-plan.md

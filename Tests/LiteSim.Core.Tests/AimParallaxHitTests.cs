@@ -22,8 +22,8 @@ namespace LiteSim.Tests
         {
             var sb = new StringBuilder();
             var camPos = new SimVector3(0f, 10f, -8f);
-            float R = CombatConfig.HitscanRadius;
-            float H = CombatConfig.HitscanHeight;
+            float R = CombatValues.Default.Geometry.HitscanRadius;
+            float H = CombatValues.Default.Geometry.HitscanHeight;
 
             float[] dists = { 1.2f, 1.6f, 2.5f, 4f, 6f, 9f, 13f, 18f, 24f };
             float[] bearingsDeg = { 0f, 45f, 90f, 135f, 180f, -90f };
@@ -51,11 +51,11 @@ namespace LiteSim.Tests
                     cases++;
                     if (!TryAimCell(w, sh, camPos, Q, out SimVector3 P, out int camSlot, out _)) { continue; }
 
-                    var muzzle = CombatConfig.MuzzleOrigin(new SimVector3(0f, 0f, 0f), yaw);
+                    var muzzle = CombatValues.Default.Geometry.MuzzleOrigin(new SimVector3(0f, 0f, 0f), yaw);
                     float bx = P.X - muzzle.X, by = P.Y - muzzle.Y, bz = P.Z - muzzle.Z;
                     Norm(ref bx, ref by, ref bz);
                     bool ok = SimRaycast.RaycastEntities(w, sh, muzzle.X, muzzle.Y, muzzle.Z, bx, bz, by,
-                        CombatConfig.HitscanRange, out int bSlot, out _) && bSlot == tslot;
+                        CombatConfig.HitscanRange, out int bSlot, out _, CombatValues.Default.Geometry) && bSlot == tslot;
                     if (!ok)
                     {
                         misses++;
@@ -72,11 +72,11 @@ namespace LiteSim.Tests
                     cases++;
                     if (!TryAimCell(w, sh, camPos, Q, out SimVector3 P, out _, out _)) { continue; }
 
-                    var muzzle = CombatConfig.MuzzleOrigin(new SimVector3(0f, 0f, 0f), yaw);
+                    var muzzle = CombatValues.Default.Geometry.MuzzleOrigin(new SimVector3(0f, 0f, 0f), yaw);
                     float bx = P.X - muzzle.X, by = P.Y - muzzle.Y, bz = P.Z - muzzle.Z;
                     Norm(ref bx, ref by, ref bz);
                     bool ok = SimRaycast.RaycastEntities(w, sh, muzzle.X, muzzle.Y, muzzle.Z, bx, bz, by,
-                        CombatConfig.HitscanRange, out int bSlot, out _) && bSlot == tslot;
+                        CombatConfig.HitscanRange, out int bSlot, out _, CombatValues.Default.Geometry) && bSlot == tslot;
                     if (!ok)
                     {
                         misses++;
@@ -94,7 +94,7 @@ namespace LiteSim.Tests
             float dx = Q.X - camPos.X, dy = Q.Y - camPos.Y, dz = Q.Z - camPos.Z;
             Norm(ref dx, ref dy, ref dz);
             bool hit = SimRaycast.RaycastEntities(w, sh, camPos.X, camPos.Y, camPos.Z, dx, dz, dy,
-                CombatConfig.HitscanRange, out camSlot, out camT);
+                CombatConfig.HitscanRange, out camSlot, out camT, CombatValues.Default.Geometry);
             P = new SimVector3(camPos.X + dx * camT, camPos.Y + dy * camT, camPos.Z + dz * camT);
             return hit;
         }
@@ -109,8 +109,8 @@ namespace LiteSim.Tests
         private static string Diag(float cx, float cz, float ox, float oy, float oz,
             float dx, float dz, float dy)
         {
-            float R = CombatConfig.HitscanRadius;
-            float H = CombatConfig.HitscanHeight;
+            float R = CombatValues.Default.Geometry.HitscanRadius;
+            float H = CombatValues.Default.Geometry.HitscanHeight;
             float h = (float)Math.Sqrt(dx * dx + dz * dz);
             if (h <= 1e-8f) return "vertical";
             float ndx = dx / h, ndz = dz / h;

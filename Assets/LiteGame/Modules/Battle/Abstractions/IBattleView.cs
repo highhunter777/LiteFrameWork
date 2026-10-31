@@ -38,5 +38,8 @@ namespace LiteGame
 
         /// <summary>推入权威快照（视图插值源轮转；完整捕获而非增量）。</summary>
         void OnAuthoritativeSnapshot(SimWorldStateSnapshot snapshot);
+
+        /// <summary>写入房级快照频率（Hz；JoinAck 权威值，插值窗口随之派生）。</summary>
+        void SetSnapshotHz(int hz);
     }
 }

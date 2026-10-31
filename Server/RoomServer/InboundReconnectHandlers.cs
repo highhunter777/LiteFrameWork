@@ -6,6 +6,7 @@ using RoomServer.Application;
 using RoomServer.Runtime;
 using Proto = LiteNet.Proto;
 
+using LiteSync.Client;
 namespace RoomServer
 {
     /// <summary>

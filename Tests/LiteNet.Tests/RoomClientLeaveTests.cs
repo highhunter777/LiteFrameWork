@@ -4,6 +4,7 @@ using LiteNet.Protocol;
 using LiteNet.Transport;
 using Xunit;
 
+using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>优雅离场：客户端须主动发 PacketType.Leave（服务端据此立即释放席位，不等重连窗口）。</summary>

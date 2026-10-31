@@ -115,7 +115,7 @@ namespace LiteSim.Tests
             // TrainingGround 测试方块同源口径：盒底 0、盒顶 = 弹道原点高（含端点）⇒ 挡弹。
             // 盒高取烘焙枪口高 ⇒ 本用例随枪口常量自动跟随（"恰在带内"的端点语义锁定）。
             var (world, shooter, target) = Pair();
-            var map = WallBetween(wallX: 5f, height: CombatConfig.MuzzleOffsetHeight, halfZ: 0.5f);
+            var map = WallBetween(wallX: 5f, height: CombatValues.Default.Geometry.MuzzleHeight, halfZ: 0.5f);
 
             ShootingSystem.Run(world, map, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
@@ -166,15 +166,15 @@ namespace LiteSim.Tests
             // 目标位按"中心出射命中带 |z|<R"构造（余量 2cm）：
             //   oldBand z=+(R−0.01)（中心出射命中[余量 1cm]；右偏后垂距 R−0.01+r > R ⇒ 漏）
             //   newBand z=−(r+R−0.02)（中心出射垂距 r+R−0.02 > R 漏；右偏后垂距 R−0.02 ⇒ 擦中）
-            float r = CombatConfig.MuzzleOffsetRight;
-            float R = CombatConfig.HitscanRadius;
+            float r = CombatValues.Default.Geometry.MuzzleRight;
+            float R = CombatValues.Default.Geometry.HitscanRadius;
             var world = new SimWorldState { RngState = 1UL };
             long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
             long oldBand = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, R - 0.01f) }, out _);
             long newBand = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, -(r + R - 0.02f)) }, out _);
 
             // 瞄准点取"枪口 Z 延长线"（z = −MuzzleOffsetRight）⇒ 弹道严格沿 +X 平移过枪口
-            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, 10f, -CombatConfig.MuzzleOffsetRight), CombatValues.Default, WeaponTable.Default);
+            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, 10f, -CombatValues.Default.Geometry.MuzzleRight), CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasDamage(world), "命中带随枪口右偏平移——新带（z=−(r+R−0.02)）擦中");
             Assert.Equal(newBand, DamageTarget(world));
@@ -195,15 +195,15 @@ namespace LiteSim.Tests
             // Yaw=π（朝 −X）：右向 = (sin π, −cos π) = +Z ⇒ 枪口 z = +r（镜像而非世界固定）。
             // 打 −X：z=−(R−0.01)（中心出射命中[余量 1cm]；镜像右偏后垂距 R−0.01+r > R ⇒ 漏）；
             // z=+(r+R−0.02)（中心出射漏；镜像右偏后垂距 R−0.02 ⇒ 擦中）。
-            float r = CombatConfig.MuzzleOffsetRight;
-            float R = CombatConfig.HitscanRadius;
+            float r = CombatValues.Default.Geometry.MuzzleRight;
+            float R = CombatValues.Default.Geometry.HitscanRadius;
             var world = new SimWorldState { RngState = 1UL };
             long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 3.14159274f }, out _);
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(-10f, 0f, -(R - 0.01f)) }, out _);
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(-10f, 0f, r + R - 0.02f) }, out _);
 
             // 瞄准点取 −X 方向、z = +MuzzleOffsetRight（Yaw=π 时枪口 z）⇒ 弹道严格沿 −X 平移过镜像枪口
-            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, -10f, CombatConfig.MuzzleOffsetRight), CombatValues.Default, WeaponTable.Default);
+            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, -10f, CombatValues.Default.Geometry.MuzzleRight), CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasDamage(world), "朝向翻转后偏移镜像——z=+(r+R−0.02) 侧目标擦中（偏移随身体转）");
         }

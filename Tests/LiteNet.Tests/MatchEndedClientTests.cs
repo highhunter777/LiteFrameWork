@@ -5,6 +5,7 @@ using LiteNet.Transport;
 using LiteSim;
 using Xunit;
 
+using LiteSync.Client;
 namespace LiteNet.Tests
 {
     public sealed class MatchEndedClientTests

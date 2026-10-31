@@ -15,6 +15,7 @@ public partial class Tables
 {
     public Tbmap Tbmap {get; }
     public Tbanimationprofile Tbanimationprofile {get; }
+    public Tbcombatgeom Tbcombatgeom {get; }
     public Tbcombatnum Tbcombatnum {get; }
     public Tbcontententry Tbcontententry {get; }
     public Tbcrosshair Tbcrosshair {get; }
@@ -30,6 +31,7 @@ public partial class Tables
     {
         Tbmap = new Tbmap(loader("tbmap"));
         Tbanimationprofile = new Tbanimationprofile(loader("tbanimationprofile"));
+        Tbcombatgeom = new Tbcombatgeom(loader("tbcombatgeom"));
         Tbcombatnum = new Tbcombatnum(loader("tbcombatnum"));
         Tbcontententry = new Tbcontententry(loader("tbcontententry"));
         Tbcrosshair = new Tbcrosshair(loader("tbcrosshair"));
@@ -47,6 +49,7 @@ public partial class Tables
     {
         Tbmap.ResolveRef(this);
         Tbanimationprofile.ResolveRef(this);
+        Tbcombatgeom.ResolveRef(this);
         Tbcombatnum.ResolveRef(this);
         Tbcontententry.ResolveRef(this);
         Tbcrosshair.ResolveRef(this);

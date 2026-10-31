@@ -116,7 +116,7 @@ namespace LiteSim.Tests
                 {
                     ref EntitySlot e = ref s.Entities[slot];
                     inputs[i].AimPointX = e.Pos.X + ax;
-                    inputs[i].AimPointY = e.Pos.Y + CombatConfig.MuzzleOffsetHeight;
+                    inputs[i].AimPointY = e.Pos.Y + CombatValues.Default.Geometry.MuzzleHeight;
                     inputs[i].AimPointZ = e.Pos.Z + az;
                 }
                 inputs[i].Buttons = (rng.NextUInt32() & 3u) == 0u ? SimInputFrame.ButtonFire : 0u;

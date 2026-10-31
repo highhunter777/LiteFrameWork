@@ -1,0 +1,24 @@
+你是本项目的独立方案评审子代理（外部 dsh 代理），做**第三轮复评**。只读评审：禁止修改任何文件，禁止运行 Unity/构建/测试。
+
+仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。评审对象：`.workflow/active/sync-and-sim-params/plan.md`（第二轮 4 个阻塞整改后的版本）。
+第二轮评审：`.workflow/active/sync-and-sim-params/reviews/plan-review.md` 记录首轮 10 项；第二轮 4 项为：①非 LiteSim 几何消费面/守卫范围；②CombatConfig 发布闸门语义；③SimMapBaker 值来源；④SimParamsOverrides 数据流。
+
+请只核验：
+1. 上述 4 项是否真正解决（不是只改文字），是否引入新矛盾。
+2. B9/B10/B12/B19 是否可判定；新增的“外部消费面”“表 row ≡ prefab CC”“Default ≡ 表值”“10 处构造点”是否自洽。
+3. 是否还有会导致编译红/启动崩/虚假通过的硬断点。
+
+约束：最多 10 次工具调用；只读 plan.md 全文 + 最多 6 个关键文件（建议 CombatConfig.cs、CombatValues.cs、SimMapBaker.cs、ClientAsmdefAllowlistTests.cs、FeatureDebugTunables.cs、gen-build-hash.py）；禁止全仓搜索/运行命令；无法核实列为非阻塞待确认；8 分钟内出结论。
+
+输出（中文纯文本）：
+结论: PASS 或 FAIL
+验收标准: PASS 或 FAIL
+阻塞问题: <数量>
+阻塞问题清单:
+- [严重度][文件/章节] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...
+抽查证据:
+- 文件:行号 + 结论

@@ -192,13 +192,15 @@ class Builder:
     def __init__(self, project):
         self.project = project
 
-    def pipeline(self, command, args=None):
+    def pipeline(self, command, args=None, timeout=1800):
+        """单个 pipeline 命令。`timeout` 透传给 `unity --timeout`（CLI 缺省 30s——
+        bundle/player 构建远超该值，缺省会以 "timed out after 30000ms" 反复重试后失败）。"""
         unity = shutil.which("unity")
         if not unity:
             raise RuntimeError("unity CLI not found on PATH")
         cmd = [unity, "command", command]
         cmd.extend(args or [])
-        cmd.extend(["--project-path", str(self.project), "--proxy-disable"])
+        cmd.extend(["--timeout", str(timeout), "--project-path", str(self.project), "--proxy-disable"])
         result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
         output = (result.stdout or "") + (result.stderr or "")
         if result.returncode != 0:

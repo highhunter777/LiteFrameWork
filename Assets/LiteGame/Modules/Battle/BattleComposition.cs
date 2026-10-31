@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.View;
+using LiteGame.Modules.Battle.Arena;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;
@@ -55,6 +56,10 @@ namespace LiteGame
             context.Put(_vfxService);
             context.Put<IVFXService>(_vfxService);               // 接口键（HUD/消费方只经端口取；与具体键同实例）
             context.Put<IBattleCommands>(new BattleCommands(context.Require<CommandCenter>()));   // 流程→战斗的命令端口
+            // 根位移摘要登记口：装配期单实例；对局装载 rootmotion.bin 成功时写入摘要（身份面经端口读）
+            var rootMotionDigest = new RootMotionDigestHolder();
+            context.Put(rootMotionDigest);
+            context.Put<IRootMotionContentDigest>(rootMotionDigest);
             // 视图组工厂：战斗域自持的装配点（流程只认端口；每局再注入 account 作用域/开发叠加层/传送分发）
             context.Put<IBattleViewGroupFactory>(new BattleViewGroupFactory(
                 content, context.Require<IInputService>(), context.Require<ICameraService>(),
@@ -62,7 +67,8 @@ namespace LiteGame
                 new CrosshairFeelProfile(context.Require<IConfigService>()),
                 context.Require<UIService>().ThemeAssetProvider,      // HUD 状态色主题注入
                 context.Require<IDevSession>(),                        // dev 投影读本局规则（实例端口）
-                context.Require<ILookPreferences>()));                 // 视角手感偏好（设置段单实例）
+                context.Require<ILookPreferences>(),                   // 视角手感偏好（设置段单实例）
+                rootMotionDigest));                                    // 根位移摘要登记口（对局装载写入）
             return UniTask.CompletedTask;
         }
 

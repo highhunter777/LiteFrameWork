@@ -1,6 +1,5 @@
 using System;
 using LiteNet.Diagnostics;
-
 namespace LiteNet
 {
     /// <summary>

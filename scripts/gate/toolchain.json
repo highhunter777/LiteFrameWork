@@ -38,13 +38,14 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "baking.body",
-      "summary": "从 Player(Rifle) 的 CharacterController 烘焙 BodyBake.g.cs（可预览/回滚）。",
+      "summary": "从 Player(Rifle) 的 CharacterController 写 #combatgeom 的 body_radius/hitscan_height 并同步入库 CC 夹具（可预览/回滚）。",
       "docs": "Docs/设计文档/游戏玩法/烘焙工具箱专项设计.md",
       "writes": ["generated"],
       "destructive": false,
       "order": 20,
       "outputs": [
-        { "path": "Assets/LiteSim/Scripts/Map/BodyBake.g.cs", "kind": "generated" }
+        { "path": "Luban/Data/#combatgeom.xlsx", "kind": "data" },
+        { "path": "Tests/EditMode/Fixtures/BodyCc.json", "kind": "data" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -56,13 +57,13 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "baking.muzzle",
-      "summary": "采样 Muzzle 锚点烘焙 MuzzleBake.g.cs（可预览/回滚）。",
+      "summary": "采样 Muzzle 锚点写 #combatgeom 的 muzzle_fwd/muzzle_right/muzzle_height（可预览/回滚）。",
       "docs": "Docs/设计文档/游戏玩法/烘焙工具箱专项设计.md",
       "writes": ["generated"],
       "destructive": false,
       "order": 30,
       "outputs": [
-        { "path": "Assets/LiteSim/Scripts/Map/MuzzleBake.g.cs", "kind": "generated" }
+        { "path": "Luban/Data/#combatgeom.xlsx", "kind": "data" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -74,13 +75,13 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "baking.grip",
-      "summary": "采样持枪手/武器骨局部变换烘焙 GripBake.g.cs（可预览/回滚）。",
+      "summary": "采样持枪手/武器骨局部变换写 grip.bin 数据产物（可预览/回滚）。",
       "docs": "Docs/设计文档/游戏玩法/烘焙工具箱专项设计.md",
       "writes": ["generated"],
       "destructive": false,
       "order": 40,
       "outputs": [
-        { "path": "Assets/LiteGame/Modules/Battle/Characters/GripBake.g.cs", "kind": "generated" }
+        { "path": "Assets/GameData/Config/runtime/grip.bin", "kind": "data" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -92,13 +93,13 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "baking.root-motion",
-      "summary": "按 RootMotionBakeConfig 烘焙 RootMotionData.g.cs（可预览/回滚）。",
+      "summary": "按 RootMotionBakeConfig 写 rootmotion.bin 数据产物（可预览/回滚）。",
       "docs": "Docs/设计文档/游戏玩法/烘焙工具箱专项设计.md",
       "writes": ["generated"],
       "destructive": false,
       "order": 50,
       "outputs": [
-        { "path": "Assets/LiteSim/Scripts/Map/RootMotionData.g.cs", "kind": "generated" }
+        { "path": "Assets/GameData/Config/runtime/rootmotion.bin", "kind": "data" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },

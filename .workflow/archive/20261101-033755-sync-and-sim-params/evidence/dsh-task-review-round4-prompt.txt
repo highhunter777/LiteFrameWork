@@ -1,0 +1,33 @@
+你是本项目的独立任务评审子代理（外部 dsh 代理）。只读评审：禁止修改文件/运行命令。
+
+仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。
+评审对象：`.workflow/active/sync-and-sim-params/tasks.md`（有效任务 T43~T57；T1~T42 已按前三轮意见取消，原因见状态）与 `plan.md`（B1~B24 最终方案）。
+
+第 3 轮 7 个阻塞的整改：
+1. T47（CombatGeometry）补“重生成 BuildHash + --check-shared”，主代理执行。
+2. T44 文件范围补 LiteGame.App/Editor、Server/RoomServer、LiteNet.csproj、Tests.slnx；验收明确删 LiteSim 引用。
+3. T51/T52/T53 写清 gen-build-hash 由主代理执行；T52 注明 GripBake 不在共享源集、无需重生成。
+4. T51 增加 BakeTargets 五条输出常量逐条去向、四条死路径修正、PrefabPath 绑定验收。
+5. T54 增加 GM 房参数 + deploy 配置两路真实注入。
+6. T55 增加“判定路径零静态读”grep/负例与“联机/云 sandbox 不读覆盖”断言。
+7. T49 唯一负责删除四几何覆写；T55 只做零命中复核，不重复删除。
+
+只核验：
+- B1~B24 是否全覆盖、无孤儿/重复/越界；
+- 每个改共享源集任务是否有重生成+check 与执行人；
+- 文件范围/验收是否一致；主代理/施工子代理权限；资产搬迁方式；
+- 是否还有编译中断/门禁不可执行/虚假通过；
+- 任务粒度、依赖、验证是否可独立执行。
+
+约束：最多 8 次工具调用；只读 tasks.md/plan.md（可读 1-2 个关键文件核对）；禁止全仓搜索/运行命令；6 分钟内出结论。
+
+输出（中文纯文本）：
+结论: PASS 或 FAIL
+阻塞问题: <数量>
+覆盖矩阵: 按 B1~B24 分组列出对应任务
+阻塞问题清单:
+- [严重度][B 项/任务] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...

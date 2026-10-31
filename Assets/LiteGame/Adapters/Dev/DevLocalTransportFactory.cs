@@ -26,7 +26,7 @@ namespace LiteGame.Adapters.Dev
             Application.quitting += () => LocalTransportRegistry.Unbind(Instance);
         }
 
-        public IClientTransport Create(bool testRoom, MatchTestRules rules,
+        public IClientTransport Create(bool testRoom, MatchTestRules rules, CombatValues roomValues,
             Func<uint> gameplayDigestBase, IMapProvider maps)
         {
             if (rules == null)
@@ -43,7 +43,8 @@ namespace LiteGame.Adapters.Dev
             return LocalServerTransport.ForRoom(ProcedureMatch.TestRoomId, players, rules,
                 gameplayDigestBase?.Invoke() ?? 0u,   // 房间身份与客户端同源（同进程同一份装载——批 E）
                 maps.GetMap(mapId), mapId,            // 判定图与客户端逐位同图 ＋ 行键随 JoinAck 回执（多图批）
-                TestModeRuntime.Current);             // 本地测试钩子（开发面唯一实例）
+                TestModeRuntime.Current,              // 本地测试钩子（开发面唯一实例）
+                roomValues);                          // 本局判定数值（与客户端发布面同一结果——两端同值）
         }
     }
 }

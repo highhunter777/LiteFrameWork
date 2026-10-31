@@ -71,22 +71,9 @@ namespace LiteSim
         // tb_combat_num 装载接缝）。
         // 本类只保留确定性架构常量——协议/位布局/回滚深度这类"改了=两端不一致"的锁死项。
 
-        // ---- 广播 / AOI 旋钮（**初始值**，实施时按实测校准）----
-
-        /// <summary>快照广播频率（Hz）：权威循环每 `TickRate / SnapshotHz` 个逻辑帧广播一次（30 → 每 2 帧）。</summary>
-        public const int SnapshotHz = 30;
-
-        /// <summary>AOI 网格边长（米）：**只影响广播裁剪，不影响判定与回滚重放**（§4.5-7）。</summary>
-        public const float AoiCellSize = 10f;
-
-        /// <summary>AOI 广播半径（米）：同上；<c>0</c> = 关闭 AOI（全图广播，等价性验收用）。</summary>
-        public const float AoiRadius = 30f;
-
-        /// <summary>
-        /// AOI 网格**覆盖半径**（米，2.5D XZ 平面）——栅格按 <c>±本值</c> 建立（格数 = 派生，不手写）。
-        /// 必须 ≥ 地图半宽/半深：越界实体虽由 `AoiFilter` 按视点距离兜底（不会漏发），但每帧多一圈距离判定、
-        /// 且失去网格裁剪的带宽意义。`AoiFilter.OutsideCount &gt; 0` 即此值配小了的信号。
-        /// </summary>
-        public const float AoiGridExtentMeters = 640f;
+        // ---- 广播 / AOI 旋钮不在本类（Sim 核不该知道网络怎么发）----
+        // 快照频率是房级参数（RoomConfig.SnapshotHz，随 JoinAck 下发）；AOI 裁剪参数见
+        // AoiSettings（LiteSync/Shared，按房间实例化）。两者都只影响广播，不影响判定与回滚重放。
+        // 本类只保留确定性架构常量——协议/位布局/回滚深度这类"改了=两端不一致"的锁死项。
     }
 }

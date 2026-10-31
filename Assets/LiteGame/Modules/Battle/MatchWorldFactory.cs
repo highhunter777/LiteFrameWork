@@ -1,5 +1,5 @@
 using LiteNet.Proto;
-using LiteNet.Protocol;
+using LiteSync.Snapshot;
 using LiteSim;
 using LiteFramework;
 

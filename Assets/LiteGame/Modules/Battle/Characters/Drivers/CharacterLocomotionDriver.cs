@@ -6,6 +6,7 @@ using LiteSim;
 using UnityEngine;
 using LiteGame.Modules.Config;
 
+using LiteSync.Snapshot;
 namespace LiteGame.View.Animation
 {
     /// <summary>
@@ -44,6 +45,10 @@ namespace LiteGame.View.Animation
         private readonly SimView _view;
         private readonly AnimationProfile _profile;
         private readonly AnimationClipManifest _manifest;
+
+        /// <summary>持枪偏移数据（grip.bin 装载；null = 数据未装载/损坏 → 持枪/俯仰/枪口对齐三项降级）。</summary>
+        private readonly WeaponGripCatalog _gripCatalog;
+
         private readonly SlotAnim[] _slots = new SlotAnim[SimConfig.MaxEntities];
 
         /// <summary>相机俯仰读数（TPS 俯仰姿态源；null = 无姿态形态——测试/非自由视角装配）。
@@ -72,11 +77,16 @@ namespace LiteGame.View.Animation
 
         private bool _disposed;
 
+        /// <summary>缺 catalog 的警告只打一次（槽位逐个建立时避免按实体刷屏）。</summary>
+        private bool _warnedMissingGripCatalog;
+
         public CharacterLocomotionDriver(SimView view, AnimationProfile profile,
             AnimationClipManifest manifest = null, Func<float> cameraPitchOf = null,
-            Func<Vector3?> aimPointOf = null, IAnimationBackendFactory backendFactory = null)
+            Func<Vector3?> aimPointOf = null, IAnimationBackendFactory backendFactory = null,
+            WeaponGripCatalog gripCatalog = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
+            _gripCatalog = gripCatalog;
             _backendFactory = backendFactory ?? throw new ArgumentNullException(nameof(backendFactory),
                 "动画后端构造口必填——适配层实现由装配根注入（Modules 不反向引用 Adapters）");
             _profile = profile ?? throw new ArgumentNullException(nameof(profile),
@@ -308,34 +318,18 @@ namespace LiteGame.View.Animation
                     s.Machine = CombatAnimMachine.Build(s.Ctx, ResolveMoveDurations(backend));
                     s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根；无控制器时即唯一落位兜底）
 
-                    // 持枪约束：换弹叠加层在场时武器骨跟随持枪手（GripBake 烘焙常量直连——
-                    // 无序列化资产面）。骨路径在当前模型族上解析不到 → 不建（显性跳过，不静默假装生效）。
-                    var grip = new WeaponGripConstraint(animator);
-                    if (!grip.IsValid)
-                    {
-                        Log.Warning($"slot {i} 持枪常量骨路径在骨架上不存在"
-                            + $"：view「{go.name}」——换弹期枪将完全由片段曲线驱动", LogTag.Anim);
-                        grip = null;
-                    }
-                    s.Grip = grip;
-
-                    // 俯仰姿态（TPS 自由视角）：射击语境内上半身随相机 pitch——Chest 骨经人形映射解析
-                    // （零路径常量，任意人形 Rig 通用）。缺映射 → 不建（显性跳过，与持枪约束同失败面）。
-                    var posture = new AimPitchPostureDriver(animator);
-                    s.Posture = posture.IsValid ? posture : null;
-                    if (s.Posture == null)
-                        Log.Warning($"slot {i} 人形 Chest 骨映射缺失：view「{go.name}」——俯仰姿态不生效", LogTag.Anim);
-
-                    // 枪口对齐（TPS ADS）：只补枪骨残余下偏，不改手/臂动画；缺枪骨或 Muzzle → 不建。
-                    var weaponAim = new WeaponAimConstraint(animator);
-                    s.WeaponAim = weaponAim.IsValid ? weaponAim : null;
-                    if (s.WeaponAim == null)
-                        Log.Warning($"slot {i} 枪骨/Muzzle 缺失：view「{go.name}」——ADS 枪口对齐不生效", LogTag.Anim);
+                    // 持枪/俯仰/枪口对齐三件套：都消费 grip.bin（数据产物单源，编译期无常量）；
+                    // catalog 缺失或某骨路径不存在 → 对应项显性降级（不建、不静默假装生效）。
+                    SlotWeaponConstraints constraints = SlotWeaponConstraints.Create(
+                        animator, _gripCatalog, i, go, ref _warnedMissingGripCatalog);
+                    s.Grip = constraints.Grip;
+                    s.Posture = constraints.Posture;
+                    s.WeaponAim = constraints.WeaponAim;
 
                     Log.Info($"slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
                         + $"ctrl={(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "none")}"
                         + $" manifest={(_manifest != null ? "on" : "off")} layers={animator.layerCount}"
-                        + $" 持枪约束={(grip != null ? "on" : "off")}"
+                        + $" 持枪约束={(constraints.Grip != null ? "on" : "off")}"
                         + $" 窗长={_fireHoldSeconds:0.##}s 换弹倍率={reloadSpeed:0.##}×（片段「{reloadDef.Binding}」{reloadSeconds:0.###}s）", LogTag.Anim);
                 }
 

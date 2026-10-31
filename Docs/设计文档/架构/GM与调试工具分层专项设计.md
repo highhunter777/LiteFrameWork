@@ -49,7 +49,7 @@
 
 - **爆头带**：`MatchTestRules.HeadHitLineOverride` / `HeadshotRadiusOverride`（判定面）。**不进 `CombatValues` 摘要、不可重放**——连续调参旋钮进摘要会让每次试验抖动联机身份；同"中局开合"裁决。生效值统一经 `MatchTestRules.ResolveHeadHitLine/ResolveHeadshotRadius(rules)` 解析（null ⇒ 恒烘焙导出值，release/常规入口形态）。
 - **持枪幅度**：`GripTuning.TorsoWeightDevOverride`（纯表现，LiteGame.Modules.View）。
-- **统一口径**：仅开发三宏内存在、不落盘、复位即回烘焙/导出值、判定路径读注入实例；定型值经 `HeadHitLineTuner.Export` → `HeadBake.g.cs`（**进 digest 的只有导出常量**）。
+- **统一口径**：仅开发三宏内存在、不落盘、复位即回烘焙/表值、判定路径读注入实例；定型值经 `HeadHitLineTuner.Export` → `#combatgeom` 表行的 `head_ratio`/`head_radius`（**进 digest 的只有表值**）。
 - 判定与可视化的同值机制：判定链（`ShootingSystem`/`SimRaycast`）经 SimStep 注入 rules；客户端可视化（激光/瞄准射线/调试绘制）传本局 `MatchTestRules` 实例——本地服同进程同实例，滑杆一动实弹即见。
 
 ## 4. 编辑器投影：页件契约与宿主

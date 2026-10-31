@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using LiteNet.Protocol;
+using LiteSync.Shared;
+using LiteSync.Snapshot;
 using LiteNet.Proto;
 using LiteSim;
 using RoomServer.Runtime;
@@ -31,6 +33,8 @@ namespace RoomServer.Application
     {
         private readonly IBroadcastSeat[] _seats;
         private readonly SnapshotDiffer _differ;
+        private readonly AoiSettings _aoi;          // 房级 AOI 参数（基础/节流半径都由它派生）
+        private readonly int _snapshotHz;           // 房级快照频率（stride = TickRate / 本值）
         private int _broadcastOrdinal;
         private bool _forceFullPending;
 
@@ -62,10 +66,20 @@ namespace RoomServer.Application
         /// <summary>差分器只读暴露（Ops 快照尺寸统计用）。</summary>
         public SnapshotDiffer Differ => _differ;
 
-        public SnapshotPipeline(IBroadcastSeat[] seats, SnapshotDiffer differ = null)
+        /// <param name="differ">差分器（null = 按本管线的 <paramref name="aoi"/> 新建——每房一份网格）。</param>
+        /// <param name="aoi">房级 AOI 参数（null = 缺省 <see cref="AoiSettings.Default"/>）。</param>
+        /// <param name="snapshotHz">房级快照频率（Hz；范围 1..120，越界抛）。</param>
+        public SnapshotPipeline(IBroadcastSeat[] seats, SnapshotDiffer differ = null, AoiSettings aoi = null,
+            int snapshotHz = ProtocolConstants.DefaultSnapshotHz)
         {
+            if (snapshotHz < ProtocolConstants.MinSnapshotHz || snapshotHz > ProtocolConstants.MaxSnapshotHz)
+                throw new ArgumentOutOfRangeException(nameof(snapshotHz), snapshotHz,
+                    $"快照频率越界（允许 {ProtocolConstants.MinSnapshotHz}..{ProtocolConstants.MaxSnapshotHz}）");
+
             _seats = seats;
-            _differ = differ ?? new SnapshotDiffer();
+            _aoi = aoi ?? AoiSettings.Default;
+            _snapshotHz = snapshotHz;
+            _differ = differ ?? new SnapshotDiffer(_aoi);
         }
 
         /// <summary>
@@ -92,7 +106,7 @@ namespace RoomServer.Application
         {
             BroadcastedThisFrame = false;
             if (frame <= 0) return;
-            int stride = SimConfig.TickRate / SimConfig.SnapshotHz;
+            int stride = SimConfig.TickRate / _snapshotHz;
             if (stride < 1) stride = 1;
             _broadcastOrdinal++;
             if (_broadcastOrdinal % stride != 0) return;
@@ -139,7 +153,7 @@ namespace RoomServer.Application
             BroadcastAccount account = seat.Account;
             long entityId = entityIdOf(playerId);
             SimVector3 viewPos = ResolvePosition(authSim, entityId);
-            float radius = account.BackpressureTier >= 2 ? ProtocolConstants.ThrottleAoiRadius : SimConfig.AoiRadius;
+            float radius = account.BackpressureTier >= 2 ? _aoi.ThrottleRadius : _aoi.Radius;
 
             // ackInput 口径（2026-09-19 审查修正）：= min(该客户端最新被接受的输入帧, 本快照帧)。
             // 为什么必须钳：inputDelay=1 下"最新接受帧"通常是**服务端帧+1**（客户端发的是未来帧），

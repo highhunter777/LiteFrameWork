@@ -1,0 +1,45 @@
+结论: FAIL
+
+验收标准: FAIL
+
+阻塞问题: 2
+
+阻塞问题清单:
+- [高][plan.md:132、193-194（B19/B20）、非目标 §2「不改 protobuf」] 联机覆盖只有结论性表述，没有可判定的同源机制：13 项几何属于 `CombatValues.Geometry`，不在 `MatchTestRules`；GM 房参数的承载消息、可下发项（13 项还是仅原 head 两项）、进哪个摘要字段均未定义。若 dev 构建在装载时把 `SimParamsOverrides` 并入 Geometry 再进联机会话，而 `CombatConfigDigest` 只算表字节+规则位（B13），两端摘要仍相等但命中几何不同，属“虚假通过”；B20 的“有断言”缺少可断言的运行时判据（“本地测试房”标志未命名）。建议：显式定义本地/联机判据（如 `IsLoopback`/`IsLocalTestRoom`），覆盖仅在本地回环或编辑器生效；把实际生效的 Geometry 覆盖增量折进摘要，或直接拒绝带覆盖的联机会话；列出联机可调项，其余项明确“仅表、不可联机调”；B20 断言具体化为“dev 宏构建 + 联机会话 → Geometry 逐字段等于表值/摘要一致”，并写明 GM 页几何滑杆在联机下是禁用还是走表。
+- [中][plan.md:206 与 plan.md:116/183/228、CombatConfig.cs:12] `Default` 双语义未闭合：风险 #4 仍写“`CombatValues.Default` 必须与表值一致”，与 B9/整改记录“Default 仅展示兜底、删除 Default ≡ 实时表守卫”直接矛盾；照风险段实施会重新引入第四轮已判定的导出流冲突（B21 导出后 Default 必然滞后）。现有类头注释也仍写“默认 = CombatValues.Default（必须与表值一致，L1 守卫卡漂移）”，而 B12 的注释清理只覆盖 bake cref。建议：删除风险 #4 该句，改为“Default 仅展示兜底，不设与实时表一致守卫；权威值只来自 Publish/表”；把 `CombatConfig.cs:12` 及 55/82/130/141/161/176/184/193/200 的“必须与表值一致/刻意不进 digest/表化计划”注释纳入同一清理批次（`HardMaxSpeed`、`FaceTurnRadPerSec` 进 `#combatgeom` 后即进摘要，现注释会变假）。
+
+4 项核验: ① 闭合（可复现性已解决，夹具更新机制待补，见非阻塞）；② 未闭合（阻塞 2）；③ 闭合（`_published` + `ResetForTests()`/[Collection]，实现方式二选一待定）；④ 方向正确但未闭合（阻塞 1）。
+
+B 项可判定性: B9/B12 可判定（B9 需先消除上述文本矛盾）；B19/B20 不可判定（阻塞 1：无运行时门、摘要通道、可调项清单）。
+
+硬断点: 虚假通过 = 阻塞 1。未发现确定性的编译红或启动崩，但 T7 先删 `CombatConfig` 几何常量、T8 才迁读者会形成提交级编译红；`Loaded` 改为未发布即抛后，任何新增或未清点的 `Loaded` 读者（编辑器工具、直接构造 `BattleContext` 的测试）会在启动/测试初始化崩。
+
+主要优点:
+- ① 的处置方向正确且有代码依据：`BakeTargets.cs:23-25` 明确 prefab 不入库；plan 改为入库 `Tests/EditMode/Fixtures/BodyCc.json` + `restore-check` 前置，并把 `SimMapBaker` 改为直接读 `BakeTargets.PrefabPath` 的 CC、`ValidateSpawns`/`SpawnOverlapsObstacle` 收 radius/height（plan:130），与现状 `SimMapBaker.cs:466-467` 的签名和 `:496-512` 读 `BodyBake.Radius/Height` 对得上，是实打实的改造点。
+- ③ 的处置具体：新增 `_published`、未发布 `Loaded` 抛、`ResetForTests()`/[Collection]、B9 三条断言；给出了两条可落地路径。
+- ④ 的方向正确：客户端覆盖限定本地/编辑器、旧 HeadHitLine/HeadshotRadius 覆盖退役、联机走 GM 房参数，至少把“客户端覆盖直接进联机”的主路径堵住了（但机制未闭合，见阻塞 1）。
+- 识别死路径与收口点：`BakeTargets.cs:36-46` 的 `Assets/LiteSim/Core/Scripts/...` 与本次读到的 `Assets/LiteSim/Scripts/Config/CombatConfig.cs` 布局不一致，plan 明确“四条死路径修正”；`WriteGenerated`（`BakeTargets.cs:135-164`）两处重载、五件 `.g.cs` 退役后零引用删除的判断成立；`SimMapBaker.cs:123` 走 `WriteArtifact`，不受其删除影响。
+- 改动面控制得当：11 字段/9 参数、`SimStep` 与 9 个 `System.Run` 不变、10 处 `new CombatValues` 调用点列明；B10 扫描扩到 `Assets/**`/`Server/**`/`Tests/**`，能兜住外溢读者。
+
+非阻塞建议:
+- 夹具出处：把 `Tests/EditMode/Fixtures/BodyCc.json` 定义为烘焙产物——`BodyCylinderBaker` 写 `#combatgeom` 行时同一次原子写更新夹具（记录来源 prefab 路径与 radius/height），或加“有 prefab 时重新导出并比对夹具”的守卫；否则它只是第二个人工源，守卫证明的是“表 ≡ 夹具”而非“表 ≡ prefab”。
+- CI 前置：确认 `restore-check` 已挂到 L2/EditMode 之前；plan 让 `SimMapBaker` 依赖不入库 prefab 且“缺失=失败不 skip”，干净 CI 上若没有 restore 会必红（本次未读 restore-check，无法核实）。
+- 子步顺序：`CombatConfig` 几何常量应在 T8 完成 `Assets/**`/`Server/**`/`Tests/**` 读者迁移后再删（放 T8 末或 T13），不要按 T7 标题先删；每子步加“Unity 0 error”门。
+- `Loaded` 抛异常：补 `HasPublished`/`TryGetLoaded` 给纯展示读者；重扫 `Loaded` 全读者（plan 的“唯一外部读者”是现状结论），并给直接构造 `BattleContext` 的测试补 `Publish` 夹具/`TearDown` 复位。
+- `CombatConfig.Geometry` 的 `CombatValues.Default.Geometry` 兜底等于把 13 个判定值再以代码副本保留，和“数值一律外部加载”有张力；至少标 `DisplayOnly`/`[Obsolete]`，并用测试锁定“烘焙器/判定器不读它”（B10 只扫旧标识符，扫不到这个新口）。
+- `ResetForTests` 与 `[Collection]` 二选一即可，不要“或”：若选 `[Collection]`，`_published`/`_loaded` 不会自动复位，需 `[SetUp]/[TearDown]` 显式 `ResetForTests()`；确认 EditMode 程序集的 `InternalsVisibleTo` 存在。
+- B12 的“相关 XML 注释清理”要列全：`SimMapBaker.cs:460/505/508` 的 `BodyBake.Radius/Height`、`CombatConfig.cs:94-104` 的 `MuzzleBake` 都会在删文件后触发 CS1574，配合 warnaserror 即红。
+- `ConfigService.ValidateCandidate` 不要拿 `CombatConfig.Geometry`（未发布=Default）当校验基线；明确 13 列校验只读候选表行，并加一个“未 Publish 也能校验坏表并拒绝”的用例。
+- 明确 B14“13 个几何值与表值逐字段精确相等”的比较对象是表加载结果还是黄金样本，避免同义反复；表调参后的黄金样本更新流程写一句。
+
+抽查证据:
+- `plan.md:227`：① 整改（fixture + restore-check），可复现性问题在文档层闭合；夹具更新机制未写。
+- `plan.md:130`：`SimMapBaker` 直接读 prefab CC、`ValidateSpawns`/`SpawnOverlapsObstacle` 收 radius/height；与现状代码需要改造的点一致。
+- `plan.md:116/183/228`：② 声称 `Default` 仅展示兜底、删除 `Default ≡ 实时表`守卫；但 `plan.md:206` 仍写“必须与表值一致”，矛盾。
+- `plan.md:193-194`：B19/B20 有“本地测试房/编辑器独享、联机 GM 房参数进摘要、有断言”的结论，但无判据/通道定义 → 不可判定。
+- `plan.md:229-230`：③④ 整改落点；③ 有 `ResetForTests`/[Collection]，④ 有本地/联机分层。
+- `CombatConfig.cs:12,22,26-29`：现状 `_loaded = CombatValues.Default`、`Publish` 无 `_published`、`Loaded` 不抛；plan 的闸门插入点成立；类头“必须与表值一致”注释仍在。
+- `CombatConfig.cs:55,82,130,137,141,161,176,184,193,200`：待迁的 10 个常量（含 `HardMaxSpeed`/`FaceTurnRadPerSec`/`CorpseFrames`），其中“刻意不进 digest”注释在进 `#combatgeom` 后失效。
+- `BakeTargets.cs:23-25`：prefab 不入库，佐证 ① 的前提；`:36-46` 输出路径与 `LiteSim/Scripts/Config` 布局不一致，佐证“死路径”判断（实际产物位置未逐一核实）；`:135-164` `WriteGenerated` 两处重载，五件退役后零引用删除可行。
+- `SimMapBaker.cs:466-467,496-512`：`ValidateSpawns` 现签名无 radius/height，内部读 `BodyBake.Radius/Height`，plan 的迁移/夹具断言有真实改造对象；`:123` 走 `WriteArtifact`，不受 `WriteGenerated` 删除影响。
+- 未核实（按约束未读）：`restore-check.py` 是否真的恢复 prefab、`CombatConfig.Loaded` 是否确为唯一外部读者、`InternalsVisibleTo` 是否存在——均按非阻塞处理。

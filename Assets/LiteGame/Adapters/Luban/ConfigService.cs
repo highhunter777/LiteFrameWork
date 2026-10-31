@@ -45,12 +45,26 @@ namespace LiteGame
         public static readonly string[] TableDataFiles = TableLayout.Files;
 
         private readonly Func<string, CancellationToken, UniTask<byte[]>> _bytesProvider;
+
+        /// <summary>判定参数覆写合并委托（**装载期合并口**，可空）：门（<see cref="SimParamsGate"/>）为真时是
+        /// 覆写实例的合并方法，否则 null。产品装配不传（传 null）——覆写合并已下移到进房时点
+        /// （<see cref="SimParamsActivation"/>：客户端发布面与本地服房间数值须由同一结果派生，
+        /// 而装载期早于"进入本地测试房"）；本类不 new 覆写对象、不读任何静态。</summary>
+        private readonly Func<CombatValues, CombatValues> _combatOverrides;
+
         private readonly ConfigSnapshotService<Tables> _snapshots;   // 原子发布（候选校验→替换→版本单调）
         private Tables _tables;
 
-        public ConfigService(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider)
+        /// <summary>表装载的判定数值（**不含覆写**；<see cref="TableCombatValues"/> 的后备）。
+        /// 在 <see cref="ApplyCombatValues"/> 里于合并之前保存——每局激活点从这里出发。</summary>
+        private CombatValues _tableCombatValues;
+
+        /// <param name="combatOverrides">判定参数覆写合并（可空；null = 不合并，数值即表值）。</param>
+        public ConfigService(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider,
+            Func<CombatValues, CombatValues> combatOverrides = null)
         {
             _bytesProvider = bytesProvider ?? throw new ArgumentNullException(nameof(bytesProvider));
+            _combatOverrides = combatOverrides;
             _snapshots = new ConfigSnapshotService<Tables>(ValidateCandidate);
         }
 
@@ -78,6 +92,18 @@ namespace LiteGame
                 if (_tables == null)
                     throw new InvalidOperationException("配置未加载——LoadAsync 完成前禁止查表（ProcedurePreload 尾部放行）");
                 return _tables;
+            }
+        }
+
+        /// <summary>表装载的判定数值（合并前保存；不含覆写）。未装载即访问抛——与 <see cref="Tables"/> 同判据。</summary>
+        public CombatValues TableCombatValues
+        {
+            get
+            {
+                if (_tables == null)
+                    throw new InvalidOperationException(
+                        "配置未加载——TableCombatValues 在 LoadAsync 完成前不可读（进房恒在 Preload 之后）");
+                return _tableCombatValues;
             }
         }
 
@@ -124,7 +150,7 @@ namespace LiteGame
         {
             if (candidate == null) return "候选表为 null";
             string valuesError = SimConfigMapper.Validate(candidate.Tbcombatnum,
-                candidate.Tbmovementconfig, candidate.Tbentityconfig);
+                candidate.Tbmovementconfig, candidate.Tbentityconfig, candidate.Tbcombatgeom);
             if (valuesError != null) return valuesError;
             if (candidate.Tbitemconfig == null || candidate.Tbitemconfig.DataList.Count == 0)
                 return "tbitemconfig 空表——表源被改坏或生成物过期";
@@ -186,21 +212,49 @@ namespace LiteGame
         /// 机制消费经参数传递（技术债 #1）；<see cref="CombatConfig.Publish"/> 只服务单世界表现面便捷读。
         /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性保证——本方法不再兜底判空）。
         /// </summary>
-        private static void ApplyCombatValues(Tables tables)
+        private void ApplyCombatValues(Tables tables)
         {
-            CombatValues values = SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
-                tables.Tbmovementconfig, tables.Tbentityconfig);
+            CombatValues tableValues = SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
+                tables.Tbmovementconfig, tables.Tbentityconfig, tables.Tbcombatgeom);
+            _tableCombatValues = tableValues;              // 覆写合并的源值（不含覆写——进房单点从这里出发）
+
+            // 装载期合并口：委托由构造参数给入（产品装配为 null）；无覆写时结果与表值逐字段相同。
+            CombatValues values = tableValues;
+            if (_combatOverrides != null)
+            {
+                CombatValues merged = _combatOverrides(tableValues);
+                if (!SameGeometry(merged.Geometry, tableValues.Geometry))
+                    Log.Info("判定参数覆写已合并（装载期合并口；落表走 SimParamsExporter）", LogTag.Config);
+                values = merged;
+            }
+
             CombatConfig.Publish(values);
 
             Log.Info(
                 $"玩法数值装载：move={values.MoveSpeed} gravity={values.Gravity} " +
-                $"hitscan={values.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
+                $"hitscan={values.HitscanRange} hit={values.Geometry.HitscanRadius}(表) body={values.Geometry.BodyRadius}:{values.Geometry.HitscanHeight}(表) " +
                 $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}", LogTag.Config);
         }
 
+        /// <summary>判定几何逐字段相等（只用于"覆写是否真的改了值"的诊断日志——值语义逐列比较即可）。</summary>
+        private static bool SameGeometry(in CombatGeometry a, in CombatGeometry b)
+            => a.BodyRadius == b.BodyRadius
+               && a.HitscanHeight == b.HitscanHeight
+               && a.HitscanRadius == b.HitscanRadius
+               && a.HeadRatio == b.HeadRatio
+               && a.HeadRadius == b.HeadRadius
+               && a.MuzzleForward == b.MuzzleForward
+               && a.MuzzleRight == b.MuzzleRight
+               && a.MuzzleHeight == b.MuzzleHeight
+               && a.HeadshotDamageShift == b.HeadshotDamageShift
+               && a.HipSpreadFactor == b.HipSpreadFactor
+               && a.CorpseFrames == b.CorpseFrames
+               && a.HardMaxSpeed == b.HardMaxSpeed
+               && a.FaceTurnRadPerSec == b.FaceTurnRadPerSec;
+
         /// <summary>
         /// 移动数值装载（表 → <see cref="MovementValues"/> 实例并发布读口）：与 ApplyCombatValues 同纪律——
-        /// LiteSim 零依赖，由外部喂 primitives；表值即设计软值，硬护栏是代码常量 <see cref="CombatConfig.HardMaxSpeed"/>。
+        /// LiteSim 零依赖，由外部喂 primitives；表值即设计软值，硬护栏是表列 <see cref="CombatGeometry.HardMaxSpeed"/>。
         /// 机制消费（走跑冲/滑铲/空中控制/跳跃/钩爪/闪现）随对应 Sim 系统落地逐项接入（接入时经参数传实例）。
         /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性与重力合法性均闸在前）。
         /// </summary>

@@ -1,0 +1,1 @@
+dsh: PI_AI_ERROR: Provider is not configured: opencode-go

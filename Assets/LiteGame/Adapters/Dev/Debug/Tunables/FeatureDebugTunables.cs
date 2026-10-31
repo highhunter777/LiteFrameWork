@@ -18,8 +18,15 @@ namespace LiteGame
     public sealed class FeatureDebugTunables : IDebugTunableProvider
     {
         private readonly IDevSession _dev;
+        private readonly WeaponGripCatalog _gripCatalog;
 
-        public FeatureDebugTunables(IDevSession dev = null) => _dev = dev;
+        /// <param name="gripCatalog">持枪数据（BattleViewRig 装载后注入）；null = 对局外无数值来源
+        /// （滑杆以「未装载」态出现，Default 取 1 仅作占位，不冒充烘焙值）。</param>
+        public FeatureDebugTunables(IDevSession dev = null, WeaponGripCatalog gripCatalog = null)
+        {
+            _dev = dev;
+            _gripCatalog = gripCatalog;
+        }
 
         public void CollectDebugTunables(ICollection<DebugTunable> into)
         {
@@ -33,32 +40,22 @@ namespace LiteGame
 
         public float CurrentHeadLine()
         {
-            var match = _dev?.MatchRules;
-            if (match != null) return LiteSim.MatchTestRules.ResolveHeadHitLine(match);
             return TestModeRuntime.Current.HeadHitLineOverride >= 0f
                 ? TestModeRuntime.Current.HeadHitLineOverride
-                : LiteSim.CombatConfig.HeadHitLine;
+                : LiteSim.CombatConfig.Geometry.HeadHitLine;
         }
 
         public float CurrentHeadRadius()
         {
-            var match = _dev?.MatchRules;
-            if (match != null) return LiteSim.MatchTestRules.ResolveHeadshotRadius(match);
             return TestModeRuntime.Current.HeadshotRadiusOverride >= 0f
                 ? TestModeRuntime.Current.HeadshotRadiusOverride
-                : LiteSim.CombatConfig.HeadshotRadius;
+                : LiteSim.CombatConfig.Geometry.HeadshotRadius;
         }
 
         public void SetHead(float line, float radius)
         {
             TestModeRuntime.Current.HeadHitLineOverride = line;
             TestModeRuntime.Current.HeadshotRadiusOverride = radius;
-            var match = _dev?.MatchRules;
-            if (match != null)
-            {
-                match.HeadHitLineOverride = line;
-                match.HeadshotRadiusOverride = radius;
-            }
         }
 
         private void AddHead(ICollection<DebugTunable> into)
@@ -70,9 +67,9 @@ namespace LiteGame
                 Label = "爆头线下沿（m）",
                 Kind = DebugTunableKind.Float,
                 Scope = DebugTunableScope.Sandbox,
-                Default = LiteSim.CombatConfig.HeadHitLine,
+                Default = LiteSim.CombatConfig.Geometry.HeadHitLine,
                 Min = 0.9f,
-                Max = LiteSim.CombatConfig.HitscanHeight,
+                Max = LiteSim.CombatConfig.Geometry.HitscanHeight,
                 Decimals = 3,
                 RuntimeVisible = true,
                 Get = CurrentHeadLine,
@@ -86,7 +83,7 @@ namespace LiteGame
                 Label = "爆头柱半径（m）",
                 Kind = DebugTunableKind.Float,
                 Scope = DebugTunableScope.Sandbox,
-                Default = LiteSim.CombatConfig.HeadshotRadius,
+                Default = LiteSim.CombatConfig.Geometry.HeadshotRadius,
                 Min = 0.15f,
                 Max = 0.45f,
                 Get = CurrentHeadRadius,
@@ -97,21 +94,22 @@ namespace LiteGame
 
         // ---- 持枪幅度（纯表现）----
 
-        private static void AddGrip(ICollection<DebugTunable> into)
+        private void AddGrip(ICollection<DebugTunable> into)
         {
+            float baked = _gripCatalog != null ? _gripCatalog.TorsoWeight : 1f;
             into.Add(new DebugTunable
             {
                 Id = "grip.torso",
                 Group = "持枪幅度",
-                Label = "换弹期跟随强度",
+                Label = _gripCatalog != null ? "换弹期跟随强度" : "换弹期跟随强度（未装载）",
                 Kind = DebugTunableKind.Float,
                 Scope = DebugTunableScope.Presentation,
-                Default = GripBake.TorsoWeight,
+                Default = baked,
                 Min = 0f,
                 Max = 1f,
                 Decimals = 2,
                 RuntimeVisible = true,
-                Get = () => GripTuning.TorsoWeightLive,
+                Get = () => GripTuning.Resolve(baked),
                 Set = value => GripTuning.TorsoWeightDevOverride = value,
                 Reset = () => GripTuning.TorsoWeightDevOverride = -1f,
             });

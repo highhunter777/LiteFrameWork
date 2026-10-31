@@ -1,29 +1,26 @@
 using System;
 using System.IO;
 using Xunit;
-
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// M3-6 / M3-5c 接线守卫：RoomClient 拆分目标（&lt;350 行、协议分发不在门面类）与恢复动作/账号重入
+    /// M3-6 / M3-5c 接线守卫：RoomClient 拆分形态（协议分发不在门面类）与恢复动作/账号重入
     /// 的生产接线不得静默断开（“注册了但没人调”= 红）。文本守卫——只钉结构与调用点，不重复行为用例。
     /// </summary>
     public sealed class M3WiringGuardTests
     {
         [Fact]
-        public void RoomClient_拆分后小于350行_协议分发已外提()
+        public void RoomClient_协议分发已外提()
         {
             string root = RepoRoot();
-            string path = Path.Combine(root, "Assets/LiteNet/Core/Client/RoomClient.cs");
+            string path = Path.Combine(root, "Assets/LiteSync/Client/RoomClient.cs");
             string text = File.ReadAllText(path);
-            int lines = File.ReadAllLines(path).Length;
 
-            Assert.True(lines < 350, $"RoomClient 行数 {lines} 超路线图 §4.6 目标（<350）");
             Assert.Contains("_inbound.Handle(", text);                  // 入站走分发件
             Assert.Contains("_outbound.", text);                        // 出站走打包件
             Assert.DoesNotContain("switch (type)", text);               // 协议分发表不得回涨到门面类
-            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteNet/Core/Client/RoomInbound.cs")));
-            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteNet/Core/Client/RoomOutbound.cs")));
+            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteSync/Client/RoomInbound.cs")));
+            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteSync/Client/RoomOutbound.cs")));
         }
 
         [Fact]

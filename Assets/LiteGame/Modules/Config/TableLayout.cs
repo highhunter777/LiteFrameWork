@@ -31,6 +31,7 @@ namespace LiteGame.Modules.Config
             "Content/tbcontententry",
             "Strategy/tbstrategy",
             "Combat/tbcombatnum",      // 玩法数值（单行表；装载后产出 CombatValues 实例并发布读口——两端同源）
+            "Combat/tbcombatgeom",     // 判定几何（单行表；13 列——身位/命中/枪口/规则，进 CombatValues.Geometry）
             "Combat/tbweapon",         // 武器表（多行；装载后回填 WeaponConfig——Sim 武器系统消费）
             "Animation/tbanimationprofile", // 动画 Profile 登记行（多族共存；装载后投影为 Core 行并发布读口）
             "Map/tbmap",               // 地图表（烘焙产物：障碍/出生/边界；判定面域——两端同源）

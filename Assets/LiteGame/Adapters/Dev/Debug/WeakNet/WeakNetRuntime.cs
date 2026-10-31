@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using LiteNet.Diagnostics;
 using LiteNet.Transport;
 
-namespace LiteGame
+using LiteGame.Adapters.Dev.Debug.WeakNet;
+namespace LiteGame.Adapters.Dev.Debug.WeakNet
 {
     /// <summary>
     /// 弱网注入运行实例：持有当前 profile、包装真传输、提供只读快照与数值调参描述。

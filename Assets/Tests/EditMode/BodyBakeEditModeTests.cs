@@ -1,7 +1,7 @@
 using System.IO;
+using LiteGame.EditorTools;
 using LiteSim;
 using LiteTesting;
-using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -9,13 +9,14 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 身位烘焙对账守卫（防"美术改 CC 忘重烘"）：prefab 的 CharacterController 必须等于
-    /// 生成常量 <see cref="BodyBake"/>（移动去穿插/视图 CC 消费 <see cref="CombatConfig.BodyRadius"/>/<c>HitscanHeight</c>；
-    /// 命中柱半径 <c>HitscanRadius</c> 是判定宽容裁决常量、不参与本对账）。
+    /// 身位几何三方对账守卫（防"美术改 CC 忘重烘"）：prefab 的 CharacterController ≡
+    /// 判定几何表 `#combatgeom` 的 <c>body_radius</c>/<c>hitscan_height</c> ≡ 入库夹具
+    /// <see cref="BakeTargets.BodyCcFixturePath"/>（半径+高，0 容差）。三处任一漂移即红，
+    /// 重跑烘焙工具箱「身位圆柱」页即绿。
     ///
-    /// **背景**：身位几何的单源 = `Player(Rifle).prefab` 的 CC（经 <c>BodyCylinderBaker</c> 烘成
-    /// `BodyBake.g.cs`）；CC 是美术可调面——改了 prefab 不重跑工具，两端表现与判定就会分叉。
-    /// 本用例把这条纪律钉在夜间 L2（EditMode）：漂移即红，重跑 `LiteGame/烘焙身位圆柱` 即绿。
+    /// **背景**：身位几何的单源 = `Player(Rifle).prefab` 的 CC，经 <c>BodyCylinderBaker</c> 写入表与夹具；
+    /// 判定面装载 `#combatgeom` 进 <see cref="CombatValues.Geometry"/>，地图烘焙用夹具做出生点校验。
+    /// CC 是美术可调面——改了 prefab 不重跑工具，三方就会分叉。
     /// </summary>
     public sealed class BodyBakeEditModeTests
     {
@@ -23,7 +24,7 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 对账_prefab的CC等于烘焙常量()
+        public void 对账_prefab的CC等于表行与入库夹具()
         {
             Assert.IsTrue(File.Exists(PrefabPath), "缺玩家 prefab（不入 VCS——本地克隆需从派发渠道还原）");
 
@@ -33,15 +34,29 @@ namespace LiteGame.Tests.EditMode
             var cc = prefab.GetComponent<CharacterController>();
             Assert.IsNotNull(cc, "prefab 根缺 CharacterController——身位烘焙的唯一来源");
 
-            Assert.AreEqual(BodyBake.Radius, cc.radius, 1e-5f,
-                "CC 半径 ≠ BodyBake.Radius——改了 prefab 未重跑 LiteGame/烘焙身位圆柱");
-            Assert.AreEqual(BodyBake.Height, cc.height, 1e-5f,
-                "CC 高度 ≠ BodyBake.Height——改了 prefab 未重跑 LiteGame/烘焙身位圆柱");
+            Assert.IsTrue(CombatGeomTableWriter.TryReadRow(out var row, out string rowError), rowError);
+            Assert.IsTrue(CombatGeomTableWriter.TryGetFloat(row, "body_radius", out float tableRadius, out rowError), rowError);
+            Assert.IsTrue(CombatGeomTableWriter.TryGetFloat(row, "hitscan_height", out float tableHeight, out rowError), rowError);
+
+            Assert.IsTrue(CombatGeomTableWriter.TryReadBodyCcFixture(out string sourcePrefab,
+                out float fixtureRadius, out float fixtureHeight, out string fixtureError), fixtureError);
+
+            Assert.AreEqual(PrefabPath, sourcePrefab, "身位夹具来源 prefab 不匹配——重跑身位圆柱烘焙");
+
+            Assert.AreEqual(cc.radius, tableRadius, 0f,
+                "CC 半径 ≠ #combatgeom.body_radius——改了 prefab 未重跑烘焙工具箱「身位圆柱」");
+            Assert.AreEqual(cc.height, tableHeight, 0f,
+                "CC 高度 ≠ #combatgeom.hitscan_height——改了 prefab 未重跑烘焙工具箱「身位圆柱」");
+            Assert.AreEqual(cc.radius, fixtureRadius, 0f,
+                "CC 半径 ≠ 入库夹具 radius——改了 prefab 未重跑烘焙工具箱「身位圆柱」");
+            Assert.AreEqual(cc.height, fixtureHeight, 0f,
+                "CC 高度 ≠ 入库夹具 height——改了 prefab 未重跑烘焙工具箱「身位圆柱」");
             Assert.AreEqual(cc.height * 0.5f, cc.center.y, 1e-5f,
                 "CC center.y ≠ height/2（圆柱底须在脚底——烘焙工具的前置校验同款）");
 
-            Assert.AreEqual(BodyBake.Radius, CombatConfig.BodyRadius, 0f);
-            Assert.AreEqual(BodyBake.Height, CombatConfig.HitscanHeight, 0f);
+            // 判定面投影与表值同源（未发布时展示兜底也须与表一致）。
+            Assert.AreEqual(tableRadius, CombatConfig.Geometry.BodyRadius, 0f);
+            Assert.AreEqual(tableHeight, CombatConfig.Geometry.HitscanHeight, 0f);
         }
     }
 }

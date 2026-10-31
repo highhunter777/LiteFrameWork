@@ -1,4 +1,5 @@
 ﻿using System;
+using LiteSync.Client;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -8,7 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using LiteNet;
-using LiteNet.Protocol;
+using LiteSync.Snapshot;
 using LiteNet.Transport;
 using LiteSim;
 using LiteSim.Tests;

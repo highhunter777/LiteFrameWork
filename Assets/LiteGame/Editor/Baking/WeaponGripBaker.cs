@@ -1,6 +1,7 @@
+using System;
 using System.Globalization;
-using System.Text;
 using LiteGame.Toolchain;
+using LiteGame.View.Animation;
 using UnityEditor;
 using UnityEngine;
 
@@ -8,8 +9,8 @@ namespace LiteGame.EditorTools
 {
     /// <summary>
     /// 持枪偏移烘焙工具（烘焙工具箱「持枪偏移」页，或 run_script 调用）：
-    /// 在**参考持枪姿态**下采样，把「武器骨相对持枪手」的局部变换烘成
-    /// <see cref="BakeTargets.GripBakeOutput"/>（`GripBake.g.cs` 常量，勿手改——重跑本工具即重烘）。
+    /// 在**参考持枪姿态**下采样，把「武器骨相对持枪手」的局部变换导出为
+    /// <see cref="BakeTargets.GripBinOutput"/>（`grip.bin` 数据产物，格式见 <see cref="WeaponGripCatalog"/>）。
     ///
     /// **为什么需要它**：枪骨是根骨（不随手），换弹期需要把武器骨钉回持枪语境
     /// （见 WeaponGripConstraint 的换弹上半身叠加覆写）。参考姿态取 <see cref="BakeTargets.ReferenceClip"/>
@@ -22,10 +23,14 @@ namespace LiteGame.EditorTools
     /// （片段里左手并未握枪）。跟随挂点手骨是唯一能让"枪永远在手"的结构解——跟随躯干会在
     /// 拉栓动作（右手位移 21 cm）时与挂点父级脱节，表现为"枪没对上手"。
     ///
-    /// **落点**：常量文件落 LiteView（纯表现参数，刻意不进 LiteSim/Core/Scripts 的 BuildHash 源集）。
+    /// **落点**：`Assets/GameData/Config/runtime/grip.bin`（纯表现数据，刻意不进 BuildHash 源集；
+    /// 随 Config 收集组进内容包——改后无需重生成 BuildHash，但需重发内容包）。
     /// </summary>
     public static class WeaponGripBaker
     {
+        /// <summary>烘焙幅度（1 = 完全跟随持枪手）；对局内实时调参走 GM 面板（GripTuning 覆写，不落盘）。</summary>
+        private const float BakedTorsoWeight = 1f;
+
         public static string All()
         {
             return All(null);
@@ -33,6 +38,12 @@ namespace LiteGame.EditorTools
 
         public static string All(ToolWriteScope writeScope)
         {
+            if (!string.Equals(BakeTargets.GripBinOutput, WeaponGripCatalog.DefaultAssetPath, StringComparison.Ordinal))
+            {
+                return "ABORT 产物路径与运行时装载路径不一致：" + BakeTargets.GripBinOutput
+                    + " ≠ " + WeaponGripCatalog.DefaultAssetPath;
+            }
+
             using (var scope = PrefabEditScope.Open())
             {
                 if (scope == null) return "ABORT prefab 载入失败：" + BakeTargets.PrefabPath;
@@ -62,52 +73,23 @@ namespace LiteGame.EditorTools
                 string followPath = Rel(animator.transform, follow);
                 string weaponPath = Rel(animator.transform, weapon);
 
-                string write = BakeTargets.WriteGenerated(BakeTargets.GripBakeOutput, nameof(WeaponGripBaker),
-                    new[]
-                    {
-                        $"// 来源：{BakeTargets.PrefabPath} 的 RightHand/add_weapon_r 局部变换 @ {BakeTargets.ReferenceClip} t=0（烘焙工具箱共享参考姿态）。",
-                        "// 语义：武器骨相对跟随骨（持枪手 RightHand）的局部位姿——换弹上半身叠加期姿态覆写（WeaponGripConstraint）的唯一来源；",
-                        "//       跟随右手而非躯干：add_weapon_r 与右手世界位全同（差 0.6mm）、右手是枪挂点父级——跟躯干会在拉栓（右手位移 21cm）时脱节。",
-                        "// 落点：LiteView（纯表现参数，刻意不进 LiteSim/Core/Scripts 的 BuildHash 源集——表现值变化不踢两端握手）。",
-                        "// 幅度：TorsoWeight 烘焙值 1（0=不约束 1=完全跟随）；对局内实时调参走 GM 面板（GripTuning 覆写，不落盘）。",
-                    }, BuildBody(followPath, weaponPath, localPos, localEuler), writeScope);
+                byte[] bytes = WeaponGripCatalog.Encode(followPath, weaponPath, localPos, localEuler, BakedTorsoWeight);
+                WeaponGripCatalog catalog = WeaponGripCatalog.Load(bytes);   // 同一格式自校验（写入前即失败）
+                string write = BakeTargets.WriteArtifactBytes(BakeTargets.GripBinOutput, bytes, writeScope);
 
                 var inv = CultureInfo.InvariantCulture;
-                return "已烘焙：follow=" + followPath + " weapon=" + weaponPath
-                    + "\n  localPos=" + localPos.ToString("R", inv)
-                    + "\n  localEuler=" + localEuler.ToString("R", inv)
-                    + "\n  torsoWeight=1（对局内调参：GM 面板「持枪幅度」滑杆，不落盘）\n"
-                    + write;
+                return "已导出：" + BakeTargets.GripBinOutput
+                    + "\n  follow=" + catalog.FollowPath
+                    + "\n  weapon=" + catalog.WeaponPath
+                    + "\n  localPos=" + catalog.LocalPosition.ToString("R", inv)
+                    + "\n  localEuler=" + catalog.LocalEuler.ToString("R", inv)
+                    + "\n  torsoWeight=" + catalog.TorsoWeight.ToString("R", inv)
+                    + "（对局内调参：GM 面板「持枪幅度」滑杆，不落盘）"
+                    + "\n  bytes=" + bytes.Length
+                    + "\n  sha256=" + catalog.Digest + "\n"
+                    + write
+                    + "\n  数据产物：改后无需重生成 BuildHash，但需重发内容包（Config 收集组）。";
             }
-        }
-
-        /// <summary>常量体（R 格式逐位往返；注释不含日期/批次痕迹——遵守注释卫生）。</summary>
-        private static string BuildBody(string followPath, string weaponPath, Vector3 localPos, Vector3 localEuler)
-        {
-            var inv = CultureInfo.InvariantCulture;
-            var sb = new StringBuilder();
-            sb.AppendLine("namespace LiteGame.View.Animation");
-            sb.AppendLine("{");
-            sb.AppendLine("    /// <summary>持枪偏移常量（烘焙值；换弹期武器骨跟随持枪手——消费见 WeaponGripConstraint/GripTuning）。</summary>");
-            sb.AppendLine("    public static class GripBake");
-            sb.AppendLine("    {");
-            sb.AppendLine("        /// <summary>跟随骨路径（相对 Animator 根）：持枪手。</summary>");
-            sb.AppendLine($"        public const string FollowPath = \"{followPath}\";");
-            sb.AppendLine("        /// <summary>武器骨路径（相对 Animator 根；枪模型 Weapon_Rifle 是它的子节点，枪口火光/激光挂点随之跟随）。</summary>");
-            sb.AppendLine($"        public const string WeaponPath = \"{weaponPath}\";");
-            sb.AppendLine("        /// <summary>枪骨相对跟随骨的局部位置（持枪位偏移，参考姿态烘焙）。</summary>");
-            sb.AppendLine($"        public const float LocalPosX = {localPos.x.ToString("R", inv)}f;");
-            sb.AppendLine($"        public const float LocalPosY = {localPos.y.ToString("R", inv)}f;");
-            sb.AppendLine($"        public const float LocalPosZ = {localPos.z.ToString("R", inv)}f;");
-            sb.AppendLine("        /// <summary>枪骨相对跟随骨的局部旋转（欧拉角，度；消费侧 Quaternion.Euler）。</summary>");
-            sb.AppendLine($"        public const float LocalEulerX = {localEuler.x.ToString("R", inv)}f;");
-            sb.AppendLine($"        public const float LocalEulerY = {localEuler.y.ToString("R", inv)}f;");
-            sb.AppendLine($"        public const float LocalEulerZ = {localEuler.z.ToString("R", inv)}f;");
-            sb.AppendLine("        /// <summary>幅度缩放：0 = 不约束（用片段曲线）、1 = 完全跟随持枪手。</summary>");
-            sb.AppendLine("        public const float TorsoWeight = 1f;");
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
-            return sb.ToString();
         }
 
         private static string Rel(Transform root, Transform t)

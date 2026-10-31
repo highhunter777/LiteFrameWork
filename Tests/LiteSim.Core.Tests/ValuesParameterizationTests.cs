@@ -21,7 +21,7 @@ namespace LiteSim.Tests
         public void 实例移速_直达SimStep()
         {
             var world = WorldWithSpawn(100, out long id);
-            var values = new CombatValues(7.5f, -20f, 100f, 25, 1, 100, 2.5f, 60);
+            var values = new CombatValues(7.5f, -20f, 100f, 25, 1, 100, 2.5f, 60, CombatGeometry.Default);
             var inputs = new[] { new SimInputFrame { EntityId = id, MoveX = 1f } };
 
             Assert.True(world.TryResolve(id, out int slot));
@@ -37,7 +37,7 @@ namespace LiteSim.Tests
             // 限速档**独立于** MoveSpeed：moveSpeed 给 7.5（默认 5），aim_move_speed 给 2.5。
             // 旧式口径 MoveSpeed × 0.5（=3.75）已随表化退役——现直落最终速度，
             // 代价是调 move_speed 不再带动限速档——本用例即钉这条语义（见 CombatValues.AimMoveSpeed）。
-            var values = new CombatValues(7.5f, -20f, 100f, 25, 1, 100, 2.5f, 60);
+            var values = new CombatValues(7.5f, -20f, 100f, 25, 1, 100, 2.5f, 60, CombatGeometry.Default);
             var inputs = new[] { new SimInputFrame { EntityId = id, MoveX = 1f, Buttons = SimInputFrame.ButtonAim } };
 
             Assert.True(world.TryResolve(id, out int slot));
@@ -51,7 +51,7 @@ namespace LiteSim.Tests
         {
             var world = new SimWorldState();
             long id = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 10f, 0f) }, out int _);
-            var values = new CombatValues(5f, -9.8f, 100f, 25, 1, 100, 2.5f, 60);
+            var values = new CombatValues(5f, -9.8f, 100f, 25, 1, 100, 2.5f, 60, CombatGeometry.Default);
 
             Assert.True(world.TryResolve(id, out int slot));
             MovementSystem.Run(world.Entities, world.AliveBitmap, SimChecksumBaselineSpec.BuildMap(), values);
@@ -79,7 +79,7 @@ namespace LiteSim.Tests
         public void 实例武器表_直达SimStep()
         {
             // 同一射手/目标几何，两套自定义武器表 → 命中与否沿表值分岔（无任何全局装载/还原）
-            var values = new CombatValues(5f, -20f, 100f, 25, 0, 100, 2.5f, 60);   // spread=0：伤害确定 = 武器表值
+            var values = new CombatValues(5f, -20f, 100f, 25, 0, 100, 2.5f, 60, CombatGeometry.Default);   // spread=0：伤害确定 = 武器表值
             var map = new SimMapData { GroundY = 0f, HalfWidth = 50f, HalfDepth = 50f };
 
             // 表A：射程 5 < 目标距离 20 → 打不中（Hp 不变）

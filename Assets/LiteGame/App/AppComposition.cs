@@ -9,7 +9,9 @@ using LiteGame.Modules.Dev;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Settings;
 using LiteGame.Modules.Ui;
+using LiteSim;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
@@ -28,11 +30,20 @@ namespace LiteGame
     {
         private IDisposable _devDecoration;      // 开发装配装饰句柄（GM/弱网/调试内核；null = 发布形态）
 
+        /// <summary>判定参数覆写实例（判定几何 13 列的调参面）：装配期创建一次，调参面板与编辑器导出器
+        /// 共用同一实例（容器登记；编辑器 GM 经 <c>GmEditorResolve</c> 取件）。
+        /// **这里只登记不判定**——"本局是否合并"由进房单点每局求值一次（<c>SimParamsActivation</c>：
+        /// 装配期测试模式尚未开启，在这里求门恒假）。</summary>
+        private readonly SimParamsOverrides _simParamsOverrides = new SimParamsOverrides();
+
         // ---- ① 适配器工厂（new 唯一出现处；GameEntry 注入给各段）----
 
-        /// <summary>配置服务（表投影）：字节通道经内容租约（代次/引用统一，提取即释放源资产）。</summary>
+        /// <summary>配置服务（表投影）：字节通道经内容租约（代次/引用统一，提取即释放源资产）。
+        /// 装载期不接覆写合并口（传 null）：覆写合并已下移到进房时点，
+        /// 客户端发布面与本地服房间数值必须由同一求值结果派生（见 <see cref="Modules.Config.SimParamsActivation"/>）。</summary>
         internal Func<IContentService, IConfigService> ConfigServiceFactory()
-            => content => new ConfigService((location, token) => LoadBytesViaContentLease(content, location, token));
+            => content => new ConfigService(
+                (location, token) => LoadBytesViaContentLease(content, location, token));
 
         /// <summary>意图设备源（New Input System 适配器）：本局规则经读口注入（进房时才有值）。</summary>
         internal Func<IDevSession, IIntentSource> IntentSourceFactory()
@@ -67,6 +78,7 @@ namespace LiteGame
             BindRegistryRefill(context);
             BindMetaEntry(context);
             BindProductSettings(context);
+            BindSimParams(context);
             BindDevDecoration(context);
             DeclareTickOrder(context.Services);
             context.Services.Seal();                   // 装配面密封（最后一步；职责与旧 Container 末段一致）
@@ -99,18 +111,21 @@ namespace LiteGame
             context.Put(settings);
         }
 
-        /// <summary>内容身份绑定（只此一次）：内容/配置装配完成后，身份上下文用同一份 Activation/Config 事实回答。</summary>
+        /// <summary>内容身份绑定（只此一次）：内容/配置装配完成后，身份上下文用同一份 Activation/Config 事实回答。
+        /// 根位移摘要经战斗侧端口 <see cref="IRootMotionContentDigest"/> 取（首个对局装载前为空字符串——
+        /// 此时没有对局在跑，不参与准入；身份面不引战斗域类型）。</summary>
         private static void BindIdentity(ModuleContext context)
         {
             IdentityContext identity = context.Require<IdentityContext>();
             ActivationTransactionStore activation = context.Require<ActivationTransactionStore>();
             IConfigService config = context.Require<IConfigService>();
+            IRootMotionContentDigest rootMotionDigest = context.Require<IRootMotionContentDigest>();
             identity.BindContent(() => new ContentIdentity(
                 activation.ActiveGeneration.ReleaseId,
                 activation.ActiveGeneration.Value,
                 activation.Current.ConfirmedRevision,
                 config.GameplayDigestBase,
-                LiteSim.RootMotionCatalog.ContentDigest));
+                rootMotionDigest.Digest));
         }
 
         /// <summary>模态登记（生产装配——与测试同口径）：错误/确认两个弹窗。设置页（表单 15）不在此登记：
@@ -150,6 +165,11 @@ namespace LiteGame
             MetaBridge.Bind(meta, context.Require<IdentityContext>(), () => config.Tables,
                 context.Require<IAccountReentry>());
         }
+
+        /// <summary>判定参数覆写面装订：实例登记进容器（调参面板/编辑器导出器共用），**此处不求门**——
+        /// 装配完成时本地测试模式还没开启（门恒假），求值点是进房单点（每局创建传输前一次，
+        /// 见 <c>ProductTransportFactory</c>）；运行期取件一律经容器。</summary>
+        private void BindSimParams(ModuleContext context) => context.Put(_simParamsOverrides);
 
         /// <summary>开发装配（GM 命令/弱网/调试内核）整段归 LiteGame.Dev，经钩子装饰；发布形态无 Dev 程序集 = 不装饰。
         /// 句柄登记进组合根作用域——关闭时先于模块释放（命令注销 + Dev 静态读口收口）。</summary>

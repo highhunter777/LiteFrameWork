@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LiteSim;
+using LiteSync.Shared;
 using RoomServer.Runtime.Diagnostics;
 
 namespace RoomServer.Runtime
@@ -146,6 +147,13 @@ namespace RoomServer.Runtime
             RoomId = config.RoomId;
             MatchId = matchId ?? RoomId;
             _runRecorder = recorder;
+            // 广播参数（房级）——范围/缺省在装载期与这里双重把守：坏配置拒建房，不静默钳制。
+            if (config.SnapshotHz < ProtocolConstants.MinSnapshotHz || config.SnapshotHz > ProtocolConstants.MaxSnapshotHz)
+                throw new ArgumentException(
+                    $"RoomConfig.SnapshotHz 越界（允许 {ProtocolConstants.MinSnapshotHz}..{ProtocolConstants.MaxSnapshotHz}）："
+                    + config.SnapshotHz, nameof(config));
+            if (config.Aoi == null)
+                throw new ArgumentException("RoomConfig.Aoi 必填（缺省 AoiSettings.Default，不得为 null）", nameof(config));
             // 玩法数值/武器表实例：装配方显式传入（技术债 #1——不再从全局静态面 capture）；缺省=默认表值
             // （嵌入式/测试形态）。生产链：HostAssembly.Inputs（必填）→ ServerHost → RoomInstance。
             CombatValues values = combat ?? CombatValues.Default;

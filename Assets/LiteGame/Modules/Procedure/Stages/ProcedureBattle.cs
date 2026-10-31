@@ -14,6 +14,7 @@ using LiteGame.Modules.Dev;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>

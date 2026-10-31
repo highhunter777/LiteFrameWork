@@ -1,0 +1,55 @@
+结论: PASS
+阻塞问题: 0
+
+覆盖矩阵（B1~B24 与有效任务 T43、T44、T69~T82 一一对照）:
+- B1  LiteSync 程序集/asmdef/双轨 csproj → T43
+- B2  LiteNet 去 LiteSim（asmdef/csproj/源码零 using） → T44
+- B3  15 件搬迁与 .meta 随迁、保留项一致 → T44
+- B4  SHARED_TARGETS 加四目录、不含 Client、路径/命名空间不变、--check-shared → T44
+- B5  Allowed/ClientRoots/ArchitectureGuardTests 硬边与负例 → T69
+- B6  WeakNet 移 Dev、LiteNet 只留传输接口 → T44
+- B7  DiagTrace 保留与登记、DebugKernelEditModeTests → T44
+- B8  L1 全绿 + 两端重建联测 + 哈希对账 → T70
+- B9  CombatGeometry/11 字段/9 参数/发布闸门/10 构造点/坏表 → T71（类型与闸门）+ T72（表接入与 ValidateCandidate 坏表）
+- B10 判定面与外部消费者迁移、四几何覆写唯一删除、测试名与 Arena 只读断言 → T73
+- B11 #combatgeom 表与四处接入、JudgmentFiles、调用点、哈希 → T72
+- B12 五件 .g.cs 退役与烘焙全迁 → T75（Body/Head/Muzzle/SimMap/BakeTargets 常量去向）+ T76（Grip/消费面）+ T77（RootMotion）+ T78（WriteGenerated 零引用后删除）
+- B13 摘要口径（表字节 + 入口规则位、不含覆盖、本地按生效值） → T74
+- B14 13 值与装载结果 0 容差 + 黄金样本/更新流程/测试名 → T74
+- B15 AOI 三档真实注入 + SnapshotHz 与 AoiSettings 分离、客户端读 JoinAck → T79
+- B16 RootMotion 退场、rootmotion.bin 路径、Catalog.Load 落点 → T77
+- B17 ContentIdentity 不引 LiteSim、Digest 用 .bin、无名称字段 → T77
+- B18 .bin 不进 SHARED_TARGETS、check-shared、已烘焙未接线登记 → T77
+- B19 13 项滑杆、dev 三宏、单门 Evaluate、单合并点、联机禁用覆盖 → T80
+- B20 四条断言（哨兵/双 checksum/联机表值/GM 真实操作） → T80
+- B21 编辑器与 GM 两处导出、diff/备份/check-shared/.bin 摘要 → T80
+- B22 StaticMutable 扫描根含 LiteNet/LiteSync → T69
+- B23 sync-and-sim 命令组 + e2e + wf verify → T81
+- B24 三份设计 + 两份进度卷 + 索引 + doc-lint → T82
+
+阻塞问题清单:
+- 无。第 5 轮 4 项整改均已落地且可核验：
+  ① T75 明确“本任务不删 WriteGenerated”，T78 单列收口并依赖 T77，五件 .g.cs 全退役后才执行；
+  ② 执行者补齐到 T69/T70/T74/T75 及后续任务（重生成、资产删除、云侧/GM 操作归主代理，代码/测试归施工子代理）；
+  ③ T73 测试名完整（BattleCrosshairEditModeTests/BattleLaserEditModeTests/BattleSmokePlayModeTests + ArchitectureGuardTests 负例 + Arena 只读展示断言）；
+  ④ T75 写明 BodyCylinderBaker 同次原子写 BodyCc 夹具（含来源 prefab），prefab 缺失=失败不 skip。
+  另：16 个有效任务对 B1~B24 无遗漏、无孤儿、无重复归属；共享源集任务（T44/T71/T72/T73/T75/T77/T79/T80/T74）均带“重生成 BuildHash 主代理 + --check-shared”，T76（非共享）与 T78（Editor 代码）正确排除；依赖链线性无断点，资产搬迁统一走 unity-pipeline/AssetDatabase.MoveAsset。
+
+主要优点:
+- T78 的拆分消除了“删除 WriteGenerated 与五件 .g.cs 退役不同步”的编译中断源，且 T78 文件范围限定在 Assets/LiteGame/Editor/Baking，确认不触共享源集，无需重生成。
+- T75 把“表写入源只来自 prefab/anchor/曲线”与“夹具同源原子写/缺失失败”绑定，堵住了烘焙器把未发布默认回退当写入源的旁路。
+- T73 将判定面迁移与“唯一删除四几何覆写”收在一处，同时给出具体测试名和 Arena 只读展示断言，避免“读者迁了但覆写还在”或“展示读被当成判定读”的两类假绿。
+- T79 要求改配置后重启 LiteGame-Room 再回读、GM sandbox 房实注入，避免“配置写了但未生效”的虚假通过。
+- 执行者与权限边界基本清晰：重生成/云侧/GM 真实操作/资产删除归主代理，代码与测试归施工子代理，符合主代理独占门禁的约定。
+
+非阻塞建议:
+- [低][T69] 执行者写“门禁配置=主代理”，但文件范围仅 Tests/LiteFramework.Core.Tests，任务内无门禁脚本改动；建议删去该半句或改为“测试工程/asmdef 引用调整=主代理”，避免执行者空等。
+- [中][B12/T75] 验收文字省略了 `restore-check` 前置与 `ValidateSpawns`/`SpawnOverlapsObstacle` 收 radius/height 两项 B12 明示要求；建议补回，保证“坐标系/来源”与“参数化”都可独立验收。
+- [中][B12/B21/T75、T80] “烘焙写表/导出后自动 `gen.bat` + `--check-shared`”只在 plan 与 B 项里，T75/T80 验收未显式写；建议在验证栏加一条“写表后 `.bytes` 已重生成并与表行一致”，否则仅跑 check-shared 不能发现表字节未刷新。
+- [中][B12/T75、T78] “BakeTargets 五条输出常量”是“重指向保留”还是“随 T78 删除”未写死；若 T75 删除而 WriteGenerated 仍在，会编译中断。建议明确：T75 仅重指向，T78 与 WriteGenerated 一并删常量。
+- [中][B14/T74 与 T75 时序] T74 的 13 值/黄金样本在 T75 烘焙回写表之前定稿；若烘焙值与原常量有差，T74 证据会过期（最终由 T81 L1 兜底但会返工）。建议在 T75/T76/T77 收口后加“回跑 T74 摘要/黄金样本”一步。
+- [低][B13/T74] “重生成=主代理”但文件范围无 LiteSim/共享源；若摘要实现或规则位编码在共享源集，需补文件范围，否则该重生成是空跑。
+- [低][B15/T79] 文件范围只列 Arena，建议核对 SimView（`SnapshotInterval` 改实例字段）是否就在该模块内，避免越范围改动。
+- [低][B10/T73、B9/T71] MatchTestRules 类头/字段说明、CombatConfig.cs 成员注释清理未显式归属；warnaserror 仅能兜住 cref 错误，建议在 T73/T71 验收各加一句“相关注释清理后 0 warning”。
+- [低][plan 元数据] plan 头部仍写“本版为第六轮整改”，评审整改记录已到第八轮；子步 T9b 仍把 WriteGenerated 删除写在烘焙迁移内，与 T75/T78 拆分不一致。建议同步为“第八轮”并把子步更新为 T75/T78 两段，防止执行者按旧子步回退。
+- [低][B4/T44] 验收未写“记录新哈希/BuildHash.g.cs 路径与 namespace 不变”，建议补一句；引用者清单可补 LiteGame.Adapters.Dev、Tests/EditMode、Tests/UI/PlayMode、Tests/LiteNet.Tests，减少“编译兜底”的盲区。

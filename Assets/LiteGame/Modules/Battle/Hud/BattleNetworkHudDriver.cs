@@ -4,6 +4,7 @@ using LiteNet;
 using TMPro;
 using UnityEngine;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>

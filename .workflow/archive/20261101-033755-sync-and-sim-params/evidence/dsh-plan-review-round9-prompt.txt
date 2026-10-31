@@ -1,0 +1,24 @@
+你是本项目的独立方案评审子代理（外部 dsh 代理），做**第九轮最终核验**。只读：禁止修改文件/运行命令。
+
+仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。评审对象：`.workflow/active/sync-and-sim-params/plan.md`。
+第八轮 2 个阻塞已整改：①`MatchTestRules` 非几何 dev 覆写边界；②B20①“纯表摘要”表述。
+
+只核验：
+1. `MatchTestRules` 是否明确保留 `DamageOverride`/`RpmOverride`/`ResolveWeaponDamage`/`ResolveFireIntervalFrames`（非几何、现状契约），只删除几何覆写 `HeadHitLineOverride`/`HeadshotRadiusOverride`/`ResolveHeadHitLine`/`ResolveHeadshotRadius`；B19 是否精确列名、无通配歧义。
+2. 摘要口径是否唯一：联机 = 表字节 + 入口规则位；B20① 是否改为“同构建无覆盖摘要”并固定规则位编码，不再出现“纯表摘要”。
+3. 是否还有新矛盾。
+
+约束：最多 2 次工具调用；只读 plan.md 全文 + `MatchTestRules.cs`；2 分钟内出结论。
+
+输出（中文纯文本）：
+结论: PASS 或 FAIL
+验收标准: PASS 或 FAIL
+阻塞问题: <数量>
+阻塞问题清单:
+- [严重度][文件/章节] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...
+抽查证据:
+- 文件:行号 + 结论

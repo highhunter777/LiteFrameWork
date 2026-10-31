@@ -77,7 +77,7 @@ namespace LiteSim
                 // **逻辑枪口**（子弹出射点＝逻辑枪口而非本体中心）——<see cref="CombatConfig.MuzzleOrigin"/>
                 // 单源（服务器可重建、回溯用历史帧 Yaw）。视觉枪口位属表现层（服务器无模型/动画、
                 // 回溯无历史姿态）——常量偏移保留权威/确定/可回溯（朝向系 = 枪随身体转）。
-                var muzzle = CombatConfig.MuzzleOrigin(shooter.Pos, shooter.Yaw);
+                var muzzle = values.Geometry.MuzzleOrigin(shooter.Pos, shooter.Yaw);
 
                 float dx = 0f, dy = 0f, dz = 0f;
                 bool hasPoint = SimMath.MulAdd3(inputs[i].AimPointX, inputs[i].AimPointX,
@@ -111,7 +111,7 @@ namespace LiteSim
                 // 表值 = 瞄准态最大偏转角；腰射 × HipSpreadFactor（"瞄准降低散布，腰射反之"）。
                 // spread=0 ⇒ 零随机消耗、每弹丸方向恒等（与无散布行为位级一致）。
                 float spreadDeg = equipped ? wdef.Spread : 0f;
-                if ((shooter.Flags & EntityFlags.Aiming) == 0u) spreadDeg *= CombatConfig.HipSpreadFactor;
+                if ((shooter.Flags & EntityFlags.Aiming) == 0u) spreadDeg *= values.Geometry.HipSpreadFactor;
                 float spreadRad = spreadDeg * SimSpread.DegToRad;
 
                 // **弹丸环**（pellets=1 即单弹丸原口径）：每弹丸独立「偏转 → 求交 → 伤害」；
@@ -134,7 +134,7 @@ namespace LiteSim
                     // **实体走三维入口（带 dy）**；障碍保持 2.5D（关卡障碍为地面级圆/盒，三维化无收益——
                     // 见专项设计 §4.1「仅实体圆柱三维化」）。
                     SimRaycast.RaycastEntities(s, shooterSlot, in muzzle,
-                        in dir, range, out int hitSlot, out float hitT, rules);
+                        in dir, range, out int hitSlot, out float hitT, values.Geometry);
                     // 障碍仍在XZ 平面按水平距离求解 ⇒ **须折回三维参数**才能与 hitT 同量纲比较
                     // （hitT 是沿三维单位方向的长度；障碍 t 是水平距离）。
                     bool blockedByObstacle = RaycastObstacles3D(map, muzzle.X, muzzle.Y, muzzle.Z,
@@ -193,7 +193,7 @@ namespace LiteSim
                         float ddx = inputs[i].AimPointX - hit.Pos.X;
                         float ddz = inputs[i].AimPointZ - hit.Pos.Z;
                         if (SimMath.MulAdd2(ddx, ddx, ddz, ddz)
-                            <= CombatConfig.HitscanRadius * CombatConfig.HitscanRadius)
+                            <= values.Geometry.HitscanRadius * values.Geometry.HitscanRadius)
                             judgeY = inputs[i].AimPointY;
                     }
 
@@ -208,8 +208,8 @@ namespace LiteSim
                     // 单方面把上界收紧为 `<` 会与 Y 带闸分叉（闸放行、爆头判据落空 ⇒ 判为未命中）。
                     // 上界"越过头顶"的漏洞由 SimRaycast 的 Y 带闸（`yHit > 顶` 排除）承担。
                     float relY = judgeY - hit.Pos.Y;
-                    bool headshot = relY >= MatchTestRules.ResolveHeadHitLine(rules);   // 覆写经 rules 注入（null = 烘焙导出值——release/常规入口恒导出值）
-                    if (headshot) dmg <<= CombatConfig.HeadshotDamageShift;
+                    bool headshot = relY >= values.Geometry.HeadHitLine;   // 本局几何；事后水平闸已退役
+                    if (headshot) dmg <<= values.Geometry.HeadshotDamageShift;
 
                     // 回溯请求只延后命中副作用；权威帧的散布/随机流仍正常推进一次。
                     if ((inputs[i].Buttons & SimInputFrame.ButtonDeferHit) != 0u) continue;

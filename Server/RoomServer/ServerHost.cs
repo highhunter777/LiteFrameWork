@@ -14,6 +14,7 @@ using RoomServer.Diagnostics;
 using RoomServer.Runtime;
 using Proto = LiteNet.Proto;
 
+using LiteSync.Client;
 namespace RoomServer
 {
     /// <summary>
@@ -1344,7 +1345,8 @@ namespace RoomServer
                     // 回执 proto 单源（HandshakePacker，与本地服共一份——凭据/房事实经参数注入，字段面不可能再两端漂移）
                     SendToSession(session, PacketType.JoinAck, HandshakePacker.BuildJoinAck(pa, ticket,
                         (int)(_reconnects.TtlMs / 1000), room.Runtime?.MapId ?? 0,
-                        room.Runtime?.ExpectedPlayers ?? 0), reliable: true);
+                        room.Runtime?.ExpectedPlayers ?? 0,
+                        room.Runtime?.Config.SnapshotHz ?? LiteSync.Shared.ProtocolConstants.DefaultSnapshotHz), reliable: true);
                     break;
                 }
                 case MatchStarted ms:

@@ -1,0 +1,39 @@
+结论: FAIL
+
+验收标准: FAIL
+
+阻塞问题: 4
+
+阻塞问题清单:
+- [中高][B12 / 设计要点·烘焙全迁（plan:130、186）] 新增“表 row ≡ prefab CC”守卫测试依赖 `BakeTargets.PrefabPath`，而该 prefab 在源码里明示“不入版本管理——重烘需本地还原”（见证据）。干净克隆/CI 上没有该资产时，守卫只有两条路：找不到 prefab 就跳过（假绿），或直接红（基线不可复现）；`grip.bin`/`rootmotion.bin` 的“输出摘要等于预期”同样建立在 prefab/片段包本地还原上。plan 未写资产还原或夹具策略。建议：守卫改比对“入库的 CC 参数夹具”（由 prefab 导出、随仓库版本化），或明确由 restore 脚本保证 prefab 存在且“缺失=失败（不 skip）”，并把该前置写进 T9b/B12。
+- [中][B9 / 发布闸门（plan:113、116、183）] `CombatValues.Default` 的定位自相矛盾：§外部消费面称 `CombatConfig.Geometry` 未发布返回 `CombatValues.Default.Geometry`，供 HUD/Dev/Editor 读（生产兜底）；B9 却写“`Default ≡ 表值` 有 L1 守卫（Default 仅测试夹具）”。同时该守卫与 B21 导出流冲突：导出改 `#combatgeom.xlsx` 后 `CombatValues.Default`（编译期）不会跟着变，L1 立即红——即“调参/导出闭环”与“Default 必须等于表值”不能共存，除非导出器同步改写 Default 或守卫改比对入库夹具。建议：二选一并写明——① Default 纯夹具、`Geometry` 未发布改为抛/返回 null 且编辑器工具显式走注入；② Default 为兜底但由 `SimParamsExporter` 生成/同步，B9 守卫改为“Default ≡ 导出夹具”。
+- [中][B9 / 发布闸门可测性（plan:116、183）] `_published` 是 `CombatConfig` 的静态状态（现状 `_loaded` 为静态，CombatConfig.cs:22），plan 未给复位/隔离机制；“未发布 `Loaded` 抛”的用例在同进程其它用例（ConfigService 装载、`Publish` 辅助）之后运行即失效，xUnit 跨测试类并行下还会并发污染 → 用例顺序相关，假红/假绿都可能。建议：加 `internal static ResetPublishForTests()` + `InternalsVisibleTo`（或 `[Collection]` 串行 + 每用例显式复位），并在 T7 明确写出。
+- [中][B19 / SimParamsOverrides 数据流（plan:132、193）] 第二轮第④项的闭合只到“只在装载/开局并入 `CombatValues.Geometry`/`MatchTestRules` 实例 + 判定零静态读”，仍未定义：覆盖值如何到达权威端（独立 RoomServer 进程拿不到客户端滑杆）、是否进 `CombatConfigDigest`。若客户端本地覆盖、服务端仍用表值，则两端判定分叉而摘要相同——正是“虚假通过/不同步”的形态。建议：明确覆盖值经既有 `MatchTestRules` 测试规则通道随 Join 下发（沿用旧 HeadHitLine/HeadshotRadius 覆盖的传输面），或限定为“进程内单世界/本地测试房、禁联机”并在 B19 加断言；同时补一句覆盖是否改变摘要。
+
+主要优点:
+- 第二轮四项均有代码级落点且与现状对得上：发布闸门三态、`CombatConfig.Geometry` 投影、`SimMapBaker` 改读 `BakeTargets.PrefabPath` 的 CC、`ValidateSpawns` 收参、覆盖并入实例，不再是空话。
+- 边界收敛清晰：`LiteSync/Client` 排除 BuildHash；`SHARED_TARGETS` 只增四目录；`ProtocolConstants` 随迁不成 `LiteNet→LiteSync` 环（`SnapshotDiffer` 随迁）；`B4/B18` 可机检。
+- 守卫设计可执行：asmdef 白名单 + 双向硬边 + 静态可变扫描根 + “植入违规应红”负例；B10 明确按代码标识符扫描并排除注释/字符串、白名单为空，口径比上一版严谨。
+- 验收多数条目有明确测试载体（B9/B10/B12/B13/B14），风险与回滚（B 先、C 后续归属）交代到位。
+
+非阻塞建议:
+- [B10 守卫范围] 只扫 `Assets/**`，`Server/**` 与根 `Tests/**`（如 `Tests/LiteFramework.Core.Tests`，ClientAsmdefAllowlistTests 就在此）在扫描面外；编译红能兜住，但“零命中”验收口径不完整。建议扩到 `Server/**`+`Tests/**`（备注：根 Tests 为 xunit 工程，判定面可能经源码链接）。
+- [B12 局部漏项] plan 只点名 `ValidateSpawns` 收 `bodyRadius/bodyHeight`，但 `SpawnOverlapsObstacle` 内部仍读 `BodyBake.Height`（SimMapBaker.cs:512-513）；需把 bodyHeight 一并下传并把“表 row ≡ CC”守卫扩到高，否则退役 `BodyBake` 后编译红或 y 带判据仍读旧件。
+- [AoiSettings 落点] 文本只写“`AoiSettings`（LiteSync）”，未定目录；若不在 `LiteSync/{Shared,Snapshot,Input,Events}`，B4 仍绿但共享类型漂移不进 BuildHash。建议明确落 `LiteSync/Shared/`（或把新目录加入 `SHARED_TARGETS`）。
+- [asmdef 消费面清点] 允许表里引用 `LiteNet` 的 asmdef 有 9 条（含 `LiteGame.Modules`、`LiteGame.Modules.Battle`、`LiteGame.Adapters.LuaBridge`，ClientAsmdefAllowlistTests.cs:31/33/39），plan 只列 7 个加 `LiteSync` 的消费方；T3 需逐条裁决“是否真用 LiteSync 类型”并同步 `Allowed`，否则白名单用例红。
+- [注释回写] 删除五件 `.g.cs` 后，`CombatConfig` 类头与成员 XML 仍有大量 `<see cref="BodyBake/MuzzleBake/HeadBake"/>`（CombatConfig.cs:15-16、85-104、133-176），会成 CS1574；若工程 `-warnaserror` 即编译红。T9b 收口时请把注释回写与 `csc.rsp` 核对列为必做。
+- [清单口径] plan:14/64 称烘焙产物在 `Scripts/Map/*.g.cs`，而 `BakeTargets` 现输出常量指向 `Assets/LiteSim/Core/Scripts/*.g.cs`（BakeTargets.cs:36-46）；“四条死路径修正”未列具体四条，建议明列五条输出常量各自去向，防删漏。
+- [B13 口径] `CombatConfigDigest` 按表字节算，B13 写“13 个几何值进 digest”仅是投影关系，建议改述为“`Combat/tbcombatgeom` 进 JudgmentFiles⇒字节进摘要”，避免实现者误改为逐值拼摘要。
+
+抽查证据:
+- `.workflow/active/sync-and-sim-params/plan.md:116`：`Geometry` 未发布返回 `CombatValues.Default.Geometry`（生产兜底）；`:183` B9 写“Default 仅测试夹具”——同一份 plan 内两说，且与 B21 导出流程冲突（阻塞 2）。
+- `plan.md:130`：新增“表 row ≡ prefab CC”守卫，未提 prefab 还原；`plan.md:186` 同。
+- `plan.md:132/193`：覆盖只在装载/开局并入，未定义服务端同源与摘要（阻塞 4）。
+- `Assets/LiteSim/Scripts/Config/CombatConfig.cs:22-29`：`_loaded = CombatValues.Default`、无 `_published`；`:51-55/79-82/130-200`：拟迁的 HardMaxSpeed/FaceTurnRadPerSec/HitscanRadius/Muzzle 三常量/HeadHitLine/HeadshotRadius 现状为 `const`，且多处注“刻意不进 digest”——B13 全进 digest 后这些注释必须同步改。
+- `Assets/LiteSim/Scripts/Config/CombatValues.cs:56-76`：8 参数构造、`Default` 8 参构造，确认“8→9 参数”成立，`Default` 需同步几何默认值。
+- `Tests/LiteFramework.Core.Tests/ClientAsmdefAllowlistTests.cs:37`：`LiteNet -> LiteSim` 待删；`:69-76` `ClientRoots` 待加 `Assets/LiteSync`；`:31/33/39` 引用 `LiteNet` 的 asmdef 未被 plan 消费方清单覆盖（非阻塞 4）。
+- `Assets/LiteGame/Editor/Baking/BakeTargets.cs:23-25`：`PrefabPath` 注释明示“不入版本管理——重烘需本地还原”，是阻塞 1 的直接依据；`:36-46` 五条输出常量（Head/Muzzle/Body/RootMotion/Grip）与 plan“四条死路径”口径不一致。
+- `Assets/LiteGame/Editor/Baking/SimMapBaker.cs:460/496/498/505/512-513`：`BodyBake.Radius/Height` 实际消费点；512-513 位于 `SpawnOverlapsObstacle`，plan 只要求 `ValidateSpawns` 收参 → 需一并下传（非阻塞 2）。
+- `Assets/LiteGame/Editor/Baking/BodyCylinderBaker.cs:35-49`：写入源确为 prefab CC（已符合“禁止未发布默认回退”），`:42` 仍走 `WriteGenerated`，与 B12“零引用后删除”对得上，迁移可行。
+
+说明：本次仅只读 plan.md + 上述 4 个文件（CombatConfig.cs/CombatValues.cs/SimMapBaker.cs/ClientAsmdefAllowlistTests.cs，另含 BakeTargets.cs、BodyCylinderBaker.cs 抽查），未运行任何命令、未做全仓搜索；`CombatConfig.Loaded` 唯一外部读者 `BattleContext.cs:305`、“dev 三宏”具体宏名、`new CombatValues(` 10 处计数因预算未核实，按非阻塞待确认处理。

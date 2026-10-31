@@ -1,0 +1,24 @@
+你是本项目的独立方案评审子代理（外部 dsh 代理），做**第八轮复评**。只读：禁止修改文件/运行命令。
+
+仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。评审对象：`.workflow/active/sync-and-sim-params/plan.md`（第七轮 2 个阻塞已整改）。
+第七轮 2 项：①摘要口径三套说法；②`MatchTestRules` 几何覆写旁路与“唯一门”冲突。
+
+只核验：
+1. “摘要口径（单源）”是否唯一、与 B13/B19/B20 一致，且与 `MatchTestRules` 现行契约不冲突。
+2. `MatchTestRules` 的 `ResolveHeadHitLine`/`ResolveHeadshotRadius`/`HeadHitLineOverride`/`HeadshotRadiusOverride` 是否明确删除并有 grep 守卫；是否还存在旁路。
+3. 是否还有新矛盾或不可判定项。
+
+约束：最多 3 次工具调用；只读 plan.md 全文 + `MatchTestRules.cs`；禁止全仓搜索；3 分钟内出结论。
+
+输出（中文纯文本）：
+结论: PASS 或 FAIL
+验收标准: PASS 或 FAIL
+阻塞问题: <数量>
+阻塞问题清单:
+- [严重度][文件/章节] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...
+抽查证据:
+- 文件:行号 + 结论

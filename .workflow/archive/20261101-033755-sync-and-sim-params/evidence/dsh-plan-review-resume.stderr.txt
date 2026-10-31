@@ -1,0 +1,275 @@
+dsh: reasoning:
+We need output final review in Chinese, plain text, precise format. Must not call tools. Based on evidence gathered. Need decide conclusion FAIL, acceptance FAIL, blocker count. Need list blockers with severity/file/section, description, fix. Main advantages, non-blocking suggestions, spot-check evidence with file:line.
+
+Let's formulate carefully, avoid overclaiming. We have strong evidence:
+
+- Plan file lines.
+- COUNT: LiteNet 65 .cs, LiteSim 70 .cs vs plan says 61/64. (pwsh output)
+- using LiteSim 11 files (matches).
+- CombatValues: 10 fields (MoveSpeed, Gravity, HitscanRange, BaseDamage, DamageSpread, EntityHp, NoDeath, InfiniteAmmo, AimMoveSpeed, FireStanceFrames) and 8-arg constructor; plan 8→15 and +7 vs 13 columns.
+- CombatConfig geometry 13-ish constants and derived HeadHitLine.
+- B10 path `Modules/LiteSim` wrong; actual `Assets/LiteSim`; 8 Run methods not 9; static reads in `Scripts/Rules/SimRaycast.cs:81,85`, `Scripts/Rules/MatchTestRules.cs:73,77`, `ShootingSystem.cs:80` (MuzzleOrigin helper), `MovementSystem.cs:31,34,79,83`, `InputSystem.cs:85`, `DamageSystem.cs:51`, `ShootingSystem.cs:114,196,212`.
+- TableLayout: Files require `Domain/table`; `DeriveJudgmentFiles` `Substring(0, file.IndexOf('/'))`; `ConfigService.TableDataFiles = TableLayout.Files`; `ServerTableLoader` loops TableLayout.Files; `JudgmentDomains` already has Combat. Plan B11 "Files 加 combatgeom + JudgmentDomains + ConfigService + ServerTableLoader" wrong; "four places".
+- `SimConfig.AoiRadius/SnapshotHz` used by client `SimView.cs:36`; JoinAck `HandshakePacker.cs:31`; `LocalServerHandshakeEditModeTests.cs:70`; `SnapshotPipeline.cs:95,142`; plan says only server reads. Removing them breaks. `AoiSettings` static ambiguity; `StaticMutableAllowlistTests` roots exclude LiteSync (line 36) and `ClientAsmdefAllowlistTests` ClientRoots excludes LiteSync (69-76).
+- `BakeTargets` four dead paths at lines 36-46; `WriteGenerated` used by WeaponGripBaker line 65 (GripBake), BodyCylinderBaker 42, HeadHitLineTuner 112, MuzzleOffsetBaker 48, RootMotionBaker 86; B12 "WriteGenerated 不再被烘焙工具使用" false unless scope expands.
+- `BodyBake` deletion breaks `SimMapBaker.cs:460,496,498,505,512` and `BodyBakeEditModeTests.cs:36-44`; `SimMapBakerEditModeTests.cs:256,269`; plan test strategy only DeployBake.
+- `RootMotion` current wiring: `AppComposition.cs:108-113`, not `ContainerModule.cs:167` (file absent); `ContentIdentity` has RootMotionDigest string and no LiteSim ref (already true); `RootMotionCatalog` partial static, `RootMotionData.g.cs` BakedContentDigest; `RootMotionDataTests.cs:17-19` etc. `Assets/GameData/Config/runtime` doesn't exist; ConfigService loads only TableLayout.Files `.bytes`. `B16` says bin in Arena vs design line 96 says GameData/Config/runtime. This is strong.
+- `B14` visual smoke "逐位一致" not judgeable; need exact numeric test.
+- `B3` 13 vs 15 list. Count list: SnapshotSource, Codec, Differ, Reassembler, AoiFilter (5); InputPacker (1); CombatEventCodec (1); ProtocolConstants (1); RoomClient, RoomOutbound, RoomInbound, RoomSession, ReconnectState, RoomClientDiagnostics, InputWindow (7) = 15. Plan says 13. Strong.
+- Conflict B/C: B plan lines 97/109/B12; C plan lines 14/34/C1/C3/C6/C9, C "只动 ... 一处 Unity 编辑器工具路径" line 4, C non-goal line 42. B and C both claim BakeTargets four dead paths and gen-build-hash.py. B also T4; C C1/C3/C4/C6/C9/C10. B's exporter auto gen.bat + --check-shared conflicts with C's "no direct scripts/codegen/*.py" (C guard scans scripts; but B exporter is C#; still cross-delivery). C's C1 pre-fix red impossible if B fixes first. Strong.
+- BuildHash whole LiteSync includes Client (RoomClient etc.) currently not in SHARED_TARGETS; client-only changes would affect handshake. Plan line 38/87; current SHARED_TARGETS lines 51-63 excludes `LiteNet/Core/Client`. This is a design concern. Could mention as major/non-blocking. Does this necessarily fail? It changes semantics but perhaps intended. The plan says "LiteSync 属两端共编"; but client files are not two-end. I think include as blocker or major. It could cause false incompatibility; not necessarily fatal but architecture. I'd put blocker because B4's target source set is wrong shape; but maybe too many. Let's decide 10 blockers.
+
+- `CombatValues` unpublished state: `_loaded = CombatValues.Default` line 22; no flag. B9 says "未 Publish 时读口抛". Need mechanism; design gap. Include as blocker or non-blocking. It is an acceptance gap; B9 says test. It can be implemented with a flag; plan doesn't say. Major.
+- `ConfigService.ValidateCandidate` not updated: plan's failure semantics "拒启动" but `Validate` 3 args; `Publish` before `ApplyCombatValues`; invalid geom could be published before throw. Major. Could include as blocker (failure semantics).
+- `ServerTableLoader` calls `BuildCombatValues` 3 args and logs `CombatConfig.HitscanRadius`; plan says "同源自动" but file must change. Compile break visible; plan file list missing. Major.
+- `SimLayoutContractTests` not a table guard; plan test strategy false. Major.
+- B23 59 commands vs "nine gates"; minor/major.
+
+Need not list every one; but "阻塞问题数量" should be credible. Let's choose 10 blockers:
+
+1. [blocker] B3 / §设计 批6: 13 vs 15 migration count.
+2. [blocker] B11 / §设计 批7: `#combatgeom` integration shape (Files/JudgmentDomains/ConfigService/ServerTableLoader) wrong; startup failure.
+3. [blocker] B9 / §P-1: CombatValues count contradiction (10 existing/13 columns vs 8→15/+7).
+4. [blocker] B15 / §批7 AOI: SnapshotHz client consumption & JoinAck; only server claim false; static `AoiSettings`/multi-room/red line; missing call sites/tests.
+5. [blocker] B10 / 测试策略: zero-static-read guard scope misses Rules/MuzzleOrigin; 9 vs 8 Run; wrong path.
+6. [blocker] B12: deleting three .g.cs breaks SimMapBaker/BodyBakeEditModeTests/SimMapBakerEditModeTests; WriteGenerated still used by WeaponGripBaker.
+7. [blocker] B16/B17/B18 RootMotion: path contradiction and no loader/packaging; stale ContainerModule; vacuous ContentIdentity; missing missing/corrupt semantics/tests.
+8. [blocker] B14: visual smoke can't prove bitwise identity; not judgeable.
+9. [blocker] B/C ownership conflict: BakeTargets four + gen-build-hash.py both claimed; C's pre-fix red; B exporter direct scripts; need adjudication.
+10. [blocker] B4/B5 BuildHash/guard scope: adding whole `Assets/LiteSync` pulls client-only files into handshake; `ClientAsmdefAllowlistTests.ClientRoots`/`StaticMutableAllowlistTests` don't include LiteSync, so B5/B22 can pass falsely; B4's source set should be subset/split.
+
+Maybe also 11. [major] B8/B23: `wf verify` 59 commands vs "nine"; no red_commands; cannot map. But maybe non-blocking. We can put under non-blocking suggestions with explicit "待确认". The user says evidence insufficient → FAIL or non-blocking待确认. We can list B23 as non-blocking suggestion, not blocker.
+
+Need "验收标准: FAIL" because B3/B9/B10/B11/B12/B14/B16/B17/B23 etc. not judgeable. Good.
+
+Main advantages:
+- Clear split of responsibilities and direction correction; LiteSync boundary one-liner and criteria table; dependency direction verification (11 files) correct.
+- Candidate alternatives with reasons; non-goals explicit; two-end rebuild/hash awareness.
+- Root cause real: LiteNet→LiteSim reverse dependency, geometry constants, RootMotion in LiteSim.
+- Test strategy includes L1/EditMode/PlayMode/handshake and "red first"; risks/rollback.
+- Evidence references master plan and code; 13-file list mostly correct (but count wrong).
+- Good failure semantics intent: no default fallback for geometry, table errors refuse startup, Configure late reject.
+- BuildHash/source set awareness and `.bin` not in hash; ContentIdentity.
+- Debug/export reuse existing provider/BakingToolbox.
+
+Non-blocking suggestions:
+- Re-baseline counts (LiteNet 65, LiteSim 70; ContainerModule gone; AppComposition lines); update evidence and line refs.
+- B23 specify exact gate commands / add `red_commands`; `wf verify` 59 commands.
+- Add test migration matrix for `CombatValuesTableTests`, `BodyBakeEditModeTests`, `SimMapBakerEditModeTests`, `RootMotionDataTests`, `SimLayoutContractTests`, `ConfigurationSourceTests`, `ServerTableLoadTests`, `LocalServerHandshakeEditModeTests`, `Tests/LiteNet.Tests.csproj` WeakNet link.
+- Clarify `CombatValues.Default`/unpublished flag; validate before publish; update `SimConfigMapper.Validate`, `ConfigService.ValidateCandidate`, `ServerTableLoader.Parse` and log line.
+- Clarify `AoiSettings` ownership per room; separate `SnapshotHz` from AOI; add `ThrottleAoiRadius` derived; scan LiteSync.
+- Clarify `.bin` location, packaging/collection, missing/corrupt semantics, `ContentIdentity` injection point.
+- B16 "bin in Arena" vs design; B18 "old .g.cs entry" doesn't exist.
+- Make B24 doc paths explicit.
+- Add `Assets/LiteSync` to `ClientRoots`/`StaticMutable` roots and `Tests.slnx`.
+
+Spot-check evidence: list actual files and findings, with line numbers. We need be concise but enough. Use format "文件:行号 — 发现". Include:
+- plan.md:38/82/132 B3; plan.md:91/B11; plan.md:18/142; plan.md:95/148; plan.md:96/150; plan.md:104/145; plan.md:12/30 etc.
+- CombatValues.cs:19-52, 56-75.
+- CombatConfig.cs:55,82,94-104,130-200.
+- TableLayout.cs:21-46, 53-72; ConfigService.cs:45, 126-128, 191-193; ServerTableLoader.cs:60-70 (Server/RoomServer).
+- SimView.cs:35-36; HandshakePacker.cs:31; SnapshotPipeline.cs:95,142; LocalServerHandshakeEditModeTests.cs:70.
+- SimRaycast.cs:81,85; MatchTestRules.cs:73,77; ShootingSystem.cs:80; etc.
+- BakeTargets.cs:36-46, 141; WeaponGripBaker.cs:65; SimMapBaker.cs:460,496; BodyBakeEditModeTests.cs:36-44.
+- AppComposition.cs:108-113; ContentIdentity.cs:15; RootMotionCatalog.cs:68-75; RootMotionData.g.cs:9; RootMotionDataTests.cs:17-19; `Assets/GameData/Config/runtime` false.
+- StaticMutableAllowlistTests.cs:36; ClientAsmdefAllowlistTests.cs:69-76; LiteNet.asmdef; gen-build-hash.py:51-63, 95.
+- codegen-consolidation/plan.md:4,14,34,42,C1/C3/C6/C9/C10, 124.
+- counts: 65/70; 8 Run; 15 files list.
+
+Need be careful about "文件:行号" for `ServerTableLoader` — path `Server/RoomServer/ServerTableLoader.cs:60-70`, yes.
+`gen-build-hash.py` lines 51-63; `SHARED_OUT_FILE` 95.
+`LiteNet.csproj:19-24`; `LiteNet.asmdef` refs.
+`ClientAsmdefAllowlistTests.cs:37` LiteNet entry, `69-76` roots.
+`ArchitectureGuardTests.cs` lacks rules; cite lines 15-27 (only App/Runtime) and 89-114 (static facades) no LiteSync; maybe.
+`StaticMutableAllowlistTests.cs:36`.
+
+Need "结论: PASS 或 FAIL" — FAIL.
+"验收标准: PASS 或 FAIL" — FAIL.
+"阻塞问题: <数量>" — 10.
+"阻塞问题清单:" each bullet with `[blocker][plan.md:...]`.
+
+Should I call some "major" rather than "blocker"? The format says "严重度"; if the problem list is under "阻塞问题清单", all are blocking. Use `[blocker]` for the 10. Could use `[major]` for one or two; but then "阻塞问题" count counts blockers only? Better all `[blocker]` or `[严重]`. We'll use `[blocker]` for 10; maybe 2 `[major]` and count 10 including majors? The user likely expects count of blocking issues. Simpler: all 10 `[blocker]`.
+
+But is B4/B5 issue truly blocker? It may be a design improvement, not necessarily fail. We can make it `[major]` and count 9 blockers. Hmm. The user expects rigorous but not inflated. Let's assess:
+- B4 `SHARED_TARGETS` whole LiteSync: If implemented literally, client-only files in hash; does that break functionality? No, it makes hash stricter. It could cause server hash to change on client-only edits, but both ends rebuild; not a correctness bug. It's a design concern; major not blocker. Yet it violates "两端共编" criterion and can cause unnecessary rebuild. Not fatal. Put in non-blocking suggestions? It is important but not blocking. I can list as `[major]` under "非阻塞建议" with "建议在方案中明确". But the user asked "阻塞问题清单" — majors can be there. Maybe keep 9 blockers, and put BuildHash scope + guards in non-blocking as "major, 建议明确" to avoid overcount. However, `ClientAsmdefAllowlistTests.ClientRoots` excluding LiteSync means B5's "all asmdefs registered" guard won't catch the new asmdef; that's a guard false-pass, a blocker for "guard" acceptance. `B5` says "含 LiteSync 条目且全绿"; if not in ClientRoots, the test won't ensure it; but the test will still pass. That's a **false pass** on an architecture guard, which is a blocker under the review criteria ("测试虚假通过"). So include B5/LiteSync roots as blocker, perhaps combined with B22. Then 10.
+
+Similarly `StaticMutableAllowlistTests` excludes LiteSync; B22 can pass falsely. Combine B5/B22 guard root issue into one blocker.
+
+Then BuildHash whole-LiteSync scope can be non-blocking suggestion (major).
+
+Need maybe include "B23 59 vs nine" as non-blocking.
+
+Let's produce 10 blockers:
+1. B3 count 13 vs 15.
+2. B11 combatgeom integration shape.
+3. B9 CombatValues count.
+4. B15 AOI SnapshotHz client + static/multi-room.
+5. B10 zero-static guard scope + 8 vs 9.
+6. B12 bake deletion impact + WriteGenerated GripBake.
+7. B16/B17/B18 RootMotion path/loader/stale refs/tests.
+8. B14 bitwise via visual smoke.
+9. B/C ownership conflict.
+10. B5/B22 guard roots (LiteSync not scanned; B5/B22 can pass falsely).
+
+Could add B4/B5 BuildHash client-only as part of #10? Maybe mention in #10 or non-blocking.
+
+Should we include `CombatValues` unpublished state / validation ordering as blocker? It is important. Maybe merge into #3: "CombatValues count + unpublished state". But #3 is already count. Could add #11:
+11. [blocker] B9/B11 failure semantics: `CombatConfig._loaded` initialized to Default, no unpublished flag; `ConfigService` publishes before `ApplyCombatValues`; `ValidateCandidate`/`SimConfigMapper.Validate` not extended; invalid geometry can be published before rejection. This is distinct and important. If we include, count 11. Is it overkill? The plan explicitly claims "未 Publish 抛" and "表缺/NaN/非正/越界拒启动"; actual code contradicts. Strong. Include as #10 and move guard roots to #11? Let's count.
+
+We can have 11 blockers. The user didn't cap. But too many may seem nitpicky; these are all substantive. Let's aim 10 by merging:
+- #3: CombatValues count + unpublished/default state (both B9 acceptance).
+- #10: guard roots (B5/B22) + BuildHash scope (B4) maybe one "守卫与哈希面" blocker.
+- #11: failure semantics validation ordering? Merge into #3? It's related to CombatValues/B11. Could merge into #2 (table integration) or #3. I think #3 can include "未 Publish 抛无机制；ValidateCandidate 未扩展" as part of the same acceptance/design flaw. Then 10.
+
+Blockers list final (10):
+1. B3 13 vs 15.
+2. B11 table integration shape + validation ordering + ServerTableLoader/ConfigService compile/log (maybe large).
+3. B9 CombatValues count + unpublished state.
+4. B15 AOI SnapshotHz/client + static ownership.
+5. B10 guard scope + 8 vs 9.
+6. B12 bake deletion impact + WriteGenerated GripBake.
+7. B16/B17/B18 RootMotion path/loader/stale/tests.
+8. B14 judgeability.
+9. B/C ownership conflict.
+10. B5/B22/B4 guard roots/hash scope? Hmm B4 hash scope is not a guard; maybe put as non-blocking. For #10, use "B5/B22 守卫根未覆盖 LiteSync" only. Good.
+
+Then non-blocking suggestions:
+- B23 gate count / red commands.
+- BuildHash over-coverage whole LiteSync (client-only).
+- Stale evidence counts/line refs.
+- Test migration matrix for missing tests.
+- `.bin` packaging (if not already #7).
+- B24 doc paths.
+- B16/B18 contradiction (if not #7).
+- `RootMotion` "名称" not defined.
+- `AoiSettings` naming (SnapshotHz not AOI) if not #4.
+- `gen-build-hash.py` old `.g.cs` entry nonexistent.
+- B12 `WriteGenerated` method vs calls.
+
+Need main advantages:
+- Real dependency evidence (11 files) and direction; boundary table.
+- Candidate alternatives with reasons; non-goals.
+- Acceptance is mostly observable; test layers; two-end rebuild/hash; rollback.
+- Failure semantics design intent; no fallback; digest.
+
+Spot-check evidence: We need actual files / key findings (file:line). Keep concise but enough. Use bullet list. Mention count 65/70, 8 Run, 15 files.
+
+Let's ensure not to claim things we didn't verify:
+- `CombatValues` 10 fields; yes.
+- `CombatConfig` 13 columns? We counted 12 constants + derived; plan 13 columns. State exactly: "CombatConfig 现有 12 个几何/裁决常量（含派生 HeadHitLine）对应 13 列中的 12 个值；不管怎样 8→15/＋7 与 13 列对不上." Maybe avoid exact "12" if count wrong: hard max, face turn, muzzle 3, hitscan radius, body radius, hitscan height, head hit line (derived), headshot radius, headshot damage shift, hip spread factor, corpse frames = 12 constants, 13 values if head_ratio separate. Good.
+- `CombatValues` 8 numeric + 2 bool = 10. If adding 13 fields, 23 fields; constructor 8→21 args. State "按 13 列全落字段则为 23 字段/21 构造参数；按 +7 则为 17 字段/15 构造参数" — both conflict with "15 字段". Let's compute: existing 10 fields; +13 = 23; existing constructor 8 params; +13 = 21. Existing 10 fields; +7 = 17; constructor 8+7=15. The plan says "8→15 字段" and `new CombatValues(15)`. If they mean constructor parameters, +7 = 15 params; but 13 columns then 6 columns must be derived (head_ratio/head_radius? etc.). The plan B9 "+7 个新几何字段" and 13 columns contradictory. Phrase: "把 8 当构造参数时，+7 才是 15；但表有 13 列且 B9 说 +7，二者不能同时成立；若按现有 10 字段+13 列则 23 字段。必须先钉字段清单." Good.
+- `TableLayout.Files` line 21; `DeriveJudgmentFiles` line 61; `ConfigService.TableDataFiles` line 45; `ServerTableLoader` line 60-70.
+- `SimConfig.AoiRadius` lines 77-90; `SimView` line 36; `HandshakePacker` line 31; `LocalServerHandshakeEditModeTests` line 70; `SnapshotPipeline` 95/142.
+- `SimRaycast` 81/85; `MatchTestRules` 73/77; `ShootingSystem` 80/114/196/212; `MovementSystem` 31/34/79/83; `InputSystem` 85; `DamageSystem` 51.
+- `System.Run` 8 methods list; no line numbers needed, but can cite e.g. `ShootingSystem.cs:37`, `MovementSystem.cs:19`, `InputSystem.cs:29`, `DamageSystem.cs:14`, `CleanupSystem.cs:10`, `RespawnSystem.cs:6`, `ScoreSystem.cs:6`, `WeaponSystem.cs:23`.
+- `BakeTargets` 36-46; WeaponGripBaker 65; SimMapBaker 460/496; BodyBakeEditModeTests 36-44; SimMapBakerEditModeTests 256/269; RootMotionDataTests 17-19; BodyBakeEditModeTests.
+- `AppComposition` 108-113; `ContainerModule` absent; `ContentIdentity` 15; `RootMotionCatalog` 68/75; `RootMotionData.g.cs` 9; runtime dir false; `TableLayout.TableDataPath` 106.
+- `StaticMutableAllowlistTests` 36; `ClientAsmdefAllowlistTests` 69-76; `ArchitectureGuardTests` no LiteNet/LiteSync; `LiteNet.asmdef` refs LiteSim; `LiteNet.csproj` 19-24/34.
+- `gen-build-hash.py` 51-63/95; C plan lines.
+- B/C conflict lines: B plan 97/109/145; C plan 4/14/34/C1/C3/C6/C9/C10/124; C non-goal 42.
+- plan counts 61/64 vs 65/70; plan line 12 says 64; line 49 61. `ContainerModule` line 30/96; `9 Run` line 143; `SimLayoutContractTests` line 123; `ConfigService.TableDataFiles` line 92; `JudgmentDomains` line 144.
+- B14 line 147; B16 line 149; B17 line 150; B18 line 151; B23 line 156.
+
+Need "主要优点" maybe 4 bullets.
+"非阻塞建议" 5-7 bullets.
+
+Tone: direct, no pleasantries. Chinese plain text. The output format starts with `结论: FAIL`. No markdown code block? "纯文本" — can use lines and bullets; that's okay. Avoid tables maybe. We'll output plain text with bullets.
+
+Need "阻塞问题: 10". Each bullet starts `- [blocker][plan.md:38/132 · B3] ...；建议 ...`. Good.
+
+Need "抽查证据" with actual file:line and key findings. Keep under 15 bullets.
+
+Let's ensure no contradiction: "验收标准: FAIL" due to B3/B9/B10/B11/B12/B14/B16/B17/B23. Good.
+
+Let's write final. Since desired oververbosity 5, but review needs detail. Maybe 1300-1800 Chinese chars? We can be thorough. The user wants direct conclusions. Let's produce around 2500-3500 Chinese chars; okay.
+
+Potential issue: "阻塞问题" count 10, but main list has 10. Ensure numbering 10. Non-blocking suggestions shouldn't include blockers; okay.
+
+Let's formulate #1:
+`[blocker][plan.md:38/82/134 · B3]` 方案称"13 件搬迁"，但清单实际 15 件（Snapshot 5 + InputPacker + CombatEventCodec + ProtocolConstants + Client 7）。B3 以"13 件"判定会漏 2 件或直接判红；AC 不可判定。建议：改为 15 件文件级 manifest，并把 `RoomInbound`/`RoomSession` 等 Client 件逐项列入 B3。
+Wait 5+1+1+1+7 = 15. Yes.
+
+#2:
+`[blocker][plan.md:92/144 · B11]` `TableLayout.Files` is "domain/table"; `DeriveJudgmentFiles` `Substring(0, IndexOf('/'))`; "combatgeom" bare causes exception; "Combat" already in JudgmentDomains; `ConfigService.TableDataFiles` is alias; `ServerTableLoader` loops Files. So "four places" wrong; literal implementation crashes. Also `ServerTableLoader`/`ConfigService` call `BuildCombatValues` 3 args and log `CombatConfig.HitscanRadius/BodyRadius/HitscanHeight`; not in file list. Suggest correct two real points + update call sites/validation.
+
+#3:
+`[blocker][plan.md:18/67/142 · B9/P-1]` `CombatValues` current 10 fields / 8 ctor params; 13 columns; "8→15" and "+7" inconsistent; if 13 new fields -> 23 fields/21 params; if +7 -> 17 fields/15 params. B9 test cannot be written. Also "未 Publish 抛" has no mechanism (`_loaded = Default`); `ValidateCandidate` not extended; publish before apply. Suggest field manifest and explicit published flag; extend Validate before publish.
+
+#4:
+`[blocker][plan.md:95/148 · B15]` `SnapshotHz` in JoinAck and client `SimView`; "只有服务端读" false; deleting `SimConfig` AOI/broadcast constants breaks client and handshake test; `ThrottleAoiRadius`/`SnapshotPipeline` call sites missing; `AoiSettings.Configure` static ambiguity/multi-room/red line; B15 only 3 AOI tiers. Suggest split `AoiSettings` vs `SnapshotHz`, client from JoinAck, instance injection, tests.
+
+#5:
+`[blocker][plan.md:105/143/123 · B10]` B10 path `Modules/LiteSim/Systems/**` wrong (actual `Assets/LiteSim/Systems/**`); guard misses `Scripts/Rules/SimRaycast.cs:81,85` and `MatchTestRules.cs:73,77`, and `CombatConfig.MuzzleOrigin`; "9 System.Run" actual 8; guard can pass falsely. Suggest include Rules and helper, use explicit 8/9.
+
+#6:
+`[blocker][plan.md:97/145 · B12]` delete three .g.cs breaks `SimMapBaker.cs:460/496/498/505/512` and `BodyBakeEditModeTests:36-44`, `SimMapBakerEditModeTests:256/269`; `WriteGenerated` still used by `WeaponGripBaker.cs:65` (GripBake), so B12 false. Suggest include SimMapBaker/test migration or keep BodyBake for editor; narrow WriteGenerated AC.
+
+#7:
+`[blocker][plan.md:96/149-151 · B16-B18]` path contradiction: design line 96 `Assets/GameData/Config/runtime/rootmotion.bin` vs B16 says bin in `Modules/Battle/Arena/`; `runtime` dir absent; ConfigService only loads `TableLayout.Files` .bytes; no loader/collection/missing/corrupt; `ContainerModule.cs:167` gone (actual `AppComposition:108-113`); B17 "ContentIdentity 不引用 LiteSim" already true/vacuous; `RootMotionDataTests`/`BakedContentDigest` not migrated. Suggest one path/loader/packaging, update actual call site, add tests.
+
+#8:
+`[blocker][plan.md:147 · B14]` "逐位一致（Play 冒烟视觉无偏差）" cannot prove bitwise; visual smoke non-deterministic. Suggest exact table-vs-old-constant equality and deterministic checksum/golden; zero tolerance.
+
+#9:
+`[blocker][plan.md:97/145 + codegen-consolidation/plan.md:14/34/C1/C3/C6/C9]` both claim BakeTargets four and gen-build-hash.py; C's doctor pre-fix red impossible if B first; B's exporter direct gen.bat/gen-build-hash conflicts with C's single-entry/deprecation; C says "一处 Unity 编辑器工具路径" but C1 includes BakeTargets. Suggest adjudication: B owns BakeTargets (semantic), C owns gen-build-hash generic/toolbox/doctor/header, B contributes only `Assets/LiteSync` addition; serialize C then B (or freeze), and update C1/AC ownership.
+
+#10:
+`[blocker][Tests/LiteFramework.Core.Tests/ClientAsmdefAllowlistTests.cs:69-76 + StaticMutableAllowlistTests.cs:36 · B5/B22]` `ClientRoots` lacks `Assets/LiteSync`; `StaticMutable` roots lack `LiteSync`/`LiteNet`; B5/B22 can pass without scanning new assembly; `ArchitectureGuardTests` currently has no LiteNet/LiteSim or LiteSync hard-edge (only App/Runtime). Suggest add LiteSync root, LiteNet/LiteSync to static scan, implement hard-edge tests and assert failure on planted violation.
+
+This is strong.
+
+Non-blocking:
+- B23 `wf verify` 59 commands vs "九条门禁"; list exact commands / `red_commands`.
+- BuildHash whole `Assets/LiteSync` includes client-only `Client/**`; currently `SHARED_TARGETS` excludes `LiteNet/Core/Client`; consider subset/split, else client-only edits force server hash.
+- Stale evidence: LiteNet 65/LiteSim 70 vs 61/64; `ContainerModule` absent; "9 Run" 8; `SimLayoutContractTests` isn't table guard; `ConfigService.TableDataFiles` alias; re-baseline 8a8fe0bf.
+- Test migration matrix missing: `CombatValuesTableTests`, `BodyBakeEditModeTests`, `SimMapBakerEditModeTests`, `RootMotionDataTests`, `ConfigurationSourceTests`, `ServerTableLoadTests`, `LocalServerHandshakeEditModeTests`, `Tests/LiteNet.Tests.csproj` WeakNet link.
+- `gen-build-hash.py` "旧 .g.cs 条目" doesn't exist; directory-based; B18 wording.
+- `B24` doc paths not named; add exact docs/index.
+- `CombatConfig` public read fallback / `Default` etc. maybe covered #3; no need.
+- `AoiSettings` naming includes SnapshotHz; rename `SyncBroadcastSettings` or split.
+- `B16` `.bin` in Arena contradiction already #7; no duplicate.
+
+Main advantages:
+- 依赖方向实测（11 files） accurate; boundary table and "payload vs packet" criterion clear.
+- Alternatives L-A/L-B/P-2/R-2 with reasons; non-goals explicit; no hidden full-parameter externalization.
+- Root causes verified: reverse dependency, geometry constants, RootMotion/WeakNet misplacement.
+- Test strategy layers + red-first + two-end hash/rebuild + rollback; failure semantics intent.
+- BuildHash path/namespace preservation and `.bin` numerical face distinction are sound.
+
+Spot-check evidence:
+- `Assets/LiteNet/LiteNet.asmdef` refs LiteSim; 11 `using LiteSim`; 65 .cs; LiteSim 70.
+- `Assets/LiteSim/Scripts/Config/CombatValues.cs:19-52` 10 fields, `:56` 8 params, `:74` Default.
+- `CombatConfig.cs:55/82/94-104/130-200` geometry constants.
+- `TableLayout.cs:21-46/53-72`; ConfigService:45/126/191; ServerTableLoader:60-70.
+- `SimConfig.cs:77-90`; SimView:36; HandshakePacker:31; SnapshotPipeline:95/142; LocalServerHandshakeEditModeTests:70.
+- `SimRaycast:81/85`; MatchTestRules:73/77; ShootingSystem:80; etc.
+- `BakeTargets:36-46`; WeaponGripBaker:65; SimMapBaker:460/496; BodyBakeEditModeTests:36-44.
+- `AppComposition:108-113`; no ContainerModule; `RootMotionCatalog:68/75`; `RootMotionData.g.cs:9`; runtime absent.
+- `ClientAsmdefAllowlistTests:69-76`; StaticMutable:36; ArchitectureGuardTests:15-27/89-114.
+- `gen-build-hash.py:51-63/95`.
+- `codegen-consolidation/plan.md:14/34/C1/C3/C6/C9/124`.
+
+Need be careful: "ArchitectureGuardTests currently has no LiteNet/LiteSim hard edge" — it has App/Runtime rules; no LiteNet/LiteSync; true. B5 says "两条新硬边生效", so implementation would add; the current absence is expected, not a flaw. But the guard roots issue is flaw. Phrase: "现有 ArchitectureGuardTests 只覆盖 App/Runtime 等规则，B5 的两条新硬边需新增；方案未给出新增测试的落点/断言". Since B5 says new rules, not necessarily existing; but the issue is `ClientAsmdefAllowlistTests` root. Don't overclaim that absence is a defect; say "方案未说明新增硬边的测试落点，且现有 guard 无此规则". That's fair.
+
+For #10, B5 says "ClientAsmdefAllowlistTests 含 LiteSync 条目且全绿"; it doesn't say ClientRoots. If they add LiteSync to Allowed, the per-entry loop checks its references, so it's partially covered. But the "all asmdefs registered" test won't catch future LiteSync asmdefs; and `StaticMutable` definitely not. B22 says "无新增 public static" but test roots exclude LiteSync. This is a genuine false-pass. Good.
+
+For #2, "ConfigService.TableDataFiles is an alias" — `ConfigService.cs:45` shows `public static readonly string[] TableDataFiles = TableLayout.Files;`. Yes.
+
+For #3, `CombatValues` 10 fields: `NoDeath`/`InfiniteAmmo` are bools; yes. "8→15" likely constructor. We'll state both interpretations.
+
+For #7, B16 says "`RootMotionCatalog.Load` + `rootmotion.bin` 位于 `Modules/Battle/Arena/`" while design line 96 says bin under `Assets/GameData/Config/runtime/`. Yes. Also B17 says `ContentIdentity` no LiteSim; already true. `RootMotionDataTests` in `Tests/LiteSim.Core.Tests` will fail to compile if RootMotion types move; plan's test strategy doesn't mention. Good.
+
+For #8, B14 says "历史几何与改动前逐位一致（Play 冒烟：命中/爆头/枪口位置无可见偏差）". Visual smoke can't prove bitwise; correct.
+
+For #9, B plan line 97 "删 BakeTargets.WriteGenerated 路径并修 4 条死路径" and B12; C plan line 14 "另有三处同型... BakeTargets 四条", C1 "doctor 修复前 5 处腐烂路径". Also C line 4 "只动 ... 一处 Unity 编辑器工具路径"; C's T1 "修 5 处" includes BakeTargets. Good. `gen-build-hash.py` B T4 and C C1/C3/C6/C9. C's C10 uses gen-build-hash. Good.
+- B's exporter "自动 gen.bat + --check-shared" vs C's C8 "门禁与 CI 不再直调 scripts/codegen/*.py（Luban/gen.bat 例外）". B's exporter is editor, not gate/CI; but "脚本内部" maybe. Mention "与 C 的单入口/去直调方向冲突，至少需要说明走后门还是 toolbox". Good.
+
+Non-blocking "B23 59 commands" — I counted `commands.Count = 59`; yes. `wf verify` runs all. B23 says nine. Good.
+
+Need output "抽查证据" maybe mention "未运行 Unity/构建/测试，按只读评审". At start/end? The format says direct conclusion; we can note in证据 "未运行". We must not say we ran tests.
+
+No citations as links needed; this is local review, not web.
+
+Let's write final in Chinese plain text. Ensure no markdown table maybe bullets. Use line breaks. Start `结论: FAIL`.
+
+Let's produce.

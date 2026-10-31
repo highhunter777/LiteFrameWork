@@ -56,6 +56,11 @@ SHARED_TARGETS = [
     # 安全信封（2026-10-03）：装饰在 Transport 上的线上协议层——密文帧形状/握手版本
     # 变更即两端 wire 不兼容，必须进 buildHash 闭包（KCP 适配层本体仍不入闭包：纯传输）。
     'Assets/LiteNet/Core/Transport/Security',
+    # 同步协议层（2026-10-31 批 6）：仅共享映射/会话子集进闭包；LiteSync/Client（客户端专属）不入。
+    'Assets/LiteSync/Shared',
+    'Assets/LiteSync/Snapshot',
+    'Assets/LiteSync/Input',
+    'Assets/LiteSync/Events',
     # Luban 生成的表行类/读取器（gen.bat Pass 2 产出）：两端共编（服务端 csproj 通配 include 全目录、
     # 客户端 `Luban.Tables.asmdef`）——**生成读码身份**（列/类型/schema）在此钉住；表**数值**不在这里
     # （.bytes 不进闭包，见头部"不覆盖"段——值面守卫 = CombatConfigDigest 运行期摘要）。

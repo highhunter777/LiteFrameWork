@@ -1,0 +1,756 @@
+dsh: reasoning:
+The user wants me to do a read-only review of tasks.md and plan.md. I'm limited to 8 tool calls, read-only, 6 minutes. Let me start by reading the two files.
+
+Let me read tasks.md and plan.md.
+dsh: reasoning:
+Now I need to verify the 7 blockers' fixes and overall coverage of B1~B24, plus the review criteria.
+
+Let me analyze carefully.
+
+Key checks:
+1. Coverage B1~B24 by T43~T57.
+2. Every task modifying shared source set has regeneration + check and executor.
+3. File scope/acceptance consistency; main agent vs construction subagent permissions; asset migration method.
+4. Compile interruption / gate not executable / false pass.
+5. Task granularity, dependencies, verifiability.
+
+Let me map B items to tasks.
+
+B1 → T43 (LiteSync asmdef + dual csproj compile)
+B2, B3, B4, B6, B7 → T44
+B5, B22 → T45
+B8 → T46
+B9 → T47 (types/gate) + T48 (table part) + T49? plan B9 includes table loading: "CombatGeometry 13 列全部从 Combat/tbcombatgeom 装载" — T48 covers table. T47 says "坏表候选校验（表接入在 T48）" and B9（类型/闸门）. So B9 split across T47/T48.
+B10 → T49
+B11 → T48
+B12 → T51 (Body/Head/Muzzle + SimMap + WriteGenerated + BakeTargets) + T52 (Grip)
+B13, B14 → T50
+B15 → T54
+B16, B17, B18 → T53
+B19, B20, B21 → T55
+B23 → T56 (auto) + T57 (manual)
+B24 → T57
+
+All B items covered. Any duplicates? B9 split across T47/T48, described. B9 appears in T47 and T48 explicitly scoped. B12 split T51/T52. Fine.
+
+Now check the 7 fixes:
+
+1. T47: "改 Shared 源后重生成 BuildHash（主代理）" — yes. And validation "gen-build-hash 重生成+--check-shared". Good.
+
+2. T44: file scope includes Assets/LiteGame/App, Assets/LiteGame/Editor, Server/RoomServer, LiteNet.csproj, Tests.slnx. Yes in details line 329: Assets/LiteSync, Assets/LiteNet, Assets/LiteNet/LiteNet.csproj, Assets/LiteGame/Adapters/Dev, Assets/LiteGame/App, Assets/LiteGame/Editor, Server/RoomServer, scripts/codegen/gen-build-hash.py, Tests, Tests/Tests.slnx. Good. Acceptance says "LiteNet.asmdef/csproj 删 LiteSim；LiteGame.App/Editor、Server/RoomServer、Tests.slnx 补 LiteSync 引用" — explicit. Good.
+
+3. T51/T52/T53 write gen-build-hash by main agent: T51 "重生成 BuildHash（主代理）" yes; T52 notes GripBake not in shared source set, no regeneration needed — yes; T53 "重生成 BuildHash（主代理）" yes. But wait: T53 deletes RootMotionData.g.cs which IS in LiteSim/Scripts/Map — shared source set (LiteSim/Scripts). Regeneration yes.
+
+Hmm, but T52 deletes GripBake.g.cs located in LiteGame/Modules/Battle — not shared source. Claim check: plan says GripBake in Modules/Battle/Characters? Plan line 64: GripBake used by WeaponGripConstraint etc. Line 14: "Scripts/Map/*.g.cs 烘焙产物（BodyBake/HeadBake/MuzzleBake/RootMotionData）". GripBake presumably in Modules/Battle/Characters. T52 says "位于 LiteGame/Modules/Battle 非共享源集". Acceptable. But does T52's other work touch shared source set? WeaponGripCatalog.Load in Modules/Battle/Characters, WeaponGripConstraint etc. in LiteGame — not shared. FeatureDebugTunables in Adapters/Dev — not shared. So no regeneration needed. However, T52's dependents? T51 deletes Body/Head/Muzzle .g.cs in LiteSim/Scripts/Map — shared, regen yes. T53 deletes RootMotionData.g.cs — shared, regen yes.
+
+But: T52 changes consumption of GripBake; GripBake.g.cs maybe in LiteGame; fine.
+
+4. T51: BakeTargets five output constants each destination, four dead paths correction, PrefabPath binding acceptance — yes, wording present: "`BakeTargets` 五条输出常量逐条去向+四条死路径修正+`PrefabPath` 绑定". But is "逐条去向" specified in acceptance only, not actual destinations? Plan §烘焙 lists five outputs and new destinations (line 128-131). T51's acceptance says "逐条去向" but does not itself enumerate. Reviewer asked for it; cross-reference to plan may satisfy. Hmm. It says "五条输出常量逐条去向+四条死路径修正+`PrefabPath` 绑定" — requirement is to give destinations; plan does so. But does plan actually give 5 destinations each? Plan line 128: BodyCylinderBaker → table body_radius/hitscan_height... HeadHitLineTuner → head_ratio/head_radius; MuzzleOffsetBaker → muzzle_fwd/right/height; rootmotion.bin; grip.bin. Yes 5 destinations described. Four dead paths correction: plan line 131 "四条死路径修正" but doesn't list which four dead paths or how. Hmm — that's a gap: "四条死路径修正" no specifics. But acceptance requires "四条死路径修正". Is that executable? Maybe the main agent has context. This might be a non-blocking issue (task exists, but detail missing).
+
+5. T54: GM room params + deploy config two paths real injection: yes "服务端真实配置（deploy/roomserver.windows.json 三档 + GM 房参数两路）注入". B15 in plan matches. But B15 actual acceptance: three tiers via deploy + GM real injection. Fine. Need to check GM page code? T54 file scope includes deploy/roomserver.windows.json and Server/RoomServer, Assets/LiteGame server? GM page is maybe Server/RoomServer. Fine.
+
+6. T55: "联机/云 sandbox 禁用覆盖（断言）；判定路径零静态读（grep/负例）" — yes.
+
+7. T49 unique deletion of four geometry overrides; T55 only zero-hit recheck, no duplicate deletion — yes T49 says "**T49 唯一负责删除** ResolveHead*/override 四项"; T55 says "四几何覆写**只做零命中复核**（删除在 T49）". Good.
+
+Now check for remaining blockers.
+
+Potential issue: T44's executor: "资产搬迁/gen-build-hash 主代理，C#/测试施工子代理". But T44 also modifies `scripts/codegen/gen-build-hash.py` (SHARED_TARGETS) which is main agent. Good. But who edits asmdef files? asmdef is Unity serialized asset? Unity .asmdef is JSON; possibly main agent? T44 acceptance says LiteNet.asmdef/csproj delete LiteSim; executor says asset migration main agent; asmdef edits maybe "C#" not asset? .asmdef is a Unity asset (JSON) — editing may need unity-pipeline? Plan says asset moves via AssetDatabase.MoveAsset. Editing asmdef text is likely fine, but the project redline #4 says Unity serialized assets (scene/prefab/material/.meta) go through CLI; asmdef not listed. OK.
+
+Potential issue: T43 says "Assets/LiteSync 存在, asmdef ... 双轨 csproj 齐备". Which csproj? LiteSync.csproj maybe in Assets/LiteSync. Fine.
+
+Shared source set regen mapping:
+- T44: moves files into LiteSync/Shared etc. and changes SHARED_TARGETS → regen main agent. ✔
+- T45: guards only in Tests + maybe no shared source. But acceptance includes "gen-build-hash --check-shared" as verification though no source change; harmless. Does T45 modify scripts? No, only Tests/LiteFramework.Core.Tests. But wait, ClientAsmdefAllowlistTests and ArchitectureGuardTests and StaticMutableAllowlistTests — those may be in Tests/LiteFramework.Core.Tests. Fine. Yet `gen-build-hash --check-shared` is okay.
+- T47: changes Assets/LiteSim/Scripts/Config (CombatValues/CombatGeometry) — shared → regen main agent. ✔
+- T48: changes LiteSim mapping? BuildCombatValues in Serialization.Luban/SimConfigMapper? Wait, plan says SimConfigMapper.BuildCombatValues is in `Serialization.Luban/{SimConfigMapper,TableLayout}.cs` which is SHARED_LINK_FILES (shared source). TableLayout is in SHARED_LINK_FILES. So T48 changes shared linked files → regen required. T48 says regen main agent ✔. File scope includes Assets/LiteGame/Modules/Config, Server/RoomServer, Tests, Luban — but does it include `Assets/LiteGame/.../Serialization.Luban`? Hmm, where is SimConfigMapper located? Plan line 58: `SimConfigMapper.BuildCombatValues`. The redline mentions "脚本 SHARED_LINK_FILES 登记的两端源链接共编件（Serialization.Luban/{SimConfigMapper,TableLayout}.cs）". Where do these live? Likely under Assets/LiteGame/Modules/Config/Serialization.Luban or Assets/Serialization.Luban. T48's file scope is "Luban, Assets/LiteGame/Modules/Config, Server/RoomServer, Tests" — likely includes it if under Modules/Config. Maybe. Need to check. Let me search for SimConfigMapper path. I have 6 tool calls left. Could grep for "class SimConfigMapper" but that's a repo-wide content search, forbidden ("禁止全仓搜索"). Hmm, constraints: "只读 tasks.md/plan.md（可读 1-2 个关键文件核对）；禁止全仓搜索/运行命令". So I can read 1-2 key files, e.g., a specific file path if I know it. Maybe `Assets/LiteGame/Modules/Config/Serialization.Luban/SimConfigMapper.cs`? Or check gen-build-hash.py SHARED_LINK_FILES to verify locations. Reading `scripts/codegen/gen-build-hash.py` is a key file (one of 1-2) and would confirm SHARED_TARGETS/SHARED_LINK_FILES, LiteSync dirs, and which paths need regen. Also could read `.workflow/config.json` to check the gate command group feasibility. Let's do both in one call (2 reads). That's 1 tool call with 2 reads.
+
+Also important: T55's claim "四几何覆写只做零命中复核（删除在 T49）". Good.
+
+Another possibility: T50 (digest) changes shared source? CombatConfigDigest is in LiteGame/Modules/Config? TableLayout? Added `Combat/tbcombatgeom` to TableLayout.Files — that's in T48 (shared link file). T50 adds digest calculation to... `CombatConfigDigest` probably in LiteSim or LiteGame. Plan line 133: 联机 CombatConfigDigest. It might be in LiteSim/Scripts/Config or LiteGame. T50's scope: Assets/LiteGame/Modules/Config, Server/RoomServer, Tests. If CombatConfigDigest resides in LiteSim, then T50's scope misses it and regen not claimed. Hmm. But T48 claims TableLayout change. Let me check. Actually plan §现状: 装载链 客户端 ConfigService.ValidateCandidate → ApplyCombatValues → SimConfigMapper.BuildCombatValues → CombatConfig.Publish. `CombatConfigDigest` likely in LiteGame/Modules/Config or LiteSim. Need to verify file location. Could read a file, but I don't know path. Search would be repo-wide. Maybe use glob for *CombatConfigDigest* (file discovery, not content search) — that's allowed? "禁止全仓搜索" — glob is a file search but arguably not content. The constraint says "只读 tasks.md/plan.md（可读 1-2 个关键文件核对）；禁止全仓搜索". Hmm, glob might violate spirit. But read of key files is allowed 1-2. I could glob `**/CombatConfigDigest*` — that's a repo-wide search. Risky. Maybe avoid.
+
+Let's think about whether the review should focus on task list quality rather than deep repo verification. The user says "只核验" a list of things; likely expects a checklist verdict. We have 8 tool calls max; we've used 2 reads (1 call). We can read gen-build-hash.py to verify SHARED_TARGETS/SHARED_LINK_FILES and check whether task scopes include those files. That's one key file. And maybe `.workflow/config.json` to check command group executability (B23). Two more files, within 1-2 key files? That's 3 total key files. "可读 1-2 个关键文件核对" — maybe 2 max. We've read tasks/plan as primary. Hmm, maybe read gen-build-hash.py only (1 key file) and use remaining calls to inspect specific files like the tests? Let's prioritize.
+
+Potential blockers to identify (must be real, not speculative):
+
+A. T44's file scope includes `Assets/LiteNet/LiteNet.csproj` — is the csproj actually at that path? Plan line 56 says LiteNet.asmdef references. The repo may have `Assets/LiteNet/LiteNet.csproj`? The user's fix request #2 explicitly says "LiteNet.csproj、Tests.slnx", and T44 lists `Assets/LiteNet/LiteNet.csproj` and `Tests/Tests.slnx`. Is Tests.slnx at root `Tests.slnx` or `Tests/Tests.slnx`? The redline says `Tests.slnx` (root?) AGENTS: "目录搬动当批同步：ScanTargets.cs、YooAsset 收集组、Tests.slnx/csproj". Plan says "双轨 csproj（Tests.slnx/LiteNet.csproj/LiteSync.csproj）". T43 acceptance: "dotnet build LiteSync.csproj/LiteNet.csproj/Tests.slnx". If Tests.slnx is at repo root, then T44 detail's `Tests/Tests.slnx` is wrong path. This is a concrete potential blocker/inaccuracy. The user's fix said "Tests.slnx" not "Tests/Tests.slnx". Need to verify path. I can use glob `**/Tests.slnx` — file search, not content. But "禁止全仓搜索" likely refers to grep content search. A targeted glob for Tests.slnx is okay? Hmm. I'd rather read known root: `E:\unityProject\Test\Tests.slnx`? If read fails, then it's elsewhere. I can try read root Tests.slnx. That's a "key file" maybe. But read counts. Let me use glob for `.slnx` at root: pattern `*.slnx` path root — that's not whole-repo, just top level. That's allowed-ish. Also glob `Assets/LiteNet/*.csproj` and `Assets/LiteSync` maybe. But T43 is new (Assets/LiteSync doesn't exist yet). Hmm.
+
+B. T51's B12 includes "restore-check 前置" — restore-check is a gate script; executed by main agent? T51 executor not stated! T51 lacks explicit executor line, unlike T52's "执行者：资产删除主代理，代码/测试施工子代理". T51 acceptance mentions "重生成 BuildHash（主代理）" but asset deletion (three .g.cs via unity-pipeline) — who? Implicitly main agent because asset deletion needs unity-pipeline; but not stated. Similarly T53 says delete RootMotionData.g.cs (unity-pipeline) but no executor line; it says regen main agent. T54 no executor. T55 no executor. T56 main agent. T57 stated. Does the review require "主代理/施工子代理权限"? Yes. T43 says executor; T44 says; T51 lacks; T52 has; T53 lacks; T54 lacks; T55 lacks; T47/T48/T49/T50 lack executor lines (but "改 Shared 源后重生成 BuildHash（主代理）" identifies regen ownership only). Is that a blocker? The user's round-3 fix #1 says T47 regen by main agent — present. #3 says T51/T52/T53 gen-build-hash by main agent — present. But per review criteria "每个改共享源集任务是否有重生成+check 与执行人" — "执行人" for the regeneration. T47/T48/T49/T50/T51/T53/T54/T55 say "重生成 BuildHash（主代理）" so the regen executor is specified. Good enough. But asset deletion executor: T51/T53 don't say main agent; T52 does. T51 includes "三件 .g.cs 走 unity-pipeline 删除" — main agent owns unity-pipeline per plan constraint? In T44/T52 they explicitly say main agent, so inconsistency. Could be a blocker (permissions ambiguity) but minor.
+
+C. T45 acceptance has no regeneration but does it modify shared source set? No. Fine.
+
+D. T45's B22: "StaticMutable 根含 LiteNet+LiteSync" but plan B22 says scanning root includes LiteNet/LiteSync. Fine. However original B5 says ClientRoots add LiteSync; T45 does. Fine.
+
+E. T50 "两端摘要不等拒局用例" — good; but B13 requires "改表后 GameplayDigestBase 变化可观测" — T50 acceptance says "表字节进摘要；联机摘要不含覆盖；13 值...". Does it include "改表后 digest 变化可观测"? Not explicit. B13 coverage: T50 covers "Combat/tbcombatgeom 进 JudgmentFiles⇒表字节进摘要；联机摘要不含覆盖". It omits "改表后 GameplayDigestBase 变化可观测". Also T50 file scope lacks `Assets/LiteSim` source if digest code is shared. But digest probably in Config module. Could flag B13 partial coverage.
+
+Wait, B13 also says "两端不等时拒局". T50 adds that. Good.
+
+F. B14 requires "固定输入下确定性 checksum/回放结果与改动前黄金样本一致（给出测试名）；黄金样本随表调参的更新流程写明". T50 says "黄金样本/更新流程/测试名落档" — yes,需要测试名. Fine.
+
+G. B9 requires "CombatGeometry 13 列全部从表装载" — T47 says "坏表候选校验（表接入在 T48）" and T48 covers table. Fine.
+
+H. B11 requires `--check-shared` records new hash. T48 has gen-build-hash regen + check. Good.
+
+I. B10 requires "判定/烘焙代码不读 CombatConfig.Geometry（有断言）". T49 says "判定路径与烘焙写入源不读 Geometry（显示/对比白名单）" — but does it have an assertion? It says acceptance with "(显示/对比白名单)" and verification "grep 守卫（含白名单/负例）". Plan B10 says "有断言". T49 doesn't explicitly say assertion for 判定/烘焙, only grep guard. This may be a gap: B10's "判定/烘焙代码不读 Geometry（有断言）" not explicitly covered. Could be non-blocking or blocking. The user's fix #7 only addressed deletion ownership, not this. Hmm.
+
+J. B15: "三档（全开/30m/15m）通过 deploy... + GM 房参数真实注入（非测试自造实例）". T54 says "三档 + GM 房参数两路" and verification "服务端配置注入；LocalServerHandshake/EditMode/Play；grep 零命中". It doesn't explicitly say "真实注入（非测试自造实例）". Plan B15 has it. T54's wording "服务端真实配置... 注入" conveys. Maybe okay.
+
+K. B16/B17/B18: T53 covers B16/B17/B18 with additions. "ContentIdentity 不引 LiteSim/SHA-256/无名称字段" matches B17. "rootmotion.bin 位于..." T53 acceptance omits explicit location `Assets/GameData/Config/runtime/`? It says "RootMotionCatalog.Load/rootmotion.bin/Digest/..."; file scope includes Assets/GameData/Config/runtime. B16 location requirement maybe implicit. Verification RootMotionDataTests; check-shared. Hmm.
+
+L. B19-B21: T55 covers; but the package says "B20 四条断言". T55 acceptance says "B20 四条断言". Fine. Does T55 include "GM 页联机禁用几何滑杆，按红线 13 真实操作验证可点性"? It says "红线 13 真实操作" in verification. Good.
+
+M. B21: "grip.bin/rootmotion.bin 导出显示目标路径与内容摘要" — T55 says ".bin 摘要". Good.
+
+N. B23: T56 adds command group "L1/LiteSync/LiteSim 定向/check-shared/L2" and "不含人工联测"; B23 also requires "两端重建联测" in wf verify. Plan B23: command group includes 两端重建联测. But T56 explicitly "不含人工联测" and T57 does final two-end test manually. Is that okay? B23 says "新增 sync-and-sim 验证命令组并在 wf verify 中通过：L1 全量、LiteSync/LiteSim 定向、check-shared、l2-unity-gate.py、两端重建联测". T56 command group omits two-end rebuild (build-player) and puts it in T57 manual. This is a divergence from B23 as written: B23 requires "两端重建联测" in wf verify. T56 says automatic group excludes manual; T57 manual. Is this a blocker? The task list claims B23（自动部分）and B23（人工部分）. Plan B23 doesn't split. T56/T57 may be a reasonable split but the plan's B23 says wf verify includes 两端重建联测, which is likely not automatable (build-player is heavy). If `wf verify` can't run build-player, then B23 as written is unexecutable. This is exactly "门禁不可执行/虚假通过" category. T56 defines a gate command group that does not include all B23 constituent commands; T57 runs manual. A reviewer may flag as blocking if B23 says verify includes it, because the task list's acceptance claims B23 auto part only — no full coverage of B23 in one gate. But they explicitly split and note "不含人工联测". Does that satisfy B23? Not literally. Hmm.
+
+Let's examine plan B23: "B23：`.workflow/config.json` 新增 `sync-and-sim` 验证命令组并在 `wf verify` 中通过：L1 全量、`LiteSync`/`LiteSim` 定向、`gen-build-hash.py --check-shared`、`l2-unity-gate.py`、两端重建联测；证据列出实际命令与结果。" It requires wf verify passing including both-end rebuild integration. The task list splits: T56 automatic group (L1/LiteSync/LiteSim/check-shared/L2), T57 manual build-player/player-smoke. This means `wf verify` does NOT include "两端重建联测", contradicting B23. Unless the command group's "两端重建联测" is interpreted as manual step recorded in T57. But B23 specifically says the command group passes with it. This could be a blocking "B23 覆盖不实" issue. However the prior round presumably accepted this split? The user's requested checks include "门禁不可执行/虚假通过". This is a real candidate.
+
+Also T56's command group includes L2 (nightly Unity gate) in `wf verify` — is L2 executable in verify? L2 is a heavy Unity gate; running in wf verify might be impractical, but plan B23 includes it. Hmm.
+
+O. Every shared-source task must have regen + check and executor. Let's list:
+- T44: yes (regen+check, main agent).
+- T47: yes.
+- T48: yes.
+- T49: yes.
+- T50: yes (but is T50 shared? "重生成 BuildHash" listed). Yes.
+- T51: yes.
+- T52: no (explicitly not shared; justified).
+- T53: yes.
+- T54: yes.
+- T55: yes.
+- T45: guard only; verification includes check-shared but no regen. If T45 doesn't change shared source, fine.
+- T43: new LiteSync assembly; changing SHARED_TARGETS? No, T44 does. But T43 adds LiteSync which will be added to ClientRoots in T45. No regen until T44. Fine.
+- T46: no shared edits, rebuild/verify.
+- T56/T57: config/docs, no shared.
+
+P. T47's scope: "Assets/LiteSim/Scripts/Config" and "Assets/LiteGame/Modules/Config" — CombatValues/CombatGeometry are in LiteSim/Scripts/Config. But "10 构造点" include SimConfigMapper in shared linked file (Serialization.Luban) and ServerTableLoader (Server/RoomServer) and tests. T47 says "10 构造点" without listing all, and file scope includes Server/RoomServer for ServerTableLoader. Does it include the shared linked `Serialization.Luban/SimConfigMapper.cs`? T48 takes BuildCombatValues table param, but T47's 10 construction points includes SimConfigMapper.cs:46 — which is in the shared link file. T47's file scope does not list `Serialization.Luban`. Unless it's under Assets/LiteGame/Modules/Config? Hmm, plan says "SimConfigMapper.BuildCombatValues" and redline says "Serialization.Luban/{SimConfigMapper,TableLayout}.cs". Could be at repo root `Serialization.Luban/`? Or under `Assets/LiteGame/Modules/Config/Serialization.Luban/`. If at root, T47 scope missing it and regen still claimed (they say "改 Shared 源后重生成"). T44's scope also doesn't include `LiteGame.App` ... hmm.
+
+Let me check gen-build-hash.py for SHARED_LINK_FILES to know exact paths, and maybe confirm `Tests.slnx` path. One read of gen-build-hash.py. Let's do it.
+
+Also perhaps read a key file to confirm GripBake location? That's speculative; skip.
+
+Let's read `scripts/codegen/gen-build-hash.py`. It might be long, but we can grep? Grep tool is content search; restricted. Read with limit maybe. Use read. Then maybe read root listing via glob? We'll see.
+
+Let me call read on gen-build-hash.py.
+dsh: reasoning:
+Now I have the SHARED_TARGETS and SHARED_LINK_FILES. Key finding: SimConfigMapper.cs and TableLayout.cs are at `Assets/LiteGame/Modules/Config/`, so T47/T48/T50 file scopes include `Assets/LiteGame/Modules/Config`? T47 includes Modules/Config yes; T48 includes Modules/Config yes; T50 includes Modules/Config yes. Good. T47's 10 construction points include SimConfigMapper; scope covers. T48 covers TableLayout. Good.
+
+Also note SHARED_TARGETS includes `Assets/GameData/Generated` — the Luban generated row classes. T48 changes table (adds tbcombatgeom) and runs Luban/gen.bat → generated files under Assets/GameData/Generated change → must regenerate BuildHash. T48 says regen. T51 modifies Luban/Data (table source) → gen.bat produces generated read code? If table schema already added by T48, T51 only writes values, no schema change. But plan says T51 writes table values and gen.bat + check-shared. T51 acceptance says "重生成 BuildHash（主代理）" and verification "gen-build-hash 重生成+check". Good.
+
+T52 deletes GripBake.g.cs (claimed non-shared). It also changes `Assets/GameData/Config/runtime` (bin) and Modules/Battle/Characters — not shared. But does T52 modify `FeatureDebugTunables` in `Assets/LiteGame/Adapters/Dev` — not shared. Good. However T52 might update `WeaponGripCatalog` and `GripTuning` under Modules/Battle/Characters — not shared. But could its changes affect `MatchTestRules`? no.
+
+T53 removes `RootMotionData.g.cs` from LiteSim/Scripts/Map → shared → regen. Yes.
+
+T54 changes AoiSettings (LiteSync/Shared), LiteSim/Scripts/Config (SnapshotHz removal), JoinAck? JoinAck is in LiteNet/Core/Protocol? Hmm B15: client SimView reads JoinAck.SnapshotHz; JoinAck is probably in LiteNet Core/Protocol (shared). T54 file scope includes Assets/LiteSync, Assets/LiteSim/Scripts/Config, Assets/LiteGame/Modules/Battle/Arena, Server/RoomServer, deploy config, Tests. It does NOT include `Assets/LiteNet/Core/Protocol` (JoinAck) or `Assets/LiteNet/Core/Protocol` where SnapshotHz field might be. Plan says `JoinAck` field already exists (line 61: "SnapshotHz 现存依赖：JoinAck 字段、SimView.SnapshotInterval"). So JoinAck already has SnapshotHz; no edit needed maybe server must set it. Server/RoomServer included. Hmm, "SnapshotHz 从 SimConfig 移出，服务端按房间配置；客户端 SimView 从 JoinAck.SnapshotHz 取" — JoinAck field exists, but maybe `SnapshotSource`/`SnapshotPipeline` in LiteSync or LiteNet? `SnapshotSource`/`SnapshotPipeline` are in LiteSync/Snapshot after T44, but T54 file scope lists `Assets/LiteSync` (directory) so includes. Good. `ProtocolConstants.ThrottleAoiRadius` in LiteSync/Shared — covered. `AoiFilter` in LiteSync/Snapshot — covered. Client SimView in Modules/Battle/Arena — covered. Server config in deploy + RoomServer — covered. But `ServerTableLoader`? SnapshotHz server-side config maybe. Not needed.
+
+Wait, `SnapshotHz` is currently in `SimConfig` (LiteSim/Scripts/Config) — T54 covers LiteSim/Scripts/Config. Good. Does T54 need `LiteNet/Core/Protocol/JoinAck`? If join ack already has field, no. If server sends it via `RoomSnapshot`? Unclear but plan says field exists. Fine.
+
+T55: `SimParamsDebugTunables`, `SimParamsOverrides`, `SimParamsGate`, `SimParamsExporter` — where do these live? Plan says `SimParamsGate` in Dev side, `SimParamsOverrides` in Dev side (not shared), `SimParamsExporter` in Editor/Baking or Gm; `SimParamsDebugTunables` in Adapters/Dev. T55 scope covers Adapters/Dev, Editor/Baking, Editor/Gm, LiteSim/Scripts/Rules, Modules/Config, Server/RoomServer, Tests. It modifies `MatchTestRules` in LiteSim/Scripts/Rules (deleting geometry overrides? No, T49 deletes; T55 only recheck) — but why scope LiteSim/Scripts/Rules? Maybe `SimParamsGate`? Or Constants? Hmm. It says "重生成 BuildHash（主代理）", so shared source changes occur. If T55 changes `LiteSim/Scripts/Rules` (e.g., SimParamsGate?), regen covered. Good.
+
+Now, critical: T49 owns deletion of four geometry overrides, in `MatchTestRules` (LiteSim/Scripts/Rules) — T49 scope includes Assets/LiteSim/Scripts, Systems, LiteGame, Server, Tests. Good. T49 regen. T55 rechecks only. Fine.
+
+Now check "every task that modifies shared source set has regeneration + check and executor":
+- T43 creates Assets/LiteSync (not yet in SHARED_TARGETS) — no regen.
+- T44 adds LiteSync dirs to SHARED_TARGETS — regen main agent. ✔
+- T47 modifies LiteSim/Scripts/Config + Modules/Config (SimConfigMapper? maybe not) — regen. ✔
+- T48 modifies Modules/Config (TableLayout), generated read code, Shared table — regen. ✔
+- T49 modifies LiteSim/Scripts/Rules (MatchTestRules) — regen. ✔
+- T50 modifies Modules/Config (CombatConfigDigest?) — if it's there. Need to confirm CombatConfigDigest location. Could be in `Assets/LiteGame/Modules/Config`. The plan B13 says `CombatConfigDigest`; likely there. T50 regen anyway.
+- T51 modifies LiteSim/Scripts/Map (delete .g.cs) and Luban/Data → generated table classes? Values only, but regen listed. ✔
+- T52 no shared; justified. Is GripBake really outside shared? I should verify. Plan line 14 says `Scripts/Map/*.g.cs` contains BodyBake/HeadBake/MuzzleBake/RootMotionData (4), and GripBake separate. Likely in Modules/Battle/Characters. T52 says `LiteGame/Modules/Battle`. Good.
+- T53 modifies LiteSim/Scripts/Map (delete RootMotionData.g.cs) + Modules/Battle/Arena + App + GameData — shared, regen. ✔
+- T54 modifies LiteSync/Shared, LiteSim/Scripts/Config — shared, regen. ✔
+- T55 modifies LiteSim/Scripts/Rules? regen. ✔
+
+But T45 modifies `Tests` only; no shared. T46 no shared. T56/T57 no code.
+
+Now: check file scopes for T44 vs plan's "引用者加 LiteSync" list: `LiteGame.App`, `LiteGame.Adapters.Dev`, `LiteGame.Editor`, `Tests/EditMode`, `Tests/UI/PlayMode`, `Tests/LiteNet.Tests` (or new LiteSync.Tests), `Server/RoomServer`. T44 scope includes App, Editor, Adapters/Dev, Server/RoomServer, Tests (whole Tests directory). But does it include `LiteGame` asmdef? Plan says `LiteGame.App`, `LiteGame.Editor`; what about the asmdef that references LiteNet for other modules? T44 says "LiteGame.App/Editor ... 补 LiteSync 引用". Plan line 102 lists exact. Scope includes. Good.
+
+T44 scope includes `Assets/LiteNet/LiteNet.csproj` but plan risk #2 mentions `LiteSync.csproj` and `LiteNet.csproj`. T44 doesn't include a new `LiteSync.csproj` path, but T43 creates it (Assets/LiteSync). Fine.
+
+Potential issue: T44's scope lists `Tests/Tests.slnx`, but where is Tests.slnx? Let me check known repo layout. AGENTS says "Tests.slnx/csproj" ambiguous. T43 verification says "dotnet build LiteSync.csproj/LiteNet.csproj/Tests.slnx" without path. The review asked "Tests.slnx" — T44 detail has `Tests/Tests.slnx`. If the actual file is at root `Tests.slnx`, this path is wrong and the task can't edit it. Need to verify. Use read on `E:\unityProject\Test\Tests.slnx`? If exists, confirm. Let's try read with limit 5; if not found, try `Tests\Tests.slnx`. That's 1-2 tool calls. But we have 5 calls left (used 3 calls? Actually 2: initial two reads = 1 call with 2 invocations; then 1 read = total 2 calls with 3 invocations). Constraint max 8 tool calls. We can spend.
+
+Let me read root `Tests.slnx` and `Tests/Tests.slnx` in one call? read twice. Use both paths in parallel. Also maybe `E:\unityProject\Test\Assets\LiteNet\LiteNet.csproj` existence. But check the slnx first.
+
+Actually I can use glob for `*.slnx` root — one call; but reading is more definitive. Let me read both.
+dsh: reasoning:
+Good: `Tests/Tests.slnx` correct. So no path issue.
+
+Now check `Assets/LiteGame/App` and `Assets/LiteGame/Editor` asmdefs — fine.
+
+Now, a big issue: T44's SHARED_TARGETS change and BuildHash regeneration — but the build hash also includes `Assets/GameData/Generated` and `Assets/LiteSim/Scripts`, etc. Moving 15 files from LiteNet to LiteSync changes hash. Regeneration by main agent. ✔.
+
+But T44's "LiteNet.asmdef/csproj 删 LiteSim" — does `LiteNet.asmdef` have a `references` entry "LiteSim" and csproj? yes. T44 includes `Assets/LiteNet/LiteNet.csproj`, but the user's fix #2 said "LiteNet.csproj" — okay. What about `LiteSync.csproj` double-track? T43 creates. Fine.
+
+Now let's evaluate "是否还有编译中断/门禁不可执行/虚假通过".
+
+Key: T43 acceptance says "Unity+dotnet 双轨编译通过" but `Tests.slnx` includes LiteSim, LiteNet, and doesn't yet include LiteSync.csproj. T44's scope includes Tests.slnx to add LiteSync. But T43's verification is "dotnet build LiteSync.csproj/LiteNet.csproj/Tests.slnx" — at T43 stage, Tests.slnx does not reference LiteSync; dotnet build of Tests.slnx would still build LiteNet/LiteSim; adding LiteSync.csproj separately is fine. No break.
+
+But T43 creates LiteSync asmdef with references ["LiteNet","LiteSim"], while LiteNet's asmdef still references LiteSim until T44, so no cycle. Fine.
+
+After T44 moves 15 files, LiteNet no longer references LiteSim; but does LiteNet still use `BuildHash.g.cs` in LiteNet/Core/Protocol and LiteSim types? It claims zero using LiteSim. Good.
+
+T44's "LiteGame.App/Editor, Server/RoomServer, Tests.slnx 补 LiteSync 引用" — but `LiteNet` consumers that reference moved types may now need LiteSync; included. What about `LiteGame` root asmdef vs `LiteGame.App`? The plan says only App/Editor/Adapters/Dev. Other asmdefs may use moved types (RoomClient etc.) — plan states checked 11 using files. Fine.
+
+Now B4: "SHARED_TARGETS 含 LiteSync/Shared,Snapshot,Input,Events，不含 Client; BuildHash.g.cs 路径与 namespace LiteNet 未变". T44 says "SHARED_TARGETS 增 Four dirs（不含 Client）并重生成". Does it verify BuildHash path/namespace unchanged? T44 acceptance doesn't mention it, only "重生成 BuildHash". B4 explicitly requires path/namespace unchanged. Verification only "gen-build-hash 重生成+--check-shared". A false pass risk: if someone moves BuildHash.g.cs or changes namespace, no explicit check. But T44's file scope includes LiteNet; could include. Still, B4's specific acceptance not fully mirrored. Is that a blocker? It is a coverage gap for B4 (path/namespace unchanged). The user asked B1~B24 full coverage. T44 lists B4 but its acceptance text doesn't include "BuildHash 路径/命名空间不变". This is a concrete gap: B4 partially covered. Could be non-blocking or blocker. Given the review is strict, likely flag as blocking? Hmm.
+
+Similarly B5: T45 covers Allowed, ClientRoots, hard edges, negative case, static root. B5 says `ClientAsmdefAllowlistTests.Allowed` delete LiteNet->LiteSim, add LiteSync.asmdef entry; T45 says exactly. Good.
+
+B6: WeakNet moved to LiteGame.Adapters.Dev; LiteNet only keeps IClientTransport/IClientTransportErrorSource (grep assertion); Tests/LiteNet.Tests WeakNet cases still green. T44 says "WeakNet 移 Dev；DiagTrace 保留" but does not mention IClientTransport/ErrorSource grep assertion or Tests/LiteNet.Tests WeakNet cases. Its verification includes Tests/LiteNet.Tests generically. B6 not fully explicit. T44 acceptance includes B6 tag but missing the grep assertion. Hmm.
+
+B7: DiagTrace retained and registered reason; Dev only reads via DebugKernel, covered by DebugKernelEditModeTests. T44 says "DiagTrace 保留" only, no registration reason/test. Verification includes DebugKernelEditModeTests. Missing "登记理由" (documentation) and "Dev 侧只经 DebugKernel 读" assertion. Gap.
+
+B8: T46. B8 requires L1 all green; rebuild; smoke; BuildHash consistent. T46 exact. Good.
+
+B9: T47/T48 split. T47 says "11 字段/9 参数; _published 三态; Geometry DisplayOnly; 10 构造点; ResetForTests+[Collection]; Loaded 时序/编辑器不崩; 坏表候选校验". Missing "CombatConfig.Geometry 未发布返回 Default.Geometry" explicit? "Geometry DisplayOnly" likely. Missing "Loaded 唯一外部读者 BattleContext.cs:305 时序" maybe included as "Loaded 时序". T47 verification "Loaded 三态/时序". Missing "10 处 new CombatValues 调用点全部更新" — says "10 构造点". Good. "坏表在 ValidateCandidate 拒启动" — T47 says "坏表候选校验（表接入在 T48）", T48 says "坏表 ValidateCandidate 拒启动". Fine. "T47 改 Shared 源后重生成 BuildHash（主代理）" present.
+
+B10: T49. Missing explicit "判定/烘焙不读 Geometry 有断言" and "SimStep 与 9 System 签名不变" present. T49 says "判定路径与烘焙写入源不读 Geometry（显示/对比白名单）" and verification grep. Plan B10 says "判定/烘焙代码不读 CombatConfig.Geometry（有断言）". T49 has no explicit assertion test, just grep. Could be acceptable as grep guard is an assertion. But "有断言" likely test. Hmm.
+
+B11: T48. "Luban/gen.bat; regen+check; table/坏表/映射用例". Missing "JudgmentFiles 自动包含（不改 JudgmentDomains）" — T48 says "JudgmentFiles 自动包含" yes. Missing "ConfigService/ServerTableLoader/测试调用点全更新" yes. Good.
+
+B12: split T51/T52. T51 covers Body/Head/Muzzle, SimMap, WriteGenerated, BakeTargets, restore-check, tests, 0 warning. T52 covers Grip. Missing: "BodyBakeEditModeTests/SimMapBakerEditModeTests/WeaponGripConstraintEditModeTests/GripTuning/FeatureDebugTunables 迁移" — T51 says "BodyBake/SimMapBaker EditMode" verification; T52 says "WeaponGripConstraintEditMode" verification and migration list. Good. Missing "rootmotion.bin/grip.bin 输出摘要等于预期" — T52 says "烘焙摘要"; T51 no rootmotion (T53). B12 says both .bin output summaries. T53 says "ContentIdentity..." but does it verify rootmotion.bin output summary? "RootMotionDataTests" maybe. T52 says "烘焙摘要". Good.
+
+B13: T50. Missing "改表后 GameplayDigestBase 变化可观测". T50 says "Combat/tbcombatgeom 进 JudgmentFiles⇒表字节进摘要；联机摘要不含覆盖；13 值与表装载结果 0 容差；黄金样本/更新流程/测试名落档；两端摘要不等拒局用例". No "改表后 GameplayDigestBase 变化可观测". Gap.
+
+B14: T50 includes golden sample. Good.
+
+B15: T54 includes. Missing "三档（全开/30m/15m）" explicit? Says "三档". Good. Missing "真实注入（非测试自造实例）" explicit? "服务端真实配置 ... 两路 注入" close. Missing "SimView 无静态 SimConfig.SnapshotHz 读" yes.
+
+B16: T53 covers "LiteSim 无 RootMotion*" yes. "rootmotion.bin 位于 Assets/GameData/Config/runtime" — T53 acceptance says "RootMotionCatalog.Load/rootmotion.bin/Digest/AppComposition 绑定" and file scope includes Assets/GameData/Config/runtime. Does that assert location? Probably. "RootMotionData.g.cs 不存在" — T53 says "再删 RootMotionData.g.cs". Good.
+
+B17: T53 "ContentIdentity 不引 LiteSim/SHA-256/无名称字段" yes. "AppComposition.cs:108-113 用 catalog.Digest" — T53 says AppComposition 绑定. Good.
+
+B18: T53 ".bin 不进 SHARED_TARGETS；--check-shared；LiteSim/Scripts 下不再有 RootMotionData.g.cs；登记". T53 says ".bin 不进 SHARED_TARGETS" and "已烘焙未接线登记" and verification check-shared. Missing "LiteSim/Scripts 下不再有 RootMotionData.g.cs" but says delete. Good.
+
+B19: T55. Missing "DevHUD/GM 出现全部判定参数滑杆（含几何 13 项）" — T55 says "13 项滑杆" and GM/Editor. "SimParamsOverrides 仅在 dev 三宏内" yes. "唯一门... 每会话一次" yes. "唯一合并点... 调用点固定两处" — T55 says "单合并点 ConfigService+ServerTableLoader" yes, but doesn't explicitly say after BuildCombatValues before Publish/Capture. Probably okay. "判定路径零静态读（grep/负例）" yes. "联机/云 sandbox 不读客户端覆盖（断言）" yes. "GM 几何只改表或禁用" — T55 says "GM 几何只改表或禁用"? It says "联机/云 sandbox 禁用覆盖（断言）"; not explicit GM geometry. Maybe implied. "删除四几何覆写" — T55 says recheck only, T49 deletes. Good. "Damage/Rpm 保持现状" yes.
+
+B20: T55 "B20 四条断言" but doesn't enumerate; plan enumerates. Fine.
+B21: T55 "导出/diff/备份/check-shared；.bin 摘要" — yes.
+B22: T45. "StaticMutableAllowlistTests 根含 LiteNet/LiteSync，无新增 public static 可变字段" — T45 says. Good.
+B23: T56/T57 divergence as above. Also T56's command group omits "两端重建联测" and T57 manual. B23 in plan requires it in wf verify. This is likely a blocking coverage gap (or a plan inconsistency). Also B23 says evidence lists actual commands/results; T56 does. T57 manual evidence.
+B24: T57. 3 design + 2 progress, index, doc-lint. T57 says "3 设计+2 进度卷回写/索引/doc-lint". Good.
+
+Now "无孤儿/重复/越界":
+- T43~T57 map B1~B24. No orphan tasks. T45's check-shared verification without regen is harmless, but "gen-build-hash --check-shared" in T45 might fail because T44 regenerated before; T45 doesn't change hash sources. Fine.
+- T46 verification "gate/test.py --suite L1; build-player.py; player-smoke; BuildHash 对账" — B8.
+- T56 "自动门禁命令组" is B23 auto; T57 B24+B23 manual. Split is intentional, but B23 not fully covered in one task — arguably duplicate/split responsibility. The user asked "无孤儿/重复/越界". T57 includes B23 manual; T56 auto. Not duplicate but B23's "wf verify" requirement not fulfilled by T56 alone.
+- T47 and T48 both B9; T47 says table in T48, T48 says B11+B9 table. Clear boundary. But T47's acceptance "坏表候选校验" while T48 "坏表 ValidateCandidate 拒启动" — duplicate? T47 does candidate validation code, T48 wires table and uses it. Fine.
+- T49 and T55 both mention four geometry overrides; T55 only recheck, explicit. Good.
+- T51 and T52 both B12; split by bake outputs. Fine.
+- T44 includes `Assets/LiteGame/App`, `Editor`; plan B2/B3/B6/B7. But B2 is LiteNet asmdef/csproj no LiteSim + using zero; B3 15 files .meta; B4 SHARED_TARGETS; B6 WeakNet; B7 DiagTrace. T44 tags all. Fine.
+
+"资产搬迁方式": T44 says "15 件+.meta 走 unity-pipeline"; T51/T52/T53 say .g.cs "走 unity-pipeline 删除". Good. But T44's executor "资产搬迁/gen-build-hash 主代理" — yes. T51/T53 don't explicitly say asset deletion by main agent; T52 does. Could flag.
+
+"主代理/施工子代理权限": T43, T44, T52, T56, T57 explicit; T45-T51, T53-T55 mostly lack executor. T47/T48... say "（主代理）" only for regen. Is that sufficient? The review criterion says "主代理/施工子代理权限" — likely requires each task to state who does what, especially for shared-source regeneration and asset moves. T51/T53 asset deletion via unity-pipeline is main-agent-only per project redline; not stated. T47/T48/T49/T50/T54/T55 don't state executor, but maybe default施工子代理. The user's round-3 fixes only demanded regen executor. Could be a non-blocking inconsistency or blocking permission ambiguity. The task list should be executable independently; without executor, a施工子代理 might attempt unity-pipeline (forbidden) or gen-build-hash (main agent). T51 explicitly says "重生成 BuildHash（主代理）" but not deletion. T53 similarly. Given T52 has a full executor line, inconsistency is notable.
+
+"任务粒度、依赖、验证是否可独立执行":
+- Dependencies are linear T43→T57. B9 split T47→T48; T49 depends on T48. T50 depends T49. T51→T52→T53→T54→T55. But does T52 (Grip) depend on T51? T51 is body/head/muzzle; no code dependency, but serial is fine.
+- T53 (RootMotion) depends on T52 (Grip) unnecessarily but okay.
+- T54 (AOI) depends on T53 — unrelated but serial. Fine.
+- T55 depends T54 — okay.
+- T56 depends T55, T57 depends T56. Fine.
+- But T47 (CombatGeometry type) depends T46 (two-end rebuild). T47 changes shared source; T48 table. Fine.
+- T49 deletes overrides; T55 rechecks. Good.
+- T51 deletes Body/Head/Muzzle .g.cs; but T47/T48 use those? T48 table mapping perhaps uses BodyBake constants? T48's BuildCombatValues uses table; T47's 10 construction points might reference `BodyBake` constants. If T51 deletes them after T48, T47/T48 must not depend on them. Plan says BodyBake used by SimMapBaker and tests; T51 handles. Fine.
+- T49 deletes geometry overrides; T47's `CombatGeometry` and T48's table; T49 migrates consumers. Fine.
+- T51's "restore-check 前置" is a run step; verification includes "烘焙实操". Is restore-check executable in the gate? It's a script. Fine.
+- T52's GripBake deletion "无需 BuildHash 重生成" — but does deleting a file in `Assets/LiteGame/Modules/Battle` affect `Assets/GameData/Generated`? No. Does it affect `LiteSim`? No. Good. But the content digest for grip.bin; no BuildHash.
+- T53's "ContentIdentity 不引 LiteSim/SHA-256/无名称字段" — SHA-256 is allowed? B17 says "SHA-256 对 .bin 字节". T53's phrase "不引 LiteSim/SHA-256/无名称字段" is ambiguous: it reads as ContentIdentity does not reference LiteSim/SHA-256/name field. But B17 requires SHA-256 digest. Actually B17: "ContentIdentity 不引用 LiteSim；AppComposition... 用 RootMotionCatalog.Digest（SHA-256 对 .bin 字节）；不新增名称字段". T53's "ContentIdentity 不引 LiteSim/SHA-256/无名称字段" might mean ContentIdentity doesn't reference LiteSim, doesn't compute SHA-256 (that's catalog), no name field. Fine, but ambiguous.
+
+Now, hidden issue: T47 "11 字段/9 参数" but `CombatValues` currently 10 fields; adding nested `Geometry` = 11. 13 columns. Fine.
+
+Potential blocker: T47's scope `Assets/LiteGame/Modules/Config` includes `SimConfigMapper.cs` (shared link) — but T47's 10 construction points include SimConfigMapper.cs:46, which requires passing `CombatGeometry`. Since SimConfigMapper is a shared link, T47 must change it. Its scope includes `Assets/LiteGame/Modules/Config`, so yes. Regeneration covers.
+
+Potential blocker: T48's scope doesn't include `Assets/GameData/Generated` or `Assets/GameData/Config` (generated table row classes). It includes `Luban`, `Modules/Config`, `RoomServer`, `Tests`. Running Luban/gen.bat emits `Assets/GameData/Generated` row classes and `Assets/GameData/Config` bytes. The task file scope should list `Assets/GameData` (generated) — T48 does not. T44 also? No. T48 acceptance says "Luban/gen.bat"; but file scope lacks `Assets/GameData`. Is that a blocker? The "文件范围" is used for permission/diff control. Missing `Assets/GameData/Generated` / `Assets/GameData/Config` means the generated outputs aren't in scope, yet the task must regenerate them. This is a concrete file-scope inconsistency. Similarly T51 scope includes `Assets/GameData` and `Luban/Data`, okay. T48 changing `TableLayout.Files` and `Luban/Data/#combatgeom.xlsx`—does T48 create the table source? Plan says "表 `#combatgeom`：13 列（上列 snake_case）；源 `Luban/Data/#combatgeom.xlsx`；`__tables__.xlsx` 登记". T48 scope includes `Luban` (covers data and defines). But generated outputs under Assets/GameData not in scope. That's a real issue: T48 would either fail to commit generated row classes/bytes or be out of scope. Similarly T51 writes table values via gen.bat, scope includes `Assets/GameData` (good). T48 must add table and run gen.bat, producing `Assets/GameData/Generated/*.cs` and `Assets/GameData/Config/*.bytes`; missing scope. Could be a blocking file-scope gap.
+
+Also T48 modifies `Assets/LiteGame/Modules/Config/TableLayout.cs` (shared link) — scope includes Modules/Config. Good. But `TableLayout` is a shared link file; is it also in `Assets/RoomServer`? No.
+
+T50 modifies `Assets/LiteGame/Modules/Config` (CombatConfigDigest) and Server/RoomServer + Tests. If `CombatConfigDigest` is in `Assets/LiteSim/Scripts/Config`, scope misses. Need to know. Let me think: `CombatConfigDigest` is likely in `Assets/LiteGame/Modules/Config` because it deals with table bytes and client/server digest. Plan line 133 "联机 CombatConfigDigest". The acceptance B13 says `CombatConfigDigest`; tests `CombatConfigDigest/GameplayDigestBase`. Could be in `Assets/LiteGame/Modules/Config`. Fine.
+
+T54's scope includes `Assets/LiteSync` (whole dir) — okay, and `Assets/LiteSim/Scripts/Config`; but `SnapshotHz` server config in `deploy/roomserver.windows.json`; GM page? It includes `Server/RoomServer` but GM page may be in `Assets/LiteGame/Editor/Gm` or `Server/RoomServer`. Plan says GM room params. T54 file scope includes Server/RoomServer, not `Assets/LiteGame/Editor/Gm`. If GM page is in Editor/Gm, missing. But GM endpoint is server-side; GM page maybe `GmTestModePage.cs` in `Assets/LiteGame/Editor/Gm` (plan line 113 mentions `GmTestModePage.cs:332-335` for geometry constants). B15's GM room params likely in server GM API, not Editor. `deploy` + RoomServer covers. Fine.
+
+T55's scope includes `Assets/LiteGame/Modules/Config` (SimParams exporter? maybe), `Server/RoomServer`, Tests, but not `Assets/LiteSync` (SimParamsGate/Overrides maybe in LiteSync/Shared? Plan says "不进入共享程序集" — Dev side). Fine.
+
+Now B23 issue detail: T56 command group "L1/LiteSync/LiteSim 定向/check-shared/L2" — B23 requires "两端重建联测". T57 manual. If the intent is wf verify cannot run build-player, then B23's acceptance is inconsistent with T56. This is a "门禁不可执行/虚假通过" candidate: T56's `wf verify` would pass without ever exercising two-end rebuild, while T57 manual is not part of the gate. The user wants "是否还有编译中断/门禁不可执行/虚假通过". I should flag it.
+
+Another "false pass": T45's verification includes `gen-build-hash --check-shared` but no regeneration; if T44's hash is stale due to T45 tests? T45 only tests, no source. Fine.
+
+Another: T50's "两端摘要不等拒局用例" — does the client have a runtime check? B13 says "两端不等时拒局". Adding a unit test for digest inequality doesn't prove the runtime rejects. Plan B13 says "两端不等时拒局（不要逐值拼摘要）". The task should implement the reject path and test it end-to-end. T50 acceptance says "两端摘要不等拒局用例" — maybe test only. Could be a "false pass" if no actual gate. But plan's design likely includes `StartGame.ConfigHash` compare. T50 scope includes Server/RoomServer and Modules/Config; could implement. Not explicit. Maybe non-blocking.
+
+Another: B13 "改表后 GameplayDigestBase 变化可观测" not in T50. This is a substantive missing acceptance. Could be blocking for B13 coverage.
+
+Another: B9's "CombatConfig.Geometry 未发布返回 CombatValues.Default.Geometry" not explicit in T47; it says "Geometry DisplayOnly". The plan's B9 has detailed fallback. T47 may be considered covering via "Geometry DisplayOnly" but not the fallback behavior. If the task acceptance is the source for the施工 subagent, this omission could lead to `CombatConfig.Geometry` throwing or defaulting incorrectly. The user's fix #1 only asked regen. But "B1~B24 全覆盖" check should catch missing sub-requirements. T47 acceptance: "B9（类型/闸门）：11 字段/9 参数；_published 三态；Geometry DisplayOnly；10 构造点；ResetForTests+[Collection]；Loaded 时序/编辑器不崩；坏表候选校验（表接入在 T48）". "Geometry DisplayOnly" implies fallback, but not explicit "未发布返回 Default.Geometry". "三态" maybe Published/Unpublished/Default. Could be acceptable.
+
+Another: B10 "Assets/**、Server/**、根 Tests/** 旧几何名零命中" — T49 says "Assets/Server/Tests 旧几何名零命中". Good.
+
+Another: B10 "HUD/Dev/Editor/测试消费者全部迁移" — T49 says "HUD/Dev/Editor/测试读者迁移". Good.
+
+Another: B12 "MatchTestRules 类头/字段的爆头覆写说明同步删除" — T49 deletes overrides, but does it clean class header/field comments? T49 acceptance doesn't mention comment cleanup; T51 mentions "注释 0 warning" for baking. Plan B12 says "MatchTestRules 类头/字段的爆头覆写说明同步删除". If T49 deletes fields but leaves stale comments, B12 not fully covered. B10's grep excludes comments; so comments could remain. This is a gap. T51's "注释 0 warning" covers baking comments, not MatchTestRules. Could be non-blocking.
+
+Another: B12 "`BakeTargets` 五条输出常量逐条去向明确" — T51 acceptance says that, but does it name the five? "五条" and "四条死路径修正" but no enumeration. The plan §烘焙 lists 5: Body/Head/Muzzle/RootMotion/Grip. Four dead paths not enumerated. The user asked T51 to add "BakeTargets 五条输出常量逐条去向、四条死路径修正、PrefabPath 绑定验收". The task now says this, but without details it is not independently executable. The plan says "五条输出常量逐条给出新去向，四条死路径修正" but doesn't list which are dead. This is likely a blocking issue for "任务粒度/验证可独立执行" — a施工 subagent can't know what "四条死路径" are or verify. However, perhaps the task's detail is enough for the main agent, who has repo context. But the review is about task list; if it references a plan that also doesn't enumerate, it's a gap. Let me inspect plan: line 128-131. It says BodyCylinderBaker → table; HeadHitLineTuner → table; MuzzleOffsetBaker → table; RootMotionBaker → rootmotion.bin; WeaponGripBaker → grip.bin. That's five outputs and destinations. "四条死路径修正" not enumerated, but maybe BakeTargets has 5 constants, 4 dead paths (Head/Muzzle/RootMotion/Grip?) and one live (Body). Could infer. But not verification. This is a non-blocking detail gap? The user explicitly asked for it; T51 says it, but mere mention is not "写清". The review should check whether the requirement is satisfiable. I'd flag as "T51 只写要求未列五条去向与四条死路径清单，子代理无法独立执行/验收" — blocking? It's a task granularity/verifiability issue. Since the user's fix #4 specifically requested this and the task only paraphrases, likely FAIL-worthy.
+
+Similarly T54: "GM 房参数 + deploy 配置两路真实注入" — T54 says "deploy...三档 + GM 房参数两路注入" but doesn't specify how GM room params are passed (server GM API? room config field?) or how "真实注入（非测试自造实例）" is verified. Verification "服务端配置注入；LocalServerHandshake/EditMode/Play" — not a real-injection proof. This could be a false pass: tests could instantiate AoiSettings directly. The plan B15 explicitly requires "非测试自造实例". T54 acceptance says "服务端真实配置 ... 注入" but verification doesn't say "非测试自造". Maybe enough? Hmm.
+
+T55: "联机/云 sandbox 禁用覆盖（断言）；判定路径零静态读（grep/负例）" — good. But does T55 include "唯一门 SimParamsGate.Evaluate 每会话一次 bool" test? It says. "单合并点 ... 两处" yes. "B20 四条断言" but not enumerated. Plan enumerates. Fine.
+
+Now, B1~B24 coverage matrix. Need to produce grouped by B. Let me ensure no B missing: B1-B24 all present. I'll list:
+B1 T43
+B2/B3/B4/B6/B7 T44
+B5/B22 T45
+B8 T46
+B9 T47+T48
+B10 T49
+B11 T48
+B12 T51+T52
+B13/B14 T50
+B15 T54
+B16/B17/B18 T53
+B19/B20/B21 T55
+B23 T56+T57
+B24 T57
+
+Wait B4 is T44. B6/B7 T44. Good.
+
+Now decide verdict PASS or FAIL. The user asks review of round-3 fixes. We need to be strict. Are there blocking issues? Let's think like an independent reviewer: The 7 requested fixes appear incorporated at the text level. But there are remaining gaps:
+1. T48 file scope missing `Assets/GameData` (generated table classes/bytes) — but T48's task "表接入" must run Luban/gen.bat; generated outputs are required. This is a concrete file-range/acceptance inconsistency and could cause the施工 subagent to be blocked or leave generated artifacts uncommitted → compile break (BuildCombatValues references generated type not present). Actually if `#combatgeom` table is added to `__tables__.xlsx` and `gen.bat` run, generated files are produced under Assets/GameData/Generated; if not in scope, the agent may not submit them. The task's verification includes `Luban/gen.bat`, so perhaps it's implied. But file scope should include. Is this a blocker? It can cause "编译中断" if generated code is not included. Yes, moderate/severe. However, `Assets/GameData` is a top-level dir; T48's file scope includes `Luban` but not `Assets/GameData`. Given the task list is used to grant file permissions, this is a real blocker.
+
+Wait: Does T48 actually need to generate a new table row class? Plan says `#combatgeom` source and `TableLayout.Files` adds `Combat/tbcombatgeom`. Luban gen produces `Assets/GameData/Generated/...` and bytes. The existing `Assets/GameData/Generated` is in SHARED_TARGETS, so T44's `gen-build-hash` includes it; T48 must regenerate BuildHash because generated read code changes. T48 says regen. So generated files must be written. File scope missing. Yes, strong.
+
+2. B23 split: T56's `wf verify` command group omits "两端重建联测", which B23 requires in verify. T57 manual is outside the gate. This is a gate coverage/executability issue. Could be considered a blocker (false pass: `wf verify` green without two-end rebuild). But maybe B23's "两端重建联测" is inherently manual; the task list explicitly splits auto/manual and says T57. If the user accepts split, no. But plan B23 didn't authorize split. The task list's B23 tag says "（自动部分）" and T57 "（人工部分）"; the acceptance criteria B23 as a whole is covered across two tasks. Is `wf verify` required to include manual? The plan says yes. If T56 doesn't, then B23 not met. I'd flag as blocking (severity high) unless the reviewer treats the split as a reasonable adaptation. The user's review asks "门禁不可执行/虚假通过" — this is exactly it.
+
+3. T51's "四条死路径" and five destinations not enumerated; T51's acceptance is not independently executable. This is likely a blocker for task granularity. The user explicitly requested "增加 BakeTargets 五条输出常量逐条去向、四条死路径修正、PrefabPath 绑定验收". The task now has a phrase but no actual list; if the plan has destinations but no dead paths, the acceptance can't be verified. Could be blocking.
+
+4. T47/T51/T53 asset deletion executor missing; T47/T48/T49/T50/T54/T55 no executor assignment. The user's criteria include "主代理/施工子代理权限". T51/T53 involve unity-pipeline asset deletion; only T52 says main agent. This is a real permission ambiguity. Could be blocking if a施工 subagent is told to delete .g.cs via unity-pipeline (which is main-agent-only per T44/T52 pattern). T51 says "三件 .g.cs 走 unity-pipeline 删除" — a施工子代理 might run it. But maybe unity-pipeline use is allowed for施工? The project says Unity asset ops via CLI, not necessarily main agent. T44/T52 established main agent for asset moves. Inconsistent.
+
+5. B4 path/namespace assertion, B6 IClientTransport grep, B7 DiagTrace registration/test — missing from T44. Are these "blocking" or "non-blocking"? They are acceptance details from plan B4/B6/B7. The task list's B4/B6/B7 tags may be considered coverage, but the acceptance text doesn't include all. The review's "B1~B24 是否全覆盖" could flag partial coverage. For B4, "SHARED_TARGETS ... 并重生成 BuildHash" but no "BuildHash.g.cs 路径与 namespace 未变". For B6, "WeakNet 移 Dev" but no grep assertion / IClientTransport. For B7, "DiagTrace 保留" but no registration reason/test. These are verification gaps. If strict, blocking? They are important but maybe non-blocking because plan B4/B6/B7 still exists and施工 can refer to plan. The task list's acceptance criteria are summarized, not exhaustive; the user asks "文件范围/验收是否一致". The plan is the source; task tags reference B items. Hmm.
+
+6. B13 "改表后 GameplayDigestBase 变化可观测" missing in T50. Similar.
+
+7. B9 `CombatConfig.Geometry` fallback not explicit; B10 assertion not explicit.
+
+8. T54 "GM 房参数真实注入" verification not robust.
+
+9. T55 "GM 几何只改表或禁用" not explicit.
+
+10. T57 file scope includes `scripts/build`, `Server`, `Builds` for final two-end test; T57 is "文档回写与最终两端联测". It includes docs + build. Good. But T57's executor "文档施工子代理，最终联测主代理" — final test main agent. Fine.
+
+11. T46 "两端重建与联测（批 6）" — B8 says "两端重建后联机冒烟通过、两端 BuildHash 一致". T46 verification "build-player.py; player-smoke; BuildHash 对账". Does it run RoomServer build? `build-player.py` may build client; RoomServer publish separate (`dotnet publish`). B8 "两端重建" includes server. T46 file scope includes Server. Verification doesn't mention RoomServer publish command. Could be a gap: only build-player (client) and player-smoke; no server publish. Plan B8 says "两端重建". T46 says "两端重建后..." but verification lists build-player/player-smoke/BuildHash. It may be implicit. T57 final also "build-player/player-smoke". No explicit RoomServer publish in either. This is a substantive "两端重建" gap: server must be rebuilt/published for联测. The plan's B8 and B23 both require "两端重建". T46/T57 only mention build-player/player-smoke. Could be a blocker:联测 would use stale RoomServer. However, `build-player.py` might build both? Unlikely; server is dotnet publish. The task list should include `dotnet publish -r win-x64 --self-contained` or deploy. The user's review criterion "编译中断/门禁不可执行/虚假通过" — this is a false-pass risk: BuildHash consistency can be checked on stale server. Is RoomServer rebuild part of `build-player.py`? Probably not. In AGENTS: "改房间服 C# 后必须重新 dotnet publish ... 上传 room/". The cloud deploy is separate. For local联测, RoomServer must be built. T46 says "两端重建" but verification lacks server build. Could flag as non-blocking if "两端重建" implies both. But the verification is executable? "build-player.py" only client. Hmm.
+
+Wait, T46's task name "两端重建与联测" and acceptance "两端重建后..." — the executor could know. But verification "build-player.py；player-smoke；BuildHash 对账" no server. Maybe `player-smoke` starts RoomServer from built output? Not necessarily. The `BuildHash` for server is in compiled RoomServer; if stale, mismatch. The build step might include `dotnet build` in `Tests.slnx`? T46 T44? T43's dual-track compile includes Server? `Tests.slnx` includes LiteNet/LiteSim but not RoomServer. Hmm.
+
+Let me check plan's sub-steps: T6 "两端重建 + 联机冒烟（本地测试房 + 真 KCP 弱网）". No explicit server command. The task list can be considered adequate.
+
+12. T43's "双轨 csproj 齐备" — what are the two tracks? `LiteSync.csproj` and asmdef? T43 verification "dotnet build LiteSync.csproj/LiteNet.csproj/Tests.slnx". Fine.
+
+13. "资产搬迁方式": T44 says unity-pipeline; T51/T52/T53 .g.cs deletions; but what about `WeakNet` move? T44 says "WeakNet 移 Dev" but not explicitly via unity-pipeline. It says "15 件+.meta 走 unity-pipeline" — WeakNet not in 15件, so how moved? Plan B6 says WeakNet moved to Dev. T44 acceptance doesn't specify method for WeakNet (file move under Assets → should be unity-pipeline/AssetDatabase.MoveAsset). This is a gap: asset migration method missing for WeakNet (and possibly DiagTrace no move). If moved with filesystem, GUID/meta issue. The plan constraint says "Assets/ 移动走 AssetDatabase.MoveAsset". T44 only says 15件+.meta. WeakNet is an additional move. Could be blocking asset migration method. T44's file scope includes `Assets/LiteNet` and `Assets/LiteGame/Adapters/Dev`, so path covered, but method not. The verification "unity-pipeline 回读+git status 成对" might apply to all asset moves, including WeakNet. But acceptance wording "15 件+.meta 走 unity-pipeline" specifically. Hmm.
+
+14. T44 includes `Assets/LiteGame/App` and `Editor` but not `Assets/LiteGame/Modules`? The plan line 102 says `LiteGame.App`, `LiteGame.Adapters.Dev`, `LiteGame.Editor`, `Tests/EditMode`, `Tests/UI/PlayMode`, `Tests/LiteNet.Tests`, `Server/RoomServer`. No Modules. Fine.
+
+15. T44 changes `Tests/Tests.slnx` and `LiteNet.csproj`; but `LiteSync.csproj` is created in T43. Does `Tests.slnx` need to add `LiteSync.csproj`? T44 says "Tests.slnx 补 LiteSync 引用" — but Tests.slnx is a solution file with `<Project Path=...>`; T43's `LiteSync.csproj` path maybe under Assets/LiteSync. Fine.
+
+16. T43 "Assets/LiteSync 存在" but no `LiteSync.csproj` path in T43 detail? Detail line 325 only `Assets/LiteSync`. The asmdef and csproj would be there. Fine.
+
+17. T47's file scope `Assets/LiteSim/Scripts/Config` includes `CombatValues.cs`, `CombatGeometry.cs`; but `CombatConfig` is in LiteSim/Scripts/Config? Plan says CombatConfig has geometry constants and `_loaded`, likely `Assets/LiteSim/Scripts/Config/CombatConfig.cs`. Good. `CombatConfig.Loaded` consumers in BattleContext (LiteGame/Modules/Battle/Arena) — T47 scope doesn't include `Assets/LiteGame/Modules/Battle/Arena`; T49 scope includes Assets/LiteGame. The timing assertion for BattleContext would be in T47 verification "Loaded 时序" but the reader file is outside T47 scope. T47 acceptance says "Loaded 时序"; T49 migrates external readers. If T47 needs to add an assertion in BattleContext, it can't (out of scope). B9 requires "CombatConfig.Loaded 唯一外部读者 BattleContext.cs:305 在 Publish 后（时序断言）". T49's scope includes LiteGame; T49 acceptance doesn't mention Loaded timing. So the timing assertion may fall between T47 (scope excludes BattleContext) and T49 (acceptance doesn't mention). This is a concrete coverage gap for B9. Could be blocking: no task owns adding the BattleContext timing assertion. T47 says "Loaded 时序" in verification but cannot edit BattleContext. Unless assertion is in test file under Tests (T47 scope includes Tests) that constructs world and checks order — possible. But "唯一外部读者 BattleContext.cs:305 在 Publish 后" is a code order guarantee, likely needs a test. T47 could add a test in Tests referencing BattleContext; no edit needed to BattleContext. Hmm.
+
+18. T51 scope includes `Assets/LiteSim/Scripts/Map` and `Luban/Data`, `Assets/GameData`; but the five `.g.cs` Body/Head/Muzzle are in LiteSim/Scripts/Map. It deletes three; T53 deletes RootMotionData. GripBake in Modules/Battle/Characters (T52). Good.
+
+19. T52 says "GripBake.g.cs（...位于 LiteGame/Modules/Battle 非共享源集，无需 BuildHash 重生成）". But is `GripBake.g.cs` in `Assets/LiteGame/Modules/Battle/Characters`? Likely. If it were under `LiteSim/Scripts/Map`, claim false. Plan line 14 lists four `.g.cs` in Scripts/Map, not GripBake. So good.
+
+20. T53 "ContentIdentity 不引 LiteSim/SHA-256/无名称字段" — if `ContentIdentity` in LiteGame/... and it currently has `RootMotionDigest`; no SHA-256. Fine.
+
+21. T54 "AoiSettings 落 LiteSync/Shared" — but `LiteSync/Shared` is in SHARED_TARGETS. T54 regen. Good. However, `AoiSettings` is server room config; if it's in SHARED_TARGETS, any client change forces server rebuild. That's intended? Plan says "AoiSettings（LiteSync，落 LiteSync/Shared/）". Fine.
+
+22. T55 "单门 SimParamsGate.Evaluate" — where is `SimParamsGate`? If in LiteSync? Plan says "组合根 ... 不进入共享程序集". Probably Dev. T55 scope includes Adapters/Dev. Fine.
+
+23. B22 "StaticMutableAllowlistTests 扫描根含 LiteNet/LiteSync，无新增 public static 可变字段" — T45 says "StaticMutable 根含 LiteNet+LiteSync". Good.
+
+24. B5 "ClientAsmdefAllowlistTests.Allowed 删除 LiteNet->LiteSim 加 LiteSync；ClientRoots 含 LiteSync". T45 says "Allowed 删 LiteNet->LiteSim 加 LiteSync；ClientRoots 含 LiteSync". Good.
+
+25. B6 "LiteNet 只留 IClientTransport/IClientTransportErrorSource (grep assertion)" — T44 doesn't say. Could be a blocker for full B6.
+
+26. B7 "DiagTrace 保留在 LiteNet/Core/Diagnostics/ 并登记理由；Dev 侧只经 DebugKernel 读，由 DebugKernelEditModeTests 覆盖." T44 says "DiagTrace 保留" and verification includes DebugKernelEditModeTests. Missing "登记理由" (doc) and "Dev 侧只经 DebugKernel 读" assertion. Non-blocking maybe.
+
+27. B12 "BakeTargets 五条输出常量逐条去向明确" — T51 phrase, plan has destinations but no mapping to constants names. "四条死路径修正" no list. This is a verifiability gap. The user explicitly asked for it; likely the main remaining blocker.
+
+28. "T49 唯一负责删除四几何覆写" — T49 says "T49 唯一负责删除 ResolveHead*/override 四项". However T55's B19 also says "删除 HeadHitLineOverride/..." in plan B19, but task T55 says only recheck. T49 deletes. Good. But T49 tag B10, not B19; B19's deletion is covered under T49 though T49 doesn't tag B19. Coverage matrix may show B19 deletion under T49, not T55. Is that okay? B19's full coverage is T55 + T49. But T55 acceptance claims B19 and says recheck; deletion by T49. The task list's B19 tag on T55 might be incomplete. Need to note in matrix: B19 → T55 (main) + T49 (deletion). The user asked "无孤儿/重复/越界"; the cross-task responsibility is explicit in T55 ("删除在 T49"), so fine. But T49 doesn't mention B19; minor.
+
+29. T50's "两端摘要不等拒局用例" — where is the reject? `StartGame.ConfigHash` comparison in client. T50 scope includes Modules/Config, RoomServer, Tests; could implement. Fine.
+
+Now, do I have enough for a FAIL? The review likely expects one or more blocking issues. The user gave 7 fixes; they may want confirmation PASS after fixes. But as an independent reviewer, I should not rubber-stamp. Let's weigh.
+
+The 7 fixes are present textually:
+1. T47 regen + check (main agent) ✓
+2. T44 scope + acceptance delete LiteSim refs ✓
+3. T51/T52/T53 gen by main; T52 no regen ✓
+4. T51 BakeTargets five outputs, four dead paths, PrefabPath ✓ (but no enumeration)
+5. T54 GM + deploy two paths ✓ (but verification weak)
+6. T55 zero static read grep/negative + online/cloud sandbox assertion ✓
+7. T49 unique deletion, T55 recheck ✓
+
+If the review focuses only on the 7, it's PASS. But the instructions also say "只核验: B1~B24 是否全覆盖、无孤儿/重复/越界；每个改共享源集任务是否有重生成+check 与执行人；文件范围/验收是否一致；主代理/施工子代理权限；资产搬迁方式；是否还有编译中断/门禁不可执行/虚假通过；任务粒度、依赖、验证是否可独立执行." So we must check those, and we found several.
+
+Which are blocking (must fix before construction)? Let's classify:
+
+Blocking:
+- T48 file scope missing `Assets/GameData` (generated table classes/bytes) → generated read code not in scope; BuildCombatValues won't compile / BuildHash stale. This is a concrete "编译中断" and "文件范围/验收不一致". High severity.
+- T44/T46/T57 "两端重建" verification doesn't include server rebuild/publish (only build-player/player-smoke). This is a false pass: BuildHash/server stale. But maybe `build-player.py` builds both? Let me think. `scripts/build/build-player.py` likely builds Unity player only. RoomServer built via `dotnet publish`. The plan's B8 says "两端重建". T46 verification "build-player.py; player-smoke; BuildHash 对账". If `player-smoke` requires a server binary, maybe it builds server. But no evidence. Could be a blocking gate issue.
+- T56's `wf verify` omits "两端重建联测" required by B23; T57 manual. `wf verify` can pass without B23's full content. This is a coverage/false-pass issue. High.
+- T51 BakeTargets/four dead paths not actually enumerated; not independently verifiable. Medium-high.
+- Missing executor for T51/T53 unity-pipeline asset deletion; T47/T48/T49/T50/T54/T55 lack executor. Medium.
+- WeakNet move method not stated (asset migration). Medium.
+- B4/B6/B7 partial acceptance details. Medium.
+- B13 missing "改表后 GameplayDigestBase 变化可观测"; B10 missing explicit assertion for 判定/烘焙 not reading Geometry; B9 fallback. Medium.
+
+If I list 4-6 blocking issues, FAIL. The output requires "阻塞问题: <数量>" and list. Need be concise, ≤ 6 min. We have time.
+
+But let's be careful: Is T48's generated output really under `Assets/GameData`? The `Luban/gen.bat` generates `Assets/GameData/Generated` and `Assets/GameData/Config` (bytes). TableLayout.Files uses `Combat/tbcombatgeom`; the table source in `Luban/Data`. The generated C# row class is needed for `BuildCombatValues(..., tbcombatgeom)`. If T48 does not include `Assets/GameData`, the generated file may be untracked/uncommitted, causing compile failure for other agents. Yes.
+
+But T48's file scope includes `Luban` (table source), `Assets/LiteGame/Modules/Config` (TableLayout, ConfigService), `Server/RoomServer` (ServerTableLoader), `Tests`. It could run gen.bat, and generated output lands in Assets/GameData. The scope is a whitelist; if not listed, the agent might still run gen.bat and produce files outside scope. The task's verification includes `Luban/gen.bat`, so perhaps the executor is expected to commit generated artifacts. This is exactly a scope mismatch worth flagging.
+
+What about T44's `SHARED_TARGETS` additions: it modifies `scripts/codegen/gen-build-hash.py` and regenerates `Assets/LiteNet/Core/Protocol/BuildHash.g.cs` (in scope LiteNet) and `Server/MetaServer/Host/BuildHash.g.cs` (not in T44 scope!). `gen-build-hash.py` always writes both SHARED_OUT_FILE and META_OUT_FILE. T44's file scope does not include `Server/MetaServer`. Regenerating the shared hash also updates Meta's BuildHash.g.cs (META_TARGETS includes Server/MetaServer; but the script writes both). Actually `gen-build-hash.py` when run without `--check` writes both files; T44's "重生成 BuildHash" will modify `Server/MetaServer/Host/BuildHash.g.cs`. Is that in scope? T44 scope includes `Server/RoomServer` but not `Server/MetaServer`. This is a concrete scope gap! The redline says "同一脚本还产出第二个目标 Server/MetaServer/Host/BuildHash.g.cs". Running it changes Meta constant. T44's file scope lacks `Server/MetaServer`. That's a blocking scope inconsistency. Great catch. T47/T48/T49/T50/T51/T53/T54/T55 also "重生成 BuildHash" and would modify `Server/MetaServer/Host/BuildHash.g.cs`; their file scopes (e.g., T47: LiteSim/Scripts/Config, Modules/Config, Server/RoomServer, Tests) lack Server/MetaServer. If `gen-build-hash.py` writes both, every regeneration touches Meta file. Does the task need to include it? The script's default writes both; `--check-shared` only checks shared. The tasks say "重生成 BuildHash（主代理）" and verification "gen-build-hash 重生成+check". That will modify Meta output. Without scope, either the file is left dirty or the agent is blocked. This is a strong blocking issue affecting many tasks: file scope missing `Server/MetaServer/Host/BuildHash.g.cs` for every task regenerating. However, maybe the project policy treats BuildHash.g.cs as generated artifacts and doesn't require scope? The task file scope is for permission; generated outputs often need scope. T44's original plan says "B 只改 SHARED_TARGETS 这几行；C 后续再改 toolbox/指纹." It doesn't mention Meta output. The redline says same script produces Meta; likely the main agent knows. But a strict reviewer can flag.
+
+Wait, `gen-build-hash.py` computes META hash from `Server/MetaServer/**`; if only SHARED_TARGETS changes, does the META hash change? META_TARGETS = Server/MetaServer, META_EXTRA_FILES includes RoomServer files and Meta wire. Changing SHARED_TARGETS does not affect META computation; the script will rewrite the Meta BuildHash.g.cs with the same content. So file content might be unchanged (idempotent), and no git diff. If it writes same content, no issue. For T47 etc., changing LiteSim/Scripts does not affect META hash (META_TARGETS doesn't include LiteSim), so Meta file content unchanged. The script may rewrite identical bytes; no diff. So scope not an issue for content changes, though it touches mtime. Fine. But T44 changes SHARED_TARGETS only; META hash unchanged. T48 changes Assets/LiteGame/Modules/Config/TableLayout.cs — is that in META_EXTRA_FILES? No, only Meta wire and RoomServer files. So META unchanged. T54 changes AoiSettings (LiteSync) and LiteSim — not Meta. T52 none. So no content change. Good; not a blocker. But T44 changes `Assets/LiteGame/App` etc. — not Meta. Fine. The Meta build hash only changes if Server/MetaServer or its extras change; none. So no diff.
+
+But T44's `Server/RoomServer` changes (LiteSync reference) — RoomServer is not in META_EXTRA_FILES (only specific Assets/RoomServer files). So Meta unchanged. Good. So no need for T44 to include Server/MetaServer. However, running gen-build-hash.py will write the file with same content; not a diff. Fine.
+
+Another: T43 creates `Assets/LiteSync` with asmdef `references:["LiteNet","LiteSim"]`. But `LiteNet.asmdef` references LiteSim; adding LiteSync references both. No cycle. Fine.
+
+Another: After T44, `LiteNet.asmdef` no LiteSim, but `LiteNet` contains `BuildHash.g.cs` (namespace LiteNet) generated from shared source including LiteSync; fine.
+
+Another: T44's `SHARED_TARGETS` adds `Assets/LiteSync/Shared`, `Snapshot`, `Input`, `Events`. But `Assets/LiteSync/Client` not included. `ProtocolConstants` in Shared. Good.
+
+Another: T43's dual csproj "LiteSync.csproj" and asmdef; but T44's `Tests.slnx` adds LiteSync. Does `LiteNet.csproj` need to remove `<Compile Include>` for moved files? T44 says "LiteNet.asmdef/csproj 删 LiteSim"; but also LiteNet.csproj must remove moved files / include LiteSync? Plan says "收窄/补齐双方 csproj 通配". T44 acceptance doesn't mention csproj compile items for moved files, only "删 LiteSim". If LiteNet.csproj uses glob `**/*.cs`, moved files no longer included; okay. If explicit includes, need remove. Plan risk #2. T44 verification "Unity+dotnet 编译" catches. Fine.
+
+Another: T44's acceptance "LiteNet.asmdef/csproj 删 LiteSim" but B2 requires "Assets/LiteNet/** 内 using LiteSim 零命中"; T44 says "grep 零命中". Good.
+
+Another: T44's B3 15 files and `.meta`; acceptance says "15 件+.meta 走 unity-pipeline"; good. But the 15-file list includes `RoomInbound`, `RoomSession` etc. Are they all under LiteNet? Plan says yes.
+
+Another: `WeakNet` move to `LiteGame.Adapters.Dev` — T44 acceptance says "WeakNet 移 Dev". But B6 requires LiteNet only keeps IClientTransport/IClientTransportErrorSource. T44 verification includes Tests/LiteNet.Tests; maybe okay.
+
+Now, what about T45's `StaticMutable` root "LiteNet+LiteSync" — plan B22 says "扫描根含 LiteNet/LiteSync". Good. But if `LiteSync` is new and has no static mutable, fine.
+
+Now, hidden "false pass": T43's `LiteSync` asmdef references `LiteSim`; `LiteSim` asmdef has `references: []`; okay. But `LiteSync/Client` references `LiteGame.*`? Architecture guard says LiteSync must not reference LiteGame. `RoomClient` may use `RoomSession` etc. only; okay.
+
+Now, "无越界": T49 scope includes `Assets/LiteGame`, `Server`, `Tests` — broad. T55 scope includes `Assets/LiteSim/Scripts/Rules` — if it only does zero-hit recheck of deleted overrides, why touch Rules? Maybe `SimParamsOverrides`/`MatchTestRules` boundary. Could be overlap with T49. T55 says "四几何覆写只做零命中复核（删除在 T49）"; if it also modifies `LiteSim/Scripts/Rules` for `MatchTestRules`? The scope includes it, which suggests potential duplicate editing. But acceptance says only recheck. Could be because `SimParamsOverrides` is in Rules? Plan says `SimParamsOverrides` dev side; not Rules. Hmm. The file scope `Assets/LiteSim/Scripts/Rules` in T55 may be unnecessary and risks overlap with T49 (which owns Rules). Is this an "越界/重复"? T49 has `Assets/LiteSim/Scripts` (includes Rules) and deletes overrides. T55 also includes Rules; if only recheck, no edit needed. The presence in scope is not necessarily edit. But a reviewer could flag T55's scope includes Rules but no acceptance item requires changing it; potential duplicate. Low.
+
+Also T50 scope `Assets/LiteGame/Modules/Config` and T47 scope same; T47 handles CombatValues/CombatConfig in LiteSim; T50 digest in Modules/Config. Fine.
+
+T48 and T50 both `Modules/Config`; T48 TableLayout/ConfigService; T50 digest. Fine.
+
+T51 and T55 both `Assets/LiteGame/Editor/Baking`; T51 bake tools; T55 exporter (maybe in Baking). Overlap but distinct.
+
+T52 and T55 both `Assets/LiteGame/Adapters/Dev`? T52 includes Adapters/Dev for FeatureDebugTunables; T55 includes Adapters/Dev for SimParamsDebugTunables. Fine.
+
+T54 and T55 both `Server/RoomServer` (AOI config vs overrides). Fine.
+
+Now, "B23 coverage" T56/T57. T56 says "不含人工联测"; T57 says "最终两端联测". Plan B23 says `wf verify` includes "两端重建联测". Could be interpreted as the command group includes a step that invokes the manual test? But T56 explicitly excludes. This is a direct contradiction. I'd mark blocking medium-high: B23 cannot be satisfied by T56; T57 is outside `wf verify`, so gate green does not imply B23.
+
+Also T57 "批次 7 后实际执行 build-player/player-smoke" — does not mention RoomServer publish. Same as T46. B23 "两端重建". If `build-player.py` builds client only, server not rebuilt. The plan's "两端" may mean client + RoomServer. T57's verification "build-player.py/player-smoke；两端摘要对账" — no server build. This is a false pass. Could combine with the above.
+
+But maybe `build-player.py` builds both client and server? Let's think: project has `scripts/build/build-player.py` (client IL2CPP) and `restore-check` etc. Server RoomServer is `dotnet publish` in `scripts/deploy` or `scripts/build`. T46 file scope `scripts/build, Server, Builds` suggests `scripts/build` contains server build scripts too. Maybe `build-player.py` only client; there may be `build-room.py`. The task list's verification should name it. The acceptance "两端重建" but verification only build-player is inconsistent. A strict reviewer flags.
+
+Now, "T44 file scope includes Assets/LiteGame/App, Assets/LiteGame/Editor, Server/RoomServer, LiteNet.csproj, Tests.slnx" — the user's fix #2 exactly. But does T44 include `Assets/LiteGame/Adapters/Dev` for WeakNet; yes. Does it include `Assets/LiteGame/Modules`? no. Plan references `LiteGame.App`, `Editor`; good.
+
+Now, "T47 regen BuildHash + --check-shared": T47 verification says "gen-build-hash 重生成+--check-shared"; acceptance says "改 Shared 源后重生成 BuildHash（主代理）". Good. But does T47's file scope include `scripts/codegen/gen-build-hash.py`? No, but it doesn't modify the script. Running it doesn't require scope. Fine.
+
+Now, "T51/T52/T53 write gen-build-hash by main agent": T51/T53 say "重生成 BuildHash（主代理）"; T52 no. Good. But T51's verification "gen-build-hash 重生成+check" and T53 "RootMotionDataTests; gen-build-hash 重生成+--check-shared". Good.
+
+Now, "T51 BakeTargets five outputs ... PrefabPath binding acceptance": T51 acceptance says "`BakeTargets` 五条输出常量逐条去向+四条死路径修正+`PrefabPath` 绑定". But verification "烘焙实操；BodyBake/SimMapBaker EditMode；Unity 0 warning；gen-build-hash". There's no explicit check for "PrefabPath 绑定" (e.g., SimMapBaker reads `BakeTargets.PrefabPath` CC). Plan B12 has it. T51's verification `BodyBake/SimMapBaker EditMode` might cover. But "四条死路径" no verification. Medium.
+
+Now, "T54 GM 房参数 + deploy 配置两路真实注入": T54 acceptance "服务端真实配置（deploy/roomserver.windows.json 三档 + GM 房参数两路）注入". Verification "服务端配置注入；LocalServerHandshake/EditMode/Play". There is no specific evidence (config read logs / GM start response) that real injection happened, and "非测试自造实例" from B15 is absent. This is a false-pass risk. The user's fix #5 asked "增加 GM 房参数 + deploy 配置两路真实注入" — the text has it, but acceptance should explicitly require an integration test using real config/GM endpoint, not a unit test constructing `AoiSettings`. Could be blocking or non-blocking. I'd list as non-blocking or blocking? The user asked to check "验证是否可独立执行" and "虚假通过". This is a real gap: "服务端配置注入" is vague. But B15 plan has "非测试自造实例"; T54 doesn't carry that phrase. A施工 agent might satisfy with a unit test. I'd call it blocking (false pass) or major. Maybe combine with T51/BakeTargets as "验收不可执行/可虚假通过".
+
+Now, "T55 判定路径零静态读 grep/负例" — T55 acceptance says "判定路径零静态读（grep/负例）" but verification says "provider/门/合并点用例；B20 四条断言；工具实操；红线 13 真实操作；gen-build-hash". It doesn't list the grep/negative test in verification! The acceptance mentions it, but verification doesn't include a grep guard test. For an independent execution, the grep guard should be a test (e.g., `ArchitectureGuardTests`). T55's verification lacks "grep 零命中". Could be a gap. Similarly T54 verification includes "grep 零命中". T49 includes. T55 says "grep/负例" in acceptance but verification no grep. Minor.
+
+Now, "T49 唯一负责删除四几何覆写" — T49 acceptance says "T49 唯一负责删除 ResolveHead*/override 四项". But T49's file scope includes `Assets/LiteSim/Scripts`, `Systems`, `LiteGame`, `Server`, `Tests` — good. T55 says "四几何覆写只做零命中复核（删除在 T49）". Good. But T55's acceptance also says "联机/云 sandbox 禁用覆盖（断言）" — B19 includes "GM 几何只改表或禁用". T55 doesn't explicitly require GM geometry disabled; maybe.
+
+Now, "B1~B24 coverage" matrix should note B23 partial. If I mark B23 as not fully covered, then "全覆盖" fails.
+
+Let's decide final verdict. The user's round 3 fixes are mostly textual. But the task list still has real issues. An independent review should FAIL with 3-5 blocking issues. Let's settle on 5 blockers:
+
+1. [高][B11/T48] 文件范围缺 `Assets/GameData`（Luban 生成读码/表字节），但 T48 必须跑 `Luban/gen.bat` 并重生成 BuildHash；生成物不在范围 → 可能未提交/编译中断/BuildHash 陈旧。建议补 `Assets/GameData/Generated`、`Assets/GameData/Config`（或明确只改 `Luban` 源、由主代理统一生成）。
+   - Is this really blocking? The file scope can be broad; `Luban` may include generated output? `Luban/` is the table tool directory, not `Assets/GameData`. The generated C# is in Assets/GameData/Generated. Yes.
+
+2. [高][B23/T56,T57] `wf verify` 的 `sync-and-sim` 组不含 B23 要求的“两端重建联测”（T56 明示不含人工联测，T57 手动且不在 verify 内）；verify 绿不能证明 B23；且 T46/T57 的“两端重建”只列 `build-player.py`/`player-smoke`，未列 RoomServer 重建/发布，存在用旧服务端对账 BuildHash 的虚假通过。建议把服务端 publish + 两端 BuildHash/ConfigHash 对账纳入命令组或明确 B23 拆分并经用户裁决。
+   - This is strong.
+
+3. [高][B12/T51] `BakeTargets` 五条输出常量“逐条去向”和“四条死路径”只写要求未列清单；plan §烘焙也只给五条去向、未列四条死路径，施工子代理无法独立执行/验收；`PrefabPath` 绑定验收没有可执行断言（仅“烘焙实操/EditMode”）。建议在 tasks/plan 列出常量→新去向表、四条死路径路径清单、SimMapBaker 读 PrefabPath CC + 夹具断言。
+   - The plan gives five destinations; but task says "逐条去向" not enumerated. The user explicitly asked. This is likely a blocking task-granularity issue.
+
+4. [中-高][B9/B10/T47,T49] B9 的 `CombatConfig.Geometry` 未发布返回 `CombatValues.Default.Geometry` 展示兜底、`Loaded` 唯一外部读者 `BattleContext.cs:305` 时序断言，以及 B10 的“判定/烘焙不读 Geometry（有断言）”在 T47/T49 验收中只有 “DisplayOnly”“Loaded 时序”“grep 白名单”等模糊表述；T47 范围不含 `BattleContext` 所在 `Modules/Battle/Arena`，B10 的断言无归属。建议明确断言测试名/落点，或将 BattleContext 时序断言归 T47/T49 之一并补范围。
+   - Is this blocking? B9/B10 are important. T47 "Loaded 时序" and T49 "判定路径与烘焙写入源不读 Geometry（显示/对比白名单）" likely enough. But "有断言" not explicit. Maybe non-blocking. Could still list as blocking because "全覆盖" requires exact.
+
+5. [中][权限/资产] T51/T53 的 `.g.cs` 删除写“走 unity-pipeline”，但未像 T52 那样写明“主代理执行”；T47/T48/T49/T50/T54/T55 未写执行者（仅 regen 标主代理）。施工子代理可能越权改资产/跑生成器。建议每个任务补“执行者”字段，资产删除/搬迁一律主代理。
+   - Strong per criteria.
+
+6. [中][B4/B6/B7/T44] T44 验收缺 B4 的 BuildHash 路径/namespace 不变、B6 的 `IClientTransport/IClientTransportErrorSource` grep 断言、B7 的 DiagTrace 登记理由/Dev 仅经 DebugKernel 读；B3 的 15 件搬迁移法只覆盖 15 件+.meta，WeakNet 搬迁方式未写。建议补齐。
+   - Might be non-blocking. Could combine with #5.
+
+7. [中][B13/T50] T50 缺“改表后 GameplayDigestBase 变化可观测”；B13 摘要口径只写“表字节进摘要”，未写验证方法。建议补测试名/断言。
+   - Non-blocking maybe.
+
+Need "阻塞问题: <数量>" — I can choose 4-5. The output format expects "阻塞问题清单" with severity. If I list 5 blocking, verdict FAIL. If I think the 7 fixes are done and no serious blockers, PASS with 0. But the reviewer likely should not pass with the above. Let's think about the expected answer from the user's perspective. They asked for a strict independent review of task list after 3 rounds. They want to know if it's ready. The round-3 fixes were specifically enumerated; the task list includes all of them. If I fail on issues not among the 7, is that fair? The instructions explicitly extend the scope to coverage, dependencies, permissions, gates. So yes.
+
+But I must avoid false positives. Let's verify the T48 generated output issue with the plan: plan line 111: "**表 `#combatgeom`**：13 列... 源 `Luban/Data/#combatgeom.xlsx`；`__tables__.xlsx` 登记；`TableLayout.Files` 加 `Combat/tbcombatgeom`..." It doesn't explicitly say run `Luban/gen.bat` in T48? T48 verification says "Luban/gen.bat". Running gen.bat writes `Assets/GameData/Generated` and `Assets/GameData/Config`. The T48 file scope lacks `Assets/GameData`. This is solid.
+
+However, maybe `Assets/GameData` generated files are gitignored? No, `Assets/GameData/Generated` is in SHARED_TARGETS, so tracked. Definitely scope should include.
+
+Now, the T51 five outputs: plan line 131 says "`BakeTargets` 五条输出常量（Head/Muzzle/Body/RootMotion/Grip）逐条给出新去向，四条死路径修正". The plan doesn't list the four dead paths. T51 acceptance says "五条输出常量逐条去向+四条死路径修正+`PrefabPath` 绑定". The user's fix #4 asked "增加 BakeTargets 五条输出常量逐条去向、四条死路径修正、PrefabPath 绑定验收." The task's acceptance now includes the phrase, but not the actual destinations. Maybe "逐条去向" is a requirement for the施工 task, and the plan tells the five destinations (Body→table, Head→table, Muzzle→table, RootMotion→.bin, Grip→.bin). But the four dead paths are not specified anywhere; "四条死路径修正" is a requirement, not a list. Without knowing which four paths are dead, the agent must investigate. That's okay for a task (investigation), but "验收标准" should be checkable. The task says "四条死路径修正" — how to verify? "烘焙实操" doesn't check dead paths. This is a real verifiability gap. Blocking? Probably medium.
+
+Now, T54 real injection: plan B15 says "三档（全开/30m/15m）通过 deploy... + GM 房参数真实注入（非测试自造实例）". T54 says "三档 + GM 房参数两路 注入" but verification doesn't require actual config/GM endpoint. The user asked for "两路真实注入"; the task text says "服务端真实配置". Could be enough. But "真实注入（非测试自造实例）" is not explicit. The review criterion "虚假通过" — a unit test constructing `AoiSettings` would pass "服务端配置注入" loosely. I'd flag as non-blocking or blocking. Hmm.
+
+Now, B23: T56/T57 split. The user may have intentionally accepted this in a prior round: T56 says "不含人工联测", T57 "B23（人工部分）". The plan's B23 still says `wf verify` includes "两端重建联测". If the plan is final and task list splits, that's a plan/task inconsistency. The review's "B1~B24 全覆盖" might consider B23 covered across T56+T57, but the acceptance "wf verify" is not. This is a strong blocker because the gate's whole point is to prevent false pass. I'd include.
+
+Now, server rebuild: T46/T57 "两端重建" verification only client. Could be a separate blocker. The plan B8 "两端重建" — T46 name. The verification "build-player.py" maybe builds both? Let's not assert without certainty. We can phrase as "未列服务端 publish 命令，无法从验收判断是否两端都重建" — a verifiability issue, not necessarily false. Combine with T56.
+
+Now, T44's B4 path/namespace: Does T44's SHARED_TARGETS change require path/namespace? The plan B4 says "BuildHash.g.cs 路径与 namespace LiteNet 未变". T44 acceptance doesn't mention; but the file is in LiteNet and the script's SHARED_OUT_FILE unchanged. A test could check. If no check, a false pass possible. This is a minor coverage gap. Maybe non-blocking.
+
+Now, B6/B7: T44 tags B6/B7 but acceptance text only "WeakNet 移 Dev；DiagTrace 保留". The plan B6/B7 have specific assertions. The task's verification includes "Tests/LiteNet.Tests" and "DebugKernelEditModeTests", so B6/B7 tests are there. Missing "登记理由" for DiagTrace (documentation) and "grep 零命中" may be covered by "grep 零命中" (generic). B6's `IClientTransport` grep is not explicit. Minor.
+
+Now, B9/T47 "Geometry DisplayOnly" and "10 构造点" — no explicit `CombatValues.Default.Geometry` fallback. The plan B9 is detailed; the task acceptance is a summary. The user's review asks "验收是否一致"; T47's B9 acceptance doesn't mirror all B9. But task tags "B9（类型/闸门）" and plan B9 is authoritative. I'd treat as non-blocking.
+
+Now, "B12/T51 rootmotion.bin/grip.bin 输出摘要等于预期" — T51 doesn't cover rootmotion (T53), T52 "烘焙摘要". Fine.
+
+Now, "B16/B17/T53 ContentIdentity 不引 LiteSim/SHA-256" — T53's phrase "不引 LiteSim/SHA-256" could be read as ContentIdentity must not use SHA-256, which conflicts with B17 "SHA-256 对 .bin 字节". Actually B17 says AppComposition uses `RootMotionCatalog.Digest` (SHA-256 of bytes); ContentIdentity only holds the digest, does not compute SHA-256. So "ContentIdentity 不引 LiteSim/SHA-256" is correct: ContentIdentity should not reference LiteSim or SHA-256 (the catalog computes it). Fine.
+
+Another: T53's "RootMotionCatalog.Load ... 再删 RootMotionData.g.cs" — the loader is in Modules/Battle/Arena; deleting RootMotionData.g.cs in LiteSim/Scripts/Map. `RootMotionCatalog` currently static partial in LiteSim? Plan says "RootMotionCatalog 是 static partial class，ContentDigest 读 RootMotionData.g.cs 的 Entries；绑定在 AppComposition". T53 says "先落 RootMotionCatalog.Load/rootmotion.bin/Digest/AppComposition 绑定，再删 RootMotionData.g.cs". Good.
+
+Another: T52 says "GripBake.g.cs ... 位于 LiteGame/Modules/Battle 非共享源集，无需 BuildHash 重生成". But T52 also modifies `FeatureDebugTunables` in `Assets/LiteGame/Adapters/Dev`, which may be included in... `Assets/LiteGame/Adapters/Dev` is not in SHARED_TARGETS. Good. Does T52 modify `Assets/LiteGame/Modules/Battle/Characters` which is not shared. Fine.
+
+Another: T54 modifies `Assets/LiteSync` (which is in SHARED_TARGETS for Shared/Snapshot/Input/Events) and `Assets/LiteSim/Scripts/Config` — regen. Does it modify `Assets/LiteGame/Modules/Battle/Arena` (client only) — no shared. Regen still needed due to LiteSync/Shared and LiteSim. Good.
+
+Another: T55 modifies `Assets/LiteSim/Scripts/Rules` (shared) — regen. If it only does zero-hit recheck, why modify Rules? Maybe `SimParamsGate` is in Rules? Plan says `SimParamsGate` is a combination root, "不进入共享程序集" — perhaps in Dev. `SimParamsOverrides` in Dev. `MatchTestRules` in Rules; T55 might remove old override use? T49 already deletes. T55's scope includes Rules could be for `SimParamsOverrides.Apply`? No. This might be an unnecessary scope/overlap with T49. If T55 does modify `MatchTestRules` (e.g., removing `HeadHitLine` fields), it duplicates T49, violating fix #7. The acceptance says only recheck, but scope includes Rules. I'd flag as potential duplicate/越界: T55 should remove `Assets/LiteSim/Scripts/Rules` from scope or state it's read-only recheck; otherwise conflicts with "T49 唯一负责删除". This is directly related to fix #7! Good catch. T55's file scope line 373 includes `Assets/LiteSim/Scripts/Rules`. The acceptance says "四几何覆写只做零命中复核（删除在 T49）". If the scope includes Rules, a施工 agent may edit it. Since T49 owns deletion, T55 should not have write scope there. This is an inconsistency. Similarly T55's "重生成 BuildHash" implies shared source changes; maybe it modifies `MatchTestRules` Damage/Rpm? But T55 says Damage/Rpm 保留 (no change). What shared source does T55 change? `SimParamsDebugTunables` in Dev, `SimParamsOverrides` in Dev, `SimParamsExporter` in Editor, `Modules/Config` (shared link? SimConfigMapper/TableLayout maybe), `Server/RoomServer` (not shared), Tests. `Assets/LiteSim/Scripts/Rules` might be for `MatchTestRules`? If no change, no need. It may be there because `SimParamsGate` or `SimParamsOverrides` is in Rules. Plan line 132: "SimParamsOverrides（dev 三宏...不进入共享程序集）" — so not Rules. The only Rules file is `MatchTestRules`, which T49 edits. Thus T55's Rules scope is likely an overlap. This is a solid issue for fix #7.
+
+But T55 must "四几何覆写只做零命中复核" — a grep check doesn't need write scope. So remove Rules. Good blocking? Maybe medium.
+
+Another: T55's acceptance "四几何覆写只做零命中复核（删除在 T49）" but T55's dependency is T54, which is after T49, so T49 already deleted. Fine.
+
+Another: T49's acceptance "T49 唯一负责删除 ResolveHead*/override 四项" but the four names are `HeadHitLineOverride`, `HeadshotRadiusOverride`, `ResolveHeadHitLine`, `ResolveHeadshotRadius`. It says "ResolveHead*/override 四项" — okay.
+
+Another: T50's `CombatConfigDigest`/`GameplayDigestBase` may be in `Assets/LiteGame/Modules/Config`; T50 scope. Fine.
+
+Another: T47's "改 Shared 源后重生成 BuildHash（主代理）" — but T47's acceptance doesn't say `--check-shared`; verification does. Fine.
+
+Another: T44's "15 件+.meta 走 unity-pipeline" — `unity-pipeline` is not a valid tool? The project has `unity-pipeline` CLI; skill. Fine.
+
+Another: "资产搬迁方式" for T51/T52/T53: they say "走 unity-pipeline 删除"; T44 says "unity-pipeline" but plan constraint says `AssetDatabase.MoveAsset`. Unity-pipeline CLI probably uses AssetDatabase.MoveAsset. Fine.
+
+Another: T43's asmdef references `LiteSim`; but if `LiteSync` is in `Assets/LiteSync`, and `Assets/LiteSync` is under `Assets`, the `ClientRoots` guard in T45 later. Fine.
+
+Now, coverage matrix: I need to mention B1~B24 grouped. If I mark B23 partial, say "B23 部分覆盖". Similarly B4/B6/B7 partial, B9/B10 partial, B12 partial, B13 partial. The user wants "覆盖矩阵: 按 B1~B24 分组列出对应任务". I can list all 24 with tasks and note partial.
+
+Let's ensure "B20" and "B21" etc. B19-B21 T55. B22 T45. B23 T56+T57 (partial). B24 T57.
+
+Now, final decision: FAIL with maybe 5 blocking. Let's prioritize the strongest and avoid overloading:
+
+Blocking:
+1. [高][B11/T48] 文件范围缺 `Assets/GameData`（Luban 生成读码/表字节），但 T48 验收要求跑 `Luban/gen.bat` 并重生成；生成物不在范围 → 生成读码未提交/编译中断。建议补 `Assets/GameData/Generated`、`Config`。
+2. [高][B23/T56,T57] `wf verify` 不含 B23 的“两端重建联测”（T56 明示不含人工；T57 手动）→ 门禁虚假通过；且 T46/T57 的“两端重建”只列 `build-player.py`/`player-smoke`，未列 RoomServer 重建/发布，存在旧服务端对账。建议补命令组/明确拆分裁决。
+3. [高][B12/T51] `BakeTargets` 五条输出常量与四条死路径仅写要求未列清单；plan 只给五条去向，未列四条死路径；`PrefabPath` 绑定无具体断言 → 施工子代理无法独立执行/验收。建议列常量→新去向表、四条死路径、SimMapBaker 读 PrefabPath CC + BodyCc 夹具断言。
+4. [中][B15/T54] “GM 房参数 + deploy 两路真实注入”只写在验收，验证仍是“服务端配置注入/EditMode/Play”，未要求真实配置/GM 端点、非测试自造实例 → 可被单元测试虚假通过。建议补真实注入证据（启动横幅/房间配置回读/GM 创建 sandbox 房）+ 三档断言。
+5. [中][权限/B9/B10] T51/T53 `.g.cs` 删除未写“主代理执行”，T47/T48/T49/T50/T54/T55 无执行者；T55 范围含 `LiteSim/Scripts/Rules` 与“T49 唯一删除”冲突；T47 的 `BattleContext` 时序断言/Geometry 展示兜底、T49 的“判定/烘焙不读 Geometry 有断言”未落到具体断言/范围。建议补执行者、收窄 T55 范围、明确断言落点。
+6. [中][B4/B6/B7/T44] T44 验收缺 B4 BuildHash 路径/namespace、B6 IClientTransport grep、B7 DiagTrace 登记理由；WeakNet 搬迁方式未写。— This could be non-blocking. Maybe include as blocking #6? The output "阻塞问题: 5" is cleaner. Which five?
+
+I think 1,2,3,4,5 are enough. But is #4 strong enough to block? "真实注入" is a key user fix #5; the task includes the phrase but verification weak. Could be blocking for "虚假通过". #5 combines permissions and T55 overlap; maybe two separate. If I have 6, okay.
+
+But maybe the expected verdict is PASS because the 7 fixes are all present and the plan is mature. The user's review criteria includes "是否还有编译中断/门禁不可执行/虚假通过" — likely they want a rigorous check. The T48 scope and B23 gate are real. I'd fail.
+
+Let's consider whether T48's `Assets/GameData` omission might be mitigated by T48's file scope `Luban` and the generated files being under `Assets/GameData` generated by `gen.bat`; the task's verification includes `Luban/gen.bat`, and `scripts/codegen/gen-build-hash.py` is not in scope either. The task list's file scope is used by workflow to prevent agents from touching files outside; but generated files are a common exception. The task details should include. I'd still flag.
+
+What about T44's `Assets/LiteNet/LiteNet.csproj` path? Verified `Tests/Tests.slnx`; likely LiteNet.csproj at Assets/LiteNet. Good.
+
+What about `Assets/LiteGame/App` — is there a separate asmdef? likely.
+
+Let's use remaining tool calls? We have used 3 calls (initial 1 with 2 reads, gen-build-hash 1, slnx 1 = 3). We can read one more key file, maybe `.workflow/config.json` to see if `wf verify` command groups can include build-player. But not necessary. Maybe read `Assets/LiteNet/LiteNet.csproj`? Not needed. We have enough.
+
+Could read `.workflow/config.json` to check `sync-and-sim` command group existing? The task is future; config may not have it. No.
+
+Could read `Assets/LiteSim/Scripts/Map` directory listing? `glob` to confirm four `.g.cs` and GripBake location. That would validate T52's claim. But "禁止全仓搜索"; a directory glob is okay. We can use `glob` for `Assets/LiteSim/Scripts/Map/*.g.cs` and `Assets/LiteGame/Modules/Battle/**/GripBake.g.cs`? The latter is repo search. We can read a specific path `Assets/LiteGame/Modules/Battle/Characters/GripBake.g.cs`? If exists, confirm; if not, false. But not necessary; plan says. We should not overrun. Maybe use glob `Assets/LiteSim/Scripts/Map/*.g.cs` (targeted) to confirm four; and `Assets/LiteGame/Modules/Battle/*/GripBake.g.cs` maybe. But the user said max 8 calls and 6 min; we're okay. However, the review is about tasks, not code. The T52 claim "no regen" depends on GripBake location; verifying is valuable. Let's glob for `**/GripBake.g.cs`? That's a repo-wide file search but not content; still maybe violates "禁止全仓搜索". The constraint says "只读 tasks.md/plan.md（可读 1-2 个关键文件核对）；禁止全仓搜索/运行命令". So no. We already read gen-build-hash.py and slnx (2 key files). Stop.
+
+Now, formulate output. Need Chinese plain text, exact format:
+
+结论: FAIL
+阻塞问题: 5
+覆盖矩阵: ...
+阻塞问题清单:
+- [严重度][B 项/任务] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...
+
+Coverage matrix: "按 B1~B24 分组列出对应任务". I can write lines:
+B1 → T43
+B2/B3/B4/B6/B7 → T44（B4/B6/B7 部分）
+B5/B22 → T45
+B8 → T46（服务端重建证据不足）
+B9 → T47+T48（类型/闸门 vs 表）
+B10 → T49（断言归属待明确）
+B11 → T48
+B12 → T51+T52（T51 细节未落实）
+B13/B14 → T50（B13 少一条观测）
+B15 → T54（真实注入验证弱）
+B16/B17/B18 → T53
+B19/B20/B21 → T55（+T49 删除四项）
+B23 → T56+T57（B23 未整体进 verify）
+B24 → T57
+
+Need "无孤儿/重复/越界" findings. I can note T55 scope overlap and T51/T52 split. Maybe in blocking list.
+
+Blocking list details:
+
+1. [高][B11/T48] T48 文件范围只有 `Luban`、`Assets/LiteGame/Modules/Config`、`Server/RoomServer`、`Tests`，但验收要求 `Luban/gen.bat`；生成读码面落 `Assets/GameData/Generated`、表字节落 `Assets/GameData/Config`（且 `Assets/GameData/Generated` 在 SHARED_TARGETS），不在范围 → 生成物可能不随批提交/重生成，`BuildCombatValues(...,tbcombatgeom)` 编译红或 BuildHash 陈旧。建议把 `Assets/GameData/Generated`、`Assets/GameData/Config` 列入范围，或明确由主代理在 T48 末尾统一生成并回填证据。
+   - Note: `Assets/GameData/Config` might be table bytes; `TableLayout.Files` reads from Config. Yes.
+
+2. [高][B23/T56,T57] T56 的命令组明示“不含人工联测”，只含 L1/LiteSync/LiteSim/check-shared/L2；B23 要求 `wf verify` 覆盖“两端重建联测”。T57 的手动 build-player/player-smoke 在 verify 之外，且 T46/T57 的“两端重建”验证未列 RoomServer 重建/发布 → `wf verify` 绿不能证明 B23，存在用旧服务端对账 BuildHash 的虚假通过。建议：把服务端 publish + 两端 BuildHash/ConfigHash 对账纳入命令组或新增可执行的 verify 步骤；若确实无法自动化，需用户裁决并改写 B23/验收。
+   - Is `wf verify` able to run build-player? Maybe not; but then B23 needs revision. Good.
+
+3. [高][B12/T51] `BakeTargets` 五条输出常量、四条死路径、`PrefabPath` 绑定在 T51 只是关键词，未列常量→新去向清单、四条死路径具体路径、SimMapBaker 读 `BakeTargets.PrefabPath` CC 的断言；plan 也只列五条去向（Body/Head/Muzzle→表，RootMotion/Grip→.bin），未列四条死路径。施工子代理无法独立执行/验收，容易漏项或把未发布默认回退当写入源。建议在 tasks 或 plan 增表：五常量→新去向、四条死路径→修正后路径、`SimMapBaker` 读 PrefabPath + `Tests/EditMode/Fixtures/BodyCc.json` 夹具断言（半径+高）及负例。
+   - Good.
+
+4. [中][B15/T54] “GM 房参数 + deploy 配置两路真实注入”只写在验收短语，验证仍是“服务端配置注入；LocalServerHandshake/EditMode/Play”，没有要求真实读取 `deploy/roomserver.windows.json` 三档或经 GM `start` 创建 sandbox 房、回读生效值；“非测试自造实例”未写入。建议补两路证据（启动横幅/房间配置回读、GM 创建房后 `AoiSettings` 生效断言）与三档（全开/30m/15m）断言，禁止直接 new `AoiSettings` 的单元测试充当验收。
+   - Good.
+
+5. [中][B9/B10/T47,T49,T55] 权限与唯一责任：T51/T53 的 `.g.cs` 删除写“走 unity-pipeline”但未写“主代理执行”（T52 写了），T47/T48/T49/T50/T54/T55 未写执行者；T55 文件范围仍含 `Assets/LiteSim/Scripts/Rules`，而其验收又说四几何覆写“只做零命中复核（删除在 T49）”，与 T49 唯一删除冲突/可能重复改 `MatchTestRules`；T47 的 `CombatConfig.Geometry` 未发布回退 `CombatValues.Default.Geometry`、`BattleContext.cs:305` 时序断言、T49 的“判定/烘焙不读 Geometry 有断言”未落到具体断言/范围。建议每任务补执行者；删除 T55 的 Rules 写范围或注明只读；把断言测试名/落点写进 T47/T49 验收，并把 BattleContext 所在 `Assets/LiteGame/Modules/Battle/Arena` 纳入相应任务范围。
+   - This is a combined issue; maybe too many sub-issues. But okay.
+
+Could add 6th: [中][B4/B6/B7/T44] T44 验收缺 B4 path/namespace, B6 IClientTransport, B7 DiagTrace registration; WeakNet move method. Should I include? If I include, "阻塞问题: 6". The user wants count. Maybe list as non-blocking suggestions instead. But B4/B6/B7 partial coverage is a coverage issue; if not blocking, "B1~B24 全覆盖" is not strict. I can put in non-blocking suggestions: "T44 补齐 B4/B6/B7 细项". But then coverage matrix says B4/B6/B7 partial, yet non-blocking. Hmm.
+
+If I mark B4/B6/B7 partial as blocking, then 6. Let's decide. The acceptance text:
+- T44: "B2/B3/B4/B6/B7：15 件+.meta 走 unity-pipeline；LiteNet.asmdef/csproj 删 LiteSim；LiteGame.App/Editor、Server/RoomServer、Tests.slnx 补 LiteSync 引用；SHARED_TARGETS 增 Four dirs（不含 Client）并重生成 BuildHash（主代理执行）；WeakNet 移 Dev；DiagTrace 保留。"
+Missing B4 "BuildHash.g.cs 路径与 namespace LiteNet 未变"; B6 "LiteNet 只留 IClientTransport/IClientTransportErrorSource (grep)"; B7 "登记理由 + Dev 只经 DebugKernel 读". These are specific and part of B4/B6/B7. If omitted, the task could pass B2/B3 but fail B4/B6/B7. The user's review asks "B1~B24 是否全覆盖" — this is a direct miss. Is it blocking? It's an acceptance gap, but the plan has them; a施工 agent reading plan can implement. The task list is the effective instruction; the plan is also available. The task tags include B items. I'd classify as non-blocking (acceptance summary can be less detailed) but note. However, the user's review is strict; maybe blocking. Let's weigh the severity: B4 path/namespace is important for handshake (BuildHash output path). B6/B7 are hygiene. The plan itself states B4/B6/B7; the task list tags them. A task reviewer might accept because plan is the spec. I'd put in non-blocking suggestions to avoid over-failing.
+
+Similarly B13 missing "GameplayDigestBase 变化可观测" — non-blocking.
+
+Now, "主要优点":
+- 7 项整改均落到 T43~T57 文本：T47 regen main; T44 scope; T51/T52/T53 main; T52 no regen justification; T51 BakeTargets; T54 two-path; T55 grep/assertions; T49/T55 unique deletion.
+- B1~B24 均有任务归属，无孤儿；依赖线性清晰；共享源集任务均带 regen+check（T52 有合理豁免）。
+- 文件范围较前几轮明显收敛，Tests.slnx 路径正确（`Tests/Tests.slnx` 实测存在）。
+- 资产搬迁/删除走 unity-pipeline，保留 T44/T52 主代理执行。
+
+"非阻塞建议":
+- T44 补 B4/B6/B7 细项（BuildHash 路径/namespace、IClientTransport grep、DiagTrace 登记与 DebugKernel 读取断言）；WeakNet 搬迁方式写清。
+- T50 补“改表后 GameplayDigestBase 变化可观测”断言/测试名。
+- T46/T57 的“两端重建”补 RoomServer `dotnet publish` 命令与 BuildHash/ConfigHash 对账证据。
+- T55 验证清单补“grep/负例”命令（现在只在验收文字）。
+- T57 file scope includes docs + build; okay.
+- T51/T53 executor.
+- T55 scope Rules.
+
+But if I put permissions in blocking #5, no need non-blocking.
+
+Need "文件范围/验收是否一致；主代理/施工子代理权限；资产搬迁方式" — address in blocking #1, #5, #3. Good.
+
+"任务粒度、依赖、验证是否可独立执行" — #3, #4.
+
+"是否还有编译中断/门禁不可执行/虚假通过" — #1 (compile), #2 (gate), #4 (false pass), #5.
+
+Now, should the verdict be PASS if only 5 "medium" issues? The format asks "阻塞问题: <数量>"; I can say 5 and FAIL. Fine.
+
+Let's ensure the output is Chinese plain text, no markdown heavy? It says "输出（中文纯文本）" with headings. We can use plain text with lines. Avoid tables? "覆盖矩阵: 按 B1~B24 分组列出对应任务" — plain lines.
+
+Let's count B items in matrix:
+B1 T43
+B2 T44
+B3 T44
+B4 T44 (partial)
+B5 T45
+B6 T44 (partial)
+B7 T44 (partial)
+B8 T46
+B9 T47+T48
+B10 T49
+B11 T48
+B12 T51+T52
+B13 T50 (partial)
+B14 T50
+B15 T54
+B16 T53
+B17 T53
+B18 T53
+B19 T55 (+T49 deletion)
+B20 T55
+B21 T55
+B22 T45
+B23 T56+T57 (partial)
+B24 T57
+
+That's 24. Good.
+
+Maybe note "B12 的 rootmotion.bin 摘要部分在 T53/T51/T52 之间，T51 只覆盖 Body/Head/Muzzle". B12 split T51+T52; rootmotion is T53. The B12 tag on T51/T52 but rootmotion.bin output summary is T53? T51 doesn't cover RootMotionData; T53 covers rootmotion.bin. B12 says "rootmotion.bin/grip.bin 输出摘要等于预期". T53 covers rootmotion; T52 covers grip. In matrix, B12 → T51+T52+T53 maybe. Add "B12 → T51+T52+T53（rootmotion 摘要落 T53）". But T51/T52 tag B12; T53 tags B16-18. Does T53 acceptance include "rootmotion.bin 输出摘要等于预期"? It says "RootMotionCatalog.Load/rootmotion.bin/Digest/..." and "RootMotionDataTests". Likely. I'll note.
+
+B9 → T47+T48; T48 tags B11+B9 table. Good.
+
+B4 → T44. B6/B7 → T44.
+
+B19 deletion → T49, not T55. Matrix "B19 → T55（删除四项由 T49 执行）".
+
+B23 → T56（自动部分）+T57（人工部分）; note partial.
+
+Now, "阻塞问题清单" severity labels: use [高]/[中]. The format says "[严重度][B 项/任务]". Good.
+
+Let's draft concise Chinese.
+
+Potential critique: #4 T54 "真实注入" — T54's acceptance actually says "服务端真实配置（deploy... 三档 + GM 房参数两路）注入". It is in acceptance. The verification "服务端配置注入；LocalServerHandshake/EditMode/Play" doesn't mention real. I can say "验收有短语但验证方式没有真实注入证据，仍可由直接 new AoiSettings 的用例通过". That's fair.
+
+Potential critique: #5 combines too many; maybe split into 5a permissions and 5b B9/B10 assertion. But "阻塞问题: 5" and one bullet can contain multiple related. The user wants list; okay. Maybe make 6 to be clearer:
+5. [中][权限/T51,T53,T47...] executor gaps.
+6. [中][B9/B10/T47,T49,T55] assertion/scope conflicts.
+Then count 6. Is 6 too many? Fine. But the output should be decisive. Let's do 6? The user asked "阻塞问题: <数量>". 6 is okay.
+
+However, too many blocking may dilute. Let's prioritize 5:
+1. T48 scope.
+2. B23 gate.
+3. T51 BakeTargets.
+4. T54 real injection.
+5. Permissions + T55 overlap + B9/B10 assertions (combined).
+Then non-blocking B4/B6/B7, B13, RoomServer rebuild.
+
+Wait, T46/T57 RoomServer rebuild is important; I put it in #2. Good.
+
+Now, is T48 scope truly a "file range" issue? The file scope in tasks.md detail line 345: "Luban, Assets/LiteGame/Modules/Config, Server/RoomServer, Tests". It lacks `Assets/GameData`. Yes.
+
+Now, "B1~B24 是否全覆盖、无孤儿/重复/越界" — I should explicitly say "B1~B24 均有归属，无孤儿；但 B4/B6/B7/B13/B23 的验收细项不完整；T55 范围与 T49 重叠". In coverage matrix, mark partial. Good.
+
+"每个改共享源集任务是否有重生成+check 与执行人" — say "T44/T47/T48/T49/T50/T51/T53/T54/T55 均有重生成+check，且标主代理；T52 有合理豁免（GripBake 非共享源集）；T45/T46 不改共享源集。执行人只写到重生成，未写到任务整体/资产删除（见阻塞 5）". Good.
+
+"文件范围/验收是否一致；主代理/施工子代理权限；资产搬迁方式" — address.
+
+"是否还有编译中断/门禁不可执行/虚假通过" — #1, #2, #4.
+
+"任务粒度、依赖、验证是否可独立执行" — #3, #5.
+
+Let's write final answer with no citations needed. Keep under ~1200 words? The user wants detailed. We have enough.
+
+Need ensure "纯文本" no markdown table? The format uses headings; plain lines okay. Avoid bullet symbols? It asks "主要优点: - ..." so use `-`. Fine.
+
+Let's produce.
+
+One more thought: The user says "第 3 轮 7 个阻塞的整改" — they might expect a PASS if all 7 are fixed. If I FAIL, I should clearly state the 7 are fixed but residual blockers. In "主要优点" note all 7 incorporated. In "结论", FAIL due to residual. Good.
+
+Let's ensure "阻塞问题: 5" matches list count. If I list 5 bullets. Let's make each bullet distinct.
+
+Blocking 1: T48 generated scope.
+Blocking 2: B23 gate / server rebuild.
+Blocking 3: T51 BakeTargets details.
+Blocking 4: T54 real injection.
+Blocking 5: permissions + T55 overlap + B9/B10 assertions.
+
+Maybe split #5 into two so count 6. The combined bullet is long. The user wants actionable. Let's split:
+5. [中][权限/T51,T53,T47,T48,T49,T50,T54,T55] executor gaps / asset deletion.
+6. [中][B9/B10/T47,T49,T55] assertion and scope conflict.
+Then count 6. Is #6 blocking? B9/B10 are core; yes, the "判定/烘焙不读 Geometry 有断言" is not explicit. T55's Rules overlap with T49 violates fix #7. That's blocking. Good. 6 blockers.
+
+But "T55 文件范围含 Rules" — maybe T55 needs to modify `MatchTestRules` to remove old `HeadHitLine` usage? T49 deletes by T49. T55's scope could be leftover; a施工 agent might touch. It's a direct conflict with fix #7. Good.
+
+"T47's BattleContext timing" — T47 scope excludes Arena; T49 scope includes LiteGame. The assertion could be in T47 tests. But no explicit. Mention.
+
+Now, non-blocking:
+- T44 B4/B6/B7 details.
+- T50 B13 observe.
+- T46/T57 server publish (if not in #2 already; #2 includes).
+- T55 verification grep command.
+- T57 final doc evidence.
+
+Maybe "T44 WeakNet move method" non-blocking? If asset move via unity-pipeline not stated, could be blocking; but T44's "15 件+.meta 走 unity-pipeline" doesn't cover WeakNet. It says "WeakNet 移 Dev" and verification "unity-pipeline 回读+git status 成对" — likely covers all. Non-blocking.
+
+Let's write.

@@ -74,7 +74,7 @@ namespace LiteSim.Tests
                 InputSystem.Run(world, gapFrame, CombatValues.Default);
             Assert.Equal(0, world.Entities[slot].FireStanceFrames);
             float before = world.Entities[slot].Yaw;
-            float step = CombatConfig.FaceTurnRadPerSec * SimConfig.Dt;
+            float step = CombatValues.Default.Geometry.FaceTurnRadPerSec * SimConfig.Dt;
             InputSystem.Run(world, gapFrame, CombatValues.Default);
             float after = world.Entities[slot].Yaw;
             Assert.True(after != before, "窗尽回转开始（不保持准星向）");
@@ -201,7 +201,7 @@ namespace LiteSim.Tests
             for (int i = 0; i < 2; i++) InputSystem.Run(world, gap, CombatValues.Default);
             Assert.True(world.Entities[slot].FireStanceFrames == 0, "窗尽归零");
             float before = world.Entities[slot].Yaw;
-            float step = CombatConfig.FaceTurnRadPerSec * SimConfig.Dt;
+            float step = CombatValues.Default.Geometry.FaceTurnRadPerSec * SimConfig.Dt;
             InputSystem.Run(world, gap, CombatValues.Default);
             float after = world.Entities[slot].Yaw;
             Assert.True(after != before, "窗尽后回转开始（不保持准星向）");

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace LiteGame.View.Animation
@@ -19,7 +20,7 @@ namespace LiteGame.View.Animation
     /// 位移（保持动画自身的枪位/后坐相对姿态，不覆盖成固定持枪偏移）。
     ///
     /// **骨解析**：Chest 走 <see cref="Animator.GetBoneTransform"/>（人形映射——任意人形 Rig 零路径常量）；
-    /// 枪骨走 <see cref="GripBake.WeaponPath"/>（与持枪约束同一烘焙常量）。缺 Chest → <see cref="IsValid"/>
+    /// 枪骨走 <see cref="WeaponGripCatalog.WeaponPath"/>（与持枪约束同一数据产物）。缺 Chest → <see cref="IsValid"/>
     /// false 的显性失败面；缺枪骨只影响镜像（胸仍转）。
     /// </summary>
     public sealed class AimPitchPostureDriver
@@ -34,14 +35,17 @@ namespace LiteGame.View.Animation
         /// <summary>已实际覆写的帧数（诊断/测试读值：射击语境内应随帧增长，语境外恒 0）。</summary>
         public int AppliedFrames { get; private set; }
 
-        public AimPitchPostureDriver(Animator animator)
+        /// <summary>构造：枪骨路径取自 <paramref name="catalog"/>（grip.bin 数据产物）。
+        /// catalog 必填（null 抛 <see cref="ArgumentNullException"/>）。</summary>
+        public AimPitchPostureDriver(Animator animator, WeaponGripCatalog catalog)
         {
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
             _animator = animator;
             // 无 Avatar（灰盒替身/清单供片的测试视图）没有 humanoid 骨骼映射：
             // GetBoneTransform 会抛 "Avatar is null"——显性退化（IsValid=false）才是契约。
             if (animator == null || animator.avatar == null) return;
             _chest = animator.GetBoneTransform(HumanBodyBones.Chest);
-            _weapon = animator.transform.Find(GripBake.WeaponPath);
+            _weapon = animator.transform.Find(catalog.WeaponPath);
         }
 
         /// <summary>射击语境在场时按相机 pitch 覆写胸骨俯仰，并把同一世界旋转镜像到根级枪骨；

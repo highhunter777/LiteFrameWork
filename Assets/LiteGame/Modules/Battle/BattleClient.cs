@@ -3,6 +3,7 @@ using LiteNet;
 using LiteNet.Transport;
 using LiteFramework;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>

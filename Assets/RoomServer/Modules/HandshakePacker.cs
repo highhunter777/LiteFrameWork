@@ -1,4 +1,6 @@
-using LiteNet.Protocol;
+using LiteSync.Input;
+using LiteSync.Shared;
+using LiteSync.Snapshot;
 using LiteSim;
 using RoomServer.Runtime;
 using Proto = LiteNet.Proto;
@@ -19,16 +21,19 @@ namespace RoomServer.Application
     /// </summary>
     public static class HandshakePacker
     {
-        /// <summary>席位就位 → JoinAck（Members 为当前全员快照；SnapshotHz/TickRate 是两端共读的协议常量）。</summary>
+        /// <summary>席位就位 → JoinAck（Members 为当前全员快照；SnapshotHz 是房级参数，TickRate 是两端共读的协议常量）。</summary>
         public static Proto.JoinAck BuildJoinAck(PlayerAdmitted admitted, string reconnectToken,
-            int reconnectWindowSeconds, int mapId, int expectedPlayers)
+            int reconnectWindowSeconds, int mapId, int expectedPlayers, int snapshotHz)
         {
+            if (snapshotHz < ProtocolConstants.MinSnapshotHz || snapshotHz > ProtocolConstants.MaxSnapshotHz)
+                throw new System.ArgumentOutOfRangeException(nameof(snapshotHz), snapshotHz,
+                    $"快照频率越界（允许 {ProtocolConstants.MinSnapshotHz}..{ProtocolConstants.MaxSnapshotHz}）");
             var ack = new Proto.JoinAck
             {
                 PlayerId = admitted.PlayerId,
                 ReconnectToken = reconnectToken,
                 ReconnectWindowSeconds = reconnectWindowSeconds,
-                SnapshotHz = SimConfig.SnapshotHz,
+                SnapshotHz = snapshotHz,
                 TickRate = SimConfig.TickRate,
                 IsOwner = admitted.IsOwner,           // 开房裁决：开房者=首入座者——UI"开始对局"按钮归属
                 MapId = mapId,                        // 多图批：本房地图行键（0 = 未标注）

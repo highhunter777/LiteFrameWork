@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using Tools.DisciplineScan;
 using Xunit;
-
 namespace LiteFramework.Tests
 {
     /// <summary>

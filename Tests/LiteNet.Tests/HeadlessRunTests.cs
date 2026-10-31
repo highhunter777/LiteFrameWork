@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Threading;
 using LiteTesting;
 using LiteNet;
-using LiteNet.Protocol;
+using LiteGame.Adapters.Dev.Debug.WeakNet;
 using LiteNet.Transport;
 using LiteNet.Diagnostics;
 using LiteSim;
@@ -13,6 +13,7 @@ using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
 
+using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>

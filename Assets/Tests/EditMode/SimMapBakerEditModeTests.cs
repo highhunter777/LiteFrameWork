@@ -38,7 +38,7 @@ namespace LiteGame.Tests.EditMode
             Box(_root, "wall", new Vector3(1.25f, 1.25f, 7f), new Vector3(5f, 2.5f, 0.6f));
             Spawn(_root, "spawn_00", new Vector3(-1f, 0f, -1f));
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out string json,
+            string report = Collect(_root, out SimMapData map, out string json,
                 scenePath: BakeTargets.MapScenePath);
 
             Assert.IsNotNull(map, report);
@@ -76,7 +76,7 @@ namespace LiteGame.Tests.EditMode
             Sphere(_root, "pylon", new Vector3(0f, 3f, 0f), 1f);
             Spawn(_root, "spawn_00", Vector3.zero);
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNotNull(map, report);
             SimObstacle o = map.Obstacles[0];
@@ -93,7 +93,7 @@ namespace LiteGame.Tests.EditMode
             Box(_root, "rot90", new Vector3(0f, 1.25f, 0f), new Vector3(6f, 2.5f, 0.6f), 90f);
             Spawn(_root, "spawn_00", SafeSpawn);
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNotNull(map, report);
             SimObstacle o = map.Obstacles[0];
@@ -110,8 +110,8 @@ namespace LiteGame.Tests.EditMode
             Spawn(_root, "spawn_01", new Vector3(9f, 0f, 9f));
             Spawn(_root, "spawn_00", new Vector3(0f, 0f, 0f));
 
-            string r1 = SimMapBaker.Collect(_root, out SimMapData m1, out string j1);
-            string r2 = SimMapBaker.Collect(_root, out SimMapData m2, out string j2);
+            string r1 = Collect(_root, out SimMapData m1, out string j1);
+            string r2 = Collect(_root, out SimMapData m2, out string j2);
 
             Assert.IsNotNull(m1, r1);
             Assert.IsNotNull(m2, r2);
@@ -129,7 +129,7 @@ namespace LiteGame.Tests.EditMode
             PrimitiveMesh(_root, "mesh_proxy");
             Spawn(_root, "spawn_00", Vector3.zero);
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out string json);
+            string report = Collect(_root, out SimMapData map, out string json);
 
             Assert.IsNull(map, "MeshCollider 默认策略必须拒载");
             Assert.IsNull(json, "拒载时不得产出 JSON");
@@ -145,7 +145,7 @@ namespace LiteGame.Tests.EditMode
             PrimitiveMesh(_root, "mesh_proxy");
             Spawn(_root, "spawn_00", SafeSpawn);
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _, MeshColliderPolicy.ReportOnly);
+            string report = Collect(_root, out SimMapData map, out _, MeshColliderPolicy.ReportOnly);
 
             Assert.IsNotNull(map, report);
             SimObstacle o = map.Obstacles[0];
@@ -163,7 +163,7 @@ namespace LiteGame.Tests.EditMode
             Box(_root, "tilted", new Vector3(0f, 0.5f, 0f), Vector3.one, 45f);
             Spawn(_root, "spawn_00", Vector3.zero);
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNull(map);
             StringAssert.Contains("tilted", report);
@@ -178,7 +178,7 @@ namespace LiteGame.Tests.EditMode
             go.transform.localRotation = Quaternion.Euler(30f, 0f, 0f);
             Spawn(_root, "spawn_00", Vector3.zero);
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNull(map);
             StringAssert.Contains("pitch/roll", report);
@@ -191,7 +191,7 @@ namespace LiteGame.Tests.EditMode
             Box(_root, "surf_concrete_box_01", new Vector3(0f, 0.5f, 0f), Vector3.one);
             Spawn(_root, "spawn_00", SafeSpawn);
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNotNull(map, report);
             Assert.AreEqual(SimObstacleSurface.Concrete, map.Obstacles[0].Surface);
@@ -204,7 +204,7 @@ namespace LiteGame.Tests.EditMode
             Box(_root, "surf_bogus_box", new Vector3(0f, 0.5f, 0f), Vector3.one);
             Spawn(_root, "spawn_00", Vector3.zero);
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNull(map);
             StringAssert.Contains("未知名", report);
@@ -219,7 +219,7 @@ namespace LiteGame.Tests.EditMode
             Box(_root, "cover", new Vector3(0f, 0.5f, 0f), new Vector3(2f, 1f, 2f));
             Spawn(_root, "spawn_00", Vector3.zero);
 
-            string inside = SimMapBaker.Collect(_root, out SimMapData m0, out _);
+            string inside = Collect(_root, out SimMapData m0, out _);
             Assert.IsNull(m0, "出生点落在障碍内必须拒载（不产半成品）");
             StringAssert.Contains("spawn_00", inside);
             StringAssert.Contains("出生点落在障碍内", inside);
@@ -231,7 +231,7 @@ namespace LiteGame.Tests.EditMode
             Spawn(_root, "spawn_01", new Vector3(101f, 0f, 0f));     // bounds ±100（NewRoot 的 map_bounds）
             Spawn(_root, "spawn_02", new Vector3(0f, 0f, 101f));
 
-            string outside = SimMapBaker.Collect(_root, out SimMapData m1, out _);
+            string outside = Collect(_root, out SimMapData m1, out _);
             Assert.IsNull(m1, "出生点越界必须拒载");
             StringAssert.Contains("spawn_01", outside);
             StringAssert.Contains("出生点越界", outside);
@@ -242,7 +242,7 @@ namespace LiteGame.Tests.EditMode
             Box(_root, "cover", new Vector3(0f, 0.5f, 0f), new Vector3(2f, 1f, 2f));
             Spawn(_root, "spawn_00", new Vector3(0f, 5f, 0f));
 
-            string floating = SimMapBaker.Collect(_root, out SimMapData m2, out _);
+            string floating = Collect(_root, out SimMapData m2, out _);
             Assert.IsNotNull(m2, floating);
         }
 
@@ -253,10 +253,10 @@ namespace LiteGame.Tests.EditMode
             // 落点与场景标记不符（旧实现只在"点在截面内"时拦，靠作者记得留余量）。
             _root = NewRoot();
             Box(_root, "cover", new Vector3(0f, 0.5f, 0f), new Vector3(2f, 1f, 2f));   // 盒面 x=1
-            float gap = BodyBake.Radius * 0.5f;
+            float gap = TestBodyRadius * 0.5f;
             Spawn(_root, "spawn_00", new Vector3(1f + gap, 0f, 0f));
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNull(map, "出生点离障碍小于身位半径必须拒载（出生首帧会被去穿插推出）");
             StringAssert.Contains("spawn_00", report);
@@ -266,9 +266,9 @@ namespace LiteGame.Tests.EditMode
             Object.DestroyImmediate(_root);
             _root = NewRoot();
             Box(_root, "cover", new Vector3(0f, 0.5f, 0f), new Vector3(2f, 1f, 2f));
-            Spawn(_root, "spawn_00", new Vector3(1f + BodyBake.Radius + 0.01f, 0f, 0f));
+            Spawn(_root, "spawn_00", new Vector3(1f + TestBodyRadius + 0.01f, 0f, 0f));
 
-            string clear = SimMapBaker.Collect(_root, out SimMapData ok, out _);
+            string clear = Collect(_root, out SimMapData ok, out _);
             Assert.IsNotNull(ok, clear);
         }
 
@@ -283,7 +283,7 @@ namespace LiteGame.Tests.EditMode
             bounds.AddComponent<MapBoundsMarker>();              // 作者漏赋值：缺省 0
             Spawn(_root, "spawn_00", Vector3.zero);
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNull(map, "边界未显式赋值（半宽/半深 0）必须拒载");
             StringAssert.Contains("边界半宽/半深须为正", report);
@@ -295,12 +295,12 @@ namespace LiteGame.Tests.EditMode
             _root = NewRoot();
             Box(_root, "wall", new Vector3(0f, 0.5f, 0f), Vector3.one);
 
-            string none = SimMapBaker.Collect(_root, out SimMapData m0, out _);
+            string none = Collect(_root, out SimMapData m0, out _);
             Assert.IsNull(m0);
             StringAssert.Contains("出生点为 0", none);
 
             for (int i = 0; i < 17; i++) Spawn(_root, $"spawn_{i:00}", new Vector3(i, 0f, 0f));
-            string over = SimMapBaker.Collect(_root, out SimMapData m1, out _);
+            string over = Collect(_root, out SimMapData m1, out _);
             Assert.IsNull(m1);
             StringAssert.Contains("> 上限", over);
         }
@@ -313,7 +313,7 @@ namespace LiteGame.Tests.EditMode
             GameObject spawn = Spawn(_root, "spawn_00", Vector3.zero);
             spawn.AddComponent<BoxCollider>();
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNull(map);
             StringAssert.Contains("出生标记件不得挂碰撞体", report);
@@ -326,7 +326,7 @@ namespace LiteGame.Tests.EditMode
             Box(_root, "wall", new Vector3(0f, 0.5f, 0f), Vector3.one);
             Spawn(_root, "spawn_00", Vector3.zero);
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNull(map, "缺 map_bounds 必须拒载（禁硬编码回退）");
             StringAssert.Contains(BakeTargets.MapBoundsObject, report);
@@ -343,7 +343,7 @@ namespace LiteGame.Tests.EditMode
             Box(_root, "tiny_dropped", new Vector3(0f, 0.5f, 50f), new Vector3(0.5f, 1f, 0.5f));
             Spawn(_root, "spawn_00", new Vector3(0f, 0f, 60f));
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+            string report = Collect(_root, out SimMapData map, out _);
 
             Assert.IsNotNull(map, report);
             Assert.AreEqual(SimMapData.MaxObstacles, map.ObstacleCount);
@@ -352,6 +352,17 @@ namespace LiteGame.Tests.EditMode
         }
 
         // ---- 合成根原语 ----
+
+        /// <summary>合成根用例显式传入的身位几何（生产路径由 prefab CC/表行/夹具三方对账后传入）。</summary>
+        private const float TestBodyRadius = 0.32f;
+        private const float TestBodyHeight = 1.8f;
+
+        private static string Collect(GameObject root, out SimMapData map, out string json,
+            MeshColliderPolicy policy = MeshColliderPolicy.Fail, string scenePath = null)
+        {
+            return SimMapBaker.Collect(root, out map, out json, TestBodyRadius, TestBodyHeight,
+                policy, scenePath: scenePath);
+        }
 
         private static GameObject NewRoot()
         {

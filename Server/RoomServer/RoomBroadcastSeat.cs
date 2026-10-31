@@ -1,5 +1,6 @@
 using RoomServer.Application;
 
+using LiteSync.Client;
 namespace RoomServer
 {
     /// <summary>

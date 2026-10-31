@@ -4,6 +4,7 @@ using LiteNet.Protocol;
 using LiteNet.Transport;
 using Xunit;
 
+using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>

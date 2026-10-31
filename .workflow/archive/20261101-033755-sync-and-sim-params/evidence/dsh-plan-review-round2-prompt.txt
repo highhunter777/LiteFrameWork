@@ -1,0 +1,29 @@
+你是本项目的独立方案评审子代理（外部 dsh 代理），对**修订后的方案**做第二轮复评。只读评审：禁止修改任何文件，禁止运行 Unity、构建或测试。
+
+仓库：E:\unityProject\Test（当前工作目录）。基线：git HEAD 8a8fe0bf。评审对象：`.workflow/active/sync-and-sim-params/plan.md`（已按首轮 10 个阻塞项重写）。
+首轮评审：`.workflow/active/sync-and-sim-params/reviews/plan-review.md`（dsh 首轮 FAIL，10 个阻塞）。
+项目规则：`AGENTS.md`；评审清单：`.agents/skills/staged-delivery/references/artifact-quality.md` 的「方案评审」一节。
+
+评审重点：
+1. 首轮 10 个阻塞（P-1~P-10）是否真的解决，是否还有残留或新引入的矛盾。
+2. 验收标准 B1~B24 是否逐条可观察、可判定、能映射到测试。
+3. 新增裁决是否自洽：P-6 扩范围全迁（五件 `.g.cs`、SimMapBaker/WeaponGrip 消费面、`WriteGenerated` 删除）、P-3 嵌套 `CombatGeometry`（11 字段/9 参数）、P-9 B 先且独占 `BakeTargets`。
+4. 是否还有会导致实施者编译红/虚假通过/启动崩的断点。
+
+约束：
+- 最多 12 次工具调用；优先读 plan.md 全文；抽查关键文件不超过 6 个（建议：CombatValues.cs、CombatConfig.cs、TableLayout.cs、SimMapBaker.cs、gen-build-hash.py、ClientAsmdefAllowlistTests.cs）。
+- 禁止全仓搜索、禁止运行命令、禁止修改文件；无法核实的项列为非阻塞待确认，不要继续调查。
+- 8 分钟内给出结论。
+
+输出格式（中文，纯文本，直接给结论）：
+结论: PASS 或 FAIL
+验收标准: PASS 或 FAIL
+阻塞问题: <数量>
+阻塞问题清单:
+- [严重度][文件/章节] 问题描述；建议修复方式
+主要优点:
+- ...
+非阻塞建议:
+- ...
+抽查证据:
+- 实际查看的文件与关键发现（文件:行号）

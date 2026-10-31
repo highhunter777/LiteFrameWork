@@ -205,11 +205,11 @@ namespace LiteSim.Tests
             long dead = world.Spawn(new EntitySlot { Hp = 0, Pos = new SimVector3(5f, 0f, 0f) }, out int ds);
             _ = dead;
 
-            bool hit = SimRaycast.RaycastEntities(world, ss, 0f, 1f, 0f, 1f, 0f, 100f, out int hitSlot, out float t);
+            bool hit = SimRaycast.RaycastEntities(world, ss, 0f, 1f, 0f, 1f, 0f, 100f, out int hitSlot, out float t, CombatValues.Default.Geometry);
 
             Assert.True(hit);
             Assert.Equal(ts, hitSlot);                    // 尸体不挡（Hp≤0 跳过），活体 10m 命中
-            Assert.Equal(10f - CombatConfig.HitscanRadius, t, 4);   // 近弧 = 圆心距 − 半径
+            Assert.Equal(10f - CombatValues.Default.Geometry.HitscanRadius, t, 4);   // 近弧 = 圆心距 − 半径
         }
 
         [Fact]
@@ -218,12 +218,12 @@ namespace LiteSim.Tests
             // 两目标同距且都恰压圆柱边缘（垂距 = 半径，切线命中）——原内联式"遍历升序 + 严格小于" ⇒ 低槽位胜
             var world = EmptyWorld();
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out int ss);
-            float R = CombatConfig.HitscanRadius;
+            float R = CombatValues.Default.Geometry.HitscanRadius;
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, R) }, out int a);
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, -R) }, out int b);
             _ = b;
 
-            bool hit = SimRaycast.RaycastEntities(world, ss, 0f, 1f, 0f, 1f, 0f, 100f, out int hitSlot, out float t);
+            bool hit = SimRaycast.RaycastEntities(world, ss, 0f, 1f, 0f, 1f, 0f, 100f, out int hitSlot, out float t, CombatValues.Default.Geometry);
 
             Assert.True(hit);
             Assert.Equal(a, hitSlot);
@@ -236,7 +236,7 @@ namespace LiteSim.Tests
             var world = EmptyWorld();
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out int ss);
 
-            Assert.False(SimRaycast.RaycastEntities(world, ss, 0f, 1f, 0f, 1f, 0f, 100f, out int hitSlot, out float t));
+            Assert.False(SimRaycast.RaycastEntities(world, ss, 0f, 1f, 0f, 1f, 0f, 100f, out int hitSlot, out float t, CombatValues.Default.Geometry));
             Assert.Equal(-1, hitSlot);
             Assert.Equal(100f, t, 5);
         }

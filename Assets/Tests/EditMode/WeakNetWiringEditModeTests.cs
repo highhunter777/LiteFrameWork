@@ -6,6 +6,7 @@ using LiteNet.Diagnostics;
 using LiteNet.Transport;
 using NUnit.Framework;
 
+using LiteGame.Adapters.Dev.Debug.WeakNet;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>弱网注入装配/写口/快照/曲线/静态状态守卫。</summary>

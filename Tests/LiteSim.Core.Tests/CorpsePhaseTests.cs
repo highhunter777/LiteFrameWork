@@ -83,7 +83,7 @@ namespace LiteSim.Tests
             SimStep.Step(world, Map(), FireAt(shooter), CombatValues.Default, WeaponTable.Default);
             Assert.True(Alive(world, targetSlot), "前置：尸体期内存活");
 
-            for (int i = 0; i < CombatConfig.CorpseFrames; i++)
+            for (int i = 0; i < CombatValues.Default.Geometry.CorpseFrames; i++)
                 SimStep.Step(world, Map(), new SimInputFrame[0], CombatValues.Default, WeaponTable.Default);  // 空输入推进——含死亡帧本身的一次递减
 
             Assert.False(Alive(world, targetSlot), "期满回收（bitmap 清）");

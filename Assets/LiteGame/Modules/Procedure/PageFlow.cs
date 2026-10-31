@@ -7,6 +7,7 @@ using LiteGame.Modules.Settings;
 using LiteGame.Modules.Ui;
 using XLua; // lint-allow R12：页面数据表（LuaUIData，模块层包装）与结算数据构造点在流程侧——与 MetaBridge/ProductSettings 同判据（模块自持 Lua 门面形）
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>

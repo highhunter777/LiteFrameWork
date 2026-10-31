@@ -72,17 +72,17 @@ namespace LiteSim
         /// <param name="t">命中距离（未命中 = maxT）。</param>
         public static bool RaycastEntities(SimWorldState s, int skipSlot,
             float ox, float oy, float oz, float dx, float dz, float dy, float maxT,
-            out int hitSlot, out float t, MatchTestRules rules = null)
+            out int hitSlot, out float t, in CombatGeometry geometry)
         {
             hitSlot = -1;
             float hitT = maxT;
 
-            // 双柱几何（每目标同刻取值——爆头带试验覆写经 rules 注入随动；null = 烘焙导出值）
-            float bodyR2 = CombatConfig.HitscanRadius * CombatConfig.HitscanRadius;
-            float headR = MatchTestRules.ResolveHeadshotRadius(rules);
+            // 双柱几何（几何来自本局 CombatValues.Geometry；机制面零静态读）
+            float bodyR2 = geometry.HitscanRadius * geometry.HitscanRadius;
+            float headR = geometry.HeadshotRadius;
             float headR2 = headR * headR;
-            float headLine = MatchTestRules.ResolveHeadHitLine(rules);
-            float bodyTop = CombatConfig.HitscanHeight;
+            float headLine = geometry.HeadHitLine;
+            float bodyTop = geometry.HitscanHeight;
 
             // 三维化关键：**XZ 平面内的参数化被 dy 拉伸**。方向 (dx,dy,dz) 单位化后，
             // 其水平投影长度 h = √(dx²+dz²) ≤ 1 —— 前进 h 单位三维度，水平只走了 1 单位。
@@ -231,8 +231,8 @@ namespace LiteSim
         /// </summary>
         public static bool RaycastEntities(SimWorldState s, int skipSlot,
             float ox, float oy, float oz, float dx, float dz, float maxT, out int hitSlot, out float t,
-            MatchTestRules rules = null)
-            => RaycastEntities(s, skipSlot, ox, oy, oz, dx, dz, 0f, maxT, out hitSlot, out t, rules);
+            in CombatGeometry geometry)
+            => RaycastEntities(s, skipSlot, ox, oy, oz, dx, dz, 0f, maxT, out hitSlot, out t, geometry);
 
         /// <summary>
         /// 实体圆柱射线·**SimVector3 便捷入口**（三维）——**形参序不可能传错**：三维重载的
@@ -242,8 +242,8 @@ namespace LiteSim
         /// </summary>
         public static bool RaycastEntities(SimWorldState s, int skipSlot,
             in SimVector3 origin, in SimVector3 dir, float maxT, out int hitSlot, out float t,
-            MatchTestRules rules = null)
-            => RaycastEntities(s, skipSlot, origin.X, origin.Y, origin.Z, dir.X, dir.Z, dir.Y, maxT, out hitSlot, out t, rules);
+            in CombatGeometry geometry)
+            => RaycastEntities(s, skipSlot, origin.X, origin.Y, origin.Z, dir.X, dir.Z, dir.Y, maxT, out hitSlot, out t, geometry);
 
         /// <summary>
         /// 静态障碍射线（XZ 平面 + y 区间闸）：最近交点；起点在障碍内 → t=0。

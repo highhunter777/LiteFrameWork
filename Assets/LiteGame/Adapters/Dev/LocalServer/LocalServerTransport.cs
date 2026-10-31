@@ -4,6 +4,7 @@ using LiteFramework;
 using LiteNet;
 using LiteNet.Proto;
 using LiteNet.Protocol;
+using LiteSync.Input;
 using LiteNet.Transport;
 using LiteSim;
 using RoomServer.Application;
@@ -12,6 +13,7 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Map;
 
+using LiteSync.Client;
 // 开发面剥离：与 DevHUD/DevStartupConfig 同款三宏 #if（release Player 中本件整体不编译；
 // asmdef 层不设约束）。
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
@@ -79,27 +81,34 @@ namespace LiteGame
         /// <param name="roomConfig">房间配置（人数/种子/时限——与真服务端同类型）。</param>
         /// <param name="testRules">测试房规则持有件（null = 常规对局）——盖初值进数值快照 + 注入权威步进。</param>
         /// <param name="gameplayDigestBase">判定面表字节基摘要（批 E）= 客户端 `ConfigService.GameplayDigestBase`
-        /// ——本地房间身份必须与客户端同源（客户端 `BattleContext` 按同一提供者复算 `StartGame.ConfigHash`；
-        /// 本形态的房间数值取 `CombatValues.Default`＝表值，L1 守卫钉住两者一致）。</param>
+        /// ——本地房间身份必须与客户端同源（客户端 `BattleContext` 按同一提供者复算 `StartGame.ConfigHash`）。</param>
+        /// <param name="roomValues">本局判定数值（装配根在进房时点解析：表值或表值+覆写合并）——本地服建房
+        /// 与客户端预测必须逐字段同值；null = 直构形态（测试）回落 <see cref="CombatValues.Default"/>＝表值
+        /// （L1 守卫钉住两者一致）。</param>
         public LocalServerTransport(RoomConfig roomConfig, MatchTestRules testRules = null,
-            uint gameplayDigestBase = 0, ILocalTestHooks hooks = null)
+            uint gameplayDigestBase = 0, ILocalTestHooks hooks = null, CombatValues? roomValues = null)
         {
             if (roomConfig == null) throw new ArgumentNullException(nameof(roomConfig));
             _testRules = testRules;
             CombatValues? combat = null;
             if (testRules != null)
             {
-                // 初值盖章进房间数值快照：测试房与常规房联机身份可区分（摘要随 Capture 同刻绑定）
-                var stamped = CombatValues.Default;
+                // 初值盖章进房间数值快照：测试房与常规房联机身份可区分（摘要随 Capture 同刻绑定）。
+                // 源值 = 装配根解析的本局判定数值（与客户端发布面同一结果——覆写因此两端同值）。
+                CombatValues stamped = roomValues ?? CombatValues.Default;
                 stamped.NoDeath = testRules.NoDeath;
                 stamped.InfiniteAmmo = testRules.InfiniteAmmo;
                 combat = stamped;
+            }
+            else if (roomValues.HasValue)
+            {
+                combat = roomValues.Value;   // 常规房：按传入值建房（无测试规则可盖）
             }
             _runtime = new RoomRuntime(roomConfig, combat, testRules: testRules, gameplayDigestBase: gameplayDigestBase);
             int botRefillHp = (combat ?? CombatValues.Default).EntityHp;   // 与 RoomRuntime 取值同口径（combat ?? Default）
             _testOverrides = new LocalTestOverrides(_runtime, botRefillHp, hooks);
             _seats = new Session[_runtime.ExpectedPlayers];
-            _pipeline = new SnapshotPipeline(_seats)
+            _pipeline = new SnapshotPipeline(_seats, aoi: _runtime.Config.Aoi, snapshotHz: _runtime.Config.SnapshotHz)
             {
                 SendTo = (session, type, msg, reliable) => _outbox.Add((type, msg)),
             };
@@ -128,15 +137,17 @@ namespace LiteGame
         /// 出生点/碰撞/遮挡；D22：无回退地图）。</param>
         /// <param name="mapId">地图行键（多图批；随 JoinAck 回执——客户端按它选表行/场景，与真服务器同一条
         /// 权威路径；0 = 未标注）。</param>
+        /// <param name="roomValues">本局判定数值（装配根在进房时点解析；null = 直构形态回落默认表值）。</param>
         public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0, MatchTestRules testRules = null,
-            uint gameplayDigestBase = 0, SimMapData map = null, int mapId = 0, ILocalTestHooks hooks = null)
+            uint gameplayDigestBase = 0, SimMapData map = null, int mapId = 0, ILocalTestHooks hooks = null,
+            CombatValues? roomValues = null)
         {
             if (string.IsNullOrEmpty(roomId)) throw new ArgumentException("房间号不得为空", nameof(roomId));
             if (map == null)
                 throw new ArgumentException("地图必填——装配根经 IMapProvider 注入（D22：无回退地图）", nameof(map));
             var config = new RoomConfig { RoomId = roomId, Map = map, MapId = mapId };
             if (expectedPlayers > 0) config.ExpectedPlayers = expectedPlayers;
-            return new LocalServerTransport(config, testRules, gameplayDigestBase, hooks);
+            return new LocalServerTransport(config, testRules, gameplayDigestBase, hooks, roomValues);
         }
 
         public void Connect(string address, int port)
@@ -329,7 +340,8 @@ namespace LiteGame
                             // 回执 proto 单源（HandshakePacker，与真服共一份——字段面结构性一致；
                             // 凭据差异经参数注入：本地形态无重连语义，占位串 + 0 秒窗口）
                             _outbox.Add((PacketType.JoinAck, HandshakePacker.BuildJoinAck(pa,
-                                "local-dev-" + pa.PlayerId, 0, _runtime.MapId, _runtime.ExpectedPlayers)));
+                                "local-dev-" + pa.PlayerId, 0, _runtime.MapId, _runtime.ExpectedPlayers,
+                                _runtime.Config.SnapshotHz)));
                             break;
                         }
                         case MatchStarted ms:

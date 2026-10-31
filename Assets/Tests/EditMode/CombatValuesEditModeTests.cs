@@ -62,10 +62,10 @@ namespace LiteGame.Tests.EditMode
 
             Assert.AreEqual(CombatConfig.MoveSpeed, row.MoveSpeed, 1e-6f);
             CombatValues values = SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
-                tables.Tbmovementconfig, tables.Tbentityconfig);
+                tables.Tbmovementconfig, tables.Tbentityconfig, tables.Tbcombatgeom);
             Assert.AreEqual(CombatConfig.Gravity, values.Gravity, 1e-6f);
             Assert.AreEqual(CombatConfig.HitscanRange, row.HitscanRange, 1e-6f);
-            // 身位半径/高度不属表——烘焙常量（BodyBake：prefab CC 单源；表列已退役）
+            // 身位半径/高度由 `#combatgeom` 表装载（prefab CC 经烘焙工具写表；表行是判定面单源）
             Assert.AreEqual(CombatConfig.BaseDamage, row.BaseDamage);
             Assert.AreEqual(CombatConfig.DamageSpread, row.DamageSpread);
             Assert.AreEqual(CombatConfig.EntityHp, values.EntityHp);

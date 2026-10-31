@@ -1,11 +1,10 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 每局测试规则持有件（**可变引用**）：免死/无限子弹与爆头带试验覆写的**运行态单源**——确定性系统
-    /// （<see cref="DamageSystem"/>/<see cref="WeaponSystem"/>/<see cref="ShootingSystem"/>/<see cref="SimRaycast"/>）
-    /// 经 <see cref="SimStep"/> 脊柱注入读取，
-    /// 不再读任何静态；GM 面板"对局中现场开合"直接写**当前活动局**的实例（写值落在渲染帧之间，
-    /// 同进程的客户端预测与本地服同引用同值）。
+    /// 每局测试规则持有件（**可变引用**）：免死/无限子弹的**运行态单源**——确定性系统
+    /// （<see cref="DamageSystem"/>/<see cref="WeaponSystem"/>/<see cref="ShootingSystem"/>）
+    /// 经 <see cref="SimStep"/> 脊柱注入读取，不再读任何静态；GM 面板"对局中现场开合"直接写**当前活动局**的实例。
+    /// 判定几何（爆头线/柱径等）自 `#combatgeom` 起只经 <see cref="CombatValues.Geometry"/> 传递，本类不再承载几何覆写。
     ///
     /// 生命周期：进房时由入口（ProcedureMatch——LiteGame 侧，框架不引它）按入口初值新建，
     /// 随会话显式传递（`MatchRulesSeeder` → `MatchTransport` → `AccountSession` → `BattleContext`）供两端绑定
@@ -23,18 +22,8 @@ namespace LiteSim
         /// 彻底干涸的枪开开关即复活）、换弹请求因满弹被拒——仅测试模式。</summary>
         public bool InfiniteAmmo;
 
-        /// <summary>爆头线下沿试验覆写（m；&lt; 0 = 不覆写，用 <see cref="CombatConfig.HeadHitLine"/> 导出值）：
-        /// GM 面板滑杆/爆头带调带工具的**运行态落点**（原 <c>CombatConfig.HeadHitLineDevOverride</c> 静态覆写面的
-        /// 同型收口——判定路径不读静态，含 dev 宏内）。与中局开合同裁决：**不进 <see cref="CombatValues"/> 摘要、
-        /// 不可重放**（连续调参旋钮进摘要会让每次试验抖动联机身份）；进房初值随入口种子（TestModeRuntime 待用值），
-        /// 复位即回导出值。</summary>
-        public float HeadHitLineOverride = -1f;
-
-        /// <summary>爆头柱半径试验覆写（m；&lt; 0 = 不覆写）——与 <see cref="HeadHitLineOverride"/> 同口径。</summary>
-        public float HeadshotRadiusOverride = -1f;
-
         /// <summary>武器单发伤害试验覆写（≥ 0 生效，&lt; 0 = 表值）：命中 <see cref="ShootingSystem"/> 的 baseDamage
-        /// 解析口消费。与爆头带覆写同裁决——不进 <see cref="CombatValues"/> 摘要、不可重放；进房随 TestModeRuntime
+        /// 解析口消费。不进 <see cref="CombatValues"/> 摘要、不可重放；进房随 TestModeRuntime
         /// 待用值种子，复位即回表值。</summary>
         public int DamageOverride = -1;
 
@@ -67,14 +56,6 @@ namespace LiteSim
                 InfiniteAmmo = (flags & FlagInfiniteAmmo) != 0,
             };
         }
-
-        /// <summary>本局生效爆头线下沿：覆写优先，否则烘焙导出常量（<paramref name="rules"/> = null ⇒ 恒导出值——release/常规入口形态）。</summary>
-        public static float ResolveHeadHitLine(MatchTestRules rules)
-            => rules != null && rules.HeadHitLineOverride >= 0f ? rules.HeadHitLineOverride : CombatConfig.HeadHitLine;
-
-        /// <summary>本局生效爆头柱半径：覆写优先，否则烘焙导出常量（<paramref name="rules"/> = null ⇒ 恒导出值）。</summary>
-        public static float ResolveHeadshotRadius(MatchTestRules rules)
-            => rules != null && rules.HeadshotRadiusOverride >= 0f ? rules.HeadshotRadiusOverride : CombatConfig.HeadshotRadius;
 
         /// <summary>本局生效武器单发伤害：覆写优先，否则表值（<paramref name="rules"/> = null ⇒ 恒表值——release/常规入口形态）。</summary>
         public static int ResolveWeaponDamage(MatchTestRules rules, int tableDamage)

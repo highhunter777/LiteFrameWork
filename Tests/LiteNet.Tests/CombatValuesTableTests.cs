@@ -72,7 +72,7 @@ namespace LiteNet.Tests
         {
             // 语义钉子：表化后 AimMoveSpeed 直接落表、**不是** MoveSpeed × 0.5 的派生，两列互不联动；
             // 此用例锁住"改 MoveSpeed 不带动限速档"这条口径，防止后人对着旧式推演把派生关系改回去。
-            CombatValues v = new CombatValues(7.5f, -20f, 100f, 25, 1, 100, 2.5f, 60);
+            CombatValues v = new CombatValues(7.5f, -20f, 100f, 25, 1, 100, 2.5f, 60, CombatGeometry.Default);
             Assert.Equal(7.5f, v.MoveSpeed);
             Assert.Equal(2.5f, v.AimMoveSpeed, 6);
             Assert.NotEqual(v.MoveSpeed * 0.5f, v.AimMoveSpeed, 6);

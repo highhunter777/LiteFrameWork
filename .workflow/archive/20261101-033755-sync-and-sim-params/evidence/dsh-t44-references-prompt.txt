@@ -1,0 +1,27 @@
+你是本项目的施工子代理（外部 dsh 代理），执行 T44 的**命名空间与引用收口**。仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。
+
+背景：主代理已通过 unity-pipeline 把 15 件同步件搬到 `Assets/LiteSync/{Shared,Snapshot,Input,Events,Client}`，把 `WeakNet/*` 搬到 `Assets/LiteGame/Adapters/Dev/Debug/WeakNet/`。`Assets/LiteSync/LiteSync.asmdef`、`LiteSync.csproj`、`Directory.Build.props` 已存在。
+
+只做代码/工程文件修改，禁止改 `.workflow/**`、门禁脚本/配置、`scripts/codegen/gen-build-hash.py`（该文件由主代理改）。
+
+命名空间映射（必须逐文件核对，不得只全局替换字符串而不看引用）：
+- `LiteNet.Protocol` 中的 `SnapshotSource`、`SnapshotCodec`、`SnapshotDiffer`、`SnapshotReassembler`、`AoiFilter` → 命名空间 `LiteSync.Snapshot`
+- `InputPacker` → `LiteSync.Input`
+- `CombatEventCodec` → `LiteSync.Events`
+- `ProtocolConstants` → `LiteSync.Shared`
+- `LiteNet.Client` 的 `RoomClient/RoomOutbound/RoomInbound/RoomSession/ReconnectState/RoomClientDiagnostics/InputWindow` → `LiteSync.Client`
+- `LiteNet.Diagnostics.WeakNet` 的 `WeakNetClientTransport/WeakNetProfile/WeakNetRandom/WeakNetStats` → `LiteGame.Adapters.Dev.Debug.WeakNet`
+
+要求：
+1. 在上述被搬文件中，把 `namespace LiteNet.Protocol` / `LiteNet.Client` / `LiteNet.Diagnostics.WeakNet` 改为上表命名空间。
+2. 全仓（`Assets/`、`Server/`、`Tests/`）把对这些类型的 `using LiteNet.Protocol`、`using LiteNet.Client`、`using LiteNet.Diagnostics.WeakNet` 改为对应新命名空间；类型名不变。注意：这些 using 可能还引用 `LiteNet` 的其他类型（PacketCodec/PacketType/Transport/DiagTrace），必须保留相应 `using LiteNet` 或改为同时 `using LiteSync.Xxx` + `using LiteNet`，不要误删。
+3. `Assets/LiteNet/LiteNet.asmdef` 的 `references` 删除 `LiteSim`（应为 `[]`）。
+4. `Assets/LiteNet/LiteNet.csproj`：
+   - 删除 `ProjectReference Include="..\LiteSim\LiteSim.csproj"`。
+   - `Core/Protocol/**/*.cs` 与 `Core/Client/**/*.cs` 不能整段删（`BuildHash.g.cs`、`PacketCodec/PacketType/PacketWriter/WireBudget/NetworkQuality(+Probe)` 仍属 LiteNet），请用 `Exclude` 排除已搬走的文件，或改为显式保留清单。
+5. 给所有需要引用这些类型的 asmdef/csproj 增加 `LiteSync` 引用（不要删除仍需要的 `LiteNet`）：至少包括 `Assets/LiteGame/App`、`Assets/LiteGame/Editor`、`Assets/Tests/EditMode`、`Tests/UI/PlayMode`、`Tests/LiteNet.Tests/LiteNet.Tests.csproj`、`Server/RoomServer/RoomServer.csproj`、`Tests/Tests.slnx`。`Tests/Tests.slnx` 加 `../Assets/LiteSync/LiteSync.csproj` 项目。
+6. `Tests/LiteNet.Tests/LiteNet.Tests.csproj` 增加 `ProjectReference` 到 `../Assets/LiteSync/LiteSync.csproj`；WeakNet 用例改引用 `LiteGame.Adapters.Dev.Debug.WeakNet`。
+7. 运行 `dotnet build Tests/Tests.slnx --no-restore --nologo` 验证（若缺 project.assets.json，先 `dotnet restore`）。报告所有编译错误并修正；不要为了让编译通过而删除既有功能。
+8. 不要运行 Unity 重编译（主代理做）。
+
+返回：改动文件清单（按目录汇总）、命名空间映射核对、编译结果（错误/警告）、未验证项与风险。若编译失败，给出根因。

@@ -149,7 +149,7 @@ namespace LiteGame.Tests.EditMode
             float rifleSpread = WeaponConfig.Default.Spread;
             float span = CrosshairFeel.Default.StaticMaxScale - BattleCrosshairDriver.MinSpreadScale;
             float hipExpected = BattleCrosshairDriver.MinSpreadScale
-                + span * Mathf.Clamp01(rifleSpread * CombatConfig.HipSpreadFactor / BattleCrosshairDriver.SpreadFullDegrees);
+                + span * Mathf.Clamp01(rifleSpread * CombatConfig.Geometry.HipSpreadFactor / BattleCrosshairDriver.SpreadFullDegrees);
             Assert.AreEqual(hipExpected, reticle.localScale.x, 1e-3f, "腰射：有效散布角按 HipSpreadFactor 放大");
 
             // 瞄准（右键 ADS 位）→ 有效散布角 = 表值（不乘腰射倍率）

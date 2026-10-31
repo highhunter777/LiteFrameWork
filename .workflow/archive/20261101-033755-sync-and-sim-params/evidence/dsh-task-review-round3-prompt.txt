@@ -1,0 +1,35 @@
+你是本项目的独立任务评审子代理（外部 dsh 代理）。只读评审：禁止修改文件/运行命令。
+
+仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。
+评审对象：`.workflow/active/sync-and-sim-params/tasks.md`（有效任务 T28~T42；T1~T27 已按前两轮意见取消，原因见任务状态）与 `plan.md`（B1~B24 最终方案）。
+
+前两轮 10 个阻塞已整改：
+- 每个改共享源集的任务都写“gen-build-hash.py 重生成 + --check-shared”；
+- B9 拆 T32/T33，T33 明确 13 列映射与 BuildCombatValues 调用点；
+- T36/T37/T38 补 `Assets/LiteSim/Scripts/Map`、`Luban/Data`、`Assets/LiteGame/Adapters/Dev`、`Tests` 范围，并明确“先落新表/catalog/loader，再删 .g.cs”；
+- T39 补 Tests/deploy，T40 补 Server/ConfigService；
+- T40 补 B19 四条（dev 三宏、单门一次求值、两处调用点、零静态读）；
+- T34 明确“判定路径与烘焙写入源不读 Geometry，显示/对比白名单”；
+- T29/T36/T37/T38 资产搬迁/删除走 unity-pipeline，`gen-build-hash.py` 由主代理；T41 主代理独占 config；
+- T29 验收补 LiteNet.asmdef/csproj 删 LiteSim；T30 补 LiteNet+LiteSync 扫描根；
+- B23 自动（T41）/人工（T42）拆分，T42 明确实际执行 build-player/player-smoke 与两端摘要对账。
+
+只核验：
+1. B1~B24 是否全覆盖、无孤儿/重复/越界；
+2. 每个改共享源集的任务是否写了重生成+check；
+3. 文件范围与验收是否一致；主代理/施工子代理权限是否越界；资产搬迁方式是否合规；
+4. 是否还有编译中断/门禁不可执行/虚假通过；
+5. 任务粒度、依赖顺序、验收与验证是否可独立执行。
+
+约束：最多 8 次工具调用；只读 tasks.md/plan.md（可读 1-2 个关键文件核对）；禁止全仓搜索/运行命令；6 分钟内出结论。
+
+输出（中文纯文本）：
+结论: PASS 或 FAIL
+阻塞问题: <数量>
+覆盖矩阵: 按 B1~B24 分组列出对应任务
+阻塞问题清单:
+- [严重度][B 项/任务] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...

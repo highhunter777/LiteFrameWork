@@ -106,6 +106,7 @@ namespace LiteGame.Tests.UI.PlayMode
             _env?.Dispose();
             _env = null;
             yield return _scope.DisposeAsync();
+            LogAssert.ignoreFailingMessages = false;
         }
 
         // ---- 用例 ----
@@ -171,6 +172,9 @@ namespace LiteGame.Tests.UI.PlayMode
         [UnityTest]
         public IEnumerator 诊断关联_注入初始化失败_异常含formId与阶段且回滚对称()
         {
+            // 本用例故意触发 OnInit 失败：全量 PlayMode 里前序用例可能已装 Unity 日志桥，
+            // 该错误会以“未处理 Error 日志”被 TestRunner 判红；产品诊断断言仍走 Log.Recent。
+            LogAssert.ignoreFailingMessages = true;
             // 注入 OnInit 失败（诊断样例：一次注入失败必须可定位——formId、阶段、回滚状态）。
             // **断言通道（踩坑记录）**：SafeCall 走 LiteFramework.Log（环形缓冲 + ErrorCount，
             // helper 未注入时不桥接 UnityEngine 日志）——LogAssert 看不到它。可诊断断言用

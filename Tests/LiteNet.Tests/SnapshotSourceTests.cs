@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using LiteNet.Protocol;
+using LiteSync.Shared;
+using LiteSync.Snapshot;
 using LiteSim;
 using Xunit;
 
@@ -64,7 +65,7 @@ namespace LiteNet.Tests
             SnapshotReassembler.Apply(differ.Build(state.Frame, state, 0), mirror, out _);
 
             var current = new SimInputFrame[2];
-            foreach (float radius in new[] { 0f, SimConfig.AoiRadius })                  // AOI 关/开两种可见集各验一遍
+            foreach (float radius in new[] { 0f, LiteSync.Shared.AoiSettings.Default.Radius })                  // AOI 关/开两种可见集各验一遍
             {
                 differ = new SnapshotDiffer();                                           // 重置基线（换可见集）
                 for (int i = 0; i < 8; i++)
@@ -109,7 +110,7 @@ namespace LiteNet.Tests
 
             // 再跑几帧：p1 继续远离（不可见，不发），p0 不动
             for (int i = 0; i < 5; i++) pump.Step(1, state, map, Move(state, 1, 1f), CombatValues.Default, WeaponTable.Default);
-            Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius, false);
+            Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, LiteSync.Shared.AoiSettings.Default.Radius, false);
 
             // 可见槽位（p0）必须准确；整体槽位数 < 活体数（p1 被裁）
             bool p0Visible = false;
@@ -135,18 +136,18 @@ namespace LiteNet.Tests
 
             // 首帧必全量：视野外实体必须在内——"全量缺席 = 死"的镜像语义（SnapshotReassembler）
             // 只对全图成立。曾把 AOI 裁进全量帧：客户端镜像误杀视野外实体，和解一采纳 bot/远端就无声消失
-            Proto.StateSnapshot first = differ.Build(state.Frame, state, 0, viewer, SimConfig.AoiRadius);
+            Proto.StateSnapshot first = differ.Build(state.Frame, state, 0, viewer, LiteSync.Shared.AoiSettings.Default.Radius);
             Assert.True(first.IsFull);
             Assert.Equal(state.AliveCount(), first.Slots.Count);
 
             // 周期兜底全量（forceFull 等价 FullEveryFrames 到点）：同样不裁
-            Proto.StateSnapshot cycle = differ.Build(state.Frame, state, 0, viewer, SimConfig.AoiRadius, forceFull: true);
+            Proto.StateSnapshot cycle = differ.Build(state.Frame, state, 0, viewer, LiteSync.Shared.AoiSettings.Default.Radius, forceFull: true);
             Assert.True(cycle.IsFull);
             Assert.Equal(state.AliveCount(), cycle.Slots.Count);
 
             // 增量帧：AOI 照裁——只动视点自身（p0），视野外的 p1 不发（带宽收益全在增量上）
             state.Entities[0].Shield = 11;                                          // 变化集 = {p0}
-            Proto.StateSnapshot delta = differ.Build(state.Frame, state, 0, viewer, SimConfig.AoiRadius, forceFull: false);
+            Proto.StateSnapshot delta = differ.Build(state.Frame, state, 0, viewer, LiteSync.Shared.AoiSettings.Default.Radius, forceFull: false);
             Assert.False(delta.IsFull);
             Assert.Single(delta.Slots);
             Assert.Equal(0, delta.Slots[0].Slot);
@@ -160,7 +161,7 @@ namespace LiteNet.Tests
 
             // 权威侧：p1 在 p0 的 AOI 外（55m）
             state.Entities[1].Pos = new SimVector3(45f, 0f, 0f);
-            Proto.StateSnapshot full = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius);
+            Proto.StateSnapshot full = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, LiteSync.Shared.AoiSettings.Default.Radius);
             Assert.True(full.IsFull);
 
             // 客户端持久镜像（缺席判死语义的落点）+ 同构预测世界（同序 Spawn → 同实体 Id）
@@ -252,14 +253,14 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = new SimVector3(45f, 0f, 45f) }, out int farSlot);
 
             var visible = new List<int>();
-            var aoi = new AoiFilter();
+            var aoi = new AoiFilter(LiteSync.Shared.AoiSettings.Default);
             SimVector3 viewer = state.Entities[0].Pos;
 
             aoi.CollectVisible(in state, viewer, radius: 0f, visible);              // 0 = 关闭 AOI（全图广播）
             Assert.Equal(state.AliveCount(), visible.Count);
 
             visible.Clear();
-            aoi.CollectVisible(in state, viewer, radius: SimConfig.AoiRadius, visible);
+            aoi.CollectVisible(in state, viewer, radius: LiteSync.Shared.AoiSettings.Default.Radius, visible);
             Assert.Contains(0, visible);                                           // 自己必在
             Assert.DoesNotContain(farSlot, visible);                               // 45m 外（半径 30m）不可见
             Assert.True(visible.Count < state.AliveCount());
@@ -299,9 +300,9 @@ namespace LiteNet.Tests
             long idB = state.Entities[1].Id;
 
             differ.BeginFrame(state.Frame, state, forceFull: false);   // 每广播帧一次（两段式）
-            Proto.StateSnapshot forA = differ.BuildFor(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius, idA);
-            Proto.StateSnapshot forB = differ.BuildFor(state.Frame, state, 0, state.Entities[1].Pos, SimConfig.AoiRadius, idB);
-            Proto.StateSnapshot bare = differ.BuildFor(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius, 0L);
+            Proto.StateSnapshot forA = differ.BuildFor(state.Frame, state, 0, state.Entities[0].Pos, LiteSync.Shared.AoiSettings.Default.Radius, idA);
+            Proto.StateSnapshot forB = differ.BuildFor(state.Frame, state, 0, state.Entities[1].Pos, LiteSync.Shared.AoiSettings.Default.Radius, idB);
+            Proto.StateSnapshot bare = differ.BuildFor(state.Frame, state, 0, state.Entities[0].Pos, LiteSync.Shared.AoiSettings.Default.Radius, 0L);
 
             // 比赛状态层：每份快照都带（room 级、全体同值）
             Assert.Equal(1, forA.Match.Phase);
@@ -366,7 +367,7 @@ namespace LiteNet.Tests
             {
                 pump.Step(1, state, map, Move(state, 1, 1f), CombatValues.Default, WeaponTable.Default);
                 rollback.Tick(1f / 60f);                                  // 客户端预测前进（无本地输入）
-                Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius);
+                Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, LiteSync.Shared.AoiSettings.Default.Radius);
                 Assert.False(msg.IsFull);
                 Assert.Empty(msg.Slots);                                  // 视野外变化不进增量
                 Assert.False(Reconcile(msg), "视野外变化不得触发和解（P2-A 根因）");
@@ -375,7 +376,7 @@ namespace LiteNet.Tests
             // (2) 移动**视野内**的 p0：增量带该槽位 → 客户端预测与之不符 → 必和解并纠正本地槽位
             pump.Step(1, state, map, Move(state, 0, 1f), CombatValues.Default, WeaponTable.Default);
             rollback.Tick(1f / 60f);
-            Proto.StateSnapshot inView = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius);
+            Proto.StateSnapshot inView = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, LiteSync.Shared.AoiSettings.Default.Radius);
             Assert.False(inView.IsFull);
             Assert.True(inView.Slots.Count >= 1);
             Assert.True(Reconcile(inView), "视野内差异仍应和解");

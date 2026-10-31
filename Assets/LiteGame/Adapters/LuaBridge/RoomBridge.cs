@@ -3,6 +3,7 @@ using LiteFramework;
 using LiteNet.Proto;
 using XLua; // lint-allow R12：房间会话门面（Lua 桥适配器），本体只做 env 装订/回调转发
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>

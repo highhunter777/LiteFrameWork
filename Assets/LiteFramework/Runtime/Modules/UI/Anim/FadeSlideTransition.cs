@@ -45,7 +45,11 @@ namespace LiteFramework.UI
         private static Sequence BuildBase(UIForm form)
         {
             var seq = DOTween.Sequence();
-            seq.SetUpdate(UpdateType.Manual, true);            // UIClock 轨（时停不停/暂停即停，DotweenUiClockDriver 派发）
+            // 生产装配绑定 UIClock：Manual 轨由 DotweenUiClockDriver 派发（时停不停/暂停即停）。
+            // 未绑定且处于 PlayMode（裸建 UIService 的夹具）时回落引擎自动更新——否则 Manual 轨无人泵；
+            // EditMode 夹具仍走 Manual（由用例显式泵 DOTween.ManualUpdate）。
+            bool manual = UiAnimationClock.IsBound || !Application.isPlaying;
+            seq.SetUpdate(manual ? UpdateType.Manual : UpdateType.Normal, true);
             seq.SetLink(form.Root, LinkBehaviour.KillOnDisable);            // 池化回收/隐藏即杀，防泄漏
             return seq;
         }

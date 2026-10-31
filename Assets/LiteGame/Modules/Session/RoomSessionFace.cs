@@ -1,6 +1,7 @@
 using System;
 using LiteNet.Proto;
 
+using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>BattleClient → 会话端口适配（四透传 + 事件透传；由 BattleSession 装配）。</summary>

@@ -1,0 +1,31 @@
+结论: PASS
+验收标准: PASS
+阻塞问题: 0
+
+阻塞问题清单:
+- 无。
+
+主要优点:
+- 边界表述已收窄到“字段/方法逐个列名”的粒度，且把“保留什么”和“删除什么”分成两套明确名单，不再出现“几何相关一律删除”这类会误伤非几何 dev 覆写的统称。
+- 摘要的判定规则确实只在一个地方定义（plan.md:133），B13、B20① 都引用它，没有另起一套；第八轮的“纯表摘要”已彻底不出现，B20① 改成了带内联定义的“同构建无覆盖摘要（表字节 + 入口规则位，规则位取同值；编码顺序固定）”，可以直接照着实现并做断言。
+- 删除几何覆写的同时，仍保留了 `MatchTestRules` 中“入口规则位”的职责，因此摘要里的入口规则位仍有代码来源；这不与删除动作冲突，两项任务的先后顺序也是自洽的。
+- B12 补上了“`MatchTestRules` 类头/字段的爆头覆写说明同步删除”，正好覆盖了现状代码注释里对 `CombatConfig.HeadHitLine/HeadshotRadius` 的 `cref` 引用，避免删掉常量后 warnaserror 失败。
+
+非阻塞建议:
+- plan.md:112 的迁移清单仍以“`MatchTestRules.cs:73/77`”作为“改读 `values.Geometry.*`”的对象，但同一段又要求删除这两个 `Resolve*` 方法；建议改写成“调用点 `SimRaycast.cs:81/85`、`ShootingSystem.cs:80/196` 改读 `values.Geometry`，`MatchTestRules` 两个 `Resolve*` 整方法删除”，以免施工者误以为要保留方法、只改内部实现。
+- 摘要里“规则位编码固定”建议点名固定来源：`MatchTestRules.FlagNoDeath = 1` / `FlagInfiniteAmmo = 2`（MatchTestRules.cs:46-47）按位序序列化，这样“编码顺序固定”落成可断言形式，不再是纯措辞要求。
+- plan.md:134 对 `DamageOverride`/`RpmOverride` 写了“联机禁用”，但现状代码注释只说明进房随 `TestModeRuntime` 初值，未明确联机禁用的执行点；建议注明该禁用由入口层（`TestModeRuntime`/`ProcedureMatch`）保证，或在 B19 补一条“联机入口规则位只从 `FromFlags` 来、不种 `Damage/Rpm`”的断言，避免把“现状契约”写成无落点的声明。
+
+抽查证据:
+- plan.md:19 —— 目标已改为“`MatchTestRules` 仅承载规则位与非几何 dev 覆写（Damage/Rpm，现状契约）”，与删除几何覆写的方向一致。
+- plan.md:112 —— 判定面迁移明确“删除 `MatchTestRules` 的 `ResolveHeadHitLine`/`ResolveHeadshotRadius` 与 `HeadHitLineOverride`/`HeadshotRadiusOverride` 字段”，几何唯一来源为 `values.Geometry` + `SimParamsOverrides`。
+- plan.md:134 —— 字段/方法全部逐个列名：保留 `DamageOverride`/`RpmOverride`/`ResolveWeaponDamage`/`ResolveFireIntervalFrames`（不进摘要、不可重放、联机禁用），删除四个几何项，“不把 Damage/Rpm 并入 `SimParamsOverrides`”。
+- plan.md:195（B19）—— 删除项同样逐个列名（四个标识符，无通配），并写明 `DamageOverride`/`RpmOverride` 保持现状；与 :134 完全同集，无“或/等/相关”类歧义。
+- plan.md:133 —— 摘要判定规则单源：联机 = 判定表字节 + `CombatValues` 入口规则位（`NoDeath`/`InfiniteAmmo`，编码顺序固定），不含 `SimParamsOverrides`/中局开合；本地测试房按生效值算。
+- plan.md:189（B13）、:196（B20①）—— 两处均复述同一判定规则，:196 使用“同构建无覆盖摘要（表字节 + 入口规则位，规则位取同值；编码顺序固定）”；全文无“纯表摘要”残留。
+- plan.md:186（B10）—— 四个几何标识符零命中守卫（排除注释/字符串、含负例），与 :134/:195 的删除名单一致，未出现额外名单。
+- plan.md:188（B12）—— `MatchTestRules` 类头/字段爆头覆写说明随迁删除，覆盖现状注释中的 `CombatConfig.HeadHitLine/HeadshotRadius` 引用。
+- MatchTestRules.cs:20/24、46-47、50-59、62-69 —— 现状确有 `NoDeath`/`InfiniteAmmo` 与 `FlagNoDeath=1`/`FlagInfiniteAmmo=2`/`GmFlags`/`FromFlags`，“入口规则位”有代码落点，摘要规则位不是凭空新增。
+- MatchTestRules.cs:26-34、71-77 —— 现状几何覆写 `HeadHitLineOverride`/`HeadshotRadiusOverride` 及两个 `Resolve*` 存在，且末路回读 `CombatConfig.HeadHitLine/HeadshotRadius`；删除该四项是必要且充分的（无第三个几何解析口）。
+- MatchTestRules.cs:36-43、79-89 —— 非几何覆写 `DamageOverride`/`RpmOverride` 与 `ResolveWeaponDamage`/`ResolveFireIntervalFrames` 确为独立于几何的既有契约（后果弹/射速，回读表值），与 :134“现状不动、不并入 `SimParamsOverrides`”相符。
+- 交叉核对：B19 的删除/保留名单、B10 的零命中名单、:134 的边界说明三者交集为空、并集一致，未发现互相矛盾或漏项。

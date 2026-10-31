@@ -6,13 +6,12 @@ namespace LiteSim
     /// 经参数显式传入机制消费（`SimStep` → 系统；房间快照 `FixedCombatConfig`）。
     /// 不再有"装载即回填全局"的顺序问题，测试不再需要串行集 + finally 还原。
     ///
-    /// - **按值传递**；持有点构造后不得再改（约定——实例可自由复制，无共享可变面）。
-    /// - <see cref="Default"/> = 表装面默认值（灰盒实测值），必须与表值一致（L1 守卫卡漂移）。
+    /// - 按值传递；持有点构造后不得再改（约定——实例可自由复制，无共享可变面）。
+    /// - <see cref="Default"/> = 展示/测试兜底（非权威）；运行期权威值来自 `Combat/tbcombatgeom` 等表。
     /// - 联机身份（摘要）见 <see cref="CombatConfigDigest"/>——**批 E 起按判定面表字节计算**（本实例的字段
     ///   是那些表的投影：值相同 ⇔ 表相同；值侧唯一独立输入是本局的 <see cref="NoDeath"/>/<see cref="InfiniteAmmo"/>
     ///   规则位，经 `WithTestRules` 进终值）。
-    /// - 编译期常量（枪口烘焙/判定几何等）**不在**本实例——它们留在 <see cref="CombatConfig"/>。
-    ///   （射击窗长为表化值——原编译期常量已迁入本实例。）
+    /// - 判定几何（13 列）经嵌套 <see cref="CombatGeometry"/> 随实例传递，不读静态读口。
     /// </summary>
     public struct CombatValues
     {
@@ -51,11 +50,14 @@ namespace LiteSim
         /// 且进公共快照/双口径 checksum/proto），越界会在强转处静默截断。L1 守卫卡该边界。</summary>
         public int FireStanceFrames;
 
+        /// <summary>判定几何（`#combatgeom` 13 列投影）；经本实例随 `in CombatValues` 传递。</summary>
+        public CombatGeometry Geometry;
+
         /// <summary>构造固定对局数值；重力与出生生命由各自所属表装配（测试规则初值恒 false——
         /// 测试房由入口经 <see cref="MatchTestRules"/> 叠加）。</summary>
         public CombatValues(float moveSpeed, float gravity, float hitscanRange,
             int baseDamage, int damageSpread, int entityHp,
-            float aimMoveSpeed, int fireStanceFrames)
+            float aimMoveSpeed, int fireStanceFrames, in CombatGeometry geometry)
         {
             MoveSpeed = moveSpeed;
             Gravity = gravity;
@@ -65,13 +67,13 @@ namespace LiteSim
             EntityHp = entityHp;
             AimMoveSpeed = aimMoveSpeed;
             FireStanceFrames = fireStanceFrames;
+            Geometry = geometry;
             NoDeath = false;
             InfiniteAmmo = false;
         }
 
-        /// <summary>表装面默认值（必须与表值一致——漂移由装载闸门与 L1 守卫卡）。
-        /// **属性而非静态字段**：每次取副本，防"共享静态可变存储"复辟（债 #1 的形态）。</summary>
+        /// <summary>展示/测试兜底值（非权威）；运行期权威值来自表装载。</summary>
         public static CombatValues Default => new CombatValues(5f, MovementValues.Default.Gravity,
-            100f, 25, 1, EntityValues.Default.InitialHp, 2.5f, 60);
+            100f, 25, 1, EntityValues.Default.InitialHp, 2.5f, 60, CombatGeometry.Default);
     }
 }

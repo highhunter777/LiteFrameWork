@@ -1,0 +1,24 @@
+你是本项目的独立方案评审子代理（外部 dsh 代理），做**第七轮复评**。只读：禁止修改文件/运行命令。
+
+仓库：E:\unityProject\Test。基线：git HEAD 8a8fe0bf。评审对象：`.workflow/active/sync-and-sim-params/plan.md`（第六轮唯一阻塞已整改）。
+第六轮阻塞：联机几何覆盖存在三套互斥说法；门是跨层谓词；无权威侧合并点。
+
+只核验：
+1. 是否已统一为单门 `SimParamsGate.IsLocalTestRoom` + 单合并点（`BuildCombatValues` 后、`Publish`/`FixedCombatConfig.Capture` 前）。
+2. 是否已删除“GM 房参数经 MatchTestRules 下发且进摘要”的旧句，且与 `MatchTestRules` 现行“不进摘要/不可重放”契约不冲突。
+3. B19/B20 的三条断言是否可判定；是否还有新矛盾。
+
+约束：最多 3 次工具调用；只读 plan.md 全文 + 最多 1 个文件（`MatchTestRules.cs`）；禁止全仓搜索；3 分钟内出结论。
+
+输出（中文纯文本）：
+结论: PASS 或 FAIL
+验收标准: PASS 或 FAIL
+阻塞问题: <数量>
+阻塞问题清单:
+- [严重度][文件/章节] 问题；建议
+主要优点:
+- ...
+非阻塞建议:
+- ...
+抽查证据:
+- 文件:行号 + 结论

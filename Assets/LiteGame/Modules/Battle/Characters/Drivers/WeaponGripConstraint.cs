@@ -1,12 +1,13 @@
+using System;
 using UnityEngine;
 
 namespace LiteGame.View.Animation
 {
     /// <summary>
     /// 持枪姿态约束（换弹上半身叠加期间的**姿态覆写器**）：把武器骨的局部变换按
-    /// <see cref="GripBake"/> 烘焙常量跟随**持枪手**骨（为什么跟随右手而非躯干——武器骨
-    /// <c>add_weapon_r</c> 与右手世界位全同（差 0.6mm）、右手是枪挂点父级，见 GripBake.g.cs 来源注释），
-    /// 按幅度缩放与片段自身曲线混合。
+    /// <see cref="WeaponGripCatalog"/>（grip.bin 装载的跟随骨路径/偏移/幅度）跟随**持枪手**骨
+    /// （为什么跟随右手而非躯干——武器骨 <c>add_weapon_r</c> 与右手世界位全同（差 0.6mm）、
+    /// 右手是枪挂点父级），按幅度缩放与片段自身曲线混合。
     ///
     /// **归属**：视图表现编排，不属动画播放机制——不碰 <c>IAnimationBackend</c>/分层图/通道仲裁，
     /// 也不进状态机（状态机只裁决"该播什么"）。约束对象与槽位同生共死（驱动器建槽时建、释放时弃）。
@@ -17,7 +18,7 @@ namespace LiteGame.View.Animation
     ///
     /// **混合口径**：写前先读武器骨当前局部变换——此刻它就是**本帧动画给出的值**（Evaluate 刚落地），
     /// 再按权重与跟随目标插值。故幅度缩放 0 时写回等值（等于不约束），1 时完全跟随，中间线性混合。
-    /// 幅度每帧读 <see cref="GripTuning.TorsoWeightLive"/>（测试模式 GM 滑杆实时覆写，release 恒烘焙值）。
+    /// 幅度每帧读 <see cref="GripTuning.Resolve"/>（测试模式 GM 滑杆实时覆写，release 恒烘焙值）。
     /// </summary>
     public sealed class WeaponGripConstraint
     {
@@ -25,6 +26,7 @@ namespace LiteGame.View.Animation
         private readonly Transform _followBone;
         private readonly Vector3 _offsetPos;
         private readonly Quaternion _offsetRot;
+        private readonly float _bakedWeight;
 
         /// <summary>本约束是否可用（两骨都解析到才可用；不可用时 Update 显性拒绝，不静默无效）。</summary>
         public bool IsValid => _weaponBone != null && _followBone != null;
@@ -32,17 +34,20 @@ namespace LiteGame.View.Animation
         /// <summary>已实际覆写的帧数（诊断/测试读值：换弹期应随帧增长，非换弹期恒 0）。</summary>
         public int AppliedFrames { get; private set; }
 
-        /// <summary>构造：按 <see cref="GripBake"/> 烘焙常量解析两骨（路径是编译期常量——
+        /// <summary>构造：按 <paramref name="catalog"/> 的骨路径解析两骨，偏移/幅度全部取数据产物。
         /// 换模型族不匹配时骨解析失败 → <see cref="IsValid"/> 为 false 的显性失败面，
-        /// 由驱动侧决定跳过并计入诊断，不静默假装生效）。</summary>
-        public WeaponGripConstraint(Animator animator)
+        /// 由驱动侧决定跳过并计入诊断，不静默假装生效。
+        /// <paramref name="catalog"/> 必填（null 抛 <see cref="ArgumentNullException"/>——默认值唯一来源是 grip.bin）。</summary>
+        public WeaponGripConstraint(Animator animator, WeaponGripCatalog catalog)
         {
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
             if (animator == null) return;
 
-            _followBone = animator.transform.Find(GripBake.FollowPath);
-            _weaponBone = animator.transform.Find(GripBake.WeaponPath);
-            _offsetPos = new Vector3(GripBake.LocalPosX, GripBake.LocalPosY, GripBake.LocalPosZ);
-            _offsetRot = Quaternion.Euler(GripBake.LocalEulerX, GripBake.LocalEulerY, GripBake.LocalEulerZ);
+            _followBone = animator.transform.Find(catalog.FollowPath);
+            _weaponBone = animator.transform.Find(catalog.WeaponPath);
+            _offsetPos = catalog.LocalPosition;
+            _offsetRot = Quaternion.Euler(catalog.LocalEuler);
+            _bakedWeight = catalog.TorsoWeight;
         }
 
         /// <summary>换弹叠加层在场时覆写武器骨位姿；不在场则本帧不写（动画值原样保留）。
@@ -63,7 +68,7 @@ namespace LiteGame.View.Animation
             // 旋转：跟随骨世界旋转 × 偏移旋转 → 武器骨父空间。
             var targetRot = Quaternion.Inverse(_weaponBone.parent.rotation) * (_followBone.rotation * _offsetRot);
 
-            float weight = GripTuning.TorsoWeightLive;
+            float weight = GripTuning.Resolve(_bakedWeight);
             _weaponBone.localPosition = Vector3.Lerp(animPos, targetPos, weight);
             _weaponBone.localRotation = Quaternion.Slerp(animRot, targetRot, weight);
             AppliedFrames++;

@@ -1,0 +1,45 @@
+评审输入：`.workflow/active/sync-and-sim-params/tasks.md`（12 任务，0 完成）、`plan.md`（B1~B24 最终版）、`.agents/skills/staged-delivery/references/artifact-quality.md`「任务评审」段、`AGENTS.md` 红线；基线 HEAD `8a8fe0bf`；只读，未运行任何命令。
+
+结论: FAIL
+
+阻塞问题: 6
+
+覆盖矩阵:
+- B1 → T1（asmdef + 双轨 csproj + Unity 重编译）
+- B2、B3 → T2（15 件搬迁 + `using LiteSim` 收口）；B2 的 csproj 面缺验证，见阻塞 5
+- B4、B5、B22 → T3（SHARED_TARGETS、Allowed/ClientRoots、硬边+负例、StaticMutable 根）
+- B6、B7 → T2（WeakNet 移 Dev、DiagTrace 保留登记）
+- B8 → T4（两端重建 + 联机冒烟）；与 T12/B23 的“两端重建联测”重复
+- B9 → T5（Geometry/11 字段/9 参数/发布闸门/10 处构造点）；其中“13 列从表装载、坏表拒启动”实际属 T7，依赖倒置
+- B10 → T6（判定面 + 外部消费者 + 四项负例 + 签名不变）
+- B11、B13、B14 → T7（表接入、摘要口径、0 容差 + 黄金样本）
+- B12 → T8（五件 .g.cs 退役 + 五烘焙器 + SimMapBaker/Grip 消费面）；RootMotion 段与 T10 重叠
+- B15 → T9（AoiSettings/SnapshotHz/JoinAck/去静态缓存）
+- B16、B17、B18 → T10（rootmotion.bin、loader、digest、不进 SHARED_TARGETS）
+- B19、B20、B21 → T11（13 滑杆、单门/单合并点、四条断言、导出/备份/check-shared）
+- B23、B24 → T12（sync-and-sim 命令组、四份设计文档+两份进度卷、doc-lint/L2）
+
+无孤儿任务、无 B 项完全漏项；12 任务对方案 13 个子步的合并（T2↔子步 T2+T3、T3↔T4+T5）有据。
+
+阻塞问题清单:
+- [严重][T2 / B2、B3；红线 1] T2 先搬 15 件（现位于 `LiteNet/Core/Protocol` 等共享源集内），但 `SHARED_TARGETS` 增 `LiteSync/*` 与重生成被放到 T3；T2 的验证只有“Unity 重编译 + Tests/LiteNet.Tests”，没有 `gen-build-hash.py` 重生成和 `--check-shared`。结果 T2 完成态 BuildHash.g.cs 与源集不一致，L1 的 BuildHash 守卫（AGENTS 明列在 L1 内）必红，T2 无法独立通过。建议：`SHARED_TARGETS` 改动与 `python scripts/codegen/gen-build-hash.py`（重生成）并入 T2 验收/验证，T3 只留守卫；同时 T3 的验证方式补“重生成后再 `--check-shared`”，否则该命令在 T3 起跑点必然失败。
+- [严重][T5 / B9 与 T7 / B11] 依赖倒置：B9 写“13 列全部从 `Combat/tbcombatgeom` 装载”“候选表校验坏表拒启动”，但 `__tables__`/`TableLayout.Files`/`ConfigService`/`ServerTableLoader` 的接入是 T7；T6 的判定面迁移又要求读到装载值。T5、T6 都无法按自身验收独立验证。建议：拆 T5a（CombatGeometry 类型、11 字段/9 参数、`_published` 闸门、10 处构造点、ResetForTests）与 T5b（表接入 B11），把 T5b 排到 T6 之前；或把 T7 整条前移。
+- [严重][T12 / B23] 越出施工边界且验证不可执行：T12 文件范围含 `.workflow/config.json`，而 staged-delivery 明令施工子代理禁改 `.workflow/**`、门禁脚本与配置；B23 又把“两端重建联测”“l2-unity-gate（夜间 L1/L2）”塞进 `wf verify` 命令组，`wf verify` 无法执行人工联测，等于给一条必然“绿不了/只能手填”的门禁。建议：config 变更归主代理（T12 只做验证与证据落盘），B23 拆成“可自动命令组”与“人工联测证据（命令+结果+两端 BuildHash 对账）”两段。
+- [严重][T8 / B12 与 T10 / B16-B18] RootMotion（及 Grip）跨任务重叠导致 T8 中间态编译中断：T8 要求五件 `.g.cs` 全部不存在、RootMotionBaker 改产数据，但 `rootmotion.bin` 的路径/格式/`RootMotionCatalog.Load`/`AppComposition.cs:108-113` 绑定/`Digest` 属 T10。删掉 `RootMotionData.g.cs` 后 `RootMotionCatalog.ContentDigest` 与装配点直接断链，T8 的“Unity 0 warning”不可能独立达成。建议：T8 只做 Body/Head/Muzzle 三件 + SimMapBaker + `WriteGenerated` 删除；RootMotion/Grip 单列任务，或 T10 前置并与“删 .g.cs”时序绑定（先落新 loader 再删旧文件），并在任务里写死该顺序。
+- [较重][T1、T2 / B1、B2] csproj 面零验证：B2 明确要求 `LiteNet.csproj` 不引用 LiteSim，B1 要求双轨 csproj 齐备，但两项的验证方式只有 Unity 重编译和 `grep using LiteSim`——Unity 不编 dotnet 侧 csproj/Tests.slnx 双轨。建议：T1/T2 验证补 `dotnet build`（或 csproj 内容断言），并注明 L1 是否覆盖 csproj。
+- [中][T5 / B9] B9 的“`CombatConfig.Loaded` 唯一外部读者 `BattleContext.cs:305` 在 `Publish` 之后（时序断言）”“编辑器工具未发布不崩”未进 T5 验收与验证方式，只在方案正文；T5 亦未写“10 处 `new CombatValues` 编译通过”的核对项。缺一项，B9 就无法判 PASS。
+
+主要优点:
+- B1~B24 逐条可映射到任务，且每任务都带“B 编号 + 验收 + 验证”三要素，没有“所有任务都写跑测试”的模板填充；验证多能落到具体脚本/测试类（`gen-build-hash.py --check-shared`、`ClientAsmdefAllowlistTests`、`CombatConfigDigest`、`doc-lint.py`、L2）。
+- 失败路径与负例落位意识强：坏表拒启动、未发布 `Loaded` 抛、`ResetForTests` + `[Collection]` 隔离、守卫“植入违规应红”、表 row ≡ 入库 CC 夹具、未发布默认不得当写入源。
+- 红线映射到位：红线 1（B4/B18）、红线 5（几何 13 列进表、单源摘要口径）、红线 6（`StaticMutableAllowlistTests` 根加 LiteSync）、红线 13（B20④ GM 页真实操作可点性）；且方案已把“默认值当写入源/当权威值”这类旁路显式封死。
+- 任务文件范围基本指向源码而非生成物，唯一例外（T4 的 `Builds`、T12 的 `.workflow/config.json`）已在阻塞清单点名。
+
+非阻塞建议:
+- T4 与 T12/B23 的联测重复：T4 可以只保留“本地测试房 + 真 KCP lossy 冒烟”，并写死命令（如 `python scripts/build/build-player.py ...`、冒烟脚本实际名），不要用未定义的 `player-smoke`；T4 文件范围里的 `Builds` 是生成物，建议改成脚本与 `Server` 配置面。
+- B14 要求“给出测试名”和“黄金样本随表调参的更新流程”，T7 只写了“+黄金样本”；补具体用例名与更新/重录流程。
+- T2 的验证方式未列 B6 的 `Tests/LiteNet.Tests`（WeakNet 用例改引用后仍绿）之外，也未列 B7 的 `DebugKernelEditModeTests`；补进 verify 列表。
+- B20 的 ①②③ 是 tick 级 checksum/两侧实例逐字段相等，T11 只写“用例”；建议写明测试类、场景（本地房/联机/sandbox）与证据保存位置，避免以后被“跑测试”一句话糊过去。
+- 方案层 `AoiSettings.ThrottleRadius => Radius * 0.5f` 的 `0.5f` 是魔法系数（红线 5），任务只写“派生”未要求单源；建议进常量或表列并在 T9 验收中体现。
+- T12 一份任务同时扛“命令组 + 四设计文档/两进度卷 + 索引 + doc-lint/L2”偏重，可拆“门禁命令组”与“文档回写”两条，便于独立核验与失败定位。
+- `CombatConfig.Geometry` 的“未装载/展示值”UI 标注建议落成 T6/T11 的具体用例，而不是只留在注释与方案描述里。

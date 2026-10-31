@@ -1,3 +1,5 @@
+using LiteSync.Shared;
+
 namespace RoomServer.Runtime
 {
     /// <summary>
@@ -57,6 +59,19 @@ namespace RoomServer.Runtime
         /// **0 = 未标注**（嵌入式/测试直构形态）：JoinAck 下发 0，客户端按首图口径回落。
         /// </summary>
         public int MapId;
+
+        /// <summary>
+        /// 快照广播频率（Hz，房级参数）：权威循环每 <c>TickRate / 本值</c> 个逻辑帧广播一次。
+        /// 允许 1..120（<see cref="ProtocolConstants.MinSnapshotHz"/>..<see cref="ProtocolConstants.MaxSnapshotHz"/>），
+        /// <see cref="RoomRuntime"/> 构造 fail-fast 校验——越界拒建房，不静默钳制。
+        /// </summary>
+        public int SnapshotHz = ProtocolConstants.DefaultSnapshotHz;
+
+        /// <summary>
+        /// AOI 广播裁剪参数（房级，只影响广播、不影响判定与回滚重放）。
+        /// 缺省 = <see cref="AoiSettings.Default"/>；按房间覆盖时经构造校验（坏值裸抛）。
+        /// </summary>
+        public AoiSettings Aoi = AoiSettings.Default;
 
         public static RoomConfig Default() => new RoomConfig();
     }

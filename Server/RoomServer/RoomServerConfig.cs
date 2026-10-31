@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using LiteSim;
+using LiteSync.Shared;
 using RoomServer.Application;
 using RoomServer.Diagnostics;
 using RoomServer.Runtime;
@@ -275,6 +276,8 @@ namespace RoomServer
                 MapId = requestedMapId > 0 ? requestedMapId : t.MapId,   // 0 = 未指定（宿主默认图，落图在 ServerHost）
                 // 请求人数：正值优先（开房参数批——玩家选的房规模），0 = 按模板
                 ExpectedPlayers = requestedExpectedPlayers > 0 ? requestedExpectedPlayers : t.ExpectedPlayers,
+                SnapshotHz = t.SnapshotHz,
+                Aoi = t.Aoi,
             };
         }
 
@@ -546,6 +549,12 @@ namespace RoomServer
             public long WaitingTimeoutMs;
             public LiteSim.MatchRules Rules;
 
+            /// <summary>快照广播频率（Hz，房级；范围见 <see cref="ProtocolConstants"/>）。</summary>
+            public int SnapshotHz;
+
+            /// <summary>AOI 广播裁剪参数（房级；缺省 = <see cref="AoiSettings.Default"/>）。</summary>
+            public AoiSettings Aoi;
+
             /// <summary>模板固定地图行键（多图批；0 = 不固定——按票据请求/宿主默认图）。</summary>
             public int MapId;
 
@@ -580,6 +589,17 @@ namespace RoomServer
                 {
                     throw new InvalidDataException($"rooms.{name} 的玩法规则越界：{sourcePath}", ex);
                 }
+
+                // 快照频率（房级；可选，缺省 30）：越界 = 坏配置 → 装载期即拒
+                long snapshotHzValue = OptionalLong(el, "snapshot_hz", ProtocolConstants.DefaultSnapshotHz);
+                if (snapshotHzValue < ProtocolConstants.MinSnapshotHz || snapshotHzValue > ProtocolConstants.MaxSnapshotHz)
+                    throw new InvalidDataException(
+                        $"rooms.{name} 的 snapshot_hz 越界（允许 {ProtocolConstants.MinSnapshotHz}..{ProtocolConstants.MaxSnapshotHz}）："
+                        + $"{snapshotHzValue}：{sourcePath}");
+
+                // AOI 参数（房级；可选分区，缺省 = AoiSettings.Default）：逐字段解析，越界由构造抛 → 转配置错
+                AoiSettings aoi = ParseAoi(el, name, sourcePath);
+
                 return new RoomTemplate
                 {
                     ExpectedPlayers = players,
@@ -588,7 +608,32 @@ namespace RoomServer
                     WaitingTimeoutMs = waitTimeout,
                     Rules = rules,
                     MapId = (int)mapId,
+                    SnapshotHz = (int)snapshotHzValue,
+                    Aoi = aoi,
                 };
+            }
+
+            /// <summary>
+            /// 模板 <c>aoi</c> 分区（可选）：<c>cell_size</c> / <c>radius</c> / <c>grid_extent_meters</c>
+            /// 逐字段范围校验（缺省 = <see cref="AoiSettings.Default"/>）。越界即抛——坏配置不静默兜底。
+            /// </summary>
+            private static AoiSettings ParseAoi(JsonElement template, string name, string sourcePath)
+            {
+                if (!template.TryGetProperty("aoi", out JsonElement aoiEl)) return AoiSettings.Default;
+                if (aoiEl.ValueKind != JsonValueKind.Object)
+                    throw new InvalidDataException($"rooms.{name}.aoi 必须是对象：{sourcePath}");
+
+                double cell = OptionalDouble(aoiEl, "cell_size", AoiSettings.DefaultCellSize);
+                double radius = OptionalDouble(aoiEl, "radius", AoiSettings.DefaultRadius);
+                double extent = OptionalDouble(aoiEl, "grid_extent_meters", AoiSettings.DefaultGridExtentMeters);
+                try
+                {
+                    return new AoiSettings((float)cell, (float)radius, (float)extent);
+                }
+                catch (ArgumentOutOfRangeException ex)
+                {
+                    throw new InvalidDataException($"rooms.{name}.aoi 越界：{ex.Message}：{sourcePath}", ex);
+                }
             }
         }
 

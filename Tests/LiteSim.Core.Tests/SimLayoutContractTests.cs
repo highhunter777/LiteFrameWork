@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using Xunit;
 
+using LiteSync.Snapshot;
 namespace LiteSim.Tests
 {
     /// <summary>
@@ -100,7 +101,7 @@ namespace LiteSim.Tests
 
             // 窗长/转向速率不数字钉：窗长是**用户实时调参项**（单源 CombatConfig.FireStanceFrames）；
             // 跨端一致性由 buildHash（源码）+ digest（联机身份）守卫——那才是系统级闸门
-            Assert.True(CombatConfig.FireStanceFrames > 0 && CombatConfig.FaceTurnRadPerSec > 0f);
+            Assert.True(CombatConfig.FireStanceFrames > 0 && CombatValues.Default.Geometry.FaceTurnRadPerSec > 0f);
         }
 
         [Fact]

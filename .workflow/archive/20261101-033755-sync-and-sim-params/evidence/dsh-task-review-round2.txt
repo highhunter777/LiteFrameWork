@@ -1,0 +1,45 @@
+结论: FAIL
+阻塞问题: 10
+
+覆盖矩阵:
+B1 → T13
+B2/B3/B4/B6/B7 → T14（B2 的 asmdef/csproj 删 LiteSim 引用未写入验收；B6 的“LiteNet 只留两接口”未写入验收）
+B5/B22 → T15（B22 缺 LiteNet 扫描根）
+B8 → T16
+B9 → T17 + T18（T17 类型/闸门，T18 表接入；13 列映射未明确承接）
+B10 → T19
+B11 → T18
+B12 → T21 + T22 + T23（三件 .g.cs / Grip / RootMotion 分拆；BakeTargets 五常量、死路径、MatchTestRules 注释未明确承接）
+B13/B14 → T20
+B15 → T24（缺 deploy/Tests 范围）
+B16/B17/B18 → T23（缺 Tests 范围）
+B19/B20/B21 → T25（B19 子项不全；缺 Server/ConfigService 范围）
+B23 → T26 + T27（自动/人工拆分；最终两端重建执行未明确）
+B24 → T27
+说明：B1~B24 均有任务承接，无完全孤儿；但 B9/B12/B19/B22 存在子项未承接，T17/T18 与 T19/T25 有重复，T14/T21/T22/T24/T25 有文件范围缺权或越界。
+
+阻塞问题清单:
+- [严重][B4/B11/B12/B16/B18/B19/B23；T18~T26] 共享源集改动后只做 `--check-shared`、未重生成 BuildHash。T18 跑 `gen.bat` 后只 check；T19/T21/T22/T24/T25 改 `LiteSim/{Scripts,Systems}` 或 `LiteSync/Shared` 后无重生成；T23 删 `RootMotionData.g.cs` 后只 check；T26 `wf verify` 必红。建议：每个改共享源集的任务先跑 `python scripts/codegen/gen-build-hash.py`，再跑 `--check-shared`，并在 T18/T21/T23/T24/T25 验收中写明。
+- [严重][B9/B11/B14；T17/T18/T20] `#combatgeom` 13 列到 `CombatGeometry` 的映射（`SimConfigMapper.BuildCombatValues(..., tbcombatgeom)` 及调用点）没有任务明确承接。T17 把表接入推给 T18，T18 只写 B11 表接入/调用点，T20 只做校验。建议：T18 增加“13 列映射 + `BuildCombatValues` 签名/调用点”验收，或在 T17 明确临时夹具与 T18 替换点。
+- [严重][B12；T21/T22/T23] 文件范围与验收不一致，施工子代理无法在授权范围内完成。T21 要退役 `BodyBake/HeadBake/MuzzleBake.g.cs`（位于 `Assets/LiteSim/Scripts/Map`）并写 `Luban/Data/#combatgeom.xlsx`，但文件范围只有 `Assets/LiteGame/Editor/Baking、Assets/GameData、Tests`；T22 验收含 `FeatureDebugTunables` 迁移，文件范围未含 `Assets/LiteGame/Adapters/Dev`；T23 验证要求 `RootMotionDataTests`，文件范围未含 `Tests`。建议补全各任务允许文件范围。
+- [严重][B15/B19；T24/T25] T24 缺 `Tests` 与 `deploy/roomserver.windows.json`，无法做 `LocalServerHandshakeEditModeTests` 与三档真实注入；T25 缺 `Server/RoomServer` 与 `Assets/LiteGame/Modules/Config`，无法把“唯一合并点”落到 `ConfigService` + `ServerTableLoader` 两处。建议补文件范围，或把部署配置/门禁相关改动拆成主代理任务。
+- [严重][B19；T25] 验收只写“单门 + 单合并点 + 联机禁用”，缺 `SimParamsOverrides` 仅在 dev 三宏、`SimParamsGate.Evaluate` 每会话求值一次并以 bool 传递、调用点固定两处、判定路径零静态读。发布包可能带 dev 覆盖。建议按 B19 原文补四条断言及“只求值一次”用例。
+- [严重][B12；T21/T22] T21/T22 未规定“先落新表/新 catalog 与消费面，再删 .g.cs”的顺序；T23 已明确“先落 loader 再删”，T21/T22 没有，存在删文件即编译中断的风险。建议 T21/T22 照 T23 写明顺序与中间可编译点。
+- [严重][B10/B12；T19/T21] “判定/烘焙代码不读 `CombatConfig.Geometry`”与方案允许烘焙器“显示/对比可读”冲突。T19 的零命中断言若覆盖烘焙会误杀，若排除烘焙则 B10 断言不完整。建议把断言限定为“判定路径与烘焙写入源不读”，显示/对比读单独白名单。
+- [严重][T14/T21/T22/T23] 执行权限与红线风险：T14 允许施工子代理改 `scripts/codegen/gen-build-hash.py`（门禁/生成脚本），与“施工子代理不碰门禁脚本/配置”冲突；T14 搬 `.cs`+`.meta`、T21~T23 删 `.g.cs`+`.meta` 均未要求走 unity-pipeline/`AssetDatabase.MoveAsset`，违反红线 4。建议 T14 标主代理执行或拆出脚本改动；所有 Assets 搬迁/删除明确 CLI 方式，并补 `git status` 成对、无 GUID 重建验收。
+- [严重][B2/B22；T14/T15] T14 未明确删 `LiteNet.asmdef`/`LiteNet.csproj` 的 `LiteSim` 引用（B2），T15 只改 `Allowed`/`ClientRoots`；T15 只写扫描根含 `LiteSync`，B22 要求 `LiteNet`+`LiteSync`。建议 T14 验收补 asmdef/csproj 删引用，T15 补 LiteNet 根与负例。
+- [严重][B23；T26/T27] 批次 7 后的最终两端重建/联测没有明确执行任务：T16 只覆盖批 6，T26 明确排除人工联测，T27 只写“命令与对账记录归档”，未写实际执行与通过判据。建议 T27 增“实际执行 build-player/player-smoke、两端 BuildHash+ConfigHash 对账并留证”验收，或新增主代理联测任务。
+
+主要优点:
+- B1~B24 全部有任务映射，依赖链 T13→T27 无环，顺序基本可执行。
+- 首轮 6 个阻塞的整改基本落地：T14 并入 SHARED_TARGETS/BuildHash、B9 拆 T17/T18、T26 主代理独占 `.workflow/config.json`、B12 拆 T21/T22/T23、T13/T14 补 dotnet 双轨、T17 补 Loaded 时序/编辑器不崩/10 构造点。
+- T23 明确“先落 loader 再删 .g.cs”，是防编译中断的正确写法；T26/T27 自动/人工拆分，施工子代理不碰门禁配置；T17 `ResetForTests`+`[Collection]`、T20 0 容差/黄金样本/测试名落档、T25 B20 四条断言均是有效验收。
+- 取消 T1~T12 并保留状态理由，未用取消隐藏未完成工作；B23 自动/人工边界清楚。
+
+非阻塞建议:
+- T1~T12 的取消理由目前是同一句“按首轮意见拆分/重排”，建议逐条补 Tn→T13+ 的取代映射，便于追溯。
+- B9 坏表校验在 T17/T18 有重叠，B10 与 B19 都要求删几何覆写字段/方法（T19/T25 重复）；建议明确 T19 删除、T25 只消费，避免双改冲突。
+- T21（三烘焙器+SimMap+WriteGenerated+注释）与 T25（调参+门+合并+导出+GM+B20 四断言）偏大，建议再拆成可独立验证的小任务。
+- T25 的“B20 四条断言”只是引用方案，建议在任务验收中直接重述关键判据，减少执行歧义。
+- T24 的 `ThrottleRadius => Radius * 0.5f` 仍是硬编码系数，建议明确为表列或命名常量并加守卫。
+- T27 文档回写只列目录，建议列出 B24 的 5 个具体文件、章节与索引登记项。

@@ -52,7 +52,9 @@
       "match_duration_frames": 10800,
       "kill_limit": 20,
       "respawn_delay_frames": 180,
-      "spawn_protection_frames": 120
+      "spawn_protection_frames": 120,
+      "snapshot_hz": 30,
+      "aoi": { "cell_size": 10, "radius": 30, "grid_extent_meters": 640 }
     },
     "four": {
       "expected_players": 4,
@@ -62,7 +64,9 @@
       "match_duration_frames": 10800,
       "kill_limit": 20,
       "respawn_delay_frames": 180,
-      "spawn_protection_frames": 120
+      "spawn_protection_frames": 120,
+      "snapshot_hz": 30,
+      "aoi": { "cell_size": 10, "radius": 15, "grid_extent_meters": 640 }
     },
     "eight": {
       "expected_players": 8,
@@ -72,7 +76,9 @@
       "match_duration_frames": 10800,
       "kill_limit": 20,
       "respawn_delay_frames": 180,
-      "spawn_protection_frames": 120
+      "spawn_protection_frames": 120,
+      "snapshot_hz": 30,
+      "aoi": { "cell_size": 10, "radius": 15, "grid_extent_meters": 640 }
     },
     "sandbox": {
       "expected_players": 2,
@@ -82,7 +88,9 @@
       "match_duration_frames": 0,
       "kill_limit": 0,
       "respawn_delay_frames": 60,
-      "spawn_protection_frames": 120
+      "spawn_protection_frames": 120,
+      "snapshot_hz": 30,
+      "aoi": { "cell_size": 10, "radius": 0, "grid_extent_meters": 640 }
     }
   }
 }

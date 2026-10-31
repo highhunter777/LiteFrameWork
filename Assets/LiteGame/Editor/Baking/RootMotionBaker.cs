@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
+using LiteGame.Modules.Battle.Arena;
 using LiteGame.Toolchain;
 using LiteSim;
 using UnityEditor;
@@ -22,7 +21,7 @@ namespace LiteGame.EditorTools
     }
 
     /// <summary>烘焙配置资产（引用 CombatGirls 包内片段——包不入库，此资产随工具收编迁至 Baking/；
-    /// 产物 .g.cs 才是共享物）。经 <see cref="BakingToolbox"/>「根位移」页执行。</summary>
+    /// 产物 `rootmotion.bin` 才是共享物）。经 <see cref="BakingToolbox"/>「根位移」页执行。</summary>
     [CreateAssetMenu(fileName = "RootMotionBakeConfig", menuName = "LiteSim/根位移烘焙配置")]
     public class RootMotionBakeConfigAsset : ScriptableObject
     {
@@ -31,16 +30,16 @@ namespace LiteGame.EditorTools
 
     /// <summary>
     /// 根位移烘焙器（烘焙工具箱「根位移」页，或 run_script 调用；《联机动画与根位移专项设计》§3 制作链：
-    /// 采样 → 数值规范化/量化 → 校验 → 生成两端共享产物 → 摘要）。
+    /// 采样 → 数值规范化/量化 → 校验 → 导出两端共享数据产物 → 摘要）。
     ///
     /// **提取口径**：人形片段的根轨迹 = RootT 曲线（Avatar 局部空间）——逐 60Hz 采样帧间差分为
     /// 局部平面增量（毫米量化，round half away from zero）；非人形片段不支持（fail-fast，§3 不许静默回退）。
     /// **校验**（§3）：NaN/Inf、单 tick 超速（>2m）、重复 ActionId、非零 Y 位移（记峰值并警告——
     /// YPolicy 默认 Sim 重力，视觉抬升不进权威位移）。预期失败返回 <c>ABORT</c> 多行报告（含"动作/帧号"定位），不抛异常。
-    /// **确定性**：排序固定（ActionId 升序）、InvariantCulture 固定格式、量化吸收曲线求值的浮点尾差
-    /// ——同配置重复烘焙逐字节一致。
-    /// 产物落在 LiteSim/Core/Scripts（BuildHash 源集内——§3"接入 buildHash"随源集自动覆盖，烘焙后重跑
-    /// scripts/codegen/gen-build-hash.py）。
+    /// **确定性**：排序固定（ActionId 升序）、毫米量化吸收曲线求值的浮点尾差——同配置重复烘焙逐字节一致；
+    /// 编码后立即按同一格式自装载并复算样本摘要（往返丢字段 = 本次烘焙 ABORT，不落盘）。
+    /// **产物**：<see cref="BakeTargets.RootMotionBinOutput"/>（格式见 <see cref="RootMotionCatalog"/>）——
+    /// 数据产物不进 BuildHash 源集，**改后无需重生成 BuildHash，但需重发内容包**（Config 收集组）。
     /// </summary>
     public static class RootMotionBaker
     {
@@ -54,7 +53,12 @@ namespace LiteGame.EditorTools
 
         public static string All(ToolWriteScope writeScope)
         {
-            var report = new StringBuilder();
+            if (!string.Equals(BakeTargets.RootMotionBinOutput, RootMotionCatalog.DefaultAssetPath, StringComparison.Ordinal))
+            {
+                return "ABORT 产物路径与运行时装载路径不一致：" + BakeTargets.RootMotionBinOutput
+                    + " ≠ " + RootMotionCatalog.DefaultAssetPath;
+            }
+
             var config = AssetDatabase.LoadAssetAtPath<RootMotionBakeConfigAsset>(ConfigPath);
             if (config == null)
                 return "ABORT 缺烘焙配置:" + ConfigPath + "——右键 Create>LiteSim>根位移烘焙配置 建一件并登记动作";
@@ -62,7 +66,7 @@ namespace LiteGame.EditorTools
                 return "ABORT 烘焙配置为空（零条目禁止出空产物——§3 不许静默零位移）";
 
             var entries = new List<RootMotionEntry>(config.Items.Count);
-            var errors = new StringBuilder();
+            var errors = new System.Text.StringBuilder();
             var seen = new HashSet<int>();
 
             var sorted = new List<RootMotionBakeItem>(config.Items);
@@ -82,19 +86,34 @@ namespace LiteGame.EditorTools
             if (errors.Length > 0)
                 return "ABORT 烘焙中止，失败清单：\n" + errors;
 
-            string digest = RootMotionDigest.Compute(entries.ToArray());
-            string write = BakeTargets.WriteGenerated(BakeTargets.RootMotionOutput, nameof(RootMotionBaker),
-                new[]
-                {
-                    "// 源：RootMotionBakeConfig（人形 RootT 曲线 60Hz 采样→毫米量化）；同配置重复烘焙逐字节一致。",
-                    "// 改了片段/配置后重烘＋重跑 scripts/codegen/gen-build-hash.py（本文件在 BuildHash 源集内）。",
-                }, BuildBody(entries, digest), writeScope);
+            int tickRate = SimConfig.TickRate;
+            byte[] bytes;
+            RootMotionCatalog catalog;
+            try
+            {
+                bytes = RootMotionCatalog.Encode(tickRate, entries);
+                catalog = RootMotionCatalog.Load(bytes);          // 同一格式自校验（写盘前即失败）
+            }
+            catch (Exception ex)
+            {
+                return "ABORT 编码/自校验失败：" + ex.Message;
+            }
 
-            report.AppendLine($"已烘焙：{entries.Count} 条根位移");
-            report.AppendLine($"digest={digest}");
-            report.AppendLine(write);
-            report.Append("提醒：产物在 BuildHash 源集内——重跑 python scripts/codegen/gen-build-hash.py");
-            return report.ToString();
+            string sampleDigest = RootMotionDigest.Compute(entries, tickRate);
+            string decodedDigest = RootMotionDigest.Compute(catalog.Entries, tickRate);
+            if (!string.Equals(sampleDigest, decodedDigest, StringComparison.Ordinal))
+                return "ABORT 编码往返丢字段（样本摘要不一致）：写入前 " + sampleDigest + "，读回 " + decodedDigest;
+
+            string write = BakeTargets.WriteArtifactBytes(BakeTargets.RootMotionBinOutput, bytes, writeScope);
+
+            return "已导出：" + BakeTargets.RootMotionBinOutput
+                + "\n  条目数=" + catalog.Entries.Count
+                + "\n  tickRate=" + catalog.TickRate
+                + "\n  bytes=" + bytes.Length
+                + "\n  sha256=" + catalog.Digest
+                + "\n  " + write
+                + "\n  数据产物：改后无需重生成 BuildHash，但需重发内容包（Config 收集组）；"
+                + "运行时装载见对局视图装配（BattleViewRig）。";
         }
 
         /// <summary>烘焙单条；返回 null=成功，否则错误文本（含动作/帧定位）。</summary>
@@ -109,7 +128,8 @@ namespace LiteGame.EditorTools
             if (cx == null || cy == null || cz == null)
                 return $"ActionId {item.ActionId}: 片段「{item.Clip.name}」缺 RootT 曲线（导入未烘焙根运动）";
 
-            int sampleCount = Math.Max(1, (int)Math.Round(item.Clip.length * RootMotionCatalog.TickRate,
+            int tickRate = SimConfig.TickRate;
+            int sampleCount = Math.Max(1, (int)Math.Round(item.Clip.length * tickRate,
                 MidpointRounding.AwayFromZero) - 1);
             var dxz = new short[sampleCount * 2];
             var dyaw = new short[sampleCount];   // 恒零（DirectionPolicy=起始锁定）
@@ -117,8 +137,8 @@ namespace LiteGame.EditorTools
 
             for (int i = 0; i < sampleCount; i++)
             {
-                float t0 = (float)i / RootMotionCatalog.TickRate;
-                float t1 = (float)(i + 1) / RootMotionCatalog.TickRate;
+                float t0 = (float)i / tickRate;
+                float t1 = (float)(i + 1) / tickRate;
                 float ex = cx.Evaluate(t1) - cx.Evaluate(t0);
                 float ez = cz.Evaluate(t1) - cz.Evaluate(t0);
                 float ey = cy.Evaluate(t1) - cy.Evaluate(t0);
@@ -164,43 +184,5 @@ namespace LiteGame.EditorTools
         /// <summary>毫米量化（round half away from zero——与消费侧 Sim 定稿同规，§3）。</summary>
         private static int QuantizeMm(float meters) =>
             (int)Math.Clamp(Math.Round(meters * 1000f, MidpointRounding.AwayFromZero), short.MinValue, short.MaxValue);
-
-        /// <summary>常量体（固定格式：ActionId 升序、InvariantCulture、逐字节可复现）。</summary>
-        private static string BuildBody(List<RootMotionEntry> entries, string digest)
-        {
-            var sb = new StringBuilder(4096);
-            sb.Append("namespace LiteSim").Append('\n').Append('{').Append('\n');
-            sb.Append("    public static partial class RootMotionCatalog").Append('\n').Append("    {").Append('\n');
-            sb.Append("        /// <summary>烘焙时点的产物摘要（RootMotionDigest 复算守卫用；对局准入两端校验）。</summary>").Append('\n');
-            sb.Append("        public const string BakedContentDigest = \"").Append(digest).Append("\";").Append('\n').Append('\n');
-            sb.Append("        public static readonly RootMotionEntry[] Entries = new RootMotionEntry[]").Append('\n').Append("        {").Append('\n');
-            var ci = CultureInfo.InvariantCulture;
-            foreach (var e in entries)
-            {
-                sb.Append("            new RootMotionEntry { ActionId = ").Append(e.ActionId)
-                  .Append(", MotionVersion = ").Append(e.MotionVersion)
-                  .Append(", SampleCount = ").Append(e.SampleCount)
-                  .Append(", DirectionPolicy = (RootMotionDirectionPolicy)").Append((byte)e.DirectionPolicy)
-                  .Append(", MovementPolicy = (RootMotionMovementPolicy)").Append((byte)e.MovementPolicy)
-                  .Append(", CancelPolicy = (RootMotionCancelPolicy)").Append((byte)e.CancelPolicy)
-                  .Append(", YPeakMm = ").Append(e.YPeakMm)
-                  .Append(", DeltaLocalXzMm = new short[] { ");
-                for (int i = 0; i < e.DeltaLocalXzMm.Length; i++)
-                {
-                    if (i > 0) sb.Append(", ");
-                    sb.Append(e.DeltaLocalXzMm[i].ToString(ci));
-                }
-                sb.Append(" }, DeltaYawCentiDeg = new short[] { ");
-                for (int i = 0; i < e.DeltaYawCentiDeg.Length; i++)
-                {
-                    if (i > 0) sb.Append(", ");
-                    sb.Append(e.DeltaYawCentiDeg[i].ToString(ci));
-                }
-                sb.Append(" } },").Append('\n');
-            }
-            sb.Append("        };").Append('\n');
-            sb.Append("    }").Append('\n').Append('}').Append('\n');
-            return sb.ToString();
-        }
     }
 }

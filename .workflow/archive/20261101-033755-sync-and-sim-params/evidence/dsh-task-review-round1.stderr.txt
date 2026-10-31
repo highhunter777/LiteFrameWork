@@ -1,0 +1,205 @@
+dsh: reasoning:
+Let me start by loading the staged-delivery skill? The task is a task review, which matches staged-delivery skill. I should load it. But I have max 8 tool calls. Loading skill uses 1 call. Let me be efficient.
+
+Plan:
+1. skill staged-delivery (1 call)
+2. read tasks.md (1 call)
+3. read plan.md (1 call)
+4. read artifact-quality.md 任务评审 section (1 call, maybe with offset)
+5. maybe read a code file (1 call)
+
+That's ~5-6 calls. Let's go.
+
+Actually I can do parallel calls in one block — but tool call budget counts calls individually presumably. Let me combine independent reads in one assistant message (multiple invokes) — still counts as multiple calls but fine.
+
+Let me start.
+dsh: reasoning:
+Now let me check the artifact-quality.md 任务评审 section and maybe a code file. Also 4 calls used (3 reads + skill). Let me read artifact-quality.md. Also maybe check tasks vs B items mapping.
+
+Let me analyze the coverage matrix now.
+
+Plan has B1-B24 acceptance criteria. Tasks T1-T12.
+
+Mapping:
+- T1: B1
+- T2: B2/B3/B6/B7
+- T3: B4/B5/B22
+- T4: B8
+- T5: B9
+- T6: B10
+- T7: B11/B13/B14
+- T8: B12
+- T9: B15
+- T10: B16/B17/B18
+- T11: B19/B20/B21
+- T12: B23/B24
+
+All B1-B24 covered. Note B14 includes "黄金样本" — T7 mentions "13 值与装载结果 0 容差 + 黄金样本". ok.
+
+Now issues:
+
+1. Big one: T4 "两端重建与联测" placed between T3 and T5, but the plan says batch 6 must be 两端重建联测. That's reasonable ordering. But T4 involves `Builds, Server, scripts/build` files and 联机冒烟 — is it independently verifiable? It needs cloud deployment? Plan says 本地测试房 + 真 KCP 弱网. Hmm, T4's verify says "player-smoke" — is there such a command? Uncertain. Might be an unverifiable/invented command name. That's a concrete blocker: verification method references tool names not confirmed to exist ("player-smoke", "build-player.py"). Actually build-player.py exists per AGENTS (build-player.py 门禁步). "player-smoke" — I should check. But I'm limited to read 1-2 key code files, no full repo search. I could glob for scripts... that's a search, forbidden "禁止全仓搜索". Hmm, glob is allowed? Constraint says 只读上述文件（可读 1-2 个关键代码文件核对）；禁止全仓搜索/运行命令. I'll avoid.
+
+2. B8 (两端重建联测) is at T4 — mid-plan. Good sequencing-wise (batch 6 closure). But it's a heavyweight step depending on T1-T3 and is placed mid-run; fine.
+
+3. T2 lumps B2/B3/B6/B7 with 15 files migration — this is a large task combining 4 acceptance criteria. Granularity: it involves 15 file moves + reference changes + WeakNet move + DiagTrace registration + test ref updates. That's arguably too coarse for independent execution/verification; also mixes batch-6 sub-steps. But arguably acceptable. However per the plan's 子步, T1-T13 (13 sub-steps) map to 12 tasks — T2 in tasks corresponds to 子步 T2+T3 (搬迁 + 引用者改引用) merged. Notable: plan 子步 13 steps → 12 tasks; task T3 merges 子步 T4+T5 (BuildHash + 守卫), T2 merges 子步 T2+T3, and T12 merges 子步 T13 + docs. Hmm T5-T13 → T5..T12? Let's map: 子步 T7→task T5, T8→T6, T9→T7, T9b→T8, T10→T9, T11→T10, T12→T11, T13→T12 + docs. So each maps 1:1 with reasonable merges. Fine.
+
+4. Serious issue: T7 (表接入、摘要与值校验 B11/B13/B14) depends on T6? Order: T5 CombatGeometry, T6 判定面迁移, T7 表接入. But B9 requires "13 列全部从 Combat/tbcombatgeom 装载" and ValidateCandidate 坏表用例 — that's table loading, which is T7, after T6. So B9's "13 列全部从表装载" cannot be verified in T5 — T5's acceptance claims B9 including "候选表校验坏表拒启动" but the table doesn't exist yet (表接入在 T7). That's an ordering defect: T5's acceptance includes table-driven geometry loading and bad-table rejection before T7 introduces the table. Similarly T6 migrates 判定面 to read values.Geometry, which requires loading; but loading comes in T7. So T5/T6 verification depends on T7 work — dependency direction is inverted. This is a solid blocker: T5 acceptance "B9: CombatValues 11 字段/9 参数；CombatGeometry 13 列；CombatConfig _published 三态与 Geometry 展示兜底；10 处构造点更新；候选表校验坏表拒启动" — 坏表拒启动 requires table loading (T7). And T6 "判定面迁移 ... 迁移后判定/烘焙不读 Geometry" without table data loaded — tests would need a fixture, possible via CombatValues.Default, but B9's bad-table case definitely needs table loader.
+
+Fix suggestion: split T5 into T5a (CombatGeometry type + CombatValues 11 fields + 构造点 + 发布闸门/ResetForTests) and T5b (table接入) before T6, or move T7 before T6: order T5 → T7(表接入) → T6(判定面迁移). Indeed the plan's 子步 order is T7 (type) → T8 (判定面) → T9 (表接入) — same inversion inherited from plan. Hmm, plan itself has this order. But still a task-review finding: task granularity/ordering not executable as verified. Actually plan 子步 T7 does 发布闸门 + 注释, T8 判定面迁移, T9 表接入. In plan's design, ValidateCandidate 坏表用例 is in T9 (表接入). But B9 in the plan's acceptance criteria groups 发布闸门 + 13 列从表装载 + 坏表. And tasks assigned B9 wholly to T5. So T5 over-claims B9: table loading part belongs to T7. That's a mapping defect (映射不精确/验收错位) — blocker-level? It's a "验收与 B 归属不一致" issue per checklist item 3. I'd flag as major/blocker.
+
+5. T3: "B4/B5/B22：... Allowed 删 LiteNet->LiteSim 加 LiteSync" — but B5 also requires ArchitectureGuardTests 两条新硬边 + 植入违规应红用例; T3 mentions "硬边与负例生效" ✓. B22 requires 扫描根含 LiteNet/LiteSync and 无新增 public static 可变字段. T3 says "StaticMutable 扫描根含 LiteSync". OK.
+
+But T3 verify lists `gen-build-hash.py --check-shared` — at T3 stage, `--check-shared` would compare against committed BuildHash.g.cs; regenerating required but T3's accepted criterion B4 says "--check-shared 通过并记录新哈希". T3's 验收 doesn't say "重生成 BuildHash.g.cs (gen-build-hash.py 无参数跑)" — verify only lists --check-shared, which fails until regeneration. Minor: verify should be "gen-build-hash.py（重生成）→ --check-shared". Actually if you run --check-shared, it recomputes and compares; that must fail until you run the generator. The task list says verify "gen-build-hash.py --check-shared" only. That's a real executability gap (missing regeneration step). Flag as minor/major.
+
+Also T3 depends on T2 (files moved) — correct; but hash change from moving files happens in T2: T2 moves LiteSync files before SHARED_TARGETS updated (T3). Between T2 and T3, BuildHash 源集 still lists LiteSim/{Scripts,Systems} and LiteNet/Core/{Proto,Protocol,Transport/Security}; files moved out of LiteNet/Proto into LiteSync → BuildHash would be missing them → broken midway. T2's verification says "Unity 重编译；Tests/LiteNet.Tests" — but shared set changed and BuildHash guard would fail (红线1: 改共享源集必须重跑 gen-build-hash). So T2 must include BuildHash regeneration, or T3 must be merged into T2. This is a concrete blocker: 中间态 BuildHash 不同步（T2 移动了 LiteNet/Core/Protocol 下的文件但 T3 才改 SHARED_TARGETS），违反红线 1，且 T2 验收不含 `--check-shared`。Good, strong finding.
+
+Also 15 files moved: the list includes SnapshotSource etc. Where currently? In LiteNet/Core/Protocol presumably (SHARED_TARGETS includes LiteNet/Core/Protocol). So yes moving them out of the shared set before updating SHARED_TARGETS breaks hash. Strong blocker.
+
+6. B6/B7 in T2: WeakNet move to Dev — T2 file list includes Assets/LiteGame/Adapters/Dev ✓. DiagTrace 保留登记 — B7 requires registration "承载通用诊断环 + JoinKey 单源" 理由 and Dev 侧只经 DebugKernel 读，由 DebugKernelEditModeTests 覆盖. T2's verify doesn't include DebugKernelEditModeTests. Minor.
+
+7. T4's files: "Builds, Server, scripts/build" — 可疑: 联测不等于改 Builds; and 文件范围 mentions Builds (build outputs, not source) — 范围可能不精确/含生成物。 Also T4 verify "player-smoke" 命令未在方案中定义 → 验证方式不可执行 (need actual command names). Flag: 验证方式需给出实际命令（build-player.py 参数、player-smoke 脚本是否存在）。
+
+8. T11 (调参面与导出) covers B19/B20/B21 — big, but coherent.
+
+9. T12: B23 requires `.workflow/config.json` 新增 sync-and-sim 命令组 — 但施工子代理边界禁改 `.workflow/**`（staged-delivery 契约：施工子代理禁改 .workflow/**、门禁脚本与配置）。T12 的 文件 列 `.workflow/config.json` 直接与施工子代理边界冲突。That's a concrete blocker: 任务把 `.workflow/config.json` 划给施工范围，违反工作流契约（配置与门禁由主代理维护）。Also `wf verify` 要跑 sync-and-sim 组，需先由主代理配置。Good blocker (or major). I'd call major/blocker — since checklist item 2/3 executability.
+
+10. B23 also includes 两端重建联测 in wf verify — that's heavyweight/cloud-dependent, may not be a reasonable gate (`l2-unity-gate` nightly). Combining 夜间 L2 into verify is expensive; but acceptable. But "两端重建联测" inside `wf verify` is a long manual step; not automatable → gate unexecutable as a silent command. Flag as non-blocking/major.
+
+11. Coverage: B14 golden sample — T7 verify mentions 黄金样本 but does not name test names; B14 requires "给出测试名" and "黄金样本随表调参的更新流程写明". T7 验收 doesn't include test name nor update process. Similarly B19/B20 need specific test names. T11 验收 says "B20 四条断言" but the four assertions are the whole B20 text; verify says "B20 四条断言；工具实操；红线 13 真实操作" — vague but traceable.
+
+12. Missing: B10 covers Assets/** + Server/** + root Tests/** — T6 验收 says "Assets/Server/Tests 旧几何名零命中" ✓, and "ResolveHead*/override 字段零命中" ✓, "判定/烘焙不读 Geometry" ✓, "SimStep 与 9 System 签名不变" ✓.
+
+13. Missing negative examples: 守卫负例 required for B5, B10, B22? T3 mentions 负例, T6 mentions 含负例. B22 (static mutable) 无新增字段 — negative test not needed.
+
+14. 边界/失败路径: AOI B15 — T9 verify: "服务端配置注入；EditMode/Play 用例；grep 静态缓存零命中". B15 requires 三档真实注入 via deploy config + GM 参数 (非测试自造实例). T9's verify "服务端配置注入" doesn't say 三档真实注入 / deploy/roomserver.windows.json. Actually T9 验收 includes "AoiSettings 服务端真实注入三档" ✓. OK but 三档真实注入 需 云侧 or 本地部署 — heavy; T9 依赖 T8 但不需要 T4 联测? fine.
+
+15. B16/B17/B18 (T10): "LiteSim 无 RootMotion*" — is that achievable? RootMotionCatalog (client-side) reading bin; LiteSim has Scripts/Map/RootMotionData.g.cs deleted. But does LiteSim need tickRate from SimConfig.TickRate? Fine. T10 file list includes Assets/LiteSim/Scripts/Map but not removal of RootMotion data? Ok.
+
+Also T10 verification "RootMotionDataTests" and "文档登记" — B18 requires "已烘焙、执行层未接线" 登记在文件头与设计文档 → 但设计文档回写在 T12 (B24) — cross-task inconsistency: T10 requires 文档登记 but T12 owns doc writeback; mapping overlap/重复. Minor.
+
+16. 依赖顺序: T4 (两端重建联测) before batch 7 — is it necessary? Plan says 批6 必做两端重建联测. But T4's 联测 requires cloud deployment / real player build — expensive mid-run, and B23 also includes 两端重建联测 at the end (T12). Duplicate: B8 联测 at T4 and B23 联测 in T12 — repetition/duplicate work. Not necessarily wrong (regression after batch6, final after batch7). But T12's B23 says "两端重建联测" again — acceptable as final. Still: T4 could be dropped/deferred; ask whether T4 blocking batch7 is necessary. Non-blocking suggestion.
+
+17. T2 acceptance "WeakNet 移 Dev" — moving WeakNet to Dev is a code move into LiteGame.Adapters.Dev; but plan B6 requires LiteNet 只留 IClientTransport/IClientTransportErrorSource (grep 断言) ✓ in T2.
+
+18. 硬编码/特判: T5 "_published 三态" vs plan "增加 _published（初值 false）" and "HasPublished/TryGetLoaded" — plan says 发布闸门 has three states? Task says "三态" — plan mentions _published bool + HasPublished/TryGetLoaded → effectively three access modes; ok.
+
+Potential 硬编码 risk: T11 "13 项滑杆" hard-coded? plan allows. `ThrottleRadius => Radius * 0.5f` is a magic factor in plan (0.5) — arguably 硬编码/魔法数 not surfaced in tasks; but that's plan-level, not task. Could flag as non-blocking: `0.5f` 节流系数应进配置/常量单源，任务未覆盖。
+
+19. Also B14 "13 值与表加载结果 0 容差" — T7 verify "13 值与装载结果 0 容差 + 黄金样本" ✓.
+
+20. T7 depends on T6 per tasks, but table接入 should precede 判定面迁移? Discussed.
+
+21. B11: T7 says "TableLayout.Files=Combat/tbcombatgeom" ✓ and "表字节进摘要且联机不含覆盖" ✓.
+
+22. B21: T11 验收 — "编辑器/GM 导出到表 + diff/备份/check-shared" ✓, ".bin 导出显示摘要" ✓.
+
+23. B2's "LiteNet.csproj 均不引用 LiteSim" — T2 covers 引用收口 ✓ but csproj 双轨 is T1? B1 says 双轨 csproj 齐备 (LiteSync), B2 mentions LiteNet.csproj. T2 says "引用者/测试改引用后编译绿" — doesn't explicitly say LiteNet.csproj 删 LiteSim 引用. 验收 B2 部分未落到验证: T2 的 verify "grep using LiteSim 零命中；Unity 重编译；Tests/LiteNet.Tests" — Unity 重编译 不覆盖 csproj（双轨 csproj 是 dotnet 侧）。B2 明确要求 csproj 不引用 LiteSim，但 T2 无 dotnet build 验证。flag as major (验证方式不覆盖 B2 的 csproj 面；Unity 编译绿 ≠ csproj 绿)。
+
+24. T1 acceptance "Unity 重编译 0 error" only — but 空壳程序集 with references LiteSim 而 LiteNet 仍引 LiteSim doesn't prove anything; fine.
+
+25. T12 doc list: plan B24 requires 4 docs + 两份进度卷 (5 docs + 2 = 6?). B24: 状态同步专项设计, 联机动画与根位移专项设计, 烘焙工具箱专项设计, 施工进度 输入与同步链线 + 战斗与武器线. T12 文件 lists Docs/设计文档/网络, 客户端/动画, 游戏玩法, Docs/施工进度 ✓. Also "索引登记；doc-lint 全过" ✓. But T12 需求 "sync-and-sim 命令组通过" — config 由主代理改，施工子代理不能改 → conflict as noted.
+
+26. Also B23 requires config change; the tasks file says 文件 .workflow/config.json, which violates staged-delivery rule (施工子代理禁改 .workflow/**). Strong blocker.
+
+27. Another gap: B6 "Tests/LiteNet.Tests 的 WeakNet 用例改引用后仍绿" ✓ in T2.
+
+28. B7 "Dev 侧只经 DebugKernel 读，由 DebugKernelEditModeTests 覆盖" — T2 verify missing. minor.
+
+29. B22: "无新增 public static 可变字段" — T3 verify lists StaticMutableAllowlistTests ✓.
+
+30. T5 verify "CombatGeometry/CombatValues EditMode；ResetForTests；坏表用例；L1" — 坏表用例 belongs to T7; also T5 缺 "10 处 new CombatValues 调用点" 编译验证 + Debug/Editor 工具不崩 (B9 says 编辑器工具未发布不崩) — T5 验收 mentions only "CombatConfig _published 三态与 Geometry 展示兜底" but not 编辑器工具不崩用例/时序断言 Loaded 读者. B9 has 时序断言 (BattleContext after Publish) — T5 验收 doesn't mention; T5 verify doesn't list it. Gap: B9 的 "Loaded 读者时序断言" 未落到任务验收/验证。That is a concrete missing verification → major.
+
+So blockers list (I need to decide 结论 PASS/FAIL). With ≥3-4 solid blockers → FAIL.
+
+Let me count blocking issues:
+1. [严重/阻塞] T2 移动共享源集文件但未在同任务重生成 BuildHash/--check-shared（红线 1），中间态 BuildHash 与源集不一致；T3 才改 SHARED_TARGETS。建议：把 SHARED_TARGETS 与重生成并入 T2，或让 T3 前移并在 T2 验证内加 `gen-build-hash.py --check-shared`；T3 verify 补"重生成"步骤。
+2. [严重/阻塞] B9 部分内容（13 列从 tbcombatgeom 装载、ValidateCandidate 坏表拒启动）落在 T5，但表接入是 T7，依赖倒置，T5 无法独立验证。建议：拆分 T5 或把表接入前移到 T6 之前（T5b）。
+3. [严重/阻塞] T12 把 `.workflow/config.json` 纳入施工文件范围 + 要求 wf verify 新增 sync-and-sim 组，与 staged-delivery 施工子代理禁改 .workflow/**/门禁配置冲突；B23 的"两端重建联测"不是可自动执行的 verify 命令。建议：config 由主代理改，T12 只验证；联测给明确命令或降为人工证据。
+4. [较重/阻塞] B2 的 csproj 面（LiteNet.csproj/双轨）无验证命令（T2 只有 Unity 重编译），B2 部分不可判定。建议加 dotnet build/msbuild 或 csproj 内容断言。
+5. [中] B9 时序断言（Loaded 读者 BattleContext 在 Publish 后）与"编辑器工具未发布不崩"用例未映射到 T5 验收/验证。
+6. [中] T4 验证方式 "player-smoke" 无确定命令/脚本，且其文件范围含 Builds（生成物）表述不精确；T4/B8 与 T12/B23 联测重复。
+
+Also B14 test names / golden sample update process missing → non-blocking or major? B14 explicitly "给出测试名" "更新流程写明"; T7 验收 says "+黄金样本" but no test name/流程. I'd list as non-blocking (or major). Put in 非阻塞 with concrete ask? The checklist item 3 says 每项任务验收可执行 — missing test name is a documentation detail. Non-blocking.
+
+Also 硬编码: ThrottleRadius 0.5f magic ratio in plan; AoiSettings 四档? And "13 项滑杆" order hard-coded? Non-blocking suggestions.
+
+Also 静默范围扩张? T2 file list includes `Assets/LiteGame/Adapters/Dev` (WeakNet) — within scope B6 ✓. T4 includes Builds/Server — Builds is 生成物, potential scope noise. T12 includes .workflow/config.json (out of scope). Also T3 includes Tests/LiteFramework.Core.Tests ✓.
+
+Also 重复: T4 联测 vs T12 B23 联测; T8 烘焙 + T10 RootMotion 有 order overlap: T8 五个烘焙器改产表/数据 including RootMotionBaker → T10 才要求 rootmotion.bin 产物 + loader. T8 验收 "五件 .g.cs 不存在；五烘焙器改产表/数据" — RootMotionBaker 属 T8，但 rootmotion.bin 的 loader/路径/digest 在 T10。T8 无法让 RootMotionBaker 产出 .bin 而 LiteSim 仍引用 RootMotionData? Actually T8 says five .g.cs gone and 五烘焙器改产表/数据 — that includes RootMotionBaker producing rootmotion.bin before T10 defines its format/loader. Duplicate/overlap: b12 覆盖 rootmotion 输出 but b16-b18 的 loader/绑定在 T10 → overlap/ordering ambiguity. Flag as major: T8 与 T10 对 RootMotionBaker/rootmotion.bin 职责重叠，且 T8 先删 RootMotionData.g.cs 会导致 T8 阶段 LiteSim/App 编译中断（RootMotionCatalog.ContentDigest 读 Entries，绑定点在 AppComposition）。Yes! That's a strong one: T8 removes RootMotionData.g.cs + RootMotionBaker output change while loader/binding fix is T10 → intermediate compile broken; T8 verify says Unity 0 warning — impossible unless consumer stubs. Good blocker.
+
+Similarly T8 removes GripBake.g.cs and 改 WeaponGripBaker 产 grip.bin, but WeaponGripCatalog.Load 属于 T8? T8 says "Grip 消费面迁移" ✓ (plan b12 includes grip). Task T8 文件 lists Characters ✓, but 验收 doesn't explicitly mention grip.bin/WeaponGripCatalog — "五烘焙器改产表/数据" implied. OK.
+
+Now, group RootMotion overlap as blocker #5.
+
+So 阻塞问题: let me settle 5-6 items.
+
+Final answer format: 结论, 阻塞问题数量, 覆盖矩阵 (grouped), 阻塞问题清单 with 严重度 + B项/任务 + 建议, 主要优点, 非阻塞建议.
+
+Tool calls used: 4 (skill + 3 reads). I have budget to read artifact-quality.md 任务评审 section to ground the review. 1 more call. Let's do it — it's referenced by the task. Read the file, maybe large; use grep? grep on that file for "任务评审" then read offset. That'd be 2 calls. Total 6. Fine. Let me just read the file with limit 2000 — may be long. Use grep to locate section first? Actually I'll do both in one block: grep pattern "任务评审" in that file. Then read segment. Hmm, 2 calls, total 6, within 8.
+
+Let me do grep + read of first 120 lines? Better: grep to find line numbers.
+
+Actually I can do a single grep for "任务评审" and then a read with offset. Let's proceed.
+dsh: reasoning:
+Read lines ~55-100 for the 任务评审 section.
+dsh: reasoning:
+I have enough. 6 tool calls used. Now write the review in Chinese plain text with required format.
+
+Coverage matrix grouped:
+- B1 → T1
+- B2/B3 → T2（B2 的 csproj 面缺验证）
+- B4/B5 → T3
+- B22 → T3
+- B6/B7 → T2
+- B8 → T4（与 B23 重复）
+- B9 → T5（部分内容实际依赖 T7）
+- B10 → T6
+- B11/B13/B14 → T7
+- B12 → T8（RootMotion/Grip 部分与 T10 重叠）
+- B15 → T9
+- B16/B17/B18 → T10
+- B19/B20/B21 → T11
+- B23/B24 → T12
+
+Note B1-B24 all mapped; no orphan tasks. 12 tasks vs 13 子步 — merges documented.
+
+Blockers (5):
+B-1 [严重][T2/B2,B3 + 红线1] BuildHash 中间态不一致。T2 搬 15 件（含现位于 LiteNet/Core/Protocol 的共享源），但 SHARED_TARGETS 直到 T3 才加 LiteSync，T2 验证仅 Unity 重编译 + Tests/LiteNet.Tests，没有 gen-build-hash 重生成/--check-shared。后果：T2 完成态 BuildHash.g.cs 与源集不符（红线1），L1 的 BuildHash 守卫会红（AGENTS 说 L1 含 BuildHash 守卫），T2 无法独立通过。建议：T2 验收/验证加 `python scripts/codegen/gen-build-hash.py`（重生成）+ `--check-shared`，与 SHARED_TARGETS 改动同任务；或把 T3 的 SHARED_TARGETS 改动并入 T2。同时 T3 verify 只写 `--check-shared`，缺重生成步骤。
+
+B-2 [严重][T5/B9 与 T7/B11] 依赖倒置：B9 的"13 列全部从 Combat/tbcombatgeom 装载 + ValidateCandidate 坏表拒启动"在 T5，但 TableLayout/ConfigService/ServerTableLoader 接入在 T7；T5 无法独立验证，T6 判定面迁移也要依赖装载后的值。建议：拆 T5 为 T5a(类型/11 字段/9 参数/发布闸门/10 处构造点) 与 T5b(表接入 B11)，把 T5b 排在 T6 之前；或在 T5 范围内先把表接入落下。
+
+B-3 [严重][T12/B23] 与施工子代理边界冲突 + 验证不可执行：T12 文件含 `.workflow/config.json`，而 staged-delivery 明令施工子代理禁改 `.workflow/**`、门禁与配置；且 B23 把"两端重建联测""l2-unity-gate"塞进 `wf verify` 命令组，`wf verify` 无法执行人工联测。建议：config 变更归主代理（T12 只做验证与证据），B23 拆成"可自动命令"与"人工联测证据"两段并给确定命令名/参数。
+
+B-4 [严重][T8/B12 与 T10/B16-B18] RootMotion 职责重叠导致 T8 中间态编译中断：T8 要求五件 .g.cs 不存在 + RootMotionBaker 改产 .bin，但 rootmotion.bin 的路径/格式/Load/AppComposition 绑定/digest 属 T10。删 RootMotionData.g.cs 后 RootMotionCatalog.ContentDigest 与 AppComposition.cs:108-113 直接断链，T8 无法"Unity 0 warning"独立通过；grip 消费面同样跨 T8/T10。建议：T8 只处理 Body/Head/Muzzle 三件 + SimMapBaker/WriteGenerated，RootMotion/Grip 拆出独立任务，或把 T10 前置/合并；明确删除 .g.cs 的时序（先落新 loader 再删旧）。
+
+B-5 [较重][T2/B2] csproj 面零验证：B2 明写 `LiteNet.csproj` 不引用 LiteSim、B1 双轨 csproj，T2/T1 验证只有 Unity 重编译与 grep using，Unity 编译不覆盖 dotnet 侧 csproj 双轨。建议：加 `dotnet build`（或 csproj 内容断言）到 T1/T2 验证。
+
+B-6 [中][T5/B9] B9 的"Loaded 读者时序断言（BattleContext.cs:305 在 Publish 后）"与"编辑器工具未发布不崩"用例未进 T5 验收/验证，只在方案里；T5 验收也未列"10 处 new CombatValues 编译"验证。建议补。
+
+Count 阻塞 = 6? I list 6 but "阻塞问题: 6". Maybe merge B-5 into B-2? Keep 6, but the instruction says 数量. Let me set 6. Hmm, B-6 is more major; fine as blocker? Severity 中 — maybe make it 非阻塞 to keep blocker list crisp. I'd keep 5 blockers: 严重×4 + 较重×1, and move B-6 to 非阻塞 (major→non-blocking? It's a missing verification of a B item...). Actually checklist item 3 (验收与验证一致) → B9 时序断言未落位 is a coverage gap for B9 verification. I'll keep it as 阻塞 with 中 severity but then count 6.
+
+Let me finalize: 阻塞问题: 6.
+
+主要优点:
+- B1~B24 双向映射完整，无孤儿任务（12 任务 vs 13 子步，合并有据）。
+- 每个任务都带 B 编号、验收、验证三要素，验证多给具体脚本/测试类名（grep 守卫、gen-build-hash --check-shared、doc-lint、L2），比“跑测试”型清单强。
+- 失败路径与边界有落位：坏表拒启动、未发布 Loaded 抛、ResetForTests+[Collection] 隔离、植入违规负例、CC 夹具断言表 row≡夹具、125? no.
+- 红线覆盖：红线 1（BuildHash）、红线 5（禁硬编码→表/单源）、红线 6（静态可变扫描根加 LiteSync）、红线 13（GM 真实操作可点性）。
+- 方案侧已把"未发布默认当写入源"这类旁路显式禁掉。
+
+非阻塞建议:
+1. T4 与 T12/B23 联测重复；T4 可只做"本地测试房 + 真 KCP lossy 冒烟"并把命令写死；T4 文件范围含 `Builds`（生成物）表述不精确，改为脚本与 Server 配置。
+2. B14 要求"给出测试名"和"黄金样本随表调参更新流程"，T7 只写"+黄金样本"；补测试名（如 CombatGeometryTableTests.ExactMatch_AllColumns）与更新流程。
+3. B7 的 DebugKernelEditModeTests、B6 的 Tests/LiteNet.Tests WeakNet 用例未进 T2 verify 列表。
+4. B20 四断言里 ①②③ 依赖运行时 tick 级 checksum，T11 verify 只写"用例"，建议写明测试类/场景（本地房 + lossy KCP）与证据保存位置，避免"跑测试"占位。
+5. `AoiSettings.ThrottleRadius => Radius * 0.5f` 的 0.5 是魔法数（方案层），任务未要求其单源/常量；建议进常量或表列，否则与红线 5 打架。
+6. T12 的 `.workflow/config.json` 与 doc 六份产物体量偏大，可把文档回写拆一条单独任务（但不必强行拆）。
+7. B9 中"`CombatConfig.Geometry` 未发布返回 Default"是展示兜底，建议任务里把"UI 显示未装载"的用例也放进 T6/T11，避免只靠注释。
+8. T3 验收写"Allowed 删 LiteNet->LiteSim 加 LiteSync"——B5 还要求 ClientRoots 含 Assets/LiteSync，T3 已写"ClientRoots/StaticMutable 扫描根含 LiteSync" ✓ 不用提。
+
+Any 硬编码/特判/范围扩张 findings: T12 config（越界，已列 blocker）；T4 Builds（生成物入范围）；无特判式补丁迹象。
+
+Output construct. Also mention 评审方式/输入? The instruction output format doesn't ask, but I can add a short line "评审输入/依据" ... The specified output starts with 结论. I'll keep exactly the format, maybe add 评审依据 line after 结论? Better stick to requested fields exactly; can note 依据 inside 主要优点? I'll add a small header line before 结论: "评审输入: tasks.md(12 任务)、plan.md(最终版)、artifact-quality.md 任务评审段、AGENTS.md 红线; 基线 HEAD 8a8fe0bf。" Then the required fields. That's fine.
+
+Keep concise but substantive.

@@ -6,6 +6,7 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Camera;
 
+using LiteSync.Snapshot;
 namespace LiteGame.View
 {
     /// <summary>
@@ -32,8 +33,17 @@ namespace LiteGame.View
         /// <summary>对局实体视图 prefab（prefab 本体住 `Assets/ShareResource/Characters/`，收集组须覆盖）。</summary>
         public const string DefaultEntityPrefab = "Assets/ShareResource/Characters/Player(Rifle).prefab";
 
-        /// <summary>快照间隔（秒）——插值窗口时长，由 <see cref="SimConfig.SnapshotHz"/> 派生。</summary>
-        public static float SnapshotInterval => 1f / SimConfig.SnapshotHz;
+        /// <summary>快照间隔（秒）——插值窗口时长；随 JoinAck 的房级快照频率写入（缺省 30Hz）。</summary>
+        public float SnapshotInterval { get; private set; } = 1f / LiteSync.Shared.ProtocolConstants.DefaultSnapshotHz;
+
+        /// <summary>写入房级快照频率（Hz；JoinAck 权威值，范围 1..120，越界抛）。</summary>
+        public void SetSnapshotHz(int hz)
+        {
+            if (hz < LiteSync.Shared.ProtocolConstants.MinSnapshotHz || hz > LiteSync.Shared.ProtocolConstants.MaxSnapshotHz)
+                throw new ArgumentOutOfRangeException(nameof(hz), hz,
+                    $"快照频率越界（允许 {LiteSync.Shared.ProtocolConstants.MinSnapshotHz}..{LiteSync.Shared.ProtocolConstants.MaxSnapshotHz}）");
+            SnapshotInterval = 1f / hz;
+        }
 
         private readonly SimWorldState _sim;
         private readonly ICameraService _camera;
