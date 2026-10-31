@@ -17,7 +17,18 @@ namespace LiteGame
         public IBattleRun Create(AccountSession account)
         {
             if (account == null) throw new ArgumentNullException(nameof(account));
-            return new BattleSession(_matchSessions.Create(account, account.Rules), _dev);
+            MatchSession match = null;
+            try
+            {
+                match = _matchSessions.Create(account, account.Rules);
+                return new BattleSession(match, _dev);
+            }
+            catch
+            {
+                // Match 域已建但运行端口构造失败：就地释放，避免服务域/上下文悬挂（文档承诺）。
+                match?.Dispose();
+                throw;
+            }
         }
     }
 }

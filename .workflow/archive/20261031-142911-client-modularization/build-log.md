@@ -107,10 +107,19 @@
 - 2026-10-31 · **L1（PullRequest）PASS 1921/1921**（含新增 ProcedureBoundaryTests 2、DomainBoundaryTests 5；Unity 0 error）。
 - 2026-10-31 · **BattleSmokePlayModeTests 1/1**（Boot→Main→进测试房→开火→离场→容器归零）。
 - 2026-10-31 · 定向 EditMode：BattleRankboard 8/8、BattleRankingConsistency 1/1、CameraAimBlend 6/6、BattleSession 12/12、MatchLoopLeak 1/1、ClipManifest 7/7、UiApiSpec 4/4、VisualSingleSource 8/8。
-- 2026-10-31 · 全量 EditMode 1098 例首跑 6 红（5 红已修转绿；余 1 为 UiValidation 文字档基线，见未决）。
+- 2026-10-31 · 全量 EditMode 1098 例首跑 6 红（5 红已修转绿）；UiValidation 文字档基线按用户裁决 104→128，定向 14/14 绿。
 - 2026-10-31 · BuildHash --check 双 OK（shared=cf3c3453057b28a4 / meta=75e0e85fe3c33cf2）；gen-ui-page --check 12 页；domain-matrix --check OK；doc-lint 0/0；restore-check PASS；l2-meta 14618 meta 全合法；scripts/tests exit 0。
-- 2026-10-31 · 上述九条门禁为逐条手跑（等价 A29 清单）；**未运行 workflow verify 全量 59 条**（含全量 PlayMode），因此 state.json 的 verification 仍为空。
+- 2026-10-31 · 上述九条门禁为逐条手跑（等价 A29 清单）；workflow verify 全量 59 条首跑因编辑器卡在 UiThemeAssetGenerator 被中止，修复评审问题后重跑。
+- 2026-10-31 · **独立代码评审第 1 轮 FAIL**（blocker B1：Session→Procedure 反向依赖；major M1 回滚、M2 矩阵未登记边、M3 端口无用例、M4 文档倒退、M5 基线未提交）。整改：
+  - B1：MatchRulesSeeder / ILocalTransportFactory / LocalTransportRegistry 移入 Modules/Session；Session→Procedure 归零。
+  - M1：BattleRunFactory 失败释放 MatchSession；ProcedureBattle 对未移交视图显式 Dispose。
+  - M2：domain-matrix 登记全部 27 条非零边，新增“未登记边即失败”校验，删除零计数 Meta→Procedure 噪声条目。
+  - M3：新增 BattleRunPortEditModeTests 7/7（早到/挂起后唤醒/取消/Dispose/视图挂载拆除）。
+  - M4：路线图/数据流文档纠偏（12 域/18 段、Session 路径）。
+  - M5：UiValidation 基线 104→128 并登记技术债。
+  - 另修 m1（守卫去注释、排行独立期望序列、相机移除每帧计数断言）、m3（基线注释）。
 - 2026-10-30T21:20:02+08:00 · 先行测试 PASS · 3/11 · 证据 evidence/red.json
+- 2026-10-31T14:27:22+08:00 · 验证 PASS · 59/59 · 证据 evidence/verify.json
 
 ## 交付摘要
 
@@ -120,16 +129,16 @@
 
 ## 未决事项
 
-- UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error：文字档基线写 104，实测 128（24 条新增未标记文本）。属 UI 样式对账债，不属本批；需 UI 线确认是补标记还是更新基线。
+- UiValidation 文字档基线按用户裁决 104→128（24 条新增未标记文本）；样式债本身未清，已登记技术债，待 UI 线补标记/例外后随整改下降。
 - A17 人工点界面未做：当前以 BattleSmokePlayModeTests 自动化链替代（真实指针/键盘操作仍待）。
-- 全量 L2（l2-unity-gate 含 EditMode/PlayMode 全套）未跑；本轮跑了全量 EditMode、定向 PlayMode 与 meta 扫描。
-- 工作区改动已提交 `59d971d8` 并推送 `origin/main`（2026-10-31）；仅保留 3 个既有未跟踪 workflow 运行目录未提交。
+- 全量 L2（l2-unity-gate 含 EditMode/PlayMode 全套）未跑；全量 EditMode 基线 1102/1102，整改后全量重跑受编辑器重启中止，关键面已由 workflow verify 59/59 覆盖。
+- 代码提交 59d971d8 已推送；本轮评审整改在工作区，verify 59/59 PASS、复审 PASS，待提交。
 
 ## 文件清单
 
 - 结构：Assets/LiteGame/Modules/{Battle,Session,Meta,Procedure,Map,Ui,Dev,Framework,Camera,Config,Input,Settings}/**、Assets/LiteGame/App/{AppComposition,ProcedureComposition,UiServiceModule,GameEntry}.cs、Assets/LiteFramework/Runtime/Framework/**。
 - 端口/算法：Modules/Session/Abstractions/{IBattleRun,IBattleRunFactory,IMatchJoin}.cs、Modules/Session/BattleRunFactory.cs、Modules/Battle/BattleRankOrder.cs、Modules/Battle/Aim/{CameraAimBlendGate,CameraAimBlendDriver}.cs、Modules/Camera/Abstractions/CameraBlendDefaults.cs。
-- 守卫/用例：Tests/LiteFramework.Core.Tests/{DomainBoundaryTests,ProcedureBoundaryTests,M3WiringGuardTests}.cs、Assets/Tests/EditMode/{BattleRankingConsistency,CameraAimBlend}EditModeTests.cs、Assets/Tests/EditMode/{UiApiSpecGuardTests,VisualSingleSourceEditModeTests}.cs。
+- 守卫/用例：Tests/LiteFramework.Core.Tests/{DomainBoundaryTests,ProcedureBoundaryTests,M3WiringGuardTests}.cs、Assets/Tests/EditMode/{BattleRunPort,BattleRankingConsistency,CameraAimBlend}EditModeTests.cs、Assets/Tests/EditMode/{UiApiSpecGuardTests,VisualSingleSourceEditModeTests}.cs。
 - 门禁/文档：scripts/gate/domain-matrix.py、scripts/gate/toolchain.json、.workflow/config.json、Docs/说明/{02,14,17,18,README}.md、Docs/规范/03-领域查询表.md、Docs/设计文档/架构/商业级通用客户端框架总设计.md、Docs/设计文档/客户端/UI系统/设置系统专项设计.md、Docs/审计/客户端/登记/技术债.md、Docs/施工进度/{README,客户端重构线}.md。
 
 ## 后续建议
@@ -149,3 +158,7 @@
 - 2026-10-30T21:16:15+08:00 · 完成「实施任务清单」→ 「评审任务」
 - 2026-10-30T21:16:22+08:00 · 完成「评审任务」→ 「先写测试」
 - 2026-10-30T21:20:13+08:00 · 完成「先写测试」→ 「正式施工」
+- 2026-10-31T12:35:09+08:00 · 完成「正式施工」→ 「测试代码」
+- 2026-10-31T14:27:57+08:00 · 完成「测试代码」→ 「评审代码」
+- 2026-10-31T14:28:07+08:00 · 完成「评审代码」→ 「回写与收尾」
+- 2026-10-31T14:29:05+08:00 · 完成「回写与收尾」→ 完成

@@ -53,12 +53,13 @@ namespace LiteFramework.Core.Tests
         public void 流程段对局编排必须经运行端口()
         {
             string root = RepoRoot();
-            string battle = File.ReadAllText(Path.Combine(root,
-                "Assets/LiteGame/Modules/Procedure/Stages/ProcedureBattle.cs"));
+            string battle = StripCommentsAndStrings(File.ReadAllText(Path.Combine(root,
+                "Assets/LiteGame/Modules/Procedure/Stages/ProcedureBattle.cs")));
 
             Assert.Contains("IBattleRunFactory", battle);
             Assert.Contains("_run.Tick(", battle);
             Assert.Contains("_run.WaitStartedOrEndedAsync(", battle);
+            Assert.DoesNotContain("BattleContext", battle);
         }
 
         private static IEnumerable<string> ProcedureFiles(string root)

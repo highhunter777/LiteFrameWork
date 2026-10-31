@@ -28,3 +28,4 @@
 | 2026-10-25T23:16:10+08:00 | ui-p3-device-preview | UI 系统 P2-3 B3：设备档与预览矩阵 | 6/6 | PASS | [20261025-231610-ui-p3-device-preview](20261025-231610-ui-p3-device-preview/) |
 | 2026-10-26T20:19:57+08:00 | ui-p2-style-closure | UI 系统 P2-3 B4：存量样式收敛与收口 | 8/8 | PASS | [20261026-201957-ui-p2-style-closure](20261026-201957-ui-p2-style-closure/) |
 | 2026-10-27T16:22:33+08:00 | client-audit-a3 | 客户端审计 A3：三大件拆分（BattleViewRig / UIBindIndex / HierarchicalStageMachine） | 6/6 | PASS | [20261027-162233-client-audit-a3](20261027-162233-client-audit-a3/) |
+| 2026-10-31T14:29:11+08:00 | client-modularization | 客户端模块化（竖向切分 + 装配就地 + 边界机械化） | 9/9 | PASS | [20261031-142911-client-modularization](20261031-142911-client-modularization/) |

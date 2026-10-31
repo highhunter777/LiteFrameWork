@@ -2,11 +2,11 @@
   "schema_version": 1,
   "slug": "client-modularization",
   "title": "客户端模块化（竖向切分 + 装配就地 + 边界机械化）",
-  "status": "active",
-  "current_stage": "implement",
+  "status": "archived",
+  "current_stage": null,
   "created_at": "2026-10-30T19:40:28+08:00",
-  "updated_at": "2026-10-31T02:36:22+08:00",
-  "completed_at": null,
+  "updated_at": "2026-10-31T14:29:11+08:00",
+  "completed_at": "2026-10-31T14:29:05+08:00",
   "completed_stages": [
     {
       "id": "propose",
@@ -38,6 +38,26 @@
       "id": "tests-first",
       "title": "先写测试",
       "completed_at": "2026-10-30T21:20:13+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-31T12:35:09+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-31T14:27:57+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-31T14:28:07+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-31T14:29:05+08:00"
     }
   ],
   "history": [
@@ -87,6 +107,39 @@
       "from": "tests-first",
       "to": "implement",
       "approved_by": null
+    },
+    {
+      "at": "2026-10-31T12:35:09+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-31T14:27:57+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-31T14:28:07+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-31T14:29:05+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-31T14:29:11+08:00",
+      "event": "archive",
+      "path": "20261031-142911-client-modularization"
     }
   ],
   "tasks": [
@@ -285,7 +338,17 @@
       "completed_at": "2026-10-31T02:36:22+08:00"
     }
   ],
-  "verification": null,
+  "verification": {
+    "at": "2026-10-31T14:27:22+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "d0e3cc9e0fa1273c23b212e8f4faa276bc8c696566d70aa30b4074ca309fa565",
+    "summary": {
+      "total": 59,
+      "passed": 59
+    }
+  },
   "red_verification": {
     "at": "2026-10-30T21:20:02+08:00",
     "ok": true,
@@ -296,5 +359,6 @@
       "total": 11,
       "passed": 3
     }
-  }
+  },
+  "archived_at": "2026-10-31T14:29:11+08:00"
 }

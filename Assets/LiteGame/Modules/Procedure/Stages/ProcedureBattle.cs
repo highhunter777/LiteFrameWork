@@ -113,18 +113,20 @@ namespace LiteGame
             bool completed = false;                                       // 正常结束（MatchEnded 冻结结果在）——结算页判据
             LiteNet.Proto.MatchEnded matchResult = null;
             int localPlayerId = -1;
+            IBattleViewGroup rig = null;          // 未移交运行端口前由本方法持有（异常路径显式释放）
             try
             {
                 accountSession = accountSession ?? throw new InvalidOperationException("Battle 阶段缺少 AccountSession（必须由 Match 移交）");
                 _account = accountSession.Scope;
 
                 // 视图域：工厂建视图组（表现层装配点：自有 BattleView 作用域 + 视图根 + 资源取件；缺角色资源＝无角色视图）
-                IBattleViewGroup rig = _views.Create(_account, DevHooks.Current?.CreateBattleOverlay(), DispatchTeleport);
+                rig = _views.Create(_account, DevHooks.Current?.CreateBattleOverlay(), DispatchTeleport);
                 await rig.LoadAsync(ct);
 
                 // 对局运行端口（会话域构造 Match/Battle 会话；流程不认战斗域内部件）
                 _run = _runs.Create(accountSession);
                 _run.AttachView(rig);                // 视图域归运行端口持有（拆除由会话统一逆序）
+                rig = null;                           // 所有权已移交：finally 不再重复释放
                 _roomBridge.BindSession(_run.RoomSession);   // 房间会话门面（房主开局批）——页面经 Bridge.room 读房主事实/发提前开局；收尾必摘
                 Log.Info("context-created (Match Scope built)", LogTag.Battle);
 
@@ -188,6 +190,7 @@ namespace LiteGame
             finally
             {
                 // 关闭序（§6.2）：输入接线 → 视图（含租约/实例/消费者）→ 运行端口（Match Scope 一并 Dispose）→ Account Scope
+                rig?.Dispose();                        // 未移交运行端口（factory 抛异常）：视图/租约由流程侧收回
                 DetachView();
                 _run?.Dispose();
                 _run = null;

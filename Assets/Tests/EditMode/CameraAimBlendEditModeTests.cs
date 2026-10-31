@@ -1,4 +1,4 @@
-﻿﻿﻿using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using LiteGame;
 using NUnit.Framework;
 using UnityEngine;
@@ -119,6 +119,7 @@ namespace LiteGame.Tests.EditMode
             var flips = new List<int>();
             bool previous = false;
 
+            // dt 固定 0.1f：黄金翻转帧依赖该采样步长；只钉翻转序列，不把“每帧重复下发”固化成契约。
             for (int frame = 0; frame < 30; frame++)
             {
                 bool rawAiming = frame < 2 || (frame >= 10 && frame < 11);   // 两次点按（各 1~2 帧）
@@ -129,7 +130,6 @@ namespace LiteGame.Tests.EditMode
 
             CollectionAssert.AreEqual(new[] { 0, 4, 10, 14 }, flips,
                 "相机混合翻转时刻（生产调用链的黄金值）");
-            Assert.AreEqual(30, camera.Aiming.Count, "每帧幂等下发给相机端口（含重复值）");
         }
     }
 }

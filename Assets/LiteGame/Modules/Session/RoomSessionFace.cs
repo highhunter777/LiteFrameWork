@@ -3,7 +3,7 @@ using LiteNet.Proto;
 
 namespace LiteGame
 {
-    /// <summary>BattleClient → 会话端口适配（四透传 + 事件透传；装配由 ProcedureBattle 完成）。</summary>
+    /// <summary>BattleClient → 会话端口适配（四透传 + 事件透传；由 BattleSession 装配）。</summary>
     public sealed class RoomSessionFace : IRoomSessionFace
     {
         private readonly BattleClient _battle;

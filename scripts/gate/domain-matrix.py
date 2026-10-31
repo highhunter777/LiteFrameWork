@@ -34,15 +34,33 @@ DOMAIN_ORDER = [
 
 # 已登记的跨域允许边（业务域/应用壳 → 业务域/共享域）。新增边必须在评审中登记后改这里。
 ALLOWED_EDGES = {
-    ("Session", "Battle"): "会话域持有 BattleClient/BattleContext（进房/离场所有权）",
-    ("Session", "Map"): "会话工厂进房取判定图行键（MapProvider/BattleScenes；A19/A20）",
-    ("Procedure", "Battle"): "流程只经战斗端口编排（IBattleViewGroup/IBattleCommands；A24 后无内部件直引）",
-    ("Procedure", "Session"): "流程经会话端口取对局运行/账号会话（IBattleRunFactory/IAccountSessionFactory）",
-    ("Meta", "Procedure"): "联机入口经 IAppFlow 端口（类型在 Meta/Abstractions，实现住流程段；A22）",
     ("Battle", "Camera"): "战斗表现消费相机能力端口（ICameraService/IRenderCameraSource）",
-    ("Battle", "Input"): "战斗表现消费输入能力端口（IInputService/ILookDevice）",
     ("Battle", "Config"): "战斗消费配置读口（IConfigService/表投影）",
+    ("Battle", "Input"): "战斗表现消费输入能力端口（IInputService/ILookDevice）",
     ("Battle", "Settings"): "战斗只读视角偏好端口（ILookPreferences）",
+    ("Dev", "Battle"): "开发装配实现 IBattleDevOverlay/调试投影读战斗视图",
+    ("Dev", "Input"): "开发热键/输入替身消费输入端口",
+    ("Dev", "Session"): "开发本地传输工厂实现 ILocalTransportFactory",
+    ("Framework", "Battle"): "内容段健康检查引用战斗视图 prefab 常量（待抽端口）",
+    ("Framework", "Dev"): "装配入口读开发钩子/DeployBake 端口",
+    ("Map", "Config"): "MapProvider 读 IConfigService 表行",
+    ("Meta", "Framework"): "MetaComposition 用 DeployBake 部署快照",
+    ("Procedure", "Battle"): "流程只经战斗端口编排（IBattleViewGroup/IBattleCommands）",
+    ("Procedure", "Camera"): "流程相机就绪门（ICameraService）",
+    ("Procedure", "Config"): "预载/页面流读配置读口",
+    ("Procedure", "Dev"): "流程读 IDevSession/DevHooks",
+    ("Procedure", "Framework"): "流程装配读 DeployBake/框架段产物",
+    ("Procedure", "Input"): "流程持输入服务（IInputService）",
+    ("Procedure", "Map"): "流程取地图行键/场景路径",
+    ("Procedure", "Meta"): "流程联机入口/账号控制端口",
+    ("Procedure", "Session"): "流程经会话端口取对局运行/账号会话（IBattleRunFactory/IAccountSessionFactory）",
+    ("Procedure", "Ui"): "流程页面流/页面目录",
+    ("Session", "Battle"): "会话域持有 BattleClient/BattleContext（进房/离场所有权）",
+    ("Session", "Config"): "会话工厂玩法摘要/gameplayDigestBase",
+    ("Session", "Dev"): "会话读 IDevSession 播种规则",
+    ("Session", "Input"): "会话建 BattleContext 用 IInputService",
+    ("Session", "Map"): "会话工厂进房取判定图行键（MapProvider/BattleScenes）",
+    ("Session", "Meta"): "会话用 MetaEntryConfig 部署快照",
 }
 
 DECL_RE = re.compile(r"\b(?:class|struct|interface|enum|delegate)\s+(\w+)")
@@ -152,6 +170,11 @@ def count_matrix(types: dict) -> dict:
     return counts
 
 
+def unregistered_edges(counts: dict) -> list:
+    return [(source, target, count) for (source, target), count in sorted(counts.items())
+            if source != target and count > 0 and (source, target) not in ALLOWED_EDGES]
+
+
 def render(types: dict, counts: dict) -> str:
     lines = [
         "# 域间引用矩阵（Modules 顶层 12 域）",
@@ -159,7 +182,7 @@ def render(types: dict, counts: dict) -> str:
         "> **生成物，禁手改**：python scripts/gate/domain-matrix.py --write 重写；",
         "> python scripts/gate/domain-matrix.py --check 复算比对（.workflow/config.json 门禁命令 domain-matrix）。",
         "> 计数口径：源域 .cs 的**代码区**（去注释/字符串）出现**目标域顶层类型名**的次数；对角线 -。",
-        "> 口径本身由脚本注释与 --check 钉住——只改文档不改脚本会被判过期。",
+        "> 口径本身由脚本注释与 --check 钉住——只改文档不改脚本会被判过期；非零跨域边未登记会直接判失败。",
         "",
         "## 引用矩阵",
         "",
@@ -201,8 +224,8 @@ def render(types: dict, counts: dict) -> str:
         lines.append("- " + source + " → " + target + "：" + reason)
     lines += [
         "",
-        "> 未列出的业务域/应用壳跨域直引视为未登记边：先确认是否应改走端口，再把结论写进本表与",
-        "> ALLOWED_EDGES（脚本内单源），否则评审按新增耦合处理。",
+        "> 未列出的非零跨域直引视为未登记边：--check 直接失败；先确认是否应改走端口，再把结论写进本表与",
+        "> ALLOWED_EDGES（脚本内单源）。",
         "",
     ]
     return "\n".join(lines)
@@ -217,6 +240,13 @@ def main() -> int:
     types = collect_types()
     counts = count_matrix(types)
     content = render(types, counts)
+    missing = unregistered_edges(counts)
+    if missing:
+        detail = ", ".join(f"{a}->{b}({n})" for a, b, n in missing)
+        if not args.write:
+            print("[quality/domain-matrix] CHECK FAILED: 未登记的跨域直引: " + detail)
+            return 1
+        print("[quality/domain-matrix] WARN: 未登记的跨域直引（已写入文档，评审须补 ALLOWED_EDGES）: " + detail)
 
     if args.write:
         DOC.parent.mkdir(parents=True, exist_ok=True)

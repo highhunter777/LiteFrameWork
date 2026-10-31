@@ -92,6 +92,19 @@ namespace LiteGame.Tests.EditMode
             ResultRanking.Row[] rows = ResultRanking.Build(FrozenRows(world));
 
             Assert.AreEqual(rows.Length, 4, "四名参赛玩家");
+            // 独立期望序列：不调用 BattleRankOrder，钉死 EntityId 并列时的顺序（id1→id2，击杀同分）。
+            Assert.AreEqual(5, rows[0].Kills);
+            Assert.AreEqual(2, rows[1].Kills);
+            Assert.AreEqual(2, rows[2].Kills);
+            Assert.AreEqual(1, rows[3].Kills);
+            Assert.AreEqual(2, rows[0].PlayerId);   // 玩家3（第三只 spawn、击杀 5）
+            Assert.AreEqual(0, rows[1].PlayerId);   // 玩家1（id1，击杀 2）
+            Assert.AreEqual(1, rows[2].PlayerId);   // 玩家2（id2，击杀 2）
+            Assert.AreEqual(3, rows[3].PlayerId);   // 玩家4（击杀 1）
+            Assert.AreEqual("玩家3", rows[0].Name);
+            Assert.AreEqual("玩家1", rows[1].Name);
+            Assert.AreEqual("玩家2", rows[2].Name);
+            Assert.AreEqual("玩家4", rows[3].Name);
             for (int i = 0; i < rows.Length; i++)
             {
                 Assert.AreEqual(rows[i].Kills.ToString(), board.Kills[i].text,

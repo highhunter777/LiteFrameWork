@@ -15,7 +15,7 @@
    - `BattleSmokePlayModeTests`（新增）：harness（`Boot.unity` 起服 → `Started && Current == Main` → `TestModeRuntime.RequestEnter/RequestExit`）+ 观测面（`IsBuilt`/`Root.activeInHierarchy`/`Crosshair`/`ShotPulseCount`/`VoiceCount`/`VfxService.ActiveCount`/`DamageNumber.ActiveCount`/越肩几何容差）+ 离场容器级归零（≤2s 轮询）。
    - 既有 HUD/相机/动画/设置面用例全绿（能力端口替换不得改变行为）。
 3. **门禁**：`wf verify` 的 `commands` 全绿（新增 `battle-smoke-playmode`、`domain-matrix`）+ Unity 重编译 0 error。
-   - `domain-matrix` 复算 12 域直引矩阵；批量改名/搬文件后若不 `--write` 即过期红。
+   - `domain-matrix` 复算 12 域直引矩阵；批量改名/搬文件后若不 `--write` 即过期红；未登记的非零跨域边直接红（`ALLOWED_EDGES` 单源）。
 
 ## 用例清单
 
@@ -30,6 +30,8 @@
 | `DomainBoundaryTests.业务域子目录必须按职责命名` | A9 | 绿 | 绿 |
 | `DomainBoundaryTests.共享域文件必须使用各自命名空间` | A25 | 红（0 个域命名空间） | 绿（8 域） |
 | `ProcedureBoundaryTests.流程段不得直引战斗与联机内部件` | A24 | 红（BattleClient/BattleContext 直引） | 绿（端口化） |
+| `ProcedureBoundaryTests.流程段对局编排必须经运行端口` | A24 | 红 | 绿（去注释后断言 `_run.Tick`/`WaitStartedOrEndedAsync`） |
+| `BattleRunPortEditModeTests`（7 例） | A24 | —（新增） | 绿（早到/挂起后唤醒/取消/Dispose/视图） |
 | `BattleRankingConsistencyEditModeTests.局内排行榜与结算排行_同全序同名次` | A26 | 未编写 | 绿 |
 | `CameraAimBlendEditModeTests.黄金值_固定输入序列_SetAiming翻转时刻保持` | A27 | 未编写 | 绿 |
 | `ModuleDependencyDeclTests.模块DependsOn必须覆盖Require面` | A6/A13 | 绿（Container 在 App 前仍被扫） | 绿（Baseline 空） |

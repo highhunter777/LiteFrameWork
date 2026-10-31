@@ -1,7 +1,5 @@
 using LiteFramework;
 using LiteSim;
-using LiteFramework;
-using LiteGame;
 using LiteGame.Modules.Dev;
 
 namespace LiteGame
@@ -13,7 +11,7 @@ namespace LiteGame
     ///
     /// **为什么单独成类**：规则播种是全局可变状态的写通道，不能藏在传输工厂里——传输工厂只产传输。
     /// 播种与传输创建同刻（装配根在 <c>CreateTransport</c> 前调用），但职责分开：漏调在测试房形态
-    /// 显式失败（见 <see cref="ProcedureMatch.CreateTransport"/>），不再静默退回"无规则本地服"。
+    /// 显式失败（见 <see cref="ProductTransportFactory.CreateTransport"/>），不再静默退回"无规则本地服"。
     ///
     /// 规则初值经 <see cref="IDevSession"/> 读（**不再直读开发静态**）；发布形态端口 `IsDevelopmentBuild=false`
     /// → 恒返回 null（正式包没有测试规则面）。

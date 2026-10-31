@@ -6,7 +6,7 @@ using LiteGame.Modules.Map;
 namespace LiteGame
 {
     /// <summary>
-    /// 本地（开发）传输工厂端口（路线图 M0 接缝 5）：<see cref="ProcedureMatch"/> 经本端口创建
+    /// 本地（开发）传输工厂端口（路线图 M0 接缝 5）：<see cref="ProductTransportFactory"/> 经本端口创建
     /// "进程内本地服"传输，App 程序集因此**不引用** <c>LiteGame.Dev</c> / <c>RoomServer.*</c>。
     ///
     /// 实现住开发装配层（`LiteGame.Dev`，仅编辑器/开发包编译）；发布形态未装订时

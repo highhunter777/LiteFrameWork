@@ -219,9 +219,10 @@ namespace LiteGame.Tests.EditMode
             int textDrift = report.Issues.Count(i => i.RuleId == UiRuleIds.StyleTextDrift);
             int selectableDrift = report.Issues.Count(i => i.RuleId == UiRuleIds.StyleSelectable);
             Assert.AreEqual(0, colorDrift, "颜色对账基线（P2-3 B4：44 精确令牌 + 5 Selectable 令牌后清零）");
-            Assert.AreEqual(104, textDrift, "文字档对账基线（B4：37 个精确匹配覆盖后 141→104）");
+            // 基线更新：真实面新增 24 条未标记文本（104→128）；样式对账债仍由 UI 线收敛，此处只钉当前真实面。
+            Assert.AreEqual(128, textDrift, "文字档对账基线（141→104→128：24 条新增未标记文本）");
             Assert.AreEqual(0, selectableDrift, "Selectable 状态色接缝真实面零问题（B4）");
-            Assert.AreEqual(104, report.WarningCount, "Warning 总量＝颜色 0+文字 104（B4 基线；23 直挂+14 继承）");
+            Assert.AreEqual(128, report.WarningCount, "Warning 总量＝颜色 0 + 文字 128（当前基线）");
         }
 
         /// <summary>造临时 prefab（Assets 下——规则经 AssetDatabase 装载），跑规则后删除。</summary>

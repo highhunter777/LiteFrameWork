@@ -4,19 +4,24 @@
 命令：python scripts/gate/test.py --suite L1 --profile PullRequest
 结果：PASS（LiteFramework.Core.Tests 805 / LiteNet.Tests 568 / LiteSim.Core.Tests 378 / LiteTesting.Core.Tests 7 / MetaServer.Tests 163；合计 1921）
 
+## workflow verify
+命令：python .agents/skills/staged-delivery/scripts/workflow.py --run client-modularization verify
+结果：**PASS 59/59**（L1 58158ms；UI 全套 EditMode/PlayMode、BattleSmoke、domain-matrix；证据 evidence/verify.json）
+
 ## Unity EditMode（全量）
-命令：python scripts/gate/unity-tests.py --mode editor --filter LiteGame.EditModeTests --filter-type assembly --timeout 1200
-结果：1098 总 / 6 红（首跑）；修复后逐类复跑 5 类全绿，余 1 类为既有 UI 债
+命令：python scripts/gate/unity-tests.py --mode editor --filter LiteGame.EditModeTests --filter-type assembly --timeout 1800
+结果：1098 首跑 6 红；修复后逐类复跑绿；整改后全量基线 **1102/1102 PASS**（含 4 个端口用例）。端口扩到 7 例后的全量重跑因编辑器重启中止，7/7 定向绿（见下）
 - ClipManifestDriverEditModeTests ×3：WeaponAimConstraint 空 Avatar 无守卫（已修 → 7/7 绿）
 - UiApiSpecGuardTests ×1：dispatch 路径旧目录（已修 → 4/4 绿）
 - VisualSingleSourceEditModeTests ×1：目录扫描 231s > 180s（已把该用例超时提到 300s → 8/8 绿）
-- UiValidationEditModeTests ×1：文字档基线 104 vs 实测 128（既有 UI 样式债，记未决；未改基线）
+- UiValidationEditModeTests ×1：文字档真实面 104→128（按用户裁决更新基线 → 14/14 绿；样式债已登记技术债）
 
 ## 定向 / PlayMode
 - BattleRankboardEditModeTests 8/8
 - BattleRankingConsistencyEditModeTests 1/1
 - CameraAimBlendEditModeTests 6/6
 - BattleSessionEditModeTests 12/12
+- BattleRunPortEditModeTests 7/7
 - MatchLoopLeakEditModeTests 1/1
 - BattleSmokePlayModeTests 1/1（Boot→Main→进测试房→开火→离场→容器归零）
 
