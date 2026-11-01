@@ -28,7 +28,7 @@
     该文件本身零引擎依赖，故按源**链接编译**——单一来源，语义不可能在两侧漂移。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteGame\Core\View\Transform\ViewTransformMath.cs" Link="View\ViewTransformMath.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Spatial\ViewTransformMath.cs" Link="Spatial\ViewTransformMath.cs" />
   </ItemGroup>
 
   <!--
@@ -48,12 +48,12 @@
     格式化——全零引擎。角色键 HitLocalRole 独立成零引擎文件（HitFeedback.cs 含 Vector3，Unity 侧独编）。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteGame\Core\View\HitFeedback\HitLocalRole.cs" Link="View\HitLocalRole.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Core\View\DamageNumbers\DamageNumberMotion.cs" Link="View\DamageNumbers\DamageNumberMotion.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Core\View\DamageNumbers\DamageNumberAggregator.cs" Link="View\DamageNumbers\DamageNumberAggregator.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Core\View\DamageNumbers\Abstractions\IDamageNumberStyleResolver.cs" Link="View\DamageNumbers\IDamageNumberStyleResolver.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Core\View\DamageNumbers\DamageNumberStyle.cs" Link="View\DamageNumbers\DamageNumberStyle.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Core\View\DamageNumbers\DamageNumberFormatter.cs" Link="View\DamageNumbers\DamageNumberFormatter.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Feedback\HitFeedback\HitLocalRole.cs" Link="Feedback\HitLocalRole.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Feedback\DamageNumbers\DamageNumberMotion.cs" Link="Feedback\DamageNumbers\DamageNumberMotion.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Feedback\DamageNumbers\DamageNumberAggregator.cs" Link="Feedback\DamageNumbers\DamageNumberAggregator.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Feedback\DamageNumbers\Abstractions\IDamageNumberStyleResolver.cs" Link="Feedback\DamageNumbers\IDamageNumberStyleResolver.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Feedback\DamageNumbers\DamageNumberStyle.cs" Link="Feedback\DamageNumbers\DamageNumberStyle.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Feedback\DamageNumbers\DamageNumberFormatter.cs" Link="Feedback\DamageNumbers\DamageNumberFormatter.cs" />
   </ItemGroup>
 
   <!--

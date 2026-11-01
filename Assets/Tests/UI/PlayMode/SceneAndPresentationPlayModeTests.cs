@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame;
-using LiteGame.View;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteGame.View.Animation
+namespace LiteGame
 {
     /// <summary>
     /// 持枪姿态约束（换弹上半身叠加期间的**姿态覆写器**）：把武器骨的局部变换按

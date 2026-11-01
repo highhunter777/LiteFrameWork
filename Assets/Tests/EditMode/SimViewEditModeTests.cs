@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using LiteSim;
-using LiteGame.View;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
@@ -8,6 +7,7 @@ using UnityEngine;
 
 using LiteFramework;
 using LiteGame.Modules.Camera;
+using LiteGame.Spatial;
 
 namespace LiteGame.Tests.EditMode
 {

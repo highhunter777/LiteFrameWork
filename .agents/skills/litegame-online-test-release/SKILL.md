@@ -21,8 +21,8 @@ description: LiteGame 联机测试发布前置流水线：BuildHash 复算与门
 
 | 改动 | 云侧 | 客户端 |
 |---|---|---|
-| 共享源集（`LiteSim` / `LiteNet` / `Assets/RoomServer` 双编件）、`.proto` | `gen-build-hash.py` → 重发 Room（Meta 若其源也变则一并重发） | **必须重打包**（旧包握手拒） |
-| 表源（`Luban/Data`、`Luban/Defines`） | `Luban/gen.bat` → `gen-build-hash.py` → 重发需要表的服务端 | 重编译 + 重打包 |
+| 共享源集（`LiteSim` / `LiteNet` / `Assets/RoomServer` 双编件）、`.proto` | `toolbox.py build-hash` → 重发 Room（Meta 若其源也变则一并重发） | **必须重打包**（旧包握手拒） |
+| 表源（`Luban/Data`、`Luban/Defines`） | `Luban/gen.bat` → `toolbox.py build-hash` → 重发需要表的服务端 | 重编译 + 重打包 |
 | `Server/RoomServer` 宿主 `.cs` | 重发 Room | 不动 |
 | `Server/MetaServer` 宿主 `.cs` | 重发 Meta | 不动 |
 | 纯表现 / Lua / prefab / 美术 | 不动 | 编辑器重编译；重打包 |
@@ -38,9 +38,9 @@ description: LiteGame 联机测试发布前置流水线：BuildHash 复算与门
 - 发布前**必须**复算两个常量；`deploy-room.py` 与 Meta publish 本身没有哈希门禁：
 
 ```powershell
-python scripts/codegen/gen-build-hash.py
-python scripts/codegen/gen-build-hash.py --check          # shared + meta
-python scripts/codegen/gen-build-hash.py --check-shared   # 出包门禁同款
+python scripts/codegen/toolbox.py build-hash
+python scripts/codegen/toolbox.py build-hash --check          # shared + meta
+python scripts/codegen/toolbox.py build-hash --check-shared   # 出包门禁同款
 ```
 
 `--check` 不通过就停。生成器改了 shared 常量 → 重发 Room + 重打客户端；改了 meta 常量 → 重发 Meta。客户端常量在 `Assets/LiteNet/Protocol/BuildHash.g.cs` 的 `BuildHash.Value`。
@@ -230,7 +230,7 @@ pwsh -NoProfile -File Dist/New-Packages.ps1 -Testers <tester> -Overlay -Zip -For
 
 ### 5.1 本机测试（默认）
 
-- `gen-build-hash.py --check` 通过（shared + meta）。
+- `toolbox.py build-hash --check` 通过（shared + meta）。
 - Room：任务 Running、日志 `buildHash` = 客户端常量。
 - Meta：任务 Running、日志 `build` 为本次值（meta 源未变则沿用）。
 - 大厅投影：`buildHash` = 客户端常量、`address=10.8.0.1:17777`、`lastSeenAgeMs` 正常；`/live`=live、`/ready`=ready。

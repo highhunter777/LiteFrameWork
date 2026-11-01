@@ -1,4 +1,3 @@
-using LiteGame.View;
 using NUnit.Framework;
 using LiteFramework;
 using LiteGame.Modules.Camera;

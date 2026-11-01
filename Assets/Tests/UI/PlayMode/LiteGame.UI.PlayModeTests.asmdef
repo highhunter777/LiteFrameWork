@@ -1,4 +1,4 @@
-{
+﻿{
     "name": "LiteGame.UI.PlayModeTests",
     "rootNamespace": "LiteGame.Tests.UI.PlayMode",
     "references": [
@@ -7,7 +7,6 @@
         "LiteGame.Modules.Settings",
         "LiteGame.Modules.Input",
         "LiteGame.Modules.Camera",
-        "LiteGame.Modules",
         "LiteGame.Adapters.Unity",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
@@ -23,7 +22,14 @@
         "Unity.InputSystem",
         "Unity.TextMeshPro",
         "UnityEngine.TestRunner",
-        "xLuaMain"
+        "xLuaMain",
+        "LiteGame.Shared",
+        "LiteGame.Modules.Ui",
+        "LiteGame.Modules.Procedure",
+        "LiteGame.Modules.Meta",
+        "LiteGame.Modules.Session",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Dev"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

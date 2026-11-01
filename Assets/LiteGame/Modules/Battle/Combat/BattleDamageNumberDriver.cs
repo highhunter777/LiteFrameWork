@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
-using LiteGame.View;
-using LiteGame.View.DamageNumbers;
+using LiteGame.Feedback.DamageNumbers;
 using TMPro;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Feedback;
 
 namespace LiteGame
 {

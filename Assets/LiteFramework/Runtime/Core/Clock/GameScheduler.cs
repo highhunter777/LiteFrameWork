@@ -3,11 +3,6 @@ using System.Collections.Generic;
 
 namespace LiteFramework
 {
-    /// <summary>逻辑时轨标记：WorldClock 驱动——受暂停/时停/变速。</summary>
-    public interface ILogicScheduler : IScheduler { }
-
-    /// <summary>UI 时轨标记：UIClock 驱动——受暂停、不受时停。</summary>
-    public interface IUIScheduler : IScheduler { }
 
     /// <summary>
     /// 调度器实现（契约 = <see cref="IScheduler"/>）：动作点/定时注册、到期触发、可取消。

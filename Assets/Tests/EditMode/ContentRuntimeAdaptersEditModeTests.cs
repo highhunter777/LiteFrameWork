@@ -1,11 +1,11 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using LiteFramework;
-using LiteGame.Modules.Framework;
+using LiteGame.Modules.Composition;
 
 namespace LiteGame.Tests.EditMode
 {

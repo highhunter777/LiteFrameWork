@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteGame.View.Animation
+namespace LiteGame
 {
     /// <summary>
     /// 俯仰瞄准姿态（第三人称自由视角的**姿态覆写器**）：把上半身（人形 <see cref="HumanBodyBones.Chest"/>

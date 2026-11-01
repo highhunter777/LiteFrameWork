@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-
 namespace Tools.DisciplineScan
 {
     /// <summary>纪律规则编号（《测试开发方案》§6.4、《M7 实施指导》§2.5）。</summary>
@@ -221,7 +220,7 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] PlatformForkAllowedFiles =
         {
-            "Assets/LiteGame/Modules/Framework/DeployBake.cs",
+            "Assets/LiteGame/Modules/Config/Deploy/DeployBake.cs",
             "Assets/LiteGame/Modules/Input/InputComposition.cs",
             "Assets/LiteGame/Modules/Battle/Setup/BattleViewRig.cs",
         };

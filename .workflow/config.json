@@ -830,18 +830,43 @@
       "name": "sync-and-sim-check-shared",
       "cmd": [
         "python",
-        "scripts/codegen/gen-build-hash.py",
+        "scripts/codegen/toolbox.py",
+        "build-hash",
         "--check-shared"
       ],
       "timeout": 300
     },
     {
+      "name": "codegen-check",
+      "cmd": [
+        "python",
+        "scripts/codegen/toolbox.py",
+        "all",
+        "--check"
+      ],
+      "timeout": 900
+    },
+    {
       "name": "sync-and-sim-e2e",
       "cmd": [
         "python",
-        "scripts/gate/sync-and-sim-e2e.py"
+        "scripts/gate/sync-and-sim-e2e.py",
+        "--skip-build",
+        "--skip-smoke"
       ],
       "timeout": 3600
+    },
+    {
+      "name": "session-boundary",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SessionBoundaryTests",
+        "--nologo"
+      ],
+      "timeout": 600
     }
   ],
   "red_commands": [
@@ -1014,6 +1039,43 @@
         "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
         "--filter",
         "FullyQualifiedName~SyncAndSimContract",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "toolbox-tests",
+      "cmd": ["python", "-m", "unittest", "scripts.tests.test_toolbox", "-v"],
+      "timeout": 300
+    },
+    {
+      "name": "codegen-rot-tests",
+      "cmd": ["python", "-m", "unittest", "scripts.tests.test_codegen_rot", "-v"],
+      "timeout": 300
+    },
+    {
+      "name": "gen-path-report-tests",
+      "cmd": ["python", "-m", "unittest", "scripts.tests.test_gen_path_report", "-v"],
+      "timeout": 300
+    },
+    {
+      "name": "gen-luban-check-tests",
+      "cmd": ["python", "-m", "unittest", "scripts.tests.test_gen_luban_check", "-v"],
+      "timeout": 300
+    },
+    {
+      "name": "gen-proto-check-tests",
+      "cmd": ["python", "-m", "unittest", "scripts.tests.test_gen_proto_check", "-v"],
+      "timeout": 300
+    },
+    {
+      "name": "session-boundary-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SessionBoundaryTests",
         "--nologo"
       ],
       "timeout": 600

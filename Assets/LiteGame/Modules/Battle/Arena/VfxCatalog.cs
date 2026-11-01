@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using LiteFramework;
 
-namespace LiteGame.View
+namespace LiteGame
 {
     /// <summary>
     /// 名 → 定义（《VFX服务实施指导》§1 决策 3：**命名即引用、不做 Luban 表**）：

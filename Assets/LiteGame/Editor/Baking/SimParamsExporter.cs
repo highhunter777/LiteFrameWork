@@ -10,13 +10,13 @@ namespace LiteGame.EditorTools
     /// 判定参数覆写 → `#combatgeom` 表行的导出器（编辑器侧，复用 <see cref="CombatGeomTableWriter"/>）：
     /// 把调参面板（<c>SimParamsDebugTunables</c>）留在 <see cref="SimParamsOverrides"/> 里的非空列写回表源。
     /// `confirm = false` 即 dry-run（只出预览报告，不写盘）；写入由表行助手落备份。
-    /// 写完不自动跑 Luban：需手动 `Luban/gen.bat` → `python scripts/codegen/gen-build-hash.py`（两端需重建）。
+    /// 写完不自动跑 Luban：需手动 `Luban/gen.bat` → `python scripts/codegen/toolbox.py build-hash`（两端需重建）。
     /// 校验口径由 <see cref="SimParamsOverrides"/> 的写入校验保证（非法值在 Set 处已被拒，这里只做格式化）。
     /// </summary>
     public static class SimParamsExporter
     {
         private const string NextStep =
-            "下一步：Luban/gen.bat → python scripts/codegen/gen-build-hash.py → 两端需重建";
+            "下一步：Luban/gen.bat → python scripts/codegen/toolbox.py build-hash → 两端需重建";
 
         private const string BackupDir = "Temp/combatgeom-backups";
 

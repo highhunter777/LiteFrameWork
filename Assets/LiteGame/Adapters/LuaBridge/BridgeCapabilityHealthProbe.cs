@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework;
-using LiteGame.Modules.Framework;
+using LiteGame.Modules.Config;
 
 namespace LiteGame
 {

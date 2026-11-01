@@ -24,7 +24,7 @@ namespace LiteGame.Toolchain
                     ? "up to date："
                     : outcome == ToolWriteOutcome.Planned ? "planned：" : "written：";
                 string report = label + SimTrigTableGenerator.OutputPath
-                    + "（在 BuildHash 源集，需重跑 python scripts/codegen/gen-build-hash.py）。";
+                    + "（在 BuildHash 源集，需重跑 python scripts/codegen/toolbox.py build-hash）。";
                 return ToolResult.FromLegacy(report, scope, stopwatch.Elapsed);
             }
             catch (Exception exception)

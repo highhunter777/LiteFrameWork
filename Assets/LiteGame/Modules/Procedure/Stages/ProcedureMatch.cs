@@ -89,7 +89,7 @@ namespace LiteGame
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct,
             string host, int port, string roomId, string token, bool testRoom)
         {
-            AccountSession account = null;
+            IAccountSession account = null;
             // 进房等待场（窗口⑤——不定态；可空 = 测试装配）：开场即阻断，JoinAck/失败/取消三路收口
             LaunchLoading.Begin(_feedback, "正在进入房间…");
             // 加载面 Back（阻断期取消）必须能打断进房等待：服务只给取消信号，被门控操作自行响应
@@ -106,8 +106,8 @@ namespace LiteGame
 
                 _pending = null;                          // 泵交棒给对局运行端口（不双泵）
                 LaunchLoading.End();                      // 收场后移交（遮罩不能挡房间页/对局）
-                // 移交所有权：AccountSession 随迁移进 Battle（离场收尾在 Battle；对局场景组也在 Battle 加载）。
-                m.Request(ProcedureId.Battle, new ProcedureArgs(accountSession: account));
+                // 移交所有权：账号会话端口随迁移进 Battle（离场收尾在 Battle；对局场景组也在 Battle 加载）。
+                m.Request(ProcedureId.Battle, new ProcedureArgs(session: account));
             }
             catch (OperationCanceledException)
             {

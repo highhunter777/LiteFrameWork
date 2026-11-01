@@ -16,6 +16,7 @@
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -79,7 +80,7 @@ def strip_cloud_sections(source, target):
 
 def step_check_shared(logs):
     ok, text = _run(
-        [sys.executable, "scripts/codegen/gen-build-hash.py", "--check-shared"],
+        [sys.executable, "scripts/codegen/toolbox.py", "build-hash", "--check-shared"],
         logs / "check-shared.log",
         300,
     )
@@ -117,7 +118,29 @@ def step_server_reconcile(logs, config_path, duration_ms):
     }
 
 
+def stop_editor_play(logs):
+    """进入出包前先把 Editor 从 Play 模式拉回：PlayMode 测试可能留下 Play，
+    而 build-player 的 bundle 构建在 Play 中只会返回 "starting" 并重试。"""
+    unity = shutil.which("unity")
+    if not unity:
+        (logs / "editor-stop.log").write_text("skip: unity CLI not on PATH\n", encoding="utf-8")
+        return
+    try:
+        completed = subprocess.run(
+            [unity, "command", "editor_stop", "--project-path", str(ROOT)],
+            cwd=str(ROOT), capture_output=True, text=True, encoding="utf-8",
+            errors="replace", timeout=60,
+        )
+        (logs / "editor-stop.log").write_text(
+            (completed.stdout or "") + (completed.stderr or ""),
+            encoding="utf-8",
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        (logs / "editor-stop.log").write_text(f"skip: {exc}\n", encoding="utf-8")
+
+
 def step_build_player(logs, profile):
+    stop_editor_play(logs)
     ok, text = _run(
         [sys.executable, "scripts/build/build-player.py", "--profile", profile],
         logs / "build-player.log",

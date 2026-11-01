@@ -14,9 +14,9 @@ namespace LiteGame
         /// <summary>失败原因（`ProcedureId.Error` 阶段读；其余阶段为 null）。</summary>
         public readonly Exception Error;
 
-        /// <summary>Account 会话（`ProcedureId.Match` 产出 → `Battle` 消费——跨阶段移交所有权，
-        /// Battle 离场时由 MatchSession/AccountSession 负责其域收尾）。</summary>
-        public readonly AccountSession AccountSession;
+        /// <summary>账号会话（`ProcedureId.Match` 产出 → `Battle` 消费——跨阶段移交所有权；
+        /// Battle 离场时由对局/会话运行面负责其域收尾）。实参是 <see cref="IAccountSession"/> 端口，不是会话实现件。</summary>
+        public readonly IAccountSession Session;
 
         /// <summary>本地测试模式意图（`Main` 消费进房请求 → `Match` 读）：强制本地服 + 房号 Room-Test + 全房免死
         /// （规则持有件 <see cref="LiteSim.MatchTestRules"/>——见 ProcedureMatch 入口口径）——开发/测试专用，正式包无该入口。</summary>
@@ -26,11 +26,11 @@ namespace LiteGame
         /// 开发与正式构建同链，区别于 TestRoom 的测试身份）。形状见 <see cref="MetaJoin"/>。</summary>
         public readonly MetaJoin MetaJoin;
 
-        public ProcedureArgs(Exception error = null, AccountSession accountSession = null,
+        public ProcedureArgs(Exception error = null, IAccountSession session = null,
             bool testRoom = false, MetaJoin metaJoin = default)
         {
             Error = error;
-            AccountSession = accountSession;
+            Session = session;
             TestRoom = testRoom;
             MetaJoin = metaJoin;
         }

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using LiteFramework;
-using LiteGame.View.Animation;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;

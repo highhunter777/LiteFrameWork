@@ -1,7 +1,7 @@
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame.View.Animation
+namespace LiteGame
 {
     /// <summary>
     /// 单个槽位的武器相关约束三件套（持枪 / 俯仰 / 枪口对齐）。

@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
-using LiteGame.View;
 using UnityEngine;
+using LiteGame.Feedback;
 
 namespace LiteGame
 {

@@ -1,0 +1,28 @@
+﻿{
+    "name": "LiteGame.Modules.Session",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteFramework.Runtime",
+        "LiteGame.Core",
+        "LiteGame.Modules.Battle",
+        "LiteGame.Modules.Config",
+        "LiteGame.Modules.Dev",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Meta",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteGame.Modules.Framework;
+using LiteGame.Modules.Config;
 
 namespace LiteGame
 {

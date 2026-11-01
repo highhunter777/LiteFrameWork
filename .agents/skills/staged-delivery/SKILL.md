@@ -1,6 +1,6 @@
 ---
 name: staged-delivery
-description: "Turn a feature, refactor, or bugfix request into a gated delivery run: plan, independent sub-agent plan review, user-confirmed acceptance criteria, reviewed task breakdown, failing tests first, implementation, real-command verification, independent sub-agent code review, writeback, and archived records. Use when the user requests 分阶段交付、方案与任务清单、任务评审、先写测试再施工、施工记录、代码评审、任务归档，or a repeatable plan-first/TDD workflow for any repository or language. Plan and code review MUST be performed by an independent sub-agent; acceptance criteria MUST be approved by the user. Stages, approval gates, templates, and verification commands are configurable through .workflow/config.json."
+description: "Turn a feature, refactor, or bugfix request into a gated delivery run: plan, independent sub-agent plan review, user-confirmed acceptance criteria, independent sub-agent task review, sub-agent-authored failing tests first, sub-agent implementation, real-command verification, main-agent code review, writeback, and archived records. Use when the user requests 分阶段交付、方案与任务清单、任务评审、先写测试再施工、施工记录、代码评审、任务归档，or a repeatable plan-first/TDD workflow for any repository or language. Plan and task review MUST be performed by an independent sub-agent; tests and implementation MUST be authored by construction sub-agents; code review is performed by the main agent; acceptance criteria MUST be approved by the user. Sub-agents may run in the host or, on explicit user instruction, via a dsh agent. Stages, approval gates, templates, and verification commands are configurable through .workflow/config.json."
 ---
 
 # Staged Delivery
@@ -9,7 +9,7 @@ description: "Turn a feature, refactor, or bugfix request into a gated delivery 
 
 把一次非平凡交付拆成可验证的阶段，每个阶段先落盘产物，再通过门禁推进：
 
-`提出方案 → 子代理评审方案 → 用户确认验收标准 → 实施任务清单 → 评审任务 → 先写测试 → 正式施工 → 测试代码 → 子代理评审代码 → 回写与收尾 → 归档`
+`提出方案 → 子代理评审方案 → 用户确认验收标准 → 实施任务清单 → 子代理评审任务 → 子代理先写测试 → 子代理正式施工 → 测试代码 → 主代理评审代码 → 回写与收尾 → 归档`
 
 - 机器状态：`.workflow/active/<slug>/state.json`
 - 人读产物：`plan.md`、`reviews/plan-review.md`、`acceptance.md`、`tasks.md`、`reviews/task-review.md`、`test-plan.md`、`build-log.md`、`reviews/code-review.md`
@@ -30,23 +30,35 @@ description: "Turn a feature, refactor, or bugfix request into a gated delivery 
 
 - 阶段只能通过 `advance` 推进；不要手改 `state.json`，不要跳过门禁。
 - 产物必须写实：方案来自代码与约束，评审来自实际检查，验证来自真实命令输出；禁止伪造证据，禁止删除用例、降低断言强度、跳过测试或改动门禁。
-- **评审必须独立**：方案评审与代码评审一律由子代理（独立上下文）执行，主代理不得自评、不得代填结论；子代理只读，不写生产代码、测试或门禁。修复后重新开子代理复评，不能沿用旧结论。
+- **分工固定**：方案评审与任务评审由子代理（独立上下文）执行，主代理不得自评、不得代填结论，评审子代理只读；先写测试与正式施工由施工子代理撰写，主代理负责拆任务、给约束、核验与状态落盘；代码评审由主代理执行（代码由施工子代理撰写，主代理不是作者），必须基于实际 diff，不能只信子代理自述。修复后按同一分工复评/复测，不能沿用旧结论。
+- **施工子代理边界**：施工子代理只写任务清单范围内的测试与生产代码，禁改 `.workflow/**`、门禁脚本与配置，禁删除用例、降低断言强度或跳过测试；不得自行宣告任务完成，`task done` 由主代理核验 diff 与命令输出后执行。
 - **验收标准必须经用户确认**：进入任务拆解与施工前，把验收标准逐条提审用户；未得到用户明确确认不得 `advance --approve`，不得自行批准。
 - 先解决根因，再谈实现。不能只针对当前调用方打补丁、堆特判或硬编码；在方案与代码评审中记录通用性与扩展点。
 - 保持最小改动。新增抽象必须有当前需求支撑，不为假想需求设计。
 - 任务状态与施工记录随做随记；变更要回退或新增任务，不要静默扩大范围。
 - 阶段配置、命令、模板、审批均可配置。不要修改脚本去适配某个项目；优先改 `.workflow/config.json`。
 
-## 子代理评审协议
+## 子代理协作协议
 
-方案评审（第 2 阶段）与代码评审（第 9 阶段）都按本协议执行，两次评审互相独立。
+分工固定：方案评审（第 2 阶段）与任务评审（第 5 阶段）由**评审子代理**执行；先写测试（第 6 阶段）与正式施工（第 7 阶段）由**施工子代理**撰写；代码评审（第 9 阶段）由**主代理**执行；验收确认由用户完成。
 
-1. **开子代理**：使用宿主提供的子代理工具（Qoder 的 `Agent` 工具、Claude Code 的 `Task` 工具，或其他等价的独立会话能力）。不得在主代理里“模拟”子代理。
+### 评审子代理（方案、任务）
+
+1. **开子代理**：默认使用宿主提供的子代理工具（Qoder 的 `Agent` 工具、Claude Code 的 `Task` 工具，或其他等价的独立会话能力）。**经用户明确指令**，也可使用 dsh（DeepSeek Harness）的 headless 代理作为子代理：视为外部代理，必须给足完整输入（仓库路径、基线提交、产物路径、只读/写权限边界与返回格式），并在产物中记录代理类型与 dsh 会话标识。不得在主代理里“模拟”子代理。
 2. **给足输入，不给结论**：只提供产物路径、代码基线（`git rev-parse HEAD`、`git diff --stat`、未跟踪文件清单）、评审清单（`references/artifact-quality.md`）与只读约束。不要把你的倾向、结论或“已通过”的暗示交给子代理。
-3. **要求结构化返回**：结论、阻塞问题（含严重度、位置、依据）、方案可实施性与验收标准可判定性（方案评审）或通用性与扩展性结论（代码评审）、建议修复方式。
+3. **要求结构化返回**：结论、阻塞问题（含严重度、位置、依据）；方案评审另要方案可实施性与验收标准可判定性，任务评审另要验收映射、任务粒度、依赖与测试覆盖。
 4. **主代理落盘**：把子代理返回的问题与结论整理进评审产物，写明 `评审方式: 独立子代理`、子代理标识（名称或会话 ID）、评审时间与评审输入；不要润色成自己写的评审。
-5. **修复后复评**：任何阻塞问题修复后，重新开子代理（可以是新会话）复评修复项与回归面，并更新复测记录；`wf verify` 也要重新运行。代码评审默认最多 3 轮，超限条件见第 9 阶段。
+5. **修复后复评**：任何阻塞问题修复后，重新开子代理（可以是新会话）复评修复项与回归面，并更新复测记录；`wf verify` 也要重新运行。
 6. **能力缺失时如实说明**：宿主不提供子代理能力时，先告知用户这一限制并取得明确同意再继续；记录例外，不得声称“独立评审”。
+
+### 施工子代理（测试、施工）
+
+1. **先测试后施工，会话分离**：测试子代理只写测试并跑出预期失败；主代理核验 `evidence/red.json` 后，再开施工子代理写实现。禁止同一子代理边写实现边改测试。
+2. **给足输入**：任务 ID、验收标准、验证命令、允许的文件范围、相关方案章节与项目规则（`AGENTS.md`、相关 skill）；不要给“照着某个实现写”的暗示。
+3. **写权限边界**：只改任务清单范围内的测试与生产代码；禁改 `.workflow/**`、门禁脚本、`.workflow/config.json`；禁删除用例、降低断言强度或跳过测试。
+4. **要求结构化返回**：改动文件清单、关键决定、运行的命令与结果、未验证项与风险。
+5. **主代理核验**：读实际 diff、运行任务验证命令（必要时重跑），确认无范围外改动后才执行 `wf task done --evidence`；失败退回施工子代理修复，或新增任务并记录。
+6. **并行限制**：默认串行；只有文件集不重叠且不争用同一编辑器、生成器或共享源集时才允许并行，并先冻结共享面。验收与状态推进始终由主代理独占。
 
 ## 准备
 
@@ -104,11 +116,11 @@ wf init <slug> --title "<交付标题>"
 | 2 | 子代理评审方案 | `reviews/plan-review.md` | 独立子代理已执行并留痕（`评审方式: 独立子代理`），结论与验收标准均 PASS，阻塞问题 0 | `advance` |
 | 3 | 用户确认验收标准 | `acceptance.md` | 用户已逐条审阅并确认（`确认结论: 通过`），且带人工审批 | `advance --approve <用户标识>` |
 | 4 | 实施任务清单 | `tasks.md` | 至少一个任务；字段与依赖合法 | `advance` |
-| 5 | 评审任务 | `reviews/task-review.md` | 结论 PASS，阻塞问题 0 | `advance` |
-| 6 | 先写测试 | `test-plan.md`；配置了 red_commands 时还需 `evidence/red.json` | 已观察到预期失败；或记录无法先失败的替代验证 | `advance` |
-| 7 | 正式施工 | `build-log.md` | 所有任务完成或取消，施工记录完整 | `advance` |
+| 5 | 子代理评审任务 | `reviews/task-review.md` | 独立子代理已执行并留痕（`评审方式: 独立子代理`），结论 PASS，阻塞问题 0 | `advance` |
+| 6 | 子代理先写测试 | `test-plan.md`；配置了 red_commands 时还需 `evidence/red.json` | 已观察到预期失败；或记录无法先失败的替代验证 | `advance` |
+| 7 | 子代理正式施工 | `build-log.md` | 所有任务完成或取消，施工记录完整 | `advance` |
 | 8 | 测试代码 | `evidence/verify.json` | 配置的验证命令全部通过且未过期 | `verify` → `advance` |
-| 9 | 子代理评审代码 | `reviews/code-review.md` | 独立子代理已执行并留痕（`评审方式: 独立子代理`），结论、通用性、扩展性均 PASS，阻塞问题 0，验证有效 | `advance` |
+| 9 | 主代理评审代码 | `reviews/code-review.md` | 主代理已基于实际 diff 评审并留痕（`评审方式: 主代理`），结论、通用性、扩展性均 PASS，阻塞问题 0，验证有效 | `advance` |
 | 10 | 回写与收尾 | `build-log.md`、`tasks.md` | 交付摘要、验证结果、未决事项、文件清单、后续建议完整 | `advance` |
 | - | 归档 | `ARCHIVE.md`、索引 | 运行已处于 done | `archive` |
 
@@ -136,7 +148,7 @@ wf init <slug> --title "<交付标题>"
 
 ### 2. 子代理评审方案
 
-方案完成后，立即按「子代理评审协议」开一个独立子代理评审 `plan.md`，不要自己评审自己的方案。子代理的评审清单：
+方案完成后，立即按「子代理协作协议·评审子代理」开一个独立子代理评审 `plan.md`，不要自己评审自己的方案。子代理的评审清单：
 
 - 目标可观察、范围与非目标清晰，没有范围悄悄膨胀
 - 现状与根因有代码、配置或文档依据，不是凭标题想象
@@ -167,40 +179,44 @@ wf task add --title "<任务>" --acceptance "<可验证验收>" --verify "<验�
 
 任务应可独立执行、独立验证；每项都写清验收与验证方式；依赖顺序合理。验收标准必须能追溯到方案中的 AC。任务过大时拆分，不按“改某个文件”切分。运行 `check` 后 `advance`。
 
-### 5. 评审任务
+### 5. 子代理评审任务
 
-填写 `reviews/task-review.md`，像独立评审者一样检查：
+按「子代理协作协议·评审子代理」开一个独立子代理审阅 `plan.md` 与 `tasks.md`，不要自己代填评审：
 
 - 方案验收标准是否全部映射到任务
 - 任务粒度、依赖、顺序、可测试性、风险处理
 - 是否混入范围外改动、硬编码或特判式补丁
 - 测试策略是否足以覆盖失败路径与边界
 
-发现问题先修任务与方案，再重写评审结论。禁止未检查就填 `结论: PASS` / `阻塞问题: 0`。需要重大调整时用 `rewind` 回退并记录原因。
+把子代理返回整理进 `reviews/task-review.md`，写明 `评审方式: 独立子代理` 与子代理标识。发现问题先修任务与方案，再重新开子代理复评；禁止未检查就填 `结论: PASS` / `阻塞问题: 0`。需要重大调整时用 `rewind` 回退并记录原因。
 
-### 6. 先写测试
+**评审轮次上限**：任务评审（首轮 + 复评）默认最多 3 轮；仅当每一轮都发现 blocker/major 级重大问题时才允许超过 3 轮，并在评审产物中逐轮写明重大问题与处理。某轮复评只剩 minor 问题时，修复、落盘后直接收口，不再开新一轮；重大问题连续多轮不收敛时，优先 `rewind` 或向用户说明。
 
-按仓库现有测试框架写测试并运行，确认它们因预期原因失败：
+### 6. 子代理先写测试
+
+主代理先填写 `test-plan.md`（测试策略、用例清单、验收映射、运行方式），再按「子代理协作协议·施工子代理」开测试子代理撰写测试并运行，确认它们因预期原因失败：
 
 - 测试覆盖验收标准、边界与错误路径，不迎合尚未写出的实现
-- 优先使用可只跑新增测试的 `red_commands`，运行 `wf verify --red` 记录证据
+- 优先使用可只跑新增测试的 `red_commands`，由主代理运行 `wf verify --red` 记录证据（子代理已跑过的，主代理核验后仍要留证）
 - 失败必须是断言失败，而不是导入错误、拼写错误或环境故障
 - 无法先写失败测试时（文档、配置、基础设施），在 `test-plan.md` 写明替代验证与理由；仍要实际执行可用的检查
-- 填写 `test-plan.md`：测试策略、用例清单、预期失败证据、运行方式
+- 测试子代理与后续施工子代理必须是不同会话
 
 禁止删除用例、降低断言强度或跳过测试。运行 `check` 后 `advance`。
 
-### 7. 正式施工
+### 7. 子代理正式施工
 
-按依赖顺序执行任务，一次专注一个任务：
+按依赖顺序执行任务，一次专注一个任务；每个任务开一个施工子代理撰写实现，主代理负责状态与验收：
 
 ```bash
 wf task start T1
-# 实现、运行相关测试、检查边界
+# 开施工子代理：给出验收、验证命令、允许的文件范围与项目规则
+# 主代理核验 diff、运行任务验证命令
 wf task done T1 --evidence "<命令、结果、关键文件>"
 ```
 
 - 先修根因，复用既有模式与扩展点；不要只对当前输入写特判
+- 施工子代理不得改 `.workflow/**`、门禁脚本与配置，不得静默扩大文件范围
 - 不顺手重构无关代码；不做任务清单之外的静默扩展
 - 新发现的必要工作用 `task add` 加入并记录；目标、验收或方案发生变化时用 `rewind` 回到相应阶段
 - 把关键决定、偏差、问题与修复写进 `build-log.md`
@@ -220,9 +236,9 @@ wf verify
 
 任务变更会使验证结果过期；配置命令变化也会使指纹失效。在评审阶段修改代码后同样必须重新运行 `verify`。不要让输出证据包含密钥、令牌或隐私数据。
 
-### 9. 子代理评审代码
+### 9. 主代理评审代码
 
-按「子代理评审协议」开一个独立子代理，基于实际 diff 与文件内容评审，而不是复述方案。给子代理的输入：代码基线（提交号、`git diff --stat`、未跟踪文件清单）、任务与验收标准位置、`references/artifact-quality.md` 的代码评审清单。子代理返回后，把其结论与问题整理进 `reviews/code-review.md`，评审清单：
+代码由施工子代理撰写，主代理不是作者；但仍须基于实际 diff 与文件内容独立评审，不得只信子代理自述或复述方案。输入：提交号、`git diff --stat`、未跟踪文件清单、任务与验收标准位置、`evidence/verify.json` 与 `references/artifact-quality.md` 的代码评审清单。评审清单：
 
 - 变更是否完整映射任务与验收标准，是否有范围外改动
 - 主路径、边界、错误路径、并发/资源风险
@@ -232,7 +248,7 @@ wf verify
 - 安全：输入边界、注入、权限、敏感信息
 - 性能与兼容性
 
-评审产物必须写明 `评审方式: 独立子代理` 与子代理标识；自己补写的“评审”不满足门禁。发现问题按严重度记录并修复；阻塞问题必须为 0。`通用性` 与 `扩展性` 结论必须为 PASS；任一 FAIL 都按阻塞处理。修复后重新运行 `wf verify`，并重新开子代理复评修复项与回归面，在复测记录中写明命令、结果与复评子代理。
+评审产物必须写明 `评审方式: 主代理`、评审时间与评审输入。发现问题按严重度记录，修复交施工子代理执行；阻塞问题必须为 0。`通用性` 与 `扩展性` 结论必须为 PASS；任一 FAIL 都按阻塞处理。修复后重新运行 `wf verify`，并由主代理复评修复项与回归面，在复测记录中写明命令、结果与复评范围。
 
 **评审轮次上限**：代码评审（首轮 + 复评）默认最多 3 轮；仅当每一轮都发现 blocker/major 级重大问题时才允许超过 3 轮，并在复测记录逐轮写明重大问题与处理。某轮复评只剩 minor 问题时，修复、复测、落盘后直接收口，不再开新一轮；若重大问题连续多轮不收敛，优先 `rewind` 回到相应阶段或向用户说明，不要靠无限加轮掩盖上游问题。全部结论为 PASS 后 `advance`。
 
@@ -253,7 +269,7 @@ wf archive
 - 范围内的小变更：直接新增任务，在施工记录中说明原因。
 - 目标、验收标准、设计或范围发生实质变化：更新方案后 `rewind <阶段> --reason "<原因>"`，重新走子代理评审方案与用户确认验收标准，再重新评审任务与测试策略；`rewind` 会使既有验证过期。
 - 用户在验收确认阶段提出修改：回到 `propose` 修改方案，重新子代理评审并再次提审，不要带着未确认的验收标准继续。
-- 发现评审阻塞问题：回到对应阶段修复，不能把 `结论` 改成 PASS 绕过；方案/代码评审的阻塞修复后必须重新开子代理复评。
+- 发现评审阻塞问题：回到对应阶段修复，不能把 `结论` 改成 PASS 绕过；方案/任务评审的阻塞修复后必须重新开子代理复评，代码评审的阻塞修复后由主代理复评。
 - 任何回退、取消范围或未决风险都必须出现在评审或施工记录中。
 
 ## 定制与扩展

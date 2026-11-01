@@ -5,7 +5,7 @@ Mounted by ZCode (.zcode/config.json) and Claude Code (.claude/settings.json).
 Input: hook event JSON on stdin (tool_input.file_path / notebook_path).
 Output: client-specific JSON when a red line matches; silent exit 0 otherwise.
 This is a reminder surface, not a gate; the authoritative checks live in
-scripts/codegen/gen-build-hash.py.
+scripts/codegen/toolbox.py.
 """
 
 import json
@@ -20,26 +20,37 @@ except Exception:
     def configure_stdio():
         pass
 
+# Current BuildHash source-set prefixes (lower-case; the hook compares a
+# lower-cased repo-relative path). Must cover every directory in
+# gen-build-hash.SHARED_TARGETS -- scripts/tests/test_hook_reminder.py keeps the
+# two interlocked so a flatten/move cannot leave a silent gap here.
+SHARED_SOURCE_PREFIXES = (
+    "assets/litesim/scripts/",
+    "assets/litesim/systems/",
+    "assets/litenet/core/proto/",
+    "assets/litenet/core/protocol/",
+    "assets/litenet/core/transport/security/",
+    "assets/litesync/shared/",
+    "assets/litesync/snapshot/",
+    "assets/litesync/input/",
+    "assets/litesync/events/",
+    "assets/gamedata/generated/",
+)
+
 
 def _message(relative):
-    build_hash = "python scripts/codegen/gen-build-hash.py"
+    build_hash = "python scripts/codegen/toolbox.py build-hash"
+    proto = "python scripts/codegen/toolbox.py proto"
     if relative.endswith("buildhash.g.cs"):
-        return "[红线1] BuildHash.g.cs 是生成物,勿手改——由 gen-build-hash.py 从共享源重生成。"
+        return f"[红线1] BuildHash.g.cs 是生成物,勿手改——由 {build_hash} 从共享源重生成。"
     if relative.endswith(".proto"):
         return (
-            "[红线1] 改了 .proto:先 python scripts/codegen/gen_proto.py --protoc <protoc.exe> "
-            f"重生成,再 {build_hash} 。Proto/Generated 生成物勿手改。"
+            "[红线1] 改了 .proto:先 "
+            f"{proto} --protoc <protoc.exe> 重生成,再 {build_hash} 。Proto/Generated 生成物勿手改。"
         )
-    if relative.startswith("assets/litenet/proto/generated/"):
-        return "[红线1] Proto/Generated 是 gen_proto.py 的产物,勿手改;改行为去改 .proto 源再重生成。"
-    if relative.startswith(
-        (
-            "assets/litesim/core/scripts/",
-            "assets/litesim/core/systems/",
-            "assets/litenet/protocol/",
-            "assets/litenet/transport/security/",
-        )
-    ):
+    if relative.startswith("assets/litenet/core/proto/generated/"):
+        return "[红线1] Proto/Generated 是 proto 工具(toolbox.py proto)的产物,勿手改;改行为去改 .proto 源再重生成。"
+    if relative.startswith(SHARED_SOURCE_PREFIXES):
         return (
             "[红线1] 触碰 BuildHash 共享源集,收尾必跑: "
             f"{build_hash} ——漏跑=出包门禁被拦/两端常量不同步时 Join 拒进房。详见 skill: build-hash-sync"

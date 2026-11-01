@@ -1,0 +1,21 @@
+{
+    "name": "LiteGame.Modules.Ui",
+    "rootNamespace": "LiteGame.Modules.Ui",
+    "references": [
+        "LiteFramework.Runtime",
+        "LiteGame.Core",
+        "LiteGame.Modules.Config",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

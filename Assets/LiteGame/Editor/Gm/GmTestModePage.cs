@@ -340,7 +340,7 @@ namespace LiteGame.Editor
             }
             EditorGUILayout.HelpBox(
                 "导出只写 `#combatgeom` 表源（不触发重编译）；需在出对局后跑 Luban/gen.bat → "
-                + "python scripts/codegen/gen-build-hash.py，再进房才生效。",
+                + "python scripts/codegen/toolbox.py build-hash，再进房才生效。",
                 MessageType.Info);
         }
 

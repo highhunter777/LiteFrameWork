@@ -1,0 +1,20 @@
+using System;
+using LiteFramework;
+using UnityEngine;
+
+namespace LiteFramework.UI
+{
+    /// <summary>
+    /// UI prefab 租约（《UI框架总设计》§5.2 资源租约与缓存——Unity 对象引用不能代替包引用计数）：
+    /// UI loader 返回**可释放句柄**，与客户端 IContentService 对齐——实例持租约到真正销毁
+    /// （缓存实例也算使用者），禁止"返回对象前 Release 句柄"（Player 加载即悬空引用）。
+    /// </summary>
+    public interface IUIPrefabLease
+    {
+        /// <summary>prefab 资产（租约存续期内有效）。</summary>
+        GameObject Prefab { get; }
+
+        /// <summary>释放底层引用（引用计数递减；最后一个依赖实例销毁后调用）。</summary>
+        void Release();
+    }
+}

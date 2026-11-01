@@ -1,0 +1,363 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-11-01T20:07:43+08:00",
+  "ok": true,
+  "command_fingerprint": "3eb40905f8f5d9253f021813d1ae3f76c5bacb12117be2dbae617bb1904b7576",
+  "commands": [
+    {
+      "name": "build-player-platform-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_build_player.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 172,
+      "ok": false,
+      "output_tail": "[stderr]\ntest_android_player_extension_is_apk (test_build_player.BuildPlayerPlatformContractTests.test_android_player_extension_is_apk) ... ok\ntest_android_profile_named_target (test_build_player.BuildPlayerPlatformContractTests.test_android_profile_named_target) ... ok\ntest_artifact_glob_defaults_by_platform (test_build_player.BuildPlayerPlatformContractTests.test_artifact_glob_defaults_by_platform) ... ok\ntest_artifact_glob_prefers_profile_value (test_build_player.BuildPlayerPlatformContractTests.test_artifact_glob_prefers_profile_value) ... ok\ntest_backend_switch_android_uses_android_named_target (test_build_player.BuildPlayerPlatformContractTests.test_backend_switch_android_uses_android_named_target) ... ok\ntest_backend_switch_honors_mono_profile (test_build_player.BuildPlayerPlatformContractTests.test_backend_switch_honors_mono_profile) ... ok\ntest_backend_switch_windows_keeps_standalone (test_build_player.BuildPlayerPlatformContractTests.test_backend_switch_windows_keeps_standalone) ... ok\ntest_bundles_cs_targets_profile_platform (test_build_player.BuildPlayerPlatformContractTests.test_bundles_cs_targets_profile_platform) ... ok\ntest_bundles_supported_platforms (test_build_player.BuildPlayerPlatformContractTests.test_bundles_supported_platforms) ... ok\ntest_explicit_build_target_group_wins (test_build_player.BuildPlayerPlatformContractTests.test_explicit_build_target_group_wins) ... ok\ntest_output_expr_android_ends_with_apk (test_build_player.BuildPlayerPlatformContractTests.test_output_expr_android_ends_with_apk) ... ok\ntest_output_expr_windows_ends_with_exe (test_build_player.BuildPlayerPlatformContractTests.test_output_expr_windows_ends_with_exe) ... ok\ntest_profiles_carry_platform_contract_fields (test_build_player.BuildPlayerPlatformContractTests.test_profiles_carry_platform_contract_fields) ... ok\ntest_unknown_platform_extension_rejected (test_build_player.BuildPlayerPlatformContractTests.test_unknown_platform_extension_rejected) ... ok\ntest_unknown_platform_rejected (test_build_player.BuildPlayerPlatformContractTests.test_unknown_platform_rejected) ... ok\ntest_windows_player_extension_is_exe (test_build_player.BuildPlayerPlatformContractTests.test_windows_player_extension_is_exe) ... ok\ntest_windows_profile_named_target (test_build_player.BuildPlayerPlatformContractTests.test_windows_profile_named_target) ... ok\ntest_build_command_uses_double_dash_profile (test_build_player.ToolchainBuildCommandTests.test_build_command_uses_double_dash_profile) ... ok\ntest_build_command_without_profile (test_build_player.ToolchainBuildCommandTests.test_build_command_without_profile) ... ok\n\n----------------------------------------------------------------------\nRan 19 tests in 0.039s\n\nOK"
+    },
+    {
+      "name": "ui-selectable-theme-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10383,
+      "ok": false,
+      "output_tail": "  \"summary\": {\n    \"total\": 4,\n    \"passed\": 4,\n    \"failed\": 0,\n    \"skipped\": 0,\n    \"inconclusive\": 0\n  },\n  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.Null解析器_不抛且保持现值\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.078728,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.五色写入_保留multiplier与fade\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0080935,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.未知令牌_保留该字段现值\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0033341,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.非ColorTint_不写\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0009328,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 4/4 passed"
+    },
+    {
+      "name": "ui-selectable-applier-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeApplierEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10878,
+      "ok": false,
+      "output_tail": "{\n  \"status\": \"completed\",\n  \"duration\": 2.93,\n  \"summary\": {\n    \"total\": 3,\n    \"passed\": 3,\n    \"failed\": 0,\n    \"skipped\": 0,\n    \"inconclusive\": 0\n  },\n  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeApplierEditModeTests.EnsureAll_不改ColorBlock序列化值\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.3715445,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeApplierEditModeTests.EnsureAll_直挂补组件_嵌套跳过_幂等\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.8193947,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeApplierEditModeTests.EnsureAll_非ColorTint跳过\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.4154104,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 3/3 passed"
+    },
+    {
+      "name": "ui-theme-binder-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeBinderEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 9117,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_SelectableTheme节点上的基色ref仍可应用\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0010392,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_writer不拥有的子标签ref仍应用\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0013427,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_writer认领的tab目标跳过ref\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0023987,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_未知令牌只告警一次\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0047161,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_真HUD_ButtonSettings变色_Slider不抛\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7177885,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 7/7 passed"
+    },
+    {
+      "name": "ui-style-selectable-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleSelectableRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 8972,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.无Selectable_Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.371936,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.未知令牌_Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.4928849,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.正例_ColorTint有组件且值命中_零问题\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.4271031,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.缺组件_Warning\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.4017347,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.非ColorTint_跳过\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.3700283,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 7/7 passed"
+    },
+    {
+      "name": "ui-text-migration-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiTextStyleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 12670,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.应用_UGUI映射与加粗\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.9006616,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.应用_加粗位只动Bold不动斜体\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.5570958,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.迁移_UGUI按Legacy档匹配\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.5805172,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.迁移_不匹配不加_36号留债\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.4797602,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.迁移_直挂加Body_嵌套跳过_幂等\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.8347462,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 13/13 passed"
+    },
+    {
+      "name": "ui-style-ref-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRefEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 12851,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.ApplyRefs_未知令牌_不写值并计数\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.4197454,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.ApplyRefs_跳过IThemeBound节点\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.4366235,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_不命中不填\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.4270709,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_不填selectable专用令牌\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.5169367,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_最近匹配填入\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.5752571,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 9/9 passed"
+    },
+    {
+      "name": "ui-validation-b4-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 12549,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.表路径_端口标识与族\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0003553,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.视觉规则_端口标识与族\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0001681,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.负例_代码建Canvas_报一条Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.1301908,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.4774304,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_规则族全部接入登记_待接入子项描述含原因\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.1426625,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 14/14 passed"
+    },
+    {
+      "name": "module-dependency-decl-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~ModuleDependencyDeclTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 2741,
+      "ok": false,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Assets\\LiteFramework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Assets\\LiteFramework\\Runtime\\Modules\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:     2，已跳过:     0，总计:     2，持续时间: 31 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "composition-budget-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~CompositionBudgetTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 2730,
+      "ok": false,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Assets\\LiteFramework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Assets\\LiteFramework\\Runtime\\Modules\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:     2，已跳过:     0，总计:     2，持续时间: 12 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "domain-boundary-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~DomainBoundaryTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 2629,
+      "ok": false,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Assets\\LiteFramework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Assets\\LiteFramework\\Runtime\\Modules\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:     5，已跳过:     0，总计:     5，持续时间: 13 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "sync-and-sim-geometry-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteSim.Core.Tests/LiteSim.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SyncAndSimGeometryContract",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 5223,
+      "ok": false,
+      "output_tail": "  正在确定要还原的项目…\n  已还原 E:\\unityProject\\Test\\Assets\\LiteSim\\LiteSim.csproj (用时 74 毫秒)。\n  已还原 E:\\unityProject\\Test\\Assets\\LiteSync\\LiteSync.csproj (用时 132 毫秒)。\n  已还原 E:\\unityProject\\Test\\Assets\\LiteNet\\LiteNet.csproj (用时 132 毫秒)。\n  已还原 E:\\unityProject\\Test\\Tests\\LiteSim.Core.Tests\\LiteSim.Core.Tests.csproj (用时 137 毫秒)。\n  1 个项目(共 5 个)是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  LiteSim -> E:\\unityProject\\Test\\Assets\\LiteSim\\.dotnet\\bin\\Debug\\net8.0\\LiteSim.dll\nE:\\unityProject\\Test\\Assets\\LiteNet\\Adapters\\kcp2k\\highlevel\\Common.cs(67,25): warning SYSLIB0023: “RNGCryptoServiceProvider”已过时:“RNGCryptoServiceProvider is obsolete. To generate a random number, use one of the RandomNumberGenerator static methods instead.” (https://aka.ms/dotnet-warnings/SYSLIB0023) [E:\\unityProject\\Test\\Assets\\LiteNet\\LiteNet.csproj]\nE:\\unityProject\\Test\\Assets\\LiteNet\\Adapters\\kcp2k\\highlevel\\Common.cs(67,69): warning SYSLIB0023: “RNGCryptoServiceProvider”已过时:“RNGCryptoServiceProvider is obsolete. To generate a random number, use one of the RandomNumberGenerator static methods instead.” (https://aka.ms/dotnet-warnings/SYSLIB0023) [E:\\unityProject\\Test\\Assets\\LiteNet\\LiteNet.csproj]\n  LiteNet -> E:\\unityProject\\Test\\Assets\\LiteNet\\.dotnet\\bin\\Debug\\net8.0\\LiteNet.dll\n  LiteSync -> E:\\unityProject\\Test\\Assets\\LiteSync\\.dotnet\\bin\\Debug\\net8.0\\LiteSync.dll\nE:\\unityProject\\Test\\Assets\\LiteGame\\Adapters\\Dev\\Debug\\Session\\TestModeRuntime.cs(4,7): warning CS0105: “LiteFramework”的 using 指令以前在此命名空间中出现过 [E:\\unityProject\\Test\\Tests\\LiteSim.Core.Tests\\LiteSim.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteSim.Core.Tests\\RootMotionDataTests.cs(28,13): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [E:\\unityProject\\Test\\Tests\\LiteSim.Core.Tests\\LiteSim.Core.Tests.csproj]\n  LiteSim.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteSim.Core.Tests\\bin\\Debug\\net8.0\\LiteSim.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteSim.Core.Tests\\bin\\Debug\\net8.0\\LiteSim.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:    10，已跳过:     0，总计:    10，持续时间: 62 ms - LiteSim.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "sync-and-sim-contract-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SyncAndSimContract",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 3225,
+      "ok": false,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Assets\\LiteFramework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Assets\\LiteFramework\\Runtime\\Modules\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:    11，已跳过:     0，总计:    11，持续时间: 399 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "toolbox-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "scripts.tests.test_toolbox",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 8582,
+      "ok": false,
+      "output_tail": "[stderr]\ntest_all_check_runs_every_tool_in_order (scripts.tests.test_toolbox.AllOrderContractTests.test_all_check_runs_every_tool_in_order) ... ok\ntest_all_generation_passes_protoc_only_to_the_proto_step (scripts.tests.test_toolbox.AllOrderContractTests.test_all_generation_passes_protoc_only_to_the_proto_step) ... ok\ntest_all_order_constant_is_the_strict_sequence (scripts.tests.test_toolbox.AllOrderContractTests.test_all_order_constant_is_the_strict_sequence) ... ok\ntest_all_stops_at_the_first_failing_step (scripts.tests.test_toolbox.AllOrderContractTests.test_all_stops_at_the_first_failing_step) ... ok\ntest_all_without_protoc_fails_before_running_any_tool (scripts.tests.test_toolbox.AllOrderContractTests.test_all_without_protoc_fails_before_running_any_tool) ... ok\ntest_fixture_has_no_stale_entries (scripts.tests.test_toolbox.CallSiteGuardTests.test_fixture_has_no_stale_entries) ... ok\ntest_kinds_and_explicit_exceptions (scripts.tests.test_toolbox.CallSiteGuardTests.test_kinds_and_explicit_exceptions) ... ok\ntest_the_scan_surface_covers_config_and_toolchain_manifest (scripts.tests.test_toolbox.CallSiteGuardTests.test_the_scan_surface_covers_config_and_toolchain_manifest) ... ok\ntest_zero_illegal_invocations (scripts.tests.test_toolbox.CallSiteGuardTests.test_zero_illegal_invocations) ... ok\ntest_zero_unclassified_call_sites (scripts.tests.test_toolbox.CallSiteGuardTests.test_zero_unclassified_call_sites) ... ok\ntest_direct_generator_invocation_is_deprecated (scripts.tests.test_toolbox.DeprecatedContractTests.test_direct_generator_invocation_is_deprecated) ... ok\ntest_failure_hints_point_at_the_toolbox (scripts.tests.test_toolbox.DeprecatedContractTests.test_failure_hints_point_at_the_toolbox) ... ok\ntest_importing_the_toolbox_does_not_leak_the_transit_env (scripts.tests.test_toolbox.DeprecatedContractTests.test_importing_the_toolbox_does_not_leak_the_transit_env) ... ok\ntest_lua_keys_helper_is_out_of_the_deprecated_scope (scripts.tests.test_toolbox.DeprecatedContractTests.test_lua_keys_helper_is_out_of_the_deprecated_scope) ... ok\ntest_toolbox_invocation_is_not_deprecated (scripts.tests.test_toolbox.DeprecatedContractTests.test_toolbox_invocation_is_not_deprecated) ... ok\ntest_transit_env_suppresses_the_deprecated_hint (scripts.tests.test_toolbox.DeprecatedContractTests.test_transit_env_suppresses_the_deprecated_hint) ... ok\ntest_ui_page_stale_check_hint_points_at_the_toolbox (scripts.tests.test_toolbox.DeprecatedContractTests.test_ui_page_stale_check_hint_points_at_the_toolbox) ... ok\ntest_ui_tools_use_a_single_codegen_prefix (scripts.tests.test_toolbox.DeprecatedContractTests.test_ui_tools_use_a_single_codegen_prefix) ... ok\ntest_doctor_is_green_and_names_every_path_provider (scripts.tests.test_toolbox.DoctorTests.test_doctor_is_green_and_names_every_path_provider) ... ok\ntest_doctor_prints_the_executable_call_site_inventory (scripts.tests.test_toolbox.DoctorTests.test_doctor_prints_the_executable_call_site_inventory) ... ok\ntest_index_lists_every_tool_and_states_the_deprecated_policy (scripts.tests.test_toolbox.IndexAndForwardingTests.test_index_lists_every_tool_and_states_the_deprecated_policy) ... ok\ntest_unknown_tool_is_a_usage_error (scripts.tests.test_toolbox.IndexAndForwardingTests.test_unknown_tool_is_a_usage_error) ... ok\ntest_scanner_reconstructs_join_concatenation_and_backslashes (scripts.tests.test_toolbox.ScannerCoverageTests.test_scanner_reconstructs_join_concatenation_and_backslashes) ... scripts/build/probe.py:5: SyntaxWarning: invalid escape sequence '\\c'\nok\ntest_sim_trig_generator_exposes_a_read_only_up_to_date_check (scripts.tests.test_toolbox.TrigContractTests.test_sim_trig_generator_exposes_a_read_only_up_to_date_check) ... ok\ntest_trig_check_with_a_live_unity_pipeline (scripts.tests.test_toolbox.TrigContractTests.test_trig_check_with_a_live_unity_pipeline) ... ok\ntest_trig_cli_routes_through_the_write_scope_action (scripts.tests.test_toolbox.TrigContractTests.test_trig_cli_routes_through_the_write_scope_action) ... ok\n\n----------------------------------------------------------------------\nRan 26 tests in 8.243s\n\nOK"
+    },
+    {
+      "name": "codegen-rot-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "scripts.tests.test_codegen_rot",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 1216,
+      "ok": false,
+      "output_tail": "[stderr]\ntest_doctor_does_not_report_the_current_paths_as_missing (scripts.tests.test_codegen_rot.DoctorGreenTests.test_doctor_does_not_report_the_current_paths_as_missing) ... ok\ntest_doctor_exits_zero_and_covers_every_path_provider (scripts.tests.test_codegen_rot.DoctorGreenTests.test_doctor_exits_zero_and_covers_every_path_provider) ... ok\ntest_entries_are_well_formed (scripts.tests.test_codegen_rot.RotFixtureShapeTests.test_entries_are_well_formed) ... ok\ntest_fixture_keeps_the_eight_history_entries (scripts.tests.test_codegen_rot.RotFixtureShapeTests.test_fixture_keeps_the_eight_history_entries) ... ok\ntest_actual_paths_are_green (scripts.tests.test_codegen_rot.RotReplayTests.test_actual_paths_are_green) ... ok\ntest_old_declared_paths_are_red (scripts.tests.test_codegen_rot.RotReplayTests.test_old_declared_paths_are_red) ... ok\ntest_stale_comment_wording_is_gone (scripts.tests.test_codegen_rot.RotReplayTests.test_stale_comment_wording_is_gone) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 1.065s\n\nOK"
+    },
+    {
+      "name": "gen-path-report-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "scripts.tests.test_gen_path_report",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 609,
+      "ok": false,
+      "output_tail": "[stderr]\ntest_declared_tracked_paths_exist_on_disk (scripts.tests.test_gen_path_report.PathReportShapeTests.test_declared_tracked_paths_exist_on_disk)\nA declared non-optional *tracked* path that does not exist is exactly ... ok\ntest_every_generator_and_consumer_exposes_path_report (scripts.tests.test_gen_path_report.PathReportShapeTests.test_every_generator_and_consumer_exposes_path_report) ... ok\ntest_generators_declare_at_least_one_input_and_output (scripts.tests.test_gen_path_report.PathReportShapeTests.test_generators_declare_at_least_one_input_and_output) ... ok\ntest_build_hash_outputs_and_source_dirs (scripts.tests.test_gen_path_report.PathSingleSourceTests.test_build_hash_outputs_and_source_dirs) ... ok\ntest_luban_outputs_cover_publish_targets (scripts.tests.test_gen_path_report.PathSingleSourceTests.test_luban_outputs_cover_publish_targets) ... ok\ntest_proto_uses_proto_rel_for_the_input (scripts.tests.test_gen_path_report.PathSingleSourceTests.test_proto_uses_proto_rel_for_the_input) ... ok\ntest_refresh_hash_and_local_chain_consume_the_current_build_hash_path (scripts.tests.test_gen_path_report.PathSingleSourceTests.test_refresh_hash_and_local_chain_consume_the_current_build_hash_path) ... ok\ntest_sync_code_output_constant_is_the_current_path (scripts.tests.test_gen_path_report.PathSingleSourceTests.test_sync_code_output_constant_is_the_current_path) ... ok\ntest_ui_api_spec_and_outputs (scripts.tests.test_gen_path_report.PathSingleSourceTests.test_ui_api_spec_and_outputs) ... ok\ntest_ui_page_inputs_and_output (scripts.tests.test_gen_path_report.PathSingleSourceTests.test_ui_page_inputs_and_output) ... ok\ntest_input_digest_is_order_independent_eol_normalized_and_8_hex (scripts.tests.test_gen_path_report.SharedSingleSourceHelperTests.test_input_digest_is_order_independent_eol_normalized_and_8_hex) ... ok\ntest_load_module_returns_a_loaded_generator (scripts.tests.test_gen_path_report.SharedSingleSourceHelperTests.test_load_module_returns_a_loaded_generator) ... ok\ntest_normalize_eol_collapses_crlf_and_cr (scripts.tests.test_gen_path_report.SharedSingleSourceHelperTests.test_normalize_eol_collapses_crlf_and_cr) ... ok\ntest_shared_out_file_is_the_single_path_source (scripts.tests.test_gen_path_report.SharedSingleSourceHelperTests.test_shared_out_file_is_the_single_path_source) ... ok\n\n----------------------------------------------------------------------\nRan 14 tests in 0.446s\n\nOK"
+    },
+    {
+      "name": "gen-luban-check-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "scripts.tests.test_gen_luban_check",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 177,
+      "ok": false,
+      "output_tail": "[stderr]\ntest_binary_bytes_compare_is_byte_exact (scripts.tests.test_gen_luban_check.CheckPublishTests.test_binary_bytes_compare_is_byte_exact) ... ok\ntest_changed_text_is_stale (scripts.tests.test_gen_luban_check.CheckPublishTests.test_changed_text_is_stale) ... ok\ntest_check_does_not_touch_the_tree (scripts.tests.test_gen_luban_check.CheckPublishTests.test_check_does_not_touch_the_tree) ... ok\ntest_identical_text_is_fresh_regardless_of_line_endings (scripts.tests.test_gen_luban_check.CheckPublishTests.test_identical_text_is_fresh_regardless_of_line_endings) ... ok\ntest_missing_target_file_is_stale (scripts.tests.test_gen_luban_check.CheckPublishTests.test_missing_target_file_is_stale) ... ok\ntest_stale_prune_candidate_is_listed_but_kept (scripts.tests.test_gen_luban_check.CheckPublishTests.test_stale_prune_candidate_is_listed_but_kept) ... ok\ntest_moves_bytes_into_domain_subdirectories (scripts.tests.test_gen_luban_check.ReorganizeBinStageTests.test_moves_bytes_into_domain_subdirectories) ... ok\ntest_unknown_staged_table_fails_fast (scripts.tests.test_gen_luban_check.ReorganizeBinStageTests.test_unknown_staged_table_fails_fast) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.051s\n\nOK"
+    },
+    {
+      "name": "gen-proto-check-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "scripts.tests.test_gen_proto_check",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 342,
+      "ok": false,
+      "output_tail": "[codegen/proto] STALE: Assets/LiteNet/Core/Proto/Generated/Battle.cs.input records 'battle.proto sha256:61022756', expected 'battle.proto sha256:8781130e' (battle.proto changed; rerun toolbox.py proto --protoc <protoc.exe>)\n[codegen/proto] CHECK OK: sidecar stamp matches battle.proto (protoc unavailable; pass --protoc for regeneration comparison)\n[codegen/proto] CHECK OK: sidecar stamp matches battle.proto (protoc unavailable; pass --protoc for regeneration comparison)\n[codegen/proto] CHECK OK: sidecar stamp matches battle.proto (protoc unavailable; pass --protoc for regeneration comparison)\n[codegen/proto] STALE: Assets/LiteNet/Core/Proto/Generated/Battle.cs.input records 'battle.proto sha256:00000000', expected 'battle.proto sha256:61022756' (battle.proto changed; rerun toolbox.py proto --protoc <protoc.exe>)\n[codegen/proto] STALE: Assets/LiteNet/Core/Proto/Generated/Battle.cs missing (run toolbox.py proto --protoc <protoc.exe>)\n[codegen/proto] STALE: Assets/LiteNet/Core/Proto/Generated/Battle.cs.input missing (run toolbox.py proto --protoc <protoc.exe>)\n[stderr]\ntest_changed_proto_is_stale (scripts.tests.test_gen_proto_check.ProtoStampCheckTests.test_changed_proto_is_stale) ... ok\ntest_check_does_not_write_the_tree (scripts.tests.test_gen_proto_check.ProtoStampCheckTests.test_check_does_not_write_the_tree) ... ok\ntest_crlf_proto_matches_lf_stamp (scripts.tests.test_gen_proto_check.ProtoStampCheckTests.test_crlf_proto_matches_lf_stamp) ... ok\ntest_fresh_stamp_passes (scripts.tests.test_gen_proto_check.ProtoStampCheckTests.test_fresh_stamp_passes) ... ok\ntest_mismatched_sidecar_is_stale (scripts.tests.test_gen_proto_check.ProtoStampCheckTests.test_mismatched_sidecar_is_stale) ... ok\ntest_missing_battle_cs_is_stale_even_with_stamp (scripts.tests.test_gen_proto_check.ProtoStampCheckTests.test_missing_battle_cs_is_stale_even_with_stamp) ... ok\ntest_missing_sidecar_is_stale (scripts.tests.test_gen_proto_check.ProtoStampCheckTests.test_missing_sidecar_is_stale) ... ok\ntest_sidecar_constant_is_the_generated_directory_stamp (scripts.tests.test_gen_proto_check.ProtoStampCheckTests.test_sidecar_constant_is_the_generated_directory_stamp) ... ok\ntest_repo_sidecar_exists_and_matches_the_proto (scripts.tests.test_gen_proto_check.ProtoStampRepoTests.test_repo_sidecar_exists_and_matches_the_proto) ... ok\ntest_toolbox_proto_check_is_green (scripts.tests.test_gen_proto_check.ProtoStampRepoTests.test_toolbox_proto_check_is_green) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.215s\n\nOK"
+    },
+    {
+      "name": "session-boundary-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SessionBoundaryTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 2904,
+      "ok": true,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Assets\\LiteFramework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Assets\\LiteFramework\\Runtime\\Modules\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n  失败 Session域具体类型引用仅白名单 [9 ms]\n  错误消息:\n   Session 域只经 Battle 端口协作（A1 过渡白名单仅 2 文件，A2 清空）；白名单外的 Battle 具体类型引用：Assets/LiteGame/Modules/Session/AccountSessionFactory.cs → BattleClient | Assets/LiteGame/Modules/Session/RoomSessionFace.cs → BattleClient\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.SessionBoundaryTests.Session域具体类型引用仅白名单() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\SessionBoundaryTests.cs:line 86\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 AccountSessionFactory_不直接新建BattleClient [< 1 ms]\n  错误消息:\n   Session 域不得直接构造战斗客户端（AC1）：Assets/LiteGame/Modules/Session/AccountSessionFactory.cs:91 命中 `new BattleClient(` → var battle = accountScope.Register(new BattleClient(host, port, roomId, token, _handshake.BuildHash,；Account 客户端须经 IBattleClientFactory 端口创建（Battle 域唯一 new BattleClient 处）。\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.SessionBoundaryTests.AccountSessionFactory_不直接新建BattleClient() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\SessionBoundaryTests.cs:line 58\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n\n失败!  - 失败:     2，通过:     0，已跳过:     0，总计:     2，持续时间: 11 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[stderr]\n[xUnit.net 00:00:00.19]     Session域具体类型引用仅白名单 [FAIL]\n[xUnit.net 00:00:00.19]     AccountSessionFactory_不直接新建BattleClient [FAIL]"
+    }
+  ]
+}

@@ -33,3 +33,5 @@
 
 > module-boundaries 未施工：方案被 2026-10-30 用户裁决拆分为 A（client-modularization）/ B（sync-and-sim-params）/ C（codegen-consolidation），本运行仅作证据母本归档。
 | 2026-11-01T03:37:55+08:00 | sync-and-sim-params | 同步层拆分与判定参数化（LiteSync 去耦 + LiteSim 参数装载） | 17/84 | PASS | [20261101-033755-sync-and-sim-params](20261101-033755-sync-and-sim-params/) |
+| 2026-11-01T17:38:14+08:00 | codegen-consolidation | 生成器收口（toolbox 单入口 + 腐烂路径修复 + 门禁） | 10/10 | PASS | [20261101-173814-codegen-consolidation](20261101-173814-codegen-consolidation/) |
+| 2026-11-01T21:20:57+08:00 | session-battle-decoupling | Session/Battle 解耦：对局运行归 Battle（A1 端口化 → A2 归位） | 10/10 | PASS | [20261101-212057-session-battle-decoupling](20261101-212057-session-battle-decoupling/) |

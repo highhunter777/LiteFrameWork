@@ -3,7 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
-using LiteGame.View;
 using LiteGame.Modules.Battle.Arena;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
@@ -22,17 +21,25 @@ namespace LiteGame
     /// </summary>
     public sealed class BattleComposition : IClientModule, IClientModuleGraph
     {
+        private readonly Func<IBattleDevDiagnostics> _devDiagnostics;
         private PrefabLeaseCache _prefabs;
         private AudioService _audio;
         private EntityService _entities;
         private VfxService _vfxService;
+
+        /// <param name="devDiagnostics">开发诊断实现提供者（App 注入开发诊断读口；
+        /// null = 发布形态不登记诊断）。</param>
+        public BattleComposition(Func<IBattleDevDiagnostics> devDiagnostics = null)
+        {
+            _devDiagnostics = devDiagnostics;
+        }
 
         public string Name => "Battle";
 
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
         public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[]
         {
-            "PlatformInfrastructure", "Camera", "DevSession", "Content", "Settings", "Clocks", "Config", "UiService", "Input",
+            "PlatformInfrastructure", "Identity", "Camera", "DevSession", "Content", "Settings", "Clocks", "Config", "Ui", "Input",
         };
 
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
@@ -60,6 +67,21 @@ namespace LiteGame
             var rootMotionDigest = new RootMotionDigestHolder();
             context.Put(rootMotionDigest);
             context.Put<IRootMotionContentDigest>(rootMotionDigest);
+            // 客户端工厂端口：Battle 域是唯一 `new BattleClient` 处——会话域（⑰）经本口建客户端，
+            // 不再认识具体实现（A1 解耦；装配序 ⑯ → ⑰）。
+            context.Put<IBattleClientFactory>(new BattleClientFactory());
+            // 对局运行工厂（A2）：Match/运行会话的构造与所有权归 Battle 域；流程只认端口。
+            IdentityContext identity = context.Require<IdentityContext>();
+            var matchSessions = new MatchSessionFactory(
+                context.Require<IInputService>(),
+                () => context.Require<IConfigService>().GameplayDigestBase,
+                context.Require<IReferencePool>(),
+                identity.Diagnostics);
+            context.Put<IMatchSessionFactory>(matchSessions);
+            context.Put<IBattleRunFactory>(new BattleRunFactory(
+                matchSessions, context.Require<IDevSession>(), _devDiagnostics?.Invoke()));
+            // 结算摘要端口：冻结结果 → 结算页排行行表（全序/名次与局内排行榜同一实现）——流程只认端口
+            context.Put<ISettlementSummary>(new SettlementSummary());
             // 视图组工厂：战斗域自持的装配点（流程只认端口；每局再注入 account 作用域/开发叠加层/传送分发）
             context.Put<IBattleViewGroupFactory>(new BattleViewGroupFactory(
                 content, context.Require<IInputService>(), context.Require<ICameraService>(),

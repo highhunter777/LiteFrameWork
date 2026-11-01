@@ -1,7 +1,7 @@
 using LiteSim;
 using UnityEngine;
 
-namespace LiteGame.View
+namespace LiteGame
 {
     /// <summary>
     /// 槽位视图生命周期与远端落位：活体建视图、死亡回收、远端按快照插值写 Transform。

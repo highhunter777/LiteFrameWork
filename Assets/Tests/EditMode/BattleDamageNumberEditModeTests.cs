@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
-using LiteGame.View;
-using LiteGame.View.DamageNumbers;
+using LiteGame.Feedback.DamageNumbers;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using LiteGame.Feedback;
 
 namespace LiteGame.Tests.EditMode
 {

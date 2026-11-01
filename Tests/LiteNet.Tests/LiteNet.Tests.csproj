@@ -38,8 +38,16 @@
 
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteGame\Modules\Session\Abstractions\IMatchJoin.cs" Link="Session\IMatchJoin.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Session\Abstractions\IAccountSessionFactory.cs" Link="Session\IAccountSessionFactory.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Session\Abstractions\IAccountSession.cs" Link="Session\IAccountSession.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Session\AccountSessionFactory.cs" Link="Session\AccountSessionFactory.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Session\MatchTransport.cs" Link="Session\MatchTransport.cs" />
+    <!-- 端口与客户端工厂（A1 解耦）：Account 会话工厂只经端口建客户端，工厂本体在 Battle 域——
+         同一份源码按惯例源链接进本工程（测真实现非复制品；AC1「唯一 new BattleClient 处」在此件）。 -->
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Abstractions\IBattleClient.cs" Link="Session\IBattleClient.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Abstractions\IBattleClientFactory.cs" Link="Session\IBattleClientFactory.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Abstractions\IAccountRuntime.cs" Link="Session\IAccountRuntime.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\BattleClientFactory.cs" Link="Session\BattleClientFactory.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Battle\BattleClient.cs" Link="Session\BattleClient.cs" />
     <!-- 测试地图夹具源链接：与 LiteSim.Core.Tests 共编同一份 TestMaps（单源）——StandardBattleMap 退役后测试侧地图单源 -->
     <Compile Include="..\LiteSim.Core.Tests\TestMaps.cs" Link="Test\TestMaps.cs" />

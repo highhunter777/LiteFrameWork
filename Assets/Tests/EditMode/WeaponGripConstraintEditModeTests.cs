@@ -2,7 +2,6 @@ using System.IO;
 using LiteFramework.Animation;
 using LiteTesting;
 using LiteTesting.Unity;
-using LiteGame.View.Animation;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;

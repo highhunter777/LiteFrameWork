@@ -1,4 +1,4 @@
-{
+﻿{
     "name": "LiteGame.Modules.Battle",
     "rootNamespace": "LiteGame",
     "references": [
@@ -6,7 +6,6 @@
         "LiteGame.Modules.Settings",
         "LiteGame.Modules.Input",
         "LiteGame.Modules.Camera",
-        "LiteGame.Adapters.Unity",
         "LiteGame.Core",
         "LiteFramework.Runtime",
         "LiteNet",
@@ -15,7 +14,8 @@
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "LiteGame.Shared"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

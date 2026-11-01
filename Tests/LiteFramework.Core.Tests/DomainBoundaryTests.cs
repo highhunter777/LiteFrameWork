@@ -22,7 +22,7 @@ namespace LiteFramework.Core.Tests
         /// <summary>8 个共享能力域（每个域一份命名空间；批 5 · A25）。</summary>
         private static readonly string[] SharedDomains =
         {
-            "Framework", "Ui", "Input", "Settings", "Config", "Camera", "Map", "Dev",
+            "Composition", "Ui", "Input", "Settings", "Config", "Camera", "Map", "Dev",
         };
 
         /// <summary>批 2 后战斗域 `Abstractions/` 必须包含的业务端口。</summary>
@@ -118,6 +118,8 @@ namespace LiteFramework.Core.Tests
                 string expected = "LiteGame.Modules." + domain;
                 foreach (string file in Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories))
                 {
+                    // AssemblyInfo.cs 是程序集属性文件（\[assembly: ...\] 必须写在命名空间外）——不是域代码，跳过。
+                    if (string.Equals(Path.GetFileName(file), "AssemblyInfo.cs", StringComparison.Ordinal)) continue;
                     string actual = FirstNamespace(file);
                     if (!string.Equals(actual, expected, StringComparison.Ordinal))
                         offenders.Add(Relative(root, file) + " → " + (actual ?? "(无)") + "，期望 " + expected);
@@ -126,6 +128,30 @@ namespace LiteFramework.Core.Tests
 
             Assert.True(offenders.Count == 0,
                 "8 个共享域必须各自使用 LiteGame.Modules.<域> 命名空间（批 5 · A25）:" + string.Join(" | ", offenders));
+        }
+
+        /// <summary>
+        /// `LiteGame.Core` 准入章程：**只放跨域契约 + 纯计算**，按类别分目录。
+        /// 常量/资源标识归共享常量面 `LiteGame.Shared`（那里只有生成物与路径常量），不放这里——
+        /// Core 一旦"什么都收"，就会退化成杂物抽屉，而它是 fan-in 最高的产品程序集。
+        /// </summary>
+        private static readonly string[] CoreDirectories = { "Dev", "Feedback", "Spatial" };
+
+        [Fact]
+        public void Core目录必须落在准入章程内()
+        {
+            string root = RepoRoot();
+            string core = Path.Combine(root, "Assets", "LiteGame", "Core");
+            Assert.True(Directory.Exists(core), "缺 LiteGame/Core 目录");
+
+            var offenders = Directory.GetDirectories(core)
+                .Select(Path.GetFileName)
+                .Where(name => !CoreDirectories.Contains(name, StringComparer.Ordinal))
+                .ToArray();
+
+            Assert.True(offenders.Length == 0,
+                "LiteGame.Core 只放跨域契约/纯计算（登记在 CoreDirectories）；常量归 LiteGame.Shared。未登记目录："
+                + string.Join(", ", offenders));
         }
 
         private static string FirstNamespace(string file)

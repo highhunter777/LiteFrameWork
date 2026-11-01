@@ -1,0 +1,26 @@
+﻿{
+    "name": "LiteGame.Modules.Meta",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteFramework.Runtime",
+        "LiteGame.Core",
+        "LiteGame.Modules.Battle",
+        "LiteGame.Modules.Config",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "xLuaMain"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

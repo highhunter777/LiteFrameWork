@@ -1,4 +1,4 @@
-namespace LiteGame.View.Animation
+namespace LiteGame
 {
     /// <summary>
     /// 换弹持枪幅度的**实时调参面**：烘焙值来自 grip.bin（<see cref="WeaponGripCatalog.TorsoWeight"/>，

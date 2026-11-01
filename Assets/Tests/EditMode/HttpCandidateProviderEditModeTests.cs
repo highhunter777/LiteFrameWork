@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.IO;
 using Cysharp.Threading.Tasks;
@@ -9,7 +9,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using LiteFramework;
-using LiteGame.Modules.Framework;
+using LiteGame.Modules.Composition;
 
 namespace LiteGame.Tests.EditMode
 {

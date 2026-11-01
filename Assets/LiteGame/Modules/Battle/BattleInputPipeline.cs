@@ -23,14 +23,14 @@ namespace LiteGame
     /// </summary>
     internal sealed class BattleInputPipeline
     {
-        private readonly BattleClient _battle;
+        private readonly IBattleClient _battle;
         private readonly SimInputFrame[] _localInputs;   // 送进预测/上行的那一份（复用，零分配）
 
         /// <summary>
         /// 构造。<paramref name="expectedPlayers"/> = 房间规模（Sim 只接受"全体玩家一帧"的数组，
         /// SimStep 按 EntityId 就地排序；缺席槽位 = 空输入，EntityId=0 解析不到实体 → InputSystem 自然丢弃）。
         /// </summary>
-        public BattleInputPipeline(BattleClient battle, IInputService input, int expectedPlayers)
+        public BattleInputPipeline(IBattleClient battle, IInputService input, int expectedPlayers)
         {
             _battle = battle;
             Input = input;

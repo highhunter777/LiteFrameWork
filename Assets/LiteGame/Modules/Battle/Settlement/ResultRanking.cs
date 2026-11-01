@@ -13,32 +13,14 @@ namespace LiteGame
     /// </summary>
     internal static class ResultRanking
     {
-        /// <summary>排行行（Lua 侧取 Rank/Name/Kills/Deaths；PlayerId 供调用方定位本地行）。</summary>
-        internal readonly struct Row
+        /// <summary>构建排行行表（已按全序排好）。<paramref name="players"/> null/空 → 空表。
+        /// 行类型＝契约 <see cref="MatchSettlementRow"/>（端口 <see cref="ISettlementSummary"/> 的返回值）。</summary>
+        internal static MatchSettlementRow[] Build(IReadOnlyList<PlayerMatchResult> players)
         {
-            public readonly int PlayerId;
-            public readonly int Rank;
-            public readonly string Name;
-            public readonly int Kills;
-            public readonly int Deaths;
-
-            public Row(int playerId, int rank, string name, int kills, int deaths)
-            {
-                PlayerId = playerId;
-                Rank = rank;
-                Name = name;
-                Kills = kills;
-                Deaths = deaths;
-            }
-        }
-
-        /// <summary>构建排行行表（已按全序排好）。<paramref name="players"/> null/空 → 空表。</summary>
-        internal static Row[] Build(IReadOnlyList<PlayerMatchResult> players)
-        {
-            if (players == null || players.Count == 0) return System.Array.Empty<Row>();
+            if (players == null || players.Count == 0) return System.Array.Empty<MatchSettlementRow>();
 
             int n = players.Count;
-            var rows = new Row[n];
+            var rows = new MatchSettlementRow[n];
             var entityIds = new long[n];
             var kills = new int[n];
             for (int i = 0; i < n; i++)
@@ -46,7 +28,7 @@ namespace LiteGame
                 PlayerMatchResult p = players[i];
                 entityIds[i] = p.EntityId;
                 kills[i] = p.Kills;
-                rows[i] = new Row(p.PlayerId, 0,
+                rows[i] = new MatchSettlementRow(p.PlayerId, 0,
                     PlayerIdentity.PlaceholderNameFor(PlayerIdentity.OrdinalOfRows(players, p.EntityId)),
                     p.Kills, p.Deaths);
             }
@@ -54,7 +36,7 @@ namespace LiteGame
             // 全序与名次走单一实现（与局内排行榜共用 BattleRankOrder）。
             var order = new int[n];
             BattleRankOrder.SortDisplay(n, entityIds, kills, order);
-            var sorted = new Row[n];
+            var sorted = new MatchSettlementRow[n];
             var sortedKills = new int[n];
             for (int i = 0; i < n; i++)
             {
@@ -62,7 +44,7 @@ namespace LiteGame
                 sortedKills[i] = sorted[i].Kills;
             }
             for (int i = 0; i < n; i++)
-                sorted[i] = new Row(sorted[i].PlayerId, BattleRankOrder.RankAt(i, sortedKills),
+                sorted[i] = new MatchSettlementRow(sorted[i].PlayerId, BattleRankOrder.RankAt(i, sortedKills),
                     sorted[i].Name, sorted[i].Kills, sorted[i].Deaths);
             return sorted;
         }

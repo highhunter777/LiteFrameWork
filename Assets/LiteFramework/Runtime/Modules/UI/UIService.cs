@@ -26,14 +26,14 @@ namespace LiteFramework.UI
     /// - <see cref="UIFormStore"/>（实例 + 租约 + LRU 记账 + 淘汰候选）——缓存域；
     /// - <see cref="UICoverageResolver"/>（遮盖推导与焦点联动）——在开关事务序内调用；
     /// - <see cref="UIModalStack"/>（模态栈/射线遮蔽/Back 目标）——独立输入协调子域，
-    ///   本类经 <see cref="UIModalStack.IUIFormQuery"/> 提供窄查询口（RegisterModal/IsModalOpen/
+    ///   本类经 <see cref="IUIFormQuery"/> 提供窄查询口（RegisterModal/IsModalOpen/
     ///   TryGetBackTarget 等是**转发面**——公共 API 不变）；
     /// - <see cref="UITransitionRunner"/>（转场状态机 + 排队 + 超时兜底）。
     /// - <see cref="UIFormLogicBinder"/>（逻辑解析/注入缝/换表标记）——换表时机仍由本类在事务序里驱动；
     /// - <see cref="UIFormCacheEvictor"/>（预算淘汰选谁）与 <see cref="UIFormStats"/>（统计投影）；
     /// - <see cref="UILayerGroupFactory"/>（运行时根与层级组装配）。
     /// </summary>
-    public sealed class UIService : ITickable, IModuleStats, UIModalStack.IUIFormQuery
+    public sealed class UIService : ITickable, IModuleStats, IUIFormQuery
     {
         /// <summary>语义层名（§6.2"保留 Bottom/Window/Top，可增 Modal/Loading/System"）。
         /// <c>System</c>：Toast/Loading/错误重试等统一反馈面占此层，经统一排序器分配 order——
@@ -558,20 +558,20 @@ namespace LiteFramework.UI
 
         // ---- 内部 ----
 
-        // ---- UIModalStack.IUIFormQuery：模态栈的窄查询口 ----
+        // ---- IUIFormQuery：模态栈的窄查询口 ----
         // 只暴露两个事实（谁仍开着 / 某层已打开栈），不把实例字典与生命周期交出去——
         // 模态推导因此可独立测试（替身实现本接口即可）。
 
-        void UIModalStack.IUIFormQuery.CollectOpen(List<UIForm> into)
+        void IUIFormQuery.CollectOpen(List<UIForm> into)
         {
             foreach (var form in _store.All)
                 if (form != null && form.IsOpen) into.Add(form);
         }
 
-        IReadOnlyList<UIForm> UIModalStack.IUIFormQuery.StackOf(int layer)
+        IReadOnlyList<UIForm> IUIFormQuery.StackOf(int layer)
             => layer >= 0 && layer < _groups.Length ? _groups[layer].Stack.Open : null;
 
-        int UIModalStack.IUIFormQuery.HighestLayer => _groups.Length - 1;
+        int IUIFormQuery.HighestLayer => _groups.Length - 1;
 
 
         private UILayerGroup GetGroup(int layer)

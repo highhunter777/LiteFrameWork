@@ -7,24 +7,6 @@ using LiteGame.Modules.Config;
 
 namespace LiteGame.Modules.Map
 {
-    /// <summary>
-    /// 客户端地图提供者（D9——地图装载自成一件事）：按 <c>map_id</c> 从已装载表链产出判定图，
-    /// 与数值/武器同一条"装载产物显式传递"链（技术债 #1 纪律）。
-    ///
-    /// 多图批：表行另带 <c>scene</c>（地图场景路径）——**场景选择同走表行**（加图＝加文件 + 加场景，
-    /// 不改代码；`BattleScenes` 不再持有逐图路径常量）。
-    /// </summary>
-    public interface IMapProvider
-    {
-        /// <summary>取判定图（表未装载/缺行/坏值即抛——fail-fast，不静默兜底）。</summary>
-        SimMapData GetMap(int mapId = MapTableProjection.DefaultMapId);
-
-        /// <summary>取地图场景路径（表行 <c>scene</c> 列；缺行/空值即抛——"视觉＝判定同图"不可回落）。</summary>
-        string ScenePath(int mapId);
-
-        /// <summary>全部地图场景路径（表内全部行——离场卸载面按表枚举：加图不改卸载代码）。</summary>
-        IReadOnlyList<string> ScenePaths();
-    }
 
     /// <summary>
     /// 默认实现：读 <see cref="IConfigService"/> 已发布的 Luban 表快照，经**共享投影**

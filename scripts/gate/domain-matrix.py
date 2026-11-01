@@ -28,7 +28,7 @@ MODULES = ROOT / "Assets" / "LiteGame" / "Modules"
 DOC = ROOT / "Docs" / "说明" / "18-域间引用矩阵.md"
 
 DOMAIN_ORDER = [
-    "Battle", "Camera", "Config", "Dev", "Framework", "Input",
+    "Battle", "Camera", "Composition", "Config", "Dev", "Input",
     "Map", "Meta", "Procedure", "Session", "Settings", "Ui",
 ]
 
@@ -41,26 +41,25 @@ ALLOWED_EDGES = {
     ("Dev", "Battle"): "开发装配实现 IBattleDevOverlay/调试投影读战斗视图",
     ("Dev", "Input"): "开发热键/输入替身消费输入端口",
     ("Dev", "Session"): "开发本地传输工厂实现 ILocalTransportFactory",
-    ("Framework", "Battle"): "内容段健康检查引用战斗视图 prefab 常量（待抽端口）",
-    ("Framework", "Dev"): "装配入口读开发钩子/DeployBake 端口",
+    ("Composition", "Config"): "装配段读构建期事实（DeployBake 烙入 / BridgeCapabilitySet 能力声明）",
+    ("Composition", "Dev"): "装配入口读开发钩子（DevHooks/IDevAssembly）",
     ("Map", "Config"): "MapProvider 读 IConfigService 表行",
-    ("Meta", "Framework"): "MetaComposition 用 DeployBake 部署快照",
-    ("Procedure", "Battle"): "流程只经战斗端口编排（IBattleViewGroup/IBattleCommands）",
+    ("Meta", "Config"): "MetaComposition/MetaDeployConfig 读 DeployBake 烙入",
+    ("Procedure", "Battle"): "流程只经战斗端口编排（IBattleViewGroup/IBattleCommands/IBattleRunFactory）",
     ("Procedure", "Camera"): "流程相机就绪门（ICameraService）",
     ("Procedure", "Config"): "预载/页面流读配置读口",
     ("Procedure", "Dev"): "流程读 IDevSession/DevHooks",
-    ("Procedure", "Framework"): "流程装配读 DeployBake/框架段产物",
     ("Procedure", "Input"): "流程持输入服务（IInputService）",
     ("Procedure", "Map"): "流程取地图行键/场景路径",
     ("Procedure", "Meta"): "流程联机入口/账号控制端口",
-    ("Procedure", "Session"): "流程经会话端口取对局运行/账号会话（IBattleRunFactory/IAccountSessionFactory）",
+    ("Procedure", "Session"): "流程经会话端口取账号会话（IAccountSessionFactory/IMatchJoin）",
     ("Procedure", "Ui"): "流程页面流/页面目录",
-    ("Session", "Battle"): "会话域持有 BattleClient/BattleContext（进房/离场所有权）",
+    ("Session", "Battle"): "会话实现 Battle 端口/经客户端工厂注入（IAccountRuntime/IBattleClientFactory）",
     ("Session", "Config"): "会话工厂玩法摘要/gameplayDigestBase",
     ("Session", "Dev"): "会话读 IDevSession 播种规则",
-    ("Session", "Input"): "会话建 BattleContext 用 IInputService",
-    ("Session", "Map"): "会话工厂进房取判定图行键（MapProvider/BattleScenes）",
+    ("Session", "Map"): "会话装配点取地图委托注入 Account 工厂（MapProvider/BattleScenes）",
     ("Session", "Meta"): "会话用 MetaEntryConfig 部署快照",
+    ("Ui", "Config"): "UI 段读表读口与文本目录（IConfigService/LTextCatalog）",
 }
 
 DECL_RE = re.compile(r"\b(?:class|struct|interface|enum|delegate)\s+(\w+)")
@@ -210,7 +209,7 @@ def render(types: dict, counts: dict) -> str:
         "Camera": "共享能力（投影面/相机端口）",
         "Config": "共享能力（表/文本/投影）",
         "Dev": "共享能力（开发装配缝）",
-        "Framework": "框架接线（装配入口）",
+        "Composition": "组装件（框架/内容/身份 8 段装配入口，只被组合根引）",
         "Input": "共享能力（意图/输入）",
         "Map": "共享能力（地图表/场景）",
         "Settings": "共享能力（设置/偏好）",

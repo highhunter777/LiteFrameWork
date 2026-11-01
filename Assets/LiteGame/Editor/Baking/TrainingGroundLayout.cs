@@ -19,7 +19,7 @@ namespace LiteGame.EditorTools
     ///   <c>All()</c> 语义，"从零来一遍"用）。
     ///
     /// 两条路之后都要走发布链（布点改动＝判定数据改动）：烘焙（烘焙工具箱「地图」页 `SimMapBaker.AllTraining`）
-    /// → `Luban/gen.bat` → `python scripts/codegen/gen-build-hash.py`。烘焙器对布点做 fail-fast 校验
+    /// → `Luban/gen.bat` → `python scripts/codegen/toolbox.py build-hash`。烘焙器对布点做 fail-fast 校验
     /// （出生点不落障碍内/不越边界、数量 1..16——调点打偏即刻在报告里点名）。
     /// </summary>
     public static class TrainingGroundLayout

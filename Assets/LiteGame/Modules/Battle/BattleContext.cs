@@ -16,15 +16,15 @@ namespace LiteGame
 {
     /// <summary>
     /// 对局上下文：一局对局的**运行态编排**——网络事件 → 持久镜像重建（协议单源 SnapshotReassembler）→
-    /// 预测/和解（RollbackSim）→ 表现视图（SimView/相机/动画）→ 输入上行。传输由 <see cref="BattleClient"/>
-    /// 持有、地图经装配注入（`IMapProvider` 从同一份 `Map/tbmap` 投影——D22 无回退）、生命周期挂
+    /// 预测/和解（RollbackSim）→ 表现视图（SimView/相机/动画）→ 输入上行。传输由 <see cref="IBattleClient"/>
+    /// 持有、地图经装配注入（`IAccountRuntime.Maps` 从同一份 `Map/tbmap` 投影——D22 无回退）、生命周期挂
     /// Match Scope（本类创建并持有，Dispose 即拆——离场无 Match 残留的载体）。
     ///
     /// **两个协作件**（各管一件，本类只编排）：
     /// <see cref="BattleInputPipeline"/>（输入三件的顺序与上行——必须在本地服步进之前）、
     /// <see cref="BattleSnapshotMirror"/>（持久镜像 + 和解判定 + 视图插值源）。
     ///
-    /// **断线恢复策略**：SuspectedLost 即自动 <see cref="BattleClient.BeginReconnect"/>（凭 JoinAck 票据）；
+    /// **断线恢复策略**：SuspectedLost 即自动 <see cref="IBattleClient.BeginReconnect"/>（凭 JoinAck 票据）；
     /// Failed（重连超时/拒绝/版本不符）→ <see cref="Ended"/>(SessionFailed) 交流程层裁决回主菜单——
     /// 不在上下文内静默重建会话。
     ///
@@ -82,7 +82,7 @@ namespace LiteGame
         public SimWorldState AuthorityState => _mirror.State;
 
         /// <summary>判定用地图（两端单源：同一份 `Map/tbmap.bytes` 经共享投影 `MapTableProjection` 产出
-        /// ——服务端 `ServerMapLoader`／客户端 `IMapProvider` 同代码同数据；表现消费者读它——
+        /// ——服务端 `ServerMapLoader`／客户端 `IAccountRuntime.Maps` 同代码同数据；表现消费者读它——
         /// 瞄准激光的障碍射线等 View 侧判定共享同一份，不另建第二事实源）。</summary>
         public SimMapData Map => _map;
 
@@ -110,15 +110,15 @@ namespace LiteGame
         /// <summary>网络质量观测（会话面透传——HUD 展示；表现/诊断面，不参与判定）。</summary>
         public NetworkQuality NetworkQuality => _battle.Quality;
 
-        /// <summary>调试口（开发装配消费）：会话客户端——断线/重连动作经 <c>DebugKernel.Network</c> 收口，
+        /// <summary>调试口（开发装配消费）：会话客户端端口——断线/重连动作经 <c>DebugKernel.Network</c> 收口，
         /// 投影不直调（《GM 与调试工具分层专项设计》§7"投影不另写动作"）。发布形态无写入者。</summary>
-        public BattleClient DebugBattle => _battle;
+        public IBattleClient DebugBattle => _battle;
 
         /// <summary>调试开关（开发装配消费）：true = <see cref="ClientSessionPhase.SuspectedLost"/> 时**不自动重连**，
         /// 停在断线态等待手动重连（验证失败/等待窗口/手动恢复路径）。默认 false＝产品行为（发布无写入者）。</summary>
         public bool DebugSuppressAutoReconnect { get; set; }
 
-        private readonly BattleClient _battle;
+        private readonly IBattleClient _battle;
         private readonly ClientScope _matchScope;
         private readonly SimMapData _map;
         private readonly IMatchIdentity _identity;        // 本局玩法数据身份（基摘要 + 规则位）
@@ -151,13 +151,13 @@ namespace LiteGame
 
         /// <param name="inputProvider">本地输入源（<see cref="IInputService"/>：
         /// 采样/上下文门/帧边界门都在服务里；本类只按逻辑帧推进并取用。null = 空输入——纯会话/测试形态）。</param>
-        /// <param name="map">判定地图（**必填**——装配点经 `IMapProvider` 注入；D22：无回退地图，
+        /// <param name="map">判定地图（**必填**——装配点经 `IAccountRuntime.Maps` 注入；D22：无回退地图，
         /// 测试直构须显式传图——Unity 侧无 TestMaps 源链接，就地同值构建）。</param>
         /// <param name="gameplayDigestBase">本地装载产物的玩法数据身份**基摘要**
         /// （`ConfigService.GameplayDigestBase`——装配经 `MatchSessionFactory` 注入；见
         /// <see cref="OnStartGame"/> 校验点）。0 = 无表身份形态（测试直构）——与真服务端的房间摘要比对必不等的
         /// 形态由 L1 用例显式构造，生产链恒为装载产物。</param>
-        public BattleContext(BattleClient battle, ClientScope accountScope,
+        public BattleContext(IBattleClient battle, ClientScope accountScope,
             IInputService inputProvider = null, SimMapData map = null, uint gameplayDigestBase = 0,
             MatchTestRules rules = null, IEventBus events = null,
             IMatchIdentity matchIdentity = null, DiagnosticIdentity? diagnosticsIdentity = null)
@@ -165,7 +165,7 @@ namespace LiteGame
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             if (accountScope == null) throw new ArgumentNullException(nameof(accountScope));
             _map = map ?? throw new ArgumentException(
-                "地图必填——装配经 IMapProvider 注入（D22：无回退地图）", nameof(map));
+                "地图必填——装配经 IAccountRuntime.Maps 注入（D22：无回退地图）", nameof(map));
             _identity = matchIdentity ?? new GameplayMatchIdentity(gameplayDigestBase);
             _diagnosticsIdentity = diagnosticsIdentity ?? new DiagnosticIdentity(string.Empty,
                 UnityEngine.Application.version, UnityEngine.Application.platform.ToString());

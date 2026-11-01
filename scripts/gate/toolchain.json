@@ -534,7 +534,7 @@
       "purpose": "dev",
       "summary": "从共享源集生成两端握手常量（改 Sim/协议/生成读码面后必跑）。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
-      "command": ["python", "scripts/codegen/gen-build-hash.py"],
+      "command": ["python", "scripts/codegen/toolbox.py", "build-hash"],
       "args": [
         { "name": "check", "type": "bool", "description": "复算并比对两个常量，不写文件" },
         { "name": "check-shared", "type": "bool", "description": "只复算共享源集常量（出包门禁）" }
@@ -556,7 +556,7 @@
       "purpose": "dev",
       "summary": "battle.proto → Proto/Generated/Battle.cs（需 --protoc）。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
-      "command": ["python", "scripts/codegen/gen_proto.py"],
+      "command": ["python", "scripts/codegen/toolbox.py", "proto"],
       "args": [
         { "name": "protoc", "type": "path", "description": "protoc.exe 路径（与运行时 Google.Protobuf 对齐）" }
       ],
@@ -576,7 +576,7 @@
       "purpose": "dev",
       "summary": "#uiform + UiPageManifest + Contracts → UiPageCatalog.g.cs（PageDefinition 单源）。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
-      "command": ["python", "scripts/codegen/gen-ui-page.py"],
+      "command": ["python", "scripts/codegen/toolbox.py", "ui-page"],
       "args": [
         { "name": "check", "type": "bool", "description": "只复算并比对生成物，不写文件" }
       ],
@@ -596,7 +596,7 @@
       "purpose": "dev",
       "summary": "UiApiSpec.json → UIBindIndex 声明 / UIBindBase 转发 / Lua shim / dispatch / 清单 / 参考表（UI API 单源）。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
-      "command": ["python", "scripts/codegen/gen-ui-api.py"],
+      "command": ["python", "scripts/codegen/toolbox.py", "ui-api"],
       "args": [
         { "name": "check", "type": "bool", "description": "只复算并比对生成物，不写文件" }
       ],
@@ -626,7 +626,7 @@
         { "path": "Assets/GameData/Generated/", "kind": "generated" },
         { "path": "Assets/GameData/Config/", "kind": "data" },
         { "path": "Assets/LiteGame/Lua/Cfg/", "kind": "data" },
-        { "path": "Assets/LiteGame/Modules/Ui/Generated/LuaKeys.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteGame/Modules/Shared/Generated/LuaKeys.g.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 30

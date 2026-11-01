@@ -131,7 +131,7 @@ SimStep.Step(..., advanceMatch: false)
 
 公共口径只覆盖"全量快照可重建、客户端可预测"的层：私有面（他人弹药/技能 CD/背包/资源）、`RngState`、状态效果明细**不进比对**——客户端永远无法重建，进了只会制造永假和解。
 
-字段清单不手写：实体与运行态结构的公开/全量字段由 `[StateLayer]` 标注生成到 `Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs`（生成器 `scripts/codegen/gen_sync_code.py`）。给结构体加判定字段后必须重跑生成器，漏改表现为"该层分叉但和解不报"的静默漂移。
+字段清单不手写：实体与运行态结构的公开/全量字段由 `[StateLayer]` 标注生成到 `Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs`（生成器 `scripts/codegen/toolbox.py sync-code`）。给结构体加判定字段后必须重跑生成器，漏改表现为"该层分叉但和解不报"的静默漂移。
 
 ## 6. 客户端预测、回滚、和解
 
@@ -203,7 +203,7 @@ SimStep.Step(..., advanceMatch: false)
 
 ## 9. 表现侧：插值、衰减、静默门
 
-`Assets/LiteGame.View/Modules/SimView.cs` 只读 Sim、只写视图：
+`Assets/LiteGame/Modules/Battle/Arena/SimView.cs` 只读 Sim、只写视图：
 
 - **`SnapshotInterpolationBuffer`**（远端 jitter buffer）：容量 8，按快照帧号有序；渲染帧 = `最新快照帧 − RenderDelayFrames(4)`，按 `60 × dt` 匀速推进并封顶；前后快照间按真实帧差插值（丢包时铺满而非冻结），快照停摆不外推。
 - **硬切条件**：远端 `LifeStartFrame` 变化（复活）或位移 > `SnapDistance(3m)`；本地复活无条件硬切（直写 `CharacterController`，不走带扫掠的 `Move`），异常单帧跳变兜底 2m（平方阈值 4）。

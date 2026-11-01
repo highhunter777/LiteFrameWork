@@ -4,13 +4,14 @@
 # Assets (TestResults staging) and publish copies only declared file types,
 # preserving existing asmdef/meta files under Assets.
 #
-# Toolbox entry:  python scripts/codegen/toolbox.py luban
-# Direct entry:   python scripts/codegen/gen_luban.py [--python <python>]
+# Toolbox entry:  python scripts/codegen/toolbox.py luban [--check]
+# Direct entry:   python scripts/codegen/gen_luban.py [--check] [--python <python>]
 # Shim alias:     Luban/gen.bat (delegates here)
 # Outputs:        Assets/GameData/Generated/*.cs, Assets/GameData/Config/*.bytes,
-#                 Assets/LiteGame/Lua/Cfg/*.lua, Assets/LiteGame/Modules/Ui/Generated/LuaKeys.g.cs
+#                 Assets/LiteGame/Lua/Cfg/*.lua, Assets/LiteGame/Modules/Shared/Generated/LuaKeys.g.cs
 # Rerun when:     table source (Luban/Data/*.xlsx) or schema changed - then rerun
-#                 build-hash (table data is in its source set); Unity import is separate.
+#                 build-hash (the generated read-side code is in its source set; the
+#                 table .bytes values are out of it since 2026-10-14); Unity import is separate.
 
 import argparse
 import hashlib
@@ -18,10 +19,11 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import uuid
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _codegen import info, repo_root, run_tool
+from _codegen import info, normalize_eol, repo_root, run_tool
 
 TOOL = 'luban'
 
@@ -30,12 +32,27 @@ PUBLISH_TARGETS = [
     ('code',      os.path.join('Assets', 'GameData', 'Generated'),          '.cs'),
     ('bin',       os.path.join('Assets', 'GameData', 'Config'),             '.bytes'),
     ('lua',       os.path.join('Assets', 'LiteGame', 'Lua', 'Cfg'),         '.lua'),
-    ('lua-keys',  os.path.join('Assets', 'LiteGame', 'Modules', 'Ui', 'Generated'), '.cs'),
+    ('lua-keys',  os.path.join('Assets', 'LiteGame', 'Modules', 'Shared', 'Generated'), '.cs'),
 ]
 
 # TableLayout 是表清单/域归属的单源；生成器只读它，不维护第二份清单。
 TABLE_LAYOUT_REL = os.path.join(
     'Assets', 'LiteGame', 'Modules', 'Config', 'TableLayout.cs')
+LUBAN_EXE_REL = os.path.join('Luban', 'LubanGenerater', 'Luban', 'Luban.exe')
+LUBAN_CONF_REL = os.path.join('Luban', 'luban.conf')
+TABLE_SOURCE_REL = os.path.join('Luban', 'Data')
+
+
+def path_report():
+    """Declared inputs/outputs (repo-relative POSIX) derived from the constants above."""
+    def posix(rel):
+        return str(rel).replace('\\', '/')
+
+    entries = [{'path': posix(rel), 'kind': 'input'} for rel in
+               (LUBAN_EXE_REL, LUBAN_CONF_REL, TABLE_LAYOUT_REL, TABLE_SOURCE_REL)]
+    for _stage, target_rel, _extension in PUBLISH_TARGETS:
+        entries.append({'path': posix(target_rel), 'kind': 'output'})
+    return entries
 
 
 def sha256_b64(path):
@@ -130,35 +147,108 @@ def publish(source_dir, target_dir, extension):
             info(TOOL, f'publish: {relative}')
 
 
-def main():
-    parser = argparse.ArgumentParser(prog='gen_luban.py', description='Regenerate the Luban table chain and publish changed files')
-    parser.add_argument('--python', default=sys.executable if getattr(sys, 'frozen', False) is False else 'python',
-                        help='python used for gen_lua_keys.py (default: this interpreter)')
-    args = parser.parse_args()
+def files_differ(source, target, extension):
+    # Read-only twin of the comparison publish() makes: text compares line-ending
+    # normalized (LF staging vs CRLF target is fresh), .bytes compares byte-exact.
+    if not os.path.isfile(target):
+        return True
+    if extension == '.bytes':
+        return sha256_b64(source) != sha256_b64(target)
+    with open(source, 'r', encoding='utf-8-sig', newline='') as f:
+        source_text = normalize_eol(f.read())
+    with open(target, 'r', encoding='utf-8-sig', newline='') as f:
+        target_text = normalize_eol(f.read())
+    return source_text != target_text
 
-    root = repo_root()
+
+def check_publish(source_dir, target_dir, extension):
+    # Read-only freshness check for one publish target. Returns the sorted POSIX
+    # relative paths that would change: missing target, changed content, or a
+    # target file prune_stale would delete (only .bytes targets prune). Never
+    # writes, copies or deletes anything -- pruning belongs to the generate path.
+    staged = staged_relatives(source_dir, extension)
+    stale = []
+    for relative in sorted(staged):
+        source = os.path.join(source_dir, *relative.split('/'))
+        target = os.path.join(target_dir, *relative.split('/'))
+        if files_differ(source, target, extension):
+            stale.append(relative)
+    if extension == '.bytes' and os.path.isdir(target_dir):
+        for dirpath, _dirnames, filenames in os.walk(target_dir):
+            for name in sorted(filenames):
+                if not name.endswith(extension):
+                    continue
+                relative = os.path.relpath(os.path.join(dirpath, name), target_dir).replace('\\', '/')
+                if relative not in staged:
+                    stale.append(relative)
+    return sorted(stale)
+
+
+def generate_stage(root, stage_root, python_exe):
+    # Run the Luban chain into stage_root, then move staged .bytes into TableLayout
+    # domain subdirectories. Shared by the generate path and --check staging.
     luban_root = os.path.join(root, 'Luban')
-    luban_exe = os.path.join(luban_root, 'LubanGenerater', 'Luban', 'Luban.exe')
-    config_path = os.path.join(luban_root, 'luban.conf')
-    stage_root = os.path.join(root, 'TestResults', 'luban-generation', uuid.uuid4().hex)
-
+    luban_exe = os.path.join(root, LUBAN_EXE_REL)
+    config_path = os.path.join(root, LUBAN_CONF_REL)
     if not os.path.isfile(luban_exe):
         raise ValueError(f'Luban.exe not found: {luban_exe}')
 
     # Luban clears its output directory. Generate outside Assets so existing asmdef/meta
     # and unrelated generated assets remain intact; publish only declared file types.
-    for stage in PUBLISH_TARGETS:
-        os.makedirs(os.path.join(stage_root, stage[0]), exist_ok=True)
+    for stage, _target_rel, _extension in PUBLISH_TARGETS:
+        os.makedirs(os.path.join(stage_root, stage), exist_ok=True)
     run_checked([luban_exe, '-t', 'client', '-c', 'cs-bin', '-d', 'bin', '--conf', config_path,
                  '-x', f'outputCodeDir={os.path.join(stage_root, "code")}',
                  '-x', f'outputDataDir={os.path.join(stage_root, "bin")}'])
     run_checked([luban_exe, '-t', 'client', '-d', 'lua', '--conf', config_path,
                  '-x', f'outputDataDir={os.path.join(stage_root, "lua")}'])
-    run_checked([args.python, os.path.join(luban_root, 'gen_lua_keys.py'),
+    run_checked([python_exe, os.path.join(luban_root, 'gen_lua_keys.py'),
                  '--output', os.path.join(stage_root, 'lua-keys', 'LuaKeys.g.cs')])
 
     domain_by_table = parse_table_layout(os.path.join(root, TABLE_LAYOUT_REL))
     reorganize_bin_stage(os.path.join(stage_root, 'bin'), domain_by_table)
+
+
+def check(root, python_exe=None):
+    # Freshness gate (read-only): regenerate into a throwaway staging directory
+    # outside Assets, apply the same reorganize_bin_stage, then compare each
+    # publish target. Never publishes and never prunes; 0 = fresh, 1 = stale.
+    python_exe = python_exe or sys.executable
+    stage_root = tempfile.mkdtemp(prefix='luban-check-')
+    try:
+        generate_stage(root, stage_root, python_exe)
+        stale = []
+        for stage, target_rel, extension in PUBLISH_TARGETS:
+            source_dir = os.path.join(stage_root, stage)
+            target_dir = os.path.join(root, target_rel)
+            prefix = target_rel.replace('\\', '/').rstrip('/')
+            for relative in check_publish(source_dir, target_dir, extension):
+                stale.append(f'{prefix}/{relative}')
+        if stale:
+            for relative in stale:
+                info(TOOL, f'STALE: {relative}')
+            info(TOOL, f'check failed: {len(stale)} published file(s) out of date; rerun toolbox.py luban')
+            return 1
+        info(TOOL, 'CHECK OK: published outputs match a fresh regeneration')
+        return 0
+    finally:
+        shutil.rmtree(stage_root, ignore_errors=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(prog='gen_luban.py', description='Regenerate the Luban table chain and publish changed files')
+    parser.add_argument('--python', default=sys.executable if getattr(sys, 'frozen', False) is False else 'python',
+                        help='python used for gen_lua_keys.py (default: this interpreter)')
+    parser.add_argument('--check', action='store_true',
+                        help='verify published outputs are up to date (stages outside Assets; never publishes/prunes)')
+    args = parser.parse_args()
+
+    root = repo_root()
+    if args.check:
+        return check(root, args.python)
+
+    stage_root = os.path.join(root, 'TestResults', 'luban-generation', uuid.uuid4().hex)
+    generate_stage(root, stage_root, args.python)
 
     for stage, target_rel, extension in PUBLISH_TARGETS:
         source_dir = os.path.join(stage_root, stage)

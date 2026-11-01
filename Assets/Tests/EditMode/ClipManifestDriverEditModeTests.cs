@@ -3,8 +3,6 @@ using LiteFramework.Animation;
 using LiteSim;
 using LiteTesting;
 using LiteTesting.Unity;
-using LiteGame.View;
-using LiteGame.View.Animation;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;

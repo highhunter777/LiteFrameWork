@@ -5,9 +5,10 @@ using UnityEngine;
 using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Camera;
+using LiteGame.Modules.Shared;
 
 using LiteSync.Snapshot;
-namespace LiteGame.View
+namespace LiteGame
 {
     /// <summary>
     /// 战斗表现视图门面：槽位镜像、远端插值、本地和解衰减、事件静默。
@@ -30,8 +31,9 @@ namespace LiteGame.View
         /// <summary>静默门放行的帧事件回调（编排方接线：VFX/音效/飘字）。</summary>
         public delegate void FrameEventSink(in FrameEvent e);
 
-        /// <summary>对局实体视图 prefab（prefab 本体住 `Assets/ShareResource/Characters/`，收集组须覆盖）。</summary>
-        public const string DefaultEntityPrefab = "Assets/ShareResource/Characters/Player(Rifle).prefab";
+        /// <summary>对局实体视图 prefab（**单源**＝共享常量面 <see cref="BattleViewPaths.DefaultEntityPrefab"/>——
+        /// 内容段健康检查与内存循环探针也读同一份，不必认识战斗域类型）。</summary>
+        public const string DefaultEntityPrefab = BattleViewPaths.DefaultEntityPrefab;
 
         /// <summary>快照间隔（秒）——插值窗口时长；随 JoinAck 的房级快照频率写入（缺省 30Hz）。</summary>
         public float SnapshotInterval { get; private set; } = 1f / LiteSync.Shared.ProtocolConstants.DefaultSnapshotHz;

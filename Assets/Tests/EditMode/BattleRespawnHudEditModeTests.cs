@@ -2,11 +2,11 @@ using System;
 using LiteSim;
 using LiteTesting;
 using LiteTesting.Unity;
-using LiteGame.View;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
 using LiteFramework.UI;
+using LiteGame.Feedback;
 
 namespace LiteGame.Tests.EditMode
 {

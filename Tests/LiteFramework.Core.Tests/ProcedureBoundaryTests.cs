@@ -66,8 +66,6 @@ namespace LiteFramework.Core.Tests
             string procedure = Path.Combine(root, "Assets", "LiteGame", "Modules", "Procedure");
             foreach (string file in Directory.GetFiles(procedure, "*.cs", SearchOption.AllDirectories))
                 yield return file;
-            string composition = Path.Combine(root, "Assets", "LiteGame", "App", "ProcedureComposition.cs");
-            if (File.Exists(composition)) yield return composition;
         }
 
         /// <summary>去注释/字符串（轻量词法：只服务守卫的"代码区"判据）。</summary>

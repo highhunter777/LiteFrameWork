@@ -4,6 +4,7 @@ using UnityEngine;
 using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Dev;
+using LiteNet.Transport;
 
 using LiteGame.Adapters.Dev.Debug.WeakNet;
 namespace LiteGame
@@ -51,8 +52,8 @@ namespace LiteGame
                 ?.Inject(worldClock, uiClock, events, commands);
         }
 
-        public Func<bool, MatchTransport> WrapTransportFactory(Func<bool, MatchTransport> inner)
-            => WeakNetWiring.WrapFactory(inner, _weakNet);
+        public Func<bool, IClientTransport, IClientTransport> WrapTransport =>
+            (testRoom, transport) => WeakNetWiring.Wrap(testRoom, transport, _weakNet);
 
         public IDisposable Decorate(DevServices services)
         {

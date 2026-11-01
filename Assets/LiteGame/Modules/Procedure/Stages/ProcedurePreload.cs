@@ -1,11 +1,12 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.Modules.Config;
-using LiteGame.Modules.Framework;
+using LiteGame.Modules.Shared;
+using LiteGame.Modules.Shared;
 using LiteGame.Modules.Ui;
 
 namespace LiteGame
@@ -14,7 +15,7 @@ namespace LiteGame
     /// 预载流程：配置加载 → **五步序**——
     /// ① Lua 全量预载 → ② Init env + 执行 main.lua → ③ RegistryFiller 读三件套填充注册表 →
     /// ④ 报告整批统一判定（有失败即 Fail 阻断）→ ⑤ 放行（**模态登记已就位**）进 Main。
-    /// LuaComponent/RegistryFiller 由装配点构造注入（依赖不从 payload 取）。
+    /// LuaComponent/RegistryFiller/页面目录由装配点构造注入（依赖不从 payload 取）。
     /// </summary>
     public sealed class ProcedurePreload : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
@@ -22,6 +23,7 @@ namespace LiteGame
         private readonly IConfigService _config;
         private readonly LuaComponent _lua;
         private readonly ILuaRegistryFiller _filler;
+        private readonly IPageDirectory _pages;            // 页面目录端口（模态登记反查单源）
         private readonly ILuaProductBridge _productBridge;
         private readonly IEventBus _events;
         private readonly UIService _ui;
@@ -29,7 +31,7 @@ namespace LiteGame
         private readonly Func<string[]> _listLuaFiles;     // Lua 清单（装配点绑定——静态门面收口于装配点）
 
         public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, ILuaRegistryFiller filler,
-            ILuaProductBridge productBridge, IEventBus events,
+            IPageDirectory pages, ILuaProductBridge productBridge, IEventBus events,
             UIService ui, Func<string[]> listLuaFiles = null, CancellationToken rootToken = default, FeedbackService feedback = null)
             : base(rootToken)
         {
@@ -37,6 +39,7 @@ namespace LiteGame
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _lua = lua ?? throw new ArgumentNullException(nameof(lua));
             _filler = filler ?? throw new ArgumentNullException(nameof(filler));
+            _pages = pages ?? throw new ArgumentNullException(nameof(pages));
             _productBridge = productBridge ?? throw new ArgumentNullException(nameof(productBridge));
             _events = events ?? throw new ArgumentNullException(nameof(events));
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
@@ -83,7 +86,7 @@ namespace LiteGame
                 // ---- 模态登记（配置已装载——表驱动反查单源；装配期查表必抛，见 ContainerModule 注）----
                 // 设置页模态要在**任何打开路径**（登录/大厅/结算/对局菜单；Lua 直开与 PageFlow 两条链）之前全局注册，
                 // 故落在放行闸口而非页面流内部。
-                int settingsFormId = UiPageResolver.Resolve(LuaKeys.UI.Page_Settings);
+                int settingsFormId = _pages.Resolve(LuaKeys.UI.Page_Settings);
                 if (settingsFormId >= 0) _ui.RegisterModal(settingsFormId);
                 else Log.Error($"模态登记失败：生成页面目录未登记 '{LuaKeys.UI.Page_Settings}'", LogTag.UI);
 

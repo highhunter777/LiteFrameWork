@@ -19,7 +19,7 @@ namespace LiteFramework.Core.Tests
         private static readonly Dictionary<string, string> Required = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             { "InputComposition.cs", "设备源/输入服务" },
-            { "UiServiceModule.cs", "主题资产租约/红点登记" },
+            { "UiComposition.cs", "主题资产租约/红点登记" },
             { "BattleComposition.cs", "租约缓存/实体/音频/VFX" },
             { "CameraComposition.cs", "主相机/相机服务" },
             { "LuaHostComposition.cs", "Lua 宿主 env" },
@@ -29,7 +29,7 @@ namespace LiteFramework.Core.Tests
         public void 持有资源的模块必须登记模块作用域()
         {
             string root = RepoRoot();
-            // 装配段已就地住进各域目录；组合根两段（Container/Ui）仍住 App/（Ui 待 IUiLogicFactory 后归位）。
+            // 18 段全部就地住进各域目录（App/ 只剩组合根：GameEntry/AppComposition/探针）。
             var dirs = new[]
             {
                 Path.Combine(root, "Assets", "LiteGame", "Modules"),

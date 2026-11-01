@@ -192,6 +192,35 @@ class Builder:
     def __init__(self, project):
         self.project = project
 
+    def focus_editor(self):
+        """Bundle builds are an async editor job; a minimized/background editor can
+        leave it at "starting" forever. Bring the editor forward before bundles."""
+        unity = shutil.which("unity")
+        if not unity:
+            return
+        try:
+            subprocess.run(
+                [unity, "command", "editor_focus", "--project-path", str(self.project)],
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    def set_auto_tick(self, enable):
+        """Keep the editor's update loop ticking while unfocused (minimized editors
+        otherwise stall async bundle/build jobs at "starting")."""
+        try:
+            self.pipeline(
+                "set_autotick",
+                ["--enable", "true" if enable else "false",
+                 "--interval_ms", "16", "--persist", "false"],
+                timeout=60,
+            )
+            return True
+        except (RuntimeError, OSError, subprocess.SubprocessError):
+            return False
+
     def pipeline(self, command, args=None, timeout=1800):
         """单个 pipeline 命令。`timeout` 透传给 `unity --timeout`（CLI 缺省 30s——
         bundle/player 构建远超该值，缺省会以 "timed out after 30000ms" 反复重试后失败）。"""
@@ -246,6 +275,7 @@ def main(argv=None):
 
     builder = Builder(project)
     manifest_original = None
+    auto_tick_enabled = False
     try:
         if not args.skip_restore_check:
             info("build/player", "== restore-check ==")
@@ -254,7 +284,7 @@ def main(argv=None):
             builder.run_gate("gate/l0-dep-scan.py", ["--project-path", str(project)])
 
         info("build/player", "== buildhash check ==")
-        builder.run_gate("codegen/gen-build-hash.py", ["--check-shared"])
+        builder.run_gate("codegen/toolbox.py", ["build-hash", "--check-shared"])
 
         info(
             "build/player",
@@ -332,6 +362,8 @@ def main(argv=None):
             )
         else:
             info("build/player", "== bundles: build builtin content bundles (Offline) ==")
+            builder.focus_editor()
+            auto_tick_enabled = builder.set_auto_tick(True)
             builder.eval_file("build-bundles.cs", bundles_cs(profile))
             builder.pipeline("run_script", ["--file", "Temp/build-bundles.cs", "--entry", "BuildBundles.Start"])
             bundle_state = ""
@@ -427,6 +459,8 @@ def main(argv=None):
     except RuntimeError as exc:
         return fail("build/player", str(exc))
     finally:
+        if auto_tick_enabled:
+            builder.set_auto_tick(False)
         restore_android_cleartext(project, manifest_original)
 
 

@@ -137,7 +137,7 @@ namespace LiteGame.EditorTools
                     sb.AppendLine("注意：场景有未保存改动——本次烘焙包含未保存状态（建议先保存场景再重烘）");
                 sb.AppendLine(BakeTargets.WriteArtifact(target.Output, jsonText, writeScope));
                 sb.Append("提醒：产物是 Luban 数据源（非 .bytes）——需手动跑 Luban/gen.bat；"
-                    + "跑完重跑 python scripts/codegen/gen-build-hash.py（生成读码面在 BuildHash 闭包内）。");
+                    + "跑完重跑 python scripts/codegen/toolbox.py build-hash（生成读码面在 BuildHash 闭包内）。");
                 return sb.ToString();
             }
             finally

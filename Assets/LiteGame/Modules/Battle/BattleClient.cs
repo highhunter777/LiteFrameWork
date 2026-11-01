@@ -19,8 +19,11 @@ namespace LiteGame
     ///
     /// 事件面（JoinAck/StartGame/Snapshot/相位迁移/断线）经 <see cref="Client"/> 直通——BattleContext
     /// 直挂 RoomClient 事件（编排层不转发第二遍事件，避免"转发即订阅泄漏"的双倍面）。
+    ///
+    /// **端口实现**：本类实现 <see cref="IBattleClient"/>（Battle/Abstractions）——消费面只认端口，
+    /// 具体构造只经 <see cref="BattleClientFactory"/>（会话域不再 `new` 本类）。
     /// </summary>
-    public sealed class BattleClient : IDisposable
+    public sealed class BattleClient : IBattleClient
     {
         private readonly IClientTransport _transport;        // 本类创建并拥有（测试注入假件）
         private readonly RoomClient _client;

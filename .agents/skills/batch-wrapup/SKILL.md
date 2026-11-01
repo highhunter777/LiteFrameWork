@@ -14,7 +14,7 @@ description: 一批代码改动完成后的收尾验证与文档回写流程。�
 | 一切改动的基线 | Unity recompile 0 错误 + `python scripts/gate/test.py --suite L1 --profile PullRequest` |
 | 动过共享源集 / .proto / 表 | 按 `build-hash-sync` skill 重生成,再跑 L1(内含 BuildHash 守卫与表守卫) |
 | 目录搬动过 | 按 `directory-move-sync` skill 同步六面后跑 L1 |
-| 出包前 | `python scripts/codegen/gen-build-hash.py --check` |
+| 出包前 | `python scripts/codegen/toolbox.py build-hash --check` |
 | 新增依赖 / 跨域接入 | `python scripts/gate/l0-dep-scan.py`(PASS:个人绝对路径/浮动依赖/密钥模式) |
 
 L2(EditMode/PlayMode)留夜间流水线,白天不跑。

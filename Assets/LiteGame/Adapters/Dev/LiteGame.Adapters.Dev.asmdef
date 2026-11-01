@@ -1,4 +1,4 @@
-{
+﻿{
     "name": "LiteGame.Adapters.Dev",
     "rootNamespace": "LiteGame.Adapters.Dev",
     "references": [
@@ -7,7 +7,6 @@
         "LiteGame.Modules.Settings",
         "LiteGame.Modules.Input",
         "LiteGame.Modules.Camera",
-        "LiteGame.Modules",
         "LiteGame.Adapters.Unity",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
@@ -22,7 +21,14 @@
         "RoomServer.Runtime",
         "UniTask",
         "Unity.TextMeshPro",
-        "xLuaMain"
+        "xLuaMain",
+        "LiteGame.Shared",
+        "LiteGame.Modules.Ui",
+        "LiteGame.Modules.Procedure",
+        "LiteGame.Modules.Meta",
+        "LiteGame.Modules.Session",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Dev"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

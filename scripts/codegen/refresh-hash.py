@@ -31,9 +31,17 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _codegen import fail, info, repo_root, run_tool, warn
+from _codegen import fail, info, load_module, repo_root, run_tool, warn
 
 TOOL = 'refresh-hash'
+# Read-only path consumer: the client constant lives wherever gen-build-hash
+# says it does (shared_out_file) - no second hand-copied path here.
+GEN_BUILD_HASH = load_module('gen-build-hash')
+
+
+def path_report():
+    """The generated constant this orchestration reads (repo-relative POSIX)."""
+    return [{'path': GEN_BUILD_HASH.SHARED_OUT_REL, 'kind': 'input'}]
 
 
 def main():
@@ -49,12 +57,12 @@ def main():
 
     # -- 1. rerun the buildHash generator (shared + meta targets, P1④) -----------
     info(TOOL, 'step 1/4 rerun buildHash generator (shared constant + meta build identity)')
-    gen_script = os.path.join(root, 'scripts', 'codegen', 'gen-build-hash.py')
-    if subprocess.run([sys.executable, gen_script]).returncode != 0:
-        fail(TOOL, 'gen-build-hash.py failed')
+    toolbox = os.path.join(root, 'scripts', 'codegen', 'toolbox.py')
+    if subprocess.run([sys.executable, toolbox, 'build-hash']).returncode != 0:
+        fail(TOOL, 'toolbox.py build-hash failed')
         return 1
 
-    client_hash_file = os.path.join(root, 'Assets', 'LiteNet', 'Protocol', 'BuildHash.g.cs')
+    client_hash_file = GEN_BUILD_HASH.shared_out_file(root)
     with open(client_hash_file, 'r', encoding='utf-8-sig') as f:
         m = re.search(r'"([0-9a-f]{16})"', f.read())
     client_hash = m.group(1)

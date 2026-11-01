@@ -80,22 +80,27 @@ namespace LiteGame.Tests.EditMode
             rootServices.Seal();
 
             var transports = new List<FakeClientTransport>(Loops);
+            var maps = new FakeMapProvider();                    // 判定图提供者替身（经会话端口委托进对局）
             var accounts = new AccountSessionFactory(rootScope, rootServices, _ =>
             {
                 var transport = new FakeClientTransport();
                 transports.Add(transport);
                 return new MatchTransport(transport, null);
-            }, new HandshakeIdentity(LiteNet.BuildHash.Value));
+            }, new HandshakeIdentity(LiteNet.BuildHash.Value),
+                new BattleClientFactory(),                       // 客户端只经端口工厂建（A1：会话域不 new）
+                maps.GetMap, BattleScenes.ResolveMapId);         // 地图委托：装配根从 Map 域投影进会话端口
             var matches = new MatchSessionFactory(input: null, gameplayDigestBase: () => 0u,
-                maps: new FakeMapProvider(), pool: new LiteFramework.ReferencePoolService(),
+                pool: new LiteFramework.ReferencePoolService(),
                 diagnostics: new LiteFramework.Diagnostics.DiagnosticIdentity(
                     LiteNet.BuildHash.Value, "test", "Editor"));
+
+            var diagnostics = new DevBattleDiagnostics();
 
             for (int i = 0; i < Loops; i++)
             {
                 AccountSession account = accounts.Create(Host, Port, RoomId, Token, testRoom: false);
                 MatchSession match = matches.Create(account, new MatchTestRules());
-                var session = new BattleSession(match);
+                var session = new BattleSession(match, diagnostics: diagnostics);
 
                 Assert.NotNull(BattleDiagnostics.Current, "对局期诊断读口应指向本局（会话持有登记）");
                 Assert.AreSame(match.Context, BattleDiagnostics.Current);

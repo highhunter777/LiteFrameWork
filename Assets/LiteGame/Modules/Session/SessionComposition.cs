@@ -3,13 +3,14 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame.Modules.Config;
-using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
+using LiteSim;
 
 namespace LiteGame
 {
-    /// <summary>⑰ 会话：账号/对局会话工厂（会话所有权归本段）＋ 传输工厂端口。
-    /// 会话是"跨对局常驻"的所有者：进房/离场只换对局半边，账号半边跨局复用。</summary>
+    /// <summary>⑰ 会话：账号会话工厂＋传输工厂端口（账号所有权归本段；对局运行归 ⑯ Battle）。
+    /// 账号半边跨局复用；Match/Battle 会话与运行工厂由 <see cref="BattleComposition"/> 装配。
+    /// 依赖 ⑯ Battle：客户端端口 <see cref="IBattleClientFactory"/> 归 Battle 域（会话不 `new` 客户端）。</summary>
     public sealed class SessionComposition : IClientModule, IClientModuleGraph
     {
         public string Name => "Session";
@@ -17,7 +18,7 @@ namespace LiteGame
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
         public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[]
         {
-            "PlatformInfrastructure", "Identity", "DevSession", "Content", "Config", "Map", "Input", "Meta",
+            "PlatformInfrastructure", "Identity", "DevSession", "Content", "Config", "Map", "Meta", "Battle",
         };
 
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
@@ -41,15 +42,16 @@ namespace LiteGame
                 config, simParams);
             context.Put<ITransportFactory>(transport);
 
+            // 客户端端口工厂（⑯ Battle 注册；装配序即依赖序）——会话域不 `new` 客户端具体件。
+            IBattleClientFactory battleClients = context.Require<IBattleClientFactory>();
+            // 地图委托：判定图与场景行键同键（LiteSim 类型过端口——Account 工厂不依赖 Map 域类型）。
+            Func<int, SimMapData> mapsFn = id => maps.GetMap(id);
+            Func<int, int> resolveMapId = BattleScenes.ResolveMapId;
+
             // 注册面＝服务接口（消费者经构造注入解析）：Account 半边零引擎依赖（L1 源链接直测）。
             context.Put<IAccountSessionFactory>(new AccountSessionFactory(
-                context.RootScope, context.Services, transport.Create, identity.Handshake));
-            var matchSessions = new MatchSessionFactory(
-                context.Require<IInputService>(), gameplayDigestBase, maps,
-                context.Require<IReferencePool>(), identity.Diagnostics);
-            context.Put<IMatchSessionFactory>(matchSessions);
-            // 流程段只拿对局运行端口（不构造 Match/Battle 会话）。
-            context.Put<IBattleRunFactory>(new BattleRunFactory(matchSessions, context.Require<IDevSession>()));
+                context.RootScope, context.Services, transport.Create, identity.Handshake,
+                battleClients, mapsFn, resolveMapId));
             return UniTask.CompletedTask;
         }
 

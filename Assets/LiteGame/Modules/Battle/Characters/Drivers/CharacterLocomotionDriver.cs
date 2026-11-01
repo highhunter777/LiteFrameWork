@@ -7,7 +7,7 @@ using UnityEngine;
 using LiteGame.Modules.Config;
 
 using LiteSync.Snapshot;
-namespace LiteGame.View.Animation
+namespace LiteGame
 {
     /// <summary>
     /// 角色动画驱动器（《层次动画机设计》——**单机双根**：形态裁决全部收进

@@ -82,7 +82,7 @@ namespace LiteGame.EditorTools
             EditorGUILayout.HelpBox(
                 "枪口偏移：采样 prefab 的 Weapon_Rifle/Muzzle 锚点 @ AimIdle t=0（射弹时刻视觉姿态单族），"
                 + "写 `#combatgeom` 表行的 muzzle_fwd/muzzle_right/muzzle_height（相对 prefab 根的 Sim 系）。\n"
-                + "重跑时机：美术调锚点/换枪/换参考姿态后；写完跑 Luban/gen.bat → python scripts/codegen/gen-build-hash.py。", MessageType.Info);
+                + "重跑时机：美术调锚点/换枪/换参考姿态后；写完跑 Luban/gen.bat → python scripts/codegen/toolbox.py build-hash。", MessageType.Info);
             if (GUILayout.Button("导出到表（#combatgeom）")) Run(MuzzleOffsetBaker.All);
             DrawReport();
         }
@@ -123,7 +123,7 @@ namespace LiteGame.EditorTools
                 + "（spawn_*，按名排序定 index）＋边界（map_bounds，半宽/半深须显式赋值——缺省 0 即拒载），"
                 + "经校验（fail-fast→不产半成品；出生点不落障碍内、离障碍 ≥ 身位半径、不越边界）→毫米量化→digest，"
                 + "写 Luban 数据源（write-if-changed；勿手改——改布局＝改场景重烘）。\n"
-                + "产物是数据源不是 .bytes：需手动跑 Luban/gen.bat 生成 Map/tbmap.bytes，跑完重跑 python scripts/codegen/gen-build-hash.py。\n"
+                + "产物是数据源不是 .bytes：需手动跑 Luban/gen.bat 生成 Map/tbmap.bytes，跑完重跑 python scripts/codegen/toolbox.py build-hash。\n"
                 + "重跑时机：改地图场景（代理/出生/边界）后；代理名前缀 surf_<surface>_ 标表面（无前缀＝Default）。", MessageType.Info);
             for (int i = 0; i < BakeTargets.Maps.Length; i++)
             {
@@ -151,7 +151,7 @@ namespace LiteGame.EditorTools
                 "导出判定参数到表：把调参面板「判定参数」组的 13 列覆写写回 `#combatgeom` 表行"
                 + "（覆写实例随装配登记——需在 Play 模式下调过参；编辑模式无运行态实例）。\n"
                 + "预览 = dry-run 不写盘；写入由表行助手落备份。写完须手动跑 Luban/gen.bat → "
-                + "python scripts/codegen/gen-build-hash.py，两端需重建。", MessageType.Info);
+                + "python scripts/codegen/toolbox.py build-hash，两端需重建。", MessageType.Info);
             if (GUILayout.Button("导出判定参数到表（预览）")) Run(() => ExportSimParams(false));
             if (GUILayout.Button("导出判定参数到表（写入 + 备份）")) Run(() => ExportSimParams(true));
         }

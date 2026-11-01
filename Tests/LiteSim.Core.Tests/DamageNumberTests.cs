@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using LiteGame.View;
-using LiteGame.View.DamageNumbers;
+using LiteGame.Feedback;
+using LiteGame.Feedback.DamageNumbers;
 using Xunit;
 
 namespace LiteSim.Tests

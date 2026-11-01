@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEditor;
@@ -6,7 +6,7 @@ using UnityEngine;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.Modules.Config;
-using LiteGame.Modules.Framework;
+using LiteGame.Modules.Shared;
 using LiteGame.Modules.Ui;
 
 namespace LiteGame.Editor

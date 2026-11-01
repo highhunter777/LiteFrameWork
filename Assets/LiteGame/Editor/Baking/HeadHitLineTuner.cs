@@ -109,7 +109,7 @@ namespace LiteGame.EditorTools
 
             EditorGUILayout.HelpBox(
                 "对局内实机调：F9 进测试模式 → GM 面板开身位可视化 → 拖「爆头线下沿/爆头柱半径」滑杆（判定实时随动），"
-                + "定型后回本页/面板「导出」。导出只写表源——需跑 Luban/gen.bat → python scripts/codegen/gen-build-hash.py 后进房生效。",
+                + "定型后回本页/面板「导出」。导出只写表源——需跑 Luban/gen.bat → python scripts/codegen/toolbox.py build-hash 后进房生效。",
                 MessageType.Info);
         }
 

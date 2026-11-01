@@ -16,7 +16,7 @@ namespace LiteGame.EditorTools
     /// 进程边界 `<c>python scripts/codegen/_combatgeom_row.py</c>`，stdout 单行 JSON，stderr 原样交回。
     /// 表源是权威现值——**不要**拿 <see cref="LiteSim.CombatConfig.Geometry"/> 当写入源或初值来源
     /// （未 Publish 时它只是 <see cref="LiteSim.CombatValues.Default"/> 的展示投影）。
-    /// 写完表不自动跑 Luban：需手动 `Luban/gen.bat`，再跑 `python scripts/codegen/gen-build-hash.py`。
+    /// 写完表不自动跑 Luban：需手动 `Luban/gen.bat`，再跑 `python scripts/codegen/toolbox.py build-hash`。
     /// </summary>
     public static class CombatGeomTableWriter
     {
@@ -28,7 +28,7 @@ namespace LiteGame.EditorTools
 
         private const string HelperRelativePath = "scripts/codegen/_combatgeom_row.py";
         private const int ProcessTimeoutMs = 300000;
-        private const string NextStep = "下一步：Luban/gen.bat → python scripts/codegen/gen-build-hash.py";
+        private const string NextStep = "下一步：Luban/gen.bat → python scripts/codegen/toolbox.py build-hash";
 
         /// <summary>读表源当前数据行（列名 → 数值文本，InvariantCulture）；失败返回 false 并给出原因。</summary>
         public static bool TryReadRow(out Dictionary<string, string> row, out string error)

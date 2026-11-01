@@ -3,9 +3,9 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteSim;
 using LiteTesting;
-using LiteGame.View;
 using NUnit.Framework;
 using UnityEngine;
+using LiteGame.Feedback;
 
 namespace LiteGame.Tests.EditMode
 {

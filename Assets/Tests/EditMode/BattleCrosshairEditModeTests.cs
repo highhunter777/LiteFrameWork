@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.IO;
 using Luban;
 using LiteSim;
-using LiteGame.View;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
@@ -11,6 +10,7 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;
+using LiteGame.Feedback;
 
 namespace LiteGame.Tests.EditMode
 {

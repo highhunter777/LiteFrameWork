@@ -20,7 +20,7 @@ namespace LiteGame.EditorTools
     /// 见 `CombatGirlsAnimationProfile`/`CombatAnimMachine`），故单套常量取 AimIdle t=0。
     ///
     /// **换枪/换姿态时**：改 <see cref="BakeTargets"/> 目标常量后重跑；表值写完后需
-    /// `Luban/gen.bat` → `python scripts/codegen/gen-build-hash.py` 才进入判定与联机身份。
+    /// `Luban/gen.bat` → `python scripts/codegen/toolbox.py build-hash` 才进入判定与联机身份。
     /// </summary>
     public static class MuzzleOffsetBaker
     {

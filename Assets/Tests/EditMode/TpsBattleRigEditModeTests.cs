@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Cinemachine;
 using LiteFramework;
-using LiteGame.View;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;

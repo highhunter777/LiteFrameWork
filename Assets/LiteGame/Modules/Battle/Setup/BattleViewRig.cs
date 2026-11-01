@@ -3,8 +3,6 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteSim;
-using LiteGame.View;
-using LiteGame.View.Animation;
 using UnityEngine;
 using LiteFramework.UI;
 using LiteGame;

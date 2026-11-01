@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "slug": "module-boundaries",
+  "title": "客户端模块边界收口（Composition 薄装配 + 外层域边界）",
+  "status": "archived",
+  "current_stage": "review-plan",
+  "created_at": "2026-10-30T17:58:09+08:00",
+  "updated_at": "2026-10-30T18:23:39+08:00",
+  "completed_at": null,
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-30T18:23:39+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-30T17:58:09+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-30T18:23:39+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-31T15:34:54+08:00",
+      "event": "archive",
+      "path": "20261031-153454-module-boundaries",
+      "note": "手工归档：运行被拆分裁决取代，未施工，保留为证据母本"
+    }
+  ],
+  "tasks": [],
+  "verification": null,
+  "red_verification": null,
+  "archived_at": "2026-10-31T15:34:54+08:00"
+}

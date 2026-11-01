@@ -1,42 +1,48 @@
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
-using LiteFramework;
-using LiteGame.Modules.Settings;
+using LiteGame.Modules.Shared;
 using LiteGame.Modules.Ui;
-using XLua; // lint-allow R12：页面数据表（LuaUIData，模块层包装）与结算数据构造点在流程侧——与 MetaBridge/ProductSettings 同判据（模块自持 Lua 门面形）
 
 using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
     /// 五页页面流（批C-④，《上云测试页面层级设计》§1 页面关系）：页面寻址
-    /// （lua_path → PageDefinition id，单源 <see cref="UI.UiPageResolver.Resolve"/>）与**流程侧页面切换**——
+    /// （lua_path → PageDefinition id，经 Ui 域端口 <see cref="IPageDirectory"/>）与**流程侧页面切换**——
     /// 首进 Main 开登录页；对局开局（StartGame）关房间页；对局结束开结算页（失败/离场回大厅）；
-    /// 对局中打开设置页（HUD 菜单钮 / 空栈 Back 的对局菜单语义——导航数据 <c>battleExit</c> 供
+    /// 对局中打开设置页（HUD 菜单钮 / 空栈 Back 的对局菜单语义——导航数据 `battleExit` 供
     /// 设置页门控"退出对局"按钮）。
     ///
     /// **职责边界**：页面→页面 的跳转（登录成功→大厅、进房→房间、返回大厅、设置叠加）由 Lua 经
     /// <c>Bridge.ui</c> 驱动（同一导航单写者）；本件只接流程不认识 UI、UI 不认识流程的那几处接缝——
     /// 流程层（ProcedureMain/ProcedureBattle）持有本件，UI 层不知道它存在。
+    ///
+    /// **数据面**：导航数据经 <see cref="PageData"/> 中立树装配（具名键/子表/行数组），投射成 Lua 表归
+    /// <see cref="IPageDataFactory"/> 的实现侧——本件不引 XLua、不碰 LuaTable。
     /// </summary>
     public sealed class PageFlow : ILoginSurface
     {
         private readonly UINavigationController _nav;
         private readonly UIService _ui;
-        private readonly Func<LuaEnv> _env;                 // 结算页数据表构造（LuaUIData）——懒取（env 随 DevReload 重建）
+        private readonly IPageDirectory _pages;              // 页面目录端口（页面寻址单源）
+        private readonly IPageDataFactory _data;             // 数据面端口（中立树 → 页面导航数据）
+        private readonly ISettlementSummary _settlement;     // 结算摘要端口（行表全序/名次口径归 Battle）
 
         private bool _entryOpened;
         private Landing _landing;                            // 启动落点（对局失败回大厅的语境判据：dev 直入不强行开大厅）
         private Func<UniTask<bool>> _savedPlatformBack;      // 对局菜单 Back 策略启用前的原装订（还原用）
 
-        public PageFlow(UINavigationController nav, UIService ui, LuaComponent lua)
+        public PageFlow(UINavigationController nav, UIService ui, IPageDirectory pages, IPageDataFactory data,
+            ISettlementSummary settlement)
         {
             _nav = nav ?? throw new ArgumentNullException(nameof(nav));
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
-            LuaComponent host = lua ?? throw new ArgumentNullException(nameof(lua));
-            _env = () => host.Env;
+            _pages = pages ?? throw new ArgumentNullException(nameof(pages));
+            _data = data ?? throw new ArgumentNullException(nameof(data));
+            _settlement = settlement ?? throw new ArgumentNullException(nameof(settlement));
         }
 
         /// <summary>启动落点（首进 Main 的开页决策；《UI工作台设计》§5 入口矩阵）。</summary>
@@ -103,7 +109,7 @@ namespace LiteGame
             CloseIfOpen(LuaKeys.UI.Page_Settings);
             if (completed && result != null)
             {
-                Go(LuaKeys.UI.Page_Result, new LuaUIData(ResultData(result, localPlayerId)));
+                Go(LuaKeys.UI.Page_Result, _data.Create(ResultData(result, localPlayerId)));
                 return;
             }
 
@@ -121,11 +127,7 @@ namespace LiteGame
         /// <summary>对局中打开设置页（HUD 菜单钮与空栈 Back 共用入口）：导航数据带 <c>battleExit</c>——
         /// 设置页按它门控"退出对局"按钮（登录/大厅/结算的设置入口不带数据，不显退场钮）。</summary>
         public void OpenBattleSettings()
-        {
-            LuaTable table = _env().NewTable();
-            table.Set("battleExit", true);
-            Go(LuaKeys.UI.Page_Settings, new LuaUIData(table));
-        }
+            => Go(LuaKeys.UI.Page_Settings, _data.Create(new PageData().Set("battleExit", true)));
 
         /// <summary>启用对局菜单 Back 策略（对局视图建立后启用、离场收尾停用）：平台返回先走原 Back 链
         /// （Loading 拦截/最顶弹窗/设置页照常关闭），空栈（无可返回目标）时打开设置页——对局中
@@ -156,19 +158,20 @@ namespace LiteGame
             return true;
         }
 
-        /// <summary>本局结果 → 结算页数据表（Lua 侧只认具名键；结束原因取枚举名——页面按值域拼文案键
+        /// <summary>本局结果 → 结算页数据树（Lua 侧只认具名键；结束原因取枚举名——页面按值域拼文案键
         /// `UI.Result.Reason.&lt;名&gt;`，不在 Lua 侧抄枚举值）。**名次与玩家排行同源**：都取自
-        /// <see cref="ResultRanking.Build"/> 的同一份行表（击杀降序 → EntityId 升序；名次 = 1 + 击杀严格
-        /// 大于本机的人数，并列同名次；名字 = 玩家{k}）。本机不在册 = rank 0（页面隐藏 Txt_Score）。
+        /// <see cref="ISettlementSummary.Build"/> 的同一份行表（击杀降序 → EntityId 升序；名次 = 1 + 击杀严格
+        /// 大于本机的人数，并列同名次；名字 = 玩家{k}——口径实现在 Battle 域，流程只经端口取行表）。
+        /// 本机不在册 = rank 0（页面隐藏 Txt_Score）。
         /// `ranks`＝排行行数组（`{rank, name, kills, deaths}`）——供结算页列表（原 Cot_Records 位）填充。</summary>
-        private LuaTable ResultData(LiteNet.Proto.MatchEnded result, int localPlayerId)
+        private PageData ResultData(LiteNet.Proto.MatchEnded result, int localPlayerId)
         {
-            ResultRanking.Row[] rows = ResultRanking.Build(result.Players);
+            IReadOnlyList<MatchSettlementRow> rows = _settlement.Build(result.Players);
 
             // 本机行（本局摘要）与排行同一份行表：名次/击杀/阵亡单源，页面侧不重算
             bool found = false;
             int kills = 0, deaths = 0, rank = 0;
-            for (int i = 0; i < rows.Length; i++)
+            for (int i = 0; i < rows.Count; i++)
             {
                 if (rows[i].PlayerId != localPlayerId) continue;
                 kills = rows[i].Kills;
@@ -178,25 +181,23 @@ namespace LiteGame
                 break;
             }
 
-            LuaTable table = _env().NewTable();
-            table.Set("hasPlayer", found);
-            table.Set("kills", kills);
-            table.Set("deaths", deaths);
-            table.Set("rank", rank);                           // 0 = 无名次面（页面隐藏 Txt_Score）
-            table.Set("reason", ((LiteSim.MatchEndReason)result.GameplayEndReason).ToString());
+            var data = new PageData()
+                .Set("hasPlayer", found)
+                .Set("kills", kills)
+                .Set("deaths", deaths)
+                .Set("rank", rank)                             // 0 = 无名次面（页面隐藏 Txt_Score）
+                .Set("reason", ((LiteSim.MatchEndReason)result.GameplayEndReason).ToString());
 
-            LuaTable ranks = _env().NewTable();
-            for (int i = 0; i < rows.Length; i++)
+            var ranks = new List<PageData>(rows.Count);
+            for (int i = 0; i < rows.Count; i++)
             {
-                LuaTable row = _env().NewTable();
-                row.Set("rank", rows[i].Rank);
-                row.Set("name", rows[i].Name);
-                row.Set("kills", rows[i].Kills);
-                row.Set("deaths", rows[i].Deaths);
-                ranks.Set(i + 1, row);
+                ranks.Add(new PageData()
+                    .Set("rank", rows[i].Rank)
+                    .Set("name", rows[i].Name)
+                    .Set("kills", rows[i].Kills)
+                    .Set("deaths", rows[i].Deaths));
             }
-            table.Set("ranks", ranks);
-            return table;
+            return data.Set("ranks", ranks);
         }
 
         private void Go(string luaPath, IUIData data)
@@ -223,9 +224,9 @@ namespace LiteGame
             => TryResolve(luaPath, "IsOpen", out int id) && _ui.IsOpen(id);
 
         /// <summary>lua_path → id；未登记 = 装配错误（表漏登记）→ 错误日志 + 跳过（不炸流程）。</summary>
-        private static bool TryResolve(string luaPath, string method, out int id)
+        private bool TryResolve(string luaPath, string method, out int id)
         {
-            id = UiPageResolver.Resolve(luaPath);
+            id = _pages.Resolve(luaPath);
             if (id < 0) Log.Error($"PageFlow.{method}: 未登记的 lua_path '{luaPath}'（核对生成页面目录）", LogTag.UI);
             return id >= 0;
         }

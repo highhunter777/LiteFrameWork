@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "description": "History snapshot of the 8 codegen rot findings (6 path + 2 comment) recorded in codegen-consolidation plan v8 §2. Replay contract: a declared path must NOT exist anymore (it was the rot; doctor would flag it red), the actual path MUST exist (green). Comment entries: the stale wording must be gone from the declarer file.",
+  "entries": [
+    {
+      "tool": "proto",
+      "kind": "path",
+      "file": "scripts/codegen/gen_proto.py",
+      "declared": "Assets/LiteNet/Proto",
+      "actual": "Assets/LiteNet/Core/Proto",
+      "note": "proto_dir was hardcoded instead of being derived from PROTO_REL"
+    },
+    {
+      "tool": "sync-code",
+      "kind": "path",
+      "file": "scripts/codegen/gen_sync_code.py",
+      "declared": "Assets/LiteSim/Core/Diagnostics/Generated/EntitySlot.Sync.g.cs",
+      "actual": "Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs",
+      "note": "OUT_FILE pointed at the flattened-away LiteSim/Core tree"
+    },
+    {
+      "tool": "sim-trig",
+      "kind": "path",
+      "file": "Assets/LiteSim/Editor/SimTrigTableGenerator.cs",
+      "declared": "Assets/LiteSim/Core/Scripts/SimTrigTables.cs",
+      "actual": "Assets/LiteSim/Scripts/Map/SimTrigTables.cs",
+      "note": "OutputPath pointed at the flattened-away LiteSim/Core/Scripts tree"
+    },
+    {
+      "tool": "refresh-hash",
+      "kind": "path",
+      "file": "scripts/codegen/refresh-hash.py",
+      "declared": "Assets/LiteNet/Protocol/BuildHash.g.cs",
+      "actual": "Assets/LiteNet/Core/Protocol/BuildHash.g.cs",
+      "note": "client constant read the pre-Core layout path"
+    },
+    {
+      "tool": "local-chain",
+      "kind": "path",
+      "file": "scripts/local/local-chain.py",
+      "declared": "Assets/LiteNet/Protocol/BuildHash.g.cs",
+      "actual": "Assets/LiteNet/Core/Protocol/BuildHash.g.cs",
+      "note": "build_hash() read the pre-Core layout path (status showed missing)"
+    },
+    {
+      "tool": "hook",
+      "kind": "path",
+      "file": "scripts/hooks/shared-source-reminder.py",
+      "declared": "Assets/LiteSim/Core/Systems",
+      "actual": "Assets/LiteSim/Systems",
+      "note": "reminder prefixes still used the pre-flatten litesim/core/... tree"
+    },
+    {
+      "tool": "build-hash",
+      "kind": "comment",
+      "file": "scripts/codegen/gen-build-hash.py",
+      "declared_text": "LiteSim.Core/Scripts + LiteSim.Core/Systems",
+      "note": "shared template header advertised the flattened-away namespace prefix"
+    },
+    {
+      "tool": "luban",
+      "kind": "comment",
+      "file": "scripts/codegen/gen_luban.py",
+      "declared_text": "table data is in its source set",
+      "note": "table data moved out of the BuildHash closure on 2026-10-14"
+    }
+  ]
+}

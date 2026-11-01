@@ -9,7 +9,7 @@
 
 UI 不是"一个 UIManager"，而是**运行时 + 绑定生成 + 工具链 + Lua 注册表**四段流水线。四段共同服务的约束（违反由扫描器、校验规则或运行时抛错兜住）：
 
-1. **视觉单一来源**：可见结构只能来自 `Assets/ShareResource/UI/{Screens,Widgets,Hud}` 的 prefab，运行时不得 `new GameObject`/`AddComponent` 拼界面。`RuntimeVisualRule` 扫 `UiValidator.SourceScanDirs`（`Assets/LiteFramework/Runtime`、`Assets/LiteGame/App`、`Assets/LiteGame.View` 等）。
+1. **视觉单一来源**：可见结构只能来自 `Assets/ShareResource/UI/{Screens,Widgets,Hud}` 的 prefab，运行时不得 `new GameObject`/`AddComponent` 拼界面。`RuntimeVisualRule` 扫 `UiValidator.SourceScanDirs`（`Assets/LiteFramework/Runtime`、`Assets/LiteGame/App`、`Assets/LiteGame/Modules/Battle` 等）。
 2. **单写者**：产品页面开关只经 `UINavigationController`；`UIService.ShowAsync` 只留给工具/测试。
 3. **逻辑可热更**：页面逻辑在 Lua，C# 只提供受控 API 面（`self.ui`）与生命周期桥，换表不重建 `LuaEnv`。
 4. **制作可分工**：美术管 prefab/命名/暴露，工程管表行/绑定/接线，以**页面契约**交接。
@@ -44,7 +44,7 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 - **队列满在创建/入栈/OnShow 之前拒绝**（`UIOpenException(Rejected)`，不留半成品）；**排队期取消**＝标记放弃、出队跳过；**执行期取消**贯穿 `ShowAsync`，半成品由其回滚。
 - `UIOpenFailure`：`Canceled / LoadFailed / InitFailed / Busy / Rejected / Timeout`（同界面在途且数据不同＝`Busy`，不静默覆盖）。读数：`Executed`/`RejectedByCapacity`/`TimedOut`/`CancelledWhileQueued`。
-- `GoAsync` 保留旧页（新页覆盖其上），`ReplaceAsync` 显式关闭当前记录（旧页收 `Replace`）。Back 链：**最顶模态优先**，其次最高非空层栈顶（原因 `Back`，可被出栈拦截）；`BackInterceptor` 返回 true＝本次 Back 已消费（如 Loading 阻断）。平台返回统一口径：`Focus.PlatformBack` 挂 `nav.BackAsync`（`UiServiceModule`）。
+- `GoAsync` 保留旧页（新页覆盖其上），`ReplaceAsync` 显式关闭当前记录（旧页收 `Replace`）。Back 链：**最顶模态优先**，其次最高非空层栈顶（原因 `Back`，可被出栈拦截）；`BackInterceptor` 返回 true＝本次 Back 已消费（如 Loading 阻断）。平台返回统一口径：`Focus.PlatformBack` 挂 `nav.BackAsync`（`UiComposition`）。
 
 ## 5. 绑定：一条运行期索引
 
@@ -57,7 +57,9 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 ### 6.1 三注册表
 
-`UiServiceModule` 构造并 `context.Put` 三个注册表（`Assets/LiteGame/Adapters/LuaBridge/LuaRegistries.cs`），键为全路径，重复注册抛：
+三个注册表（`Assets/LiteGame/Adapters/LuaBridge/LuaRegistries.cs`）由装配根 `AppComposition` **一次构造**——
+Ui 段逻辑工厂、流程段填充器、回填服务与 `Bridge` 门面共用同一批实例（模块侧只经端口/接口取，不 `new` 适配器）；
+键为全路径，重复注册抛：
 
 | 注册表（kind） | 键 | 来源表 |
 |---|---|---|
@@ -65,7 +67,8 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 | `ContentLuaRegistry`（Content） | `TbContentEntry.Entry` | `Content/tbcontententry.entry` |
 | `StrategyLuaRegistry`（Strategies） | `TbStrategy.LuaPath`（空＝C# 默认实现） | `Strategy/tbstrategy.lua_path` |
 
-`LuaKeys.g.cs`（`Luban/gen_lua_keys.py` 生成）当前 6 个 UI 常量：`Page_Login / Page_Lobby / Page_Room / Page_Result / Page_Settings / Page_Records`。`RegistryFiller.KnownUiKey = LuaKeys.UI.Page_Login`：启动期校验"编译期已知的约定路径必须可解析"。
+`LuaKeys.g.cs`（`Luban/gen_lua_keys.py` 生成，落**共享常量面** `Assets/LiteGame/Modules/Shared/Generated/`，
+命名空间 `LiteGame.Modules.Shared`——Ui/Procedure 两域与 Lua 桥共用，不属单一域）当前 6 个 UI 常量：`Page_Login / Page_Lobby / Page_Room / Page_Result / Page_Settings / Page_Records`。`RegistryFiller.KnownUiKey = LuaKeys.UI.Page_Login`：启动期校验"编译期已知的约定路径必须可解析"。
 
 ### 6.2 预载五步序
 
@@ -79,7 +82,7 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 `LuaBehaviourAdapter`（`Assets/LiteGame/Adapters/LuaBridge/LuaBehaviourAdapter.cs`）把 `IUIFormLogic` 七回调翻译成 `self:OnInit/OnShow/OnUpdate/OnPause/OnCover/OnReveal/OnHide`：注册表存**模块表**，适配器构造期 `module.new()` 得实例（无 `new` 的旧表退化为"模块即实例"），七个 `LuaFunction` 构造期一次缓存；方法缺失静默跳过，异常由 `UIForm.SafeCall` 隔离（单页降级）；`OnInit` 建绑定索引 + 挂 `self.ui`，`OnHide` 解绑全部按钮；**所有权分开**：注册表拥有模块引用，页面拥有实例/回调，`Release` 不 Dispose 共享模块。
 
-`self.ui` 是生成的白名单门面（`UiApiShim.g.cs` 的 `LuaTemplate`，**33 个方法**：按钮/文本/key 文本/进度/倒计时/提示/确认/表单控件/列表/动效），经单委托 `Action<string, LuaTable>` 派发，缺省动效时长由适配器用 `UiFxDefaults` 替换。源头 `Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`，重生成 `python scripts/codegen/gen-ui-api.py`。
+`self.ui` 是生成的白名单门面（`UiApiShim.g.cs` 的 `LuaTemplate`，**33 个方法**：按钮/文本/key 文本/进度/倒计时/提示/确认/表单控件/列表/动效），经单委托 `Action<string, LuaTable>` 派发，缺省动效时长由适配器用 `UiFxDefaults` 替换。源头 `Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`，重生成 `python scripts/codegen/toolbox.py ui-api`。
 
 ### 6.5 换表两条路径
 
@@ -124,11 +127,11 @@ Lua 只能经白名单门面访问 C#：`Bridge` 只导出 `data / ui / content 
 
 ## 8. 现状清点
 
-`Assets/ShareResource/UI/Screens` 13 个 prefab = 6 个产品页 + 6 个模板 + 1 个测试载体。生成目录 `UiPageCatalog.g.cs`（源头 `#uiform` + `UiPageManifest` + `Contracts`，重生成 `python scripts/codegen/gen-ui-page.py`）：产品页 11–16（`Page_Login/Lobby/Room/Result/Settings/Records`），除设置页 15 为 Layer 1 外全为 Layer 0 全屏，设置页在预载放行时登记为模态；模板 201–206（`Tmp_Dialog` 占 201 Layer 3 与 206 Layer 1 两行，其余为 Loading/Toast/两个基线）。6 个产品页全部 `status=Registered`、`cacheStrategy=Lru`、有契约；模板页也登记在表与清单里——读目录时不要假设"一页一行"。
+`Assets/ShareResource/UI/Screens` 13 个 prefab = 6 个产品页 + 6 个模板 + 1 个测试载体。生成目录 `UiPageCatalog.g.cs`（源头 `#uiform` + `UiPageManifest` + `Contracts`，重生成 `python scripts/codegen/toolbox.py ui-page`）：产品页 11–16（`Page_Login/Lobby/Room/Result/Settings/Records`），除设置页 15 为 Layer 1 外全为 Layer 0 全屏，设置页在预载放行时登记为模态；模板 201–206（`Tmp_Dialog` 占 201 Layer 3 与 206 Layer 1 两行，其余为 Loading/Toast/两个基线）。6 个产品页全部 `status=Registered`、`cacheStrategy=Lru`、有契约；模板页也登记在表与清单里——读目录时不要假设"一页一行"。
 
 - `Tmp_UiTestPage`（原样例页改名）与 `Tests/UiTestPage.lua` 是 UI 栈夹具：**不登记** `tbuiform`、不产出 `LuaKeys` 常量。
 - 控件模板 `Assets/ShareResource/UI/Widgets` 30 个 prefab；HUD 为 `Assets/ShareResource/UI/Hud/Hud_Battle.prefab`（`UIHud` 收集组单件打包）。生产接线集中在 `ProgressBar`/`HpBar`/`Countdown`/`Toast`/`UIBubble`/`FlyTextPool`/`VirtualList`/`UIDialog`/`LoadingMask`；`AvatarFrame`/`GuideHighlight`/`StarRating`/`Stepper`/`BottomNav`/`TabGroup`/`SafeAreaReceiver`/`SimpleListView` 等只有模板与测试，不能宣称接入业务。
-- **红点未生效**：`RedDotRegistry` 在 `UiServiceModule` 建实例并 `Put` 进上下文，但 C# 侧没有 `Register` 规则也没有 `Evaluate` 调用点，Lua 侧零引用；`RedDot`/`RedDotTree` 未接入 `UIBindIndex`。
+- **红点未生效**：`RedDotRegistry` 在 `UiComposition` 建实例并 `Put` 进上下文，但 C# 侧没有 `Register` 规则也没有 `Evaluate` 调用点，Lua 侧零引用；`RedDot`/`RedDotTree` 未接入 `UIBindIndex`。
 - **Lua 调试器未接线**：`Assets/LiteGame/Lua/LuaPanda.lua` 存在但无 `require` 消费者；`Core/` 只有 `class.lua`。
 
 **边界**：预览场景/预览驱动/脚手架模板/深检面/调试面板不得进收集组或构建，`UiTools` 与工作台只在编辑器程序集；契约、清单、`UiPageCatalog.g.cs`、`UiApiShim.g.cs`、`LuaKeys.g.cs` 由工具生成，禁手改；"能点/能操作"的结论必须走真实操作路径（可点性自检 → 模拟指针/按键 → 副作用断言），不以直调 API 冒充。

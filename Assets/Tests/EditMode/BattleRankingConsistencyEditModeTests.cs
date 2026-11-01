@@ -89,9 +89,9 @@ namespace LiteGame.Tests.EditMode
                 () => localId, board.CellRoots, board.Names, board.Kills, board.Highlights);
 
             driver.Tick();
-            ResultRanking.Row[] rows = ResultRanking.Build(FrozenRows(world));
+            IReadOnlyList<MatchSettlementRow> rows = new SettlementSummary().Build(FrozenRows(world));
 
-            Assert.AreEqual(rows.Length, 4, "四名参赛玩家");
+            Assert.AreEqual(rows.Count, 4, "四名参赛玩家");
             // 独立期望序列：不调用 BattleRankOrder，钉死 EntityId 并列时的顺序（id1→id2，击杀同分）。
             Assert.AreEqual(5, rows[0].Kills);
             Assert.AreEqual(2, rows[1].Kills);
@@ -105,7 +105,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual("玩家1", rows[1].Name);
             Assert.AreEqual("玩家2", rows[2].Name);
             Assert.AreEqual("玩家4", rows[3].Name);
-            for (int i = 0; i < rows.Length; i++)
+            for (int i = 0; i < rows.Count; i++)
             {
                 Assert.AreEqual(rows[i].Kills.ToString(), board.Kills[i].text,
                     $"第 {i + 1} 格的击杀与结算行一致（同一条全序）");

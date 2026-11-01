@@ -189,7 +189,7 @@ bool TryGetMatchClock(out BattleMatchClockFacts clock);   // false = 未对齐/�
 | --- | --- |
 | 实现 | 仅 `Assets/LiteGame/Modules/Presentation/Hud/BattleReadModel.cs`（唯一翻译点）：`state == null → false`，否则读 `state.Match` |
 | 其他实现者 | 无（全仓仅 `BattleReadModel` 实现该接口；EditMode 用例走真实 `BattleReadModel` + 委托注入） |
-| 二进制/协议 | 无——`Assets/LiteGame/Core/**` 不在 BuildHash 源集（`scripts/codegen/gen-build-hash.py` 的 `SHARED_TARGETS`），也不被服务端链接 |
+| 二进制/协议 | 无——`Assets/LiteGame/Core/**` 不在 BuildHash 源集（`scripts/codegen/toolbox.py build-hash` 的 `SHARED_TARGETS`），也不被服务端链接 |
 | 备选（未采纳） | 驱动直接吃 `Func<MatchStateData>`：绕开读模型收口，把 Sim 布局知识带回驱动，且与守卫基线冲突 |
 
 ## 8. 刷新纪律与预算

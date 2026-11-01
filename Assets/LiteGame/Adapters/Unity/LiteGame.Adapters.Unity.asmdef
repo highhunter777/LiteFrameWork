@@ -1,6 +1,6 @@
 {
     "name": "LiteGame.Adapters.Unity",
-    "rootNamespace": "LiteGame.View.Animation",
+    "rootNamespace": "LiteGame",
     "references": [
         "Unity.InputSystem",
         "Cinemachine",

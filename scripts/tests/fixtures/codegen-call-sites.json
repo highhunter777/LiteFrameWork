@@ -1,0 +1,402 @@
+{
+  "schema": 1,
+  "description": "Literal classification of every (scripts/)codegen/<script>.py reference under the scanned surface (.workflow/config.json, scripts/gate/toolchain.json, scripts/**/*.py, scripts/**/*.bat, Luban/*.bat). Key is (file, line, literal); same literal on different lines is independent. invocation may only reference codegen/toolbox.py; contract-test (test_script_contracts_sb.py) and compat (Luban/gen.bat) are the only explicit exceptions. Regenerate/update this file in the same change that moves a call site.",
+  "kinds": [
+    "invocation",
+    "import",
+    "analysis",
+    "signature",
+    "doc",
+    "text",
+    "contract-test",
+    "compat",
+    "toolbox"
+  ],
+  "entries": [
+    {
+      "file": ".workflow/config.json",
+      "line": 833,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "sync-and-sim-check-shared gate command routes through the toolbox"
+    },
+    {
+      "file": ".workflow/config.json",
+      "line": 843,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "codegen-check freshness gate (toolbox all --check)"
+    },
+    {
+      "file": "Luban/gen.bat",
+      "line": 3,
+      "literal": "scripts/codegen/gen_luban.py",
+      "kind": "compat",
+      "note": "compat alias kept on purpose; prints deprecated"
+    },
+    {
+      "file": "scripts/build/build-plan.py",
+      "line": 152,
+      "literal": "scripts/codegen/gen-build-hash.py",
+      "kind": "analysis",
+      "note": "importlib path analysis only; never executed as a command"
+    },
+    {
+      "file": "scripts/build/build-player.py",
+      "line": 287,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "gate/orchestration entry; toolbox only"
+    },
+    {
+      "file": "scripts/codegen/_codegen.py",
+      "line": 56,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "text",
+      "note": "deprecated hint copy (points at the toolbox entry)"
+    },
+    {
+      "file": "scripts/codegen/_codegen.py",
+      "line": 117,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "signature",
+      "note": "uniform 3-line artifact signature regen line"
+    },
+    {
+      "file": "scripts/codegen/_combatgeom_row.py",
+      "line": 3,
+      "literal": "scripts/codegen/gen-build-hash.py",
+      "kind": "doc",
+      "note": "helper module docstring pointer (not a generator)"
+    },
+    {
+      "file": "scripts/codegen/gen-build-hash.py",
+      "line": 162,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "signature",
+      "note": "shared template doc comment names the toolbox entry"
+    },
+    {
+      "file": "scripts/codegen/gen-build-hash.py",
+      "line": 179,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "signature",
+      "note": "meta template doc comment names the toolbox entry"
+    },
+    {
+      "file": "scripts/codegen/gen-build-hash.py",
+      "line": 274,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "text",
+      "note": "stale-check rerun hint"
+    },
+    {
+      "file": "scripts/codegen/gen-ui-api.py",
+      "line": 3,
+      "literal": "scripts/codegen/gen-ui-api.py",
+      "kind": "doc",
+      "note": "module docstring deprecated usage line"
+    },
+    {
+      "file": "scripts/codegen/gen-ui-api.py",
+      "line": 3,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "doc",
+      "note": "module docstring supported usage line"
+    },
+    {
+      "file": "scripts/codegen/gen-ui-api.py",
+      "line": 437,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "text",
+      "note": "stale-check failure hint"
+    },
+    {
+      "file": "scripts/codegen/gen-ui-page.py",
+      "line": 3,
+      "literal": "scripts/codegen/gen-ui-page.py",
+      "kind": "doc",
+      "note": "module docstring deprecated usage line"
+    },
+    {
+      "file": "scripts/codegen/gen-ui-page.py",
+      "line": 3,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "doc",
+      "note": "module docstring supported usage line"
+    },
+    {
+      "file": "scripts/codegen/gen-ui-page.py",
+      "line": 316,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "text",
+      "note": "stale-check failure hint"
+    },
+    {
+      "file": "scripts/codegen/refresh-hash.py",
+      "line": 60,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "step 1 forwards the build-hash generator through the toolbox"
+    },
+    {
+      "file": "scripts/codegen/toolbox.py",
+      "line": 2,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "toolbox",
+      "note": "toolbox module docstring"
+    },
+    {
+      "file": "scripts/codegen/toolbox.py",
+      "line": 107,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "toolbox",
+      "note": "ALL_USAGE text"
+    },
+    {
+      "file": "scripts/codegen/toolbox.py",
+      "line": 133,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "toolbox",
+      "note": "TRIG_USAGE text"
+    },
+    {
+      "file": "scripts/codegen/toolbox.py",
+      "line": 145,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "toolbox",
+      "note": "index usage line"
+    },
+    {
+      "file": "scripts/codegen/toolbox.py",
+      "line": 578,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "toolbox",
+      "note": "trig stale rerun hint"
+    },
+    {
+      "file": "scripts/gate/sync-and-sim-e2e.py",
+      "line": 83,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "gate/orchestration entry; toolbox only"
+    },
+    {
+      "file": "scripts/gate/toolchain.json",
+      "line": 537,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "manifest command routes through the toolbox (build-hash)"
+    },
+    {
+      "file": "scripts/gate/toolchain.json",
+      "line": 559,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "manifest command routes through the toolbox (proto)"
+    },
+    {
+      "file": "scripts/gate/toolchain.json",
+      "line": 579,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "manifest command routes through the toolbox (ui-page)"
+    },
+    {
+      "file": "scripts/gate/toolchain.json",
+      "line": 599,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "manifest command routes through the toolbox (ui-api)"
+    },
+    {
+      "file": "scripts/gate/toolchain.json",
+      "line": 623,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "manifest command routes through the toolbox (luban)"
+    },
+    {
+      "file": "scripts/gate/toolchain.json",
+      "line": 643,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "manifest command routes through the toolbox (sync-code)"
+    },
+    {
+      "file": "scripts/gate/toolchain.json",
+      "line": 660,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "manifest command routes through the toolbox (refresh-hash)"
+    },
+    {
+      "file": "scripts/hooks/shared-source-reminder.py",
+      "line": 2,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "doc",
+      "note": "hook module docstring names the authoritative toolbox entry"
+    },
+    {
+      "file": "scripts/hooks/shared-source-reminder.py",
+      "line": 42,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "text",
+      "note": "build-hash reminder copy"
+    },
+    {
+      "file": "scripts/hooks/shared-source-reminder.py",
+      "line": 43,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "text",
+      "note": "proto reminder copy"
+    },
+    {
+      "file": "scripts/tests/test_codegen_rot.py",
+      "line": 22,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "live doctor replay runs through the toolbox"
+    },
+    {
+      "file": "scripts/tests/test_combatgeom_row.py",
+      "line": 3,
+      "literal": "scripts/codegen/_combatgeom_row.py",
+      "kind": "doc",
+      "note": "test docstring"
+    },
+    {
+      "file": "scripts/tests/test_combatgeom_row.py",
+      "line": 21,
+      "literal": "scripts/codegen/_combatgeom_row.py",
+      "kind": "import",
+      "note": "row helper module path (helper, not a toolbox generator); driven by the test's own run() wrapper"
+    },
+    {
+      "file": "scripts/tests/test_combatgeom_row.py",
+      "line": 104,
+      "literal": "scripts/codegen/_combatgeom_row.py",
+      "kind": "text",
+      "note": "failure message"
+    },
+    {
+      "file": "scripts/tests/test_generated_artifacts.py",
+      "line": 44,
+      "literal": "scripts/codegen/gen_luban.py",
+      "kind": "import",
+      "note": "importlib load of gen_luban"
+    },
+    {
+      "file": "scripts/tests/test_generated_artifacts.py",
+      "line": 45,
+      "literal": "scripts/codegen/gen_sync_code.py",
+      "kind": "import",
+      "note": "importlib load of gen_sync_code"
+    },
+    {
+      "file": "scripts/tests/test_hook_reminder.py",
+      "line": 25,
+      "literal": "scripts/codegen/gen-build-hash.py",
+      "kind": "import",
+      "note": "importlib load of gen-build-hash for SHARED_TARGETS"
+    },
+    {
+      "file": "scripts/tests/test_refresh_hash.py",
+      "line": 40,
+      "literal": "scripts/codegen/refresh-hash.py",
+      "kind": "import",
+      "note": "importlib load of refresh-hash"
+    },
+    {
+      "file": "scripts/tests/test_script_contracts_sb.py",
+      "line": 61,
+      "literal": "scripts/codegen/gen-build-hash.py",
+      "kind": "contract-test",
+      "note": "S-B CLI contract test (explicit exception)"
+    },
+    {
+      "file": "scripts/tests/test_script_contracts_sb.py",
+      "line": 62,
+      "literal": "scripts/codegen/gen_luban.py",
+      "kind": "contract-test",
+      "note": "S-B CLI contract test (explicit exception)"
+    },
+    {
+      "file": "scripts/tests/test_script_contracts_sb.py",
+      "line": 63,
+      "literal": "scripts/codegen/gen_proto.py",
+      "kind": "contract-test",
+      "note": "S-B CLI contract test (explicit exception)"
+    },
+    {
+      "file": "scripts/tests/test_script_contracts_sb.py",
+      "line": 64,
+      "literal": "scripts/codegen/gen_sync_code.py",
+      "kind": "contract-test",
+      "note": "S-B CLI contract test (explicit exception)"
+    },
+    {
+      "file": "scripts/tests/test_script_contracts_sb.py",
+      "line": 65,
+      "literal": "scripts/codegen/refresh-hash.py",
+      "kind": "contract-test",
+      "note": "S-B CLI contract test (explicit exception)"
+    },
+    {
+      "file": "scripts/tests/test_script_contracts_sb.py",
+      "line": 66,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "contract-test",
+      "note": "S-B CLI contract test (explicit exception)"
+    },
+    {
+      "file": "scripts/tests/test_script_contracts_sb.py",
+      "line": 79,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "contract-test",
+      "note": "S-B CLI contract test (explicit exception)"
+    },
+    {
+      "file": "scripts/tests/test_script_contracts_sb.py",
+      "line": 88,
+      "literal": "scripts/codegen/gen-build-hash.py",
+      "kind": "contract-test",
+      "note": "S-B CLI contract test (explicit exception)"
+    },
+    {
+      "file": "scripts/tests/test_script_contracts_sb.py",
+      "line": 88,
+      "literal": "scripts/codegen/gen_sync_code.py",
+      "kind": "contract-test",
+      "note": "S-B CLI contract test (explicit exception)"
+    },
+    {
+      "file": "scripts/tests/test_script_contracts_sb.py",
+      "line": 94,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "contract-test",
+      "note": "S-B CLI contract test (explicit exception)"
+    },
+    {
+      "file": "scripts/tests/test_uiform_row.py",
+      "line": 3,
+      "literal": "scripts/codegen/_uiform_row.py",
+      "kind": "doc",
+      "note": "test docstring"
+    },
+    {
+      "file": "scripts/tests/test_uiform_row.py",
+      "line": 22,
+      "literal": "scripts/codegen/_uiform_row.py",
+      "kind": "import",
+      "note": "row helper module path (helper, not a toolbox generator); driven by the test's own run() wrapper"
+    },
+    {
+      "file": "scripts/toolchain.py",
+      "line": 403,
+      "literal": "scripts/codegen/toolbox.py",
+      "kind": "invocation",
+      "note": "toolchain generate forwards to the toolbox"
+    }
+  ]
+}

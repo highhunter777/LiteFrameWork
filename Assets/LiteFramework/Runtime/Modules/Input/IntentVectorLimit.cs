@@ -4,7 +4,7 @@ namespace LiteFramework
     /// 意图向量的闸门边界守卫（《角色状态与动作专项设计》§3"长度 ≤1 契约"的浮点边界收口）。
     ///
     /// **为什么需要它**：服务器 <c>RoomServer.Runtime.InputGate.Store</c> 按"Move/Aim 分量与长度平方
-    /// 均 ≤ 1"严格判非法（限值 <c>LiteNet.Protocol.ProtocolConstants.VectorLengthSquaredLimit = 1f</c>，
+    /// 均 ≤ 1"严格判非法（限值 <c>LiteSync.Shared.ProtocolConstants.VectorLengthSquaredLimit = 1f</c>，
     /// 超限即**整帧丢弃**——R0-P0-3 数值边界，超限帧不得进入权威状态）。而设备源的归一化本身是
     /// 浮点运算：<c>inv = 1/√m</c> 后两个分量各自舍入，长度平方落在 <c>1±1ulp</c>（实测
     /// <c>(0.9973691, -0.0724914148)</c> 归一化结果长度平方 = <c>1.00000012</c>）。落在 +1ulp 一侧时

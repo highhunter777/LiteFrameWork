@@ -75,7 +75,10 @@ namespace LiteNet.Tests
             Func<bool, MatchTransport> transportFactory = null)
             => new AccountSessionFactory(rootScope, rootServices,
                 transportFactory ?? (_ => new MatchTransport(new FakeClientTransport(), null)),
-                new HandshakeIdentity(LiteNet.BuildHash.Value));
+                new HandshakeIdentity(LiteNet.BuildHash.Value),
+                new BattleClientFactory(),                 // 客户端只经端口工厂建（会话域不再 new 具体件）
+                _ => null,                                 // 地图委托：本组用例只验会话装配/释放，不读判定图
+                id => id);                                 // 行键裁决：本组用例不涉及地图行
 
         [Fact]
         public void 创建即入域_连接发Join_BattleClient解析同引用()
@@ -88,7 +91,7 @@ namespace LiteNet.Tests
 
             Assert.Equal(1, transport.ConnectCalls);                    // 连接已发起（BattleClient 构造即 Connect）
             Assert.True(session.Battle.Connected);
-            Assert.Same(session.Battle, session.Services.Resolve<BattleClient>());   // 服务域在册同一实例
+            Assert.Same(session.Battle, session.Services.Resolve<IBattleClient>());   // 服务域在册同一实例（端口登记）
             Assert.True(session.Services.IsSealed);                     // 子域交付即密封
             Assert.False(session.Scope.IsDisposed);
             Assert.False(rootScope.IsDisposed);
@@ -153,7 +156,7 @@ namespace LiteNet.Tests
             });
 
             AccountSession first = factory.Create(Host, Port, RoomId, Token, testRoom: false);
-            BattleClient firstBattle = first.Battle;
+            IBattleClient firstBattle = first.Battle;
             ClientScope firstScope = first.Scope;
             first.Dispose();
 

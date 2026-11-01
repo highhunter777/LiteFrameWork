@@ -1,0 +1,27 @@
+﻿{
+    "name": "LiteGame.Modules.Composition",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteFramework.Runtime",
+        "LiteGame.Core",
+        "LiteGame.Modules.Dev",
+        "LiteGame.Modules.Input",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "LiteGame.Shared",
+        "LiteGame.Modules.Config"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

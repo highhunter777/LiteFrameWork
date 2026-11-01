@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using Cysharp.Threading.Tasks;
@@ -12,7 +12,8 @@ using NUnit.Framework;
 using UnityEngine;
 using XLua;
 using LiteGame.Modules.Config;
-using LiteGame.Modules.Framework;
+using LiteGame.Modules.Shared;
+using LiteGame.Modules.Shared;
 using LiteGame.Modules.Ui;
 
 namespace LiteGame.Tests.EditMode
@@ -76,7 +77,7 @@ namespace LiteGame.Tests.EditMode
                 loadPrefab: (loc, ct) => UniTask.FromResult<IUIPrefabLease>(UIPrefabLeases.Unowned(FakePrefab())),
                 transitionStrategy: new InstantTransition());
             _nav = new UINavigationController(_ui);
-            _baselineBack = () => _nav.BackAsync();               // UiServiceModule 同款基线装订
+            _baselineBack = () => _nav.BackAsync();               // UiComposition 同款基线装订
             _ui.Focus.PlatformBack = _baselineBack;
 
             var lua = Scope.CreateGameObject("lua-host").AddComponent<LuaComponent>();
@@ -84,7 +85,9 @@ namespace LiteGame.Tests.EditMode
                 new EventBus(new ReferencePoolService()));
             Bridge.Bind(LoadRealTables);                            // 页面寻址反查（真表——与生产同源）
 
-            _flow = new PageFlow(_nav, _ui, lua);
+            // Lua 桥装订面（生产同款：逻辑工厂/数据投射/文本门面）——PageFlow 只吃目录/数据两个端口
+            var binding = new LuaUiBinding(lua, new UiLuaRegistry());
+            _flow = new PageFlow(_nav, _ui, UiPageDirectory.Instance, binding.PageData, new SettlementSummary());
         }
 
         [TearDown]

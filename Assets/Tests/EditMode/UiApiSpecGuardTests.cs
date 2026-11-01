@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -6,7 +6,7 @@ using LiteFramework.UI;
 using LiteGame;
 using NUnit.Framework;
 using UnityEngine;
-using LiteGame.Modules.Framework;
+using LiteGame.Modules.Config;
 
 namespace LiteGame.Tests.EditMode
 {

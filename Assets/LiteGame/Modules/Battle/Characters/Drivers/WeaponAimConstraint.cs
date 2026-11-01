@@ -1,6 +1,7 @@
+using System;
 using UnityEngine;
 
-namespace LiteGame.View.Animation
+namespace LiteGame
 {
     /// <summary>
     /// 瞄准枪口对齐（TPS **ADS / 腰射**的上半身姿态修正）：把枪口前向指向准心世界点，
@@ -35,13 +36,16 @@ namespace LiteGame.View.Animation
         /// <summary>已实际修正的帧数（诊断/测试读值；非射击语境恒 0）。</summary>
         public int AppliedFrames { get; private set; }
 
-        public WeaponAimConstraint(Animator animator)
+        /// <summary>构造：枪骨路径取自 <paramref name="catalog"/>（grip.bin 数据产物）。
+        /// catalog 必填（null 抛 <see cref="ArgumentNullException"/>）。</summary>
+        public WeaponAimConstraint(Animator animator, WeaponGripCatalog catalog)
         {
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
             // 无 Avatar（灰盒替身/清单供片的测试视图）没有 humanoid 骨骼映射：GetBoneTransform 会抛
             // "Avatar is null"——显性退化（IsValid=false）才是契约（同 AimPitchPostureDriver）。
             if (animator == null || animator.avatar == null) return;
             _chest = animator.GetBoneTransform(HumanBodyBones.Chest);
-            _weapon = animator.transform.Find(GripBake.WeaponPath);
+            _weapon = animator.transform.Find(catalog.WeaponPath);
             _muzzle = FindDeep(animator.transform, "Muzzle");
         }
 

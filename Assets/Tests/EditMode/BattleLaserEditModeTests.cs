@@ -1,5 +1,4 @@
 using LiteSim;
-using LiteGame.View;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;

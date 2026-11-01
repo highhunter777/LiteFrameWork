@@ -58,7 +58,7 @@
 
 ## 核心红线速查
 
-1. **BuildHash 源集**：改 `Assets/LiteSim/{Scripts,Systems}`、`Assets/LiteNet/Core/{Proto,Protocol,Transport/Security}`、`Assets/GameData/Generated`（Luban 生成表行类/读取器）、脚本 `SHARED_LINK_FILES` 登记的两端源链接共编件（`Serialization.Luban/{SimConfigMapper,TableLayout}.cs`）→ ★ `python scripts/codegen/gen-build-hash.py`（权威清单＝该脚本 `SHARED_TARGETS/SHARED_LINK_FILES`）；漏跑＝出包门禁被拦、两端常量不同步时 Join 握手拒进房（2026-10-07 起开发期不校验，守卫在 build-player.py 门禁步 `--check-shared`）。**表数据（`.bytes` 数值）已移出闭包**（2026-10-14 批 E）——数据面守卫＝装载后**运行期摘要**（`CombatConfigDigest`：判定面表字节 + 本局规则；客户端按 `StartGame.ConfigHash` 复算比对，不等拒局），表值可两端热更不出包；但**改表源跑完 `Luban/gen.bat` 后仍要重跑本脚本**（生成读码面在闭包内），再走 `ConfigService.GameplayDigestBase` 侧的两端发布顺序。**同一脚本还产出第二个目标**：`Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份＝`META_TARGETS` 源集摘要，启动日志 `build=` 用它；**不参与准入判定**，故不挂出包门禁——发布 Meta 产物前跑 `--check` 复算两个常量）。
+1. **BuildHash 源集**：改 `Assets/LiteSim/{Scripts,Systems}`、`Assets/LiteNet/Core/{Proto,Protocol,Transport/Security}`、`Assets/GameData/Generated`（Luban 生成表行类/读取器）、脚本 `SHARED_LINK_FILES` 登记的两端源链接共编件（`Serialization.Luban/{SimConfigMapper,TableLayout}.cs`）→ ★ `python scripts/codegen/toolbox.py build-hash`（权威清单＝该脚本 `SHARED_TARGETS/SHARED_LINK_FILES`）；漏跑＝出包门禁被拦、两端常量不同步时 Join 握手拒进房（2026-10-07 起开发期不校验，守卫在 build-player.py 门禁步 `--check-shared`）。**表数据（`.bytes` 数值）已移出闭包**（2026-10-14 批 E）——数据面守卫＝装载后**运行期摘要**（`CombatConfigDigest`：判定面表字节 + 本局规则；客户端按 `StartGame.ConfigHash` 复算比对，不等拒局），表值可两端热更不出包；但**改表源跑完 `Luban/gen.bat` 后仍要重跑本脚本**（生成读码面在闭包内），再走 `ConfigService.GameplayDigestBase` 侧的两端发布顺序。**同一脚本还产出第二个目标**：`Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份＝`META_TARGETS` 源集摘要，启动日志 `build=` 用它；**不参与准入判定**，故不挂出包门禁——发布 Meta 产物前跑 `--check` 复算两个常量）。
 2. **R11 房间内核纯度**：`Assets/RoomServer/Core/` 禁 Console/系统时钟/文件 IO/proto/LiteNet。
 3. **R13 数值读口**：机制面禁读静态读口可变值，数值经实例参数传递（consts 豁免）。
 4. **Unity 序列化资产**（场景/Prefab/Material/.meta）：一律走 unity-pipeline CLI（[说明 15 工具链手册](Docs/说明/15-工具链手册.md)），禁直改文件。
@@ -99,10 +99,10 @@ python scripts/toolchain.py open <tool-id>                  # 在编辑器 Hub �
 python scripts/gate/test.py --suite L1 --profile PullRequest     # L1 纯逻辑（含纪律扫描/表守卫/BuildHash 守卫）
 python scripts/gate/l0-dep-scan.py                            # 依赖与秘密扫描
 python scripts/codegen/toolbox.py                            # 生成器工具箱（build-hash/proto/luban/sync-code/refresh-hash 统一入口；形态见专项设计）
-python scripts/codegen/gen-build-hash.py                     # ★ 共享源集/生成读码面/Meta 源集改动后必跑（一次写两常量；表值 .bytes 改动不必跑）
-python scripts/codegen/gen-build-hash.py --check             # 复算比对两个常量（发布 Meta 前）
-python scripts/codegen/gen-build-hash.py --check-shared      # 只复算共享源集常量（出包门禁用的是这个）
-python scripts/codegen/gen_proto.py --protoc <protoc.exe>    # ★ 改 .proto 后
+python scripts/codegen/toolbox.py build-hash                     # ★ 共享源集/生成读码面/Meta 源集改动后必跑（一次写两常量；表值 .bytes 改动不必跑）
+python scripts/codegen/toolbox.py build-hash --check             # 复算比对两个常量（发布 Meta 前）
+python scripts/codegen/toolbox.py build-hash --check-shared      # 只复算共享源集常量（出包门禁用的是这个）
+python scripts/codegen/toolbox.py proto --protoc <protoc.exe>    # ★ 改 .proto 后
 Luban/gen.bat                                                # ★ 改表源后（双端重生成）
 python scripts/gate/l2-unity-gate.py                          # L2 Unity 门禁（夜间）
 python scripts/gate/restore-check.py                          # 环境可复现检查

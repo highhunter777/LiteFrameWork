@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 
-namespace LiteGame.View.Animation
+namespace LiteGame
 {
     /// <summary>
     /// 持枪偏移数据产物（`grip.bin`）的只读装载结果：武器骨相对持枪手（挂点父级）在参考持枪姿态下的

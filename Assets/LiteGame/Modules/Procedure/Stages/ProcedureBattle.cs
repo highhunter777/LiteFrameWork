@@ -5,7 +5,6 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteSim;
-using LiteGame.View;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using LiteGame;
@@ -54,14 +53,14 @@ namespace LiteGame
         private readonly IBattleViewGroupFactory _views;   // 视图组工厂（表现层实现；装订根注入）
         private readonly IRoomSessionBridge _roomBridge;   // 房间会话门面装订口（Lua 桥实现；房主开局批）
         private readonly bool _requireCamera;        // 缺相机 = 装配缺口（见 ctor 注释）
-        private readonly IBattleRunFactory _runs;    // 对局运行工厂（会话域产物；流程不构造 Match/Battle 会话）
+        private readonly IBattleRunFactory _runs;    // 对局运行工厂（Battle 域产物；流程不构造 Match/Battle 会话）
         private readonly PageFlow _pages;            // 五页页面流（批C-④；可空 = 测试装配不接 UI）
         private readonly ISceneService _scenes;      // 对局场景组加载与卸载（可空 = 测试装配）
         private readonly IMapProvider _maps;         // 地图表（多图批：场景路径查表行 scene 列／离场卸载按表枚举）
         private readonly FeedbackService _feedback;  // 开局入场加载遮罩（可空 = 测试装配不接 UI）
         private readonly LiteGame.IDevSession _devSession;     // 开发会话端口（dev 投影读本局规则；可空 = 测试装配）
 
-        private IBattleRun _run;                     // 对局运行端口（会话域实现；流程唯一状态入口）
+        private IBattleRun _run;                     // 对局运行端口（Battle 域实现；流程唯一状态入口）
 
         /// <summary>视图域（经运行端口消费——Battle 阶段不直接持有生命周期）。</summary>
         private IBattleViewGroup _rig => _run?.View;
@@ -103,10 +102,10 @@ namespace LiteGame
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
-            => RunAsyncCore(m, req.AccountSession, ct).ForgetLogged("ProcedureBattle");   // 一行转发，仅此而已——禁止 async void
+            => RunAsyncCore(m, req.Session, ct).ForgetLogged("ProcedureBattle");   // 一行转发，仅此而已——禁止 async void
 
         /// <summary>async 方法不能带 <c>in</c> 参数（CS1988）——payload 在转发处取值，async 体只收所需字段。</summary>
-        private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, AccountSession accountSession,
+        private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, IAccountSession accountSession,
             CancellationToken ct)
         {
             ProcedureId? next = null;
@@ -117,14 +116,14 @@ namespace LiteGame
             IBattleViewGroup rig = null;          // 未移交运行端口前由本方法持有（异常路径显式释放）
             try
             {
-                accountSession = accountSession ?? throw new InvalidOperationException("Battle 阶段缺少 AccountSession（必须由 Match 移交）");
+                accountSession = accountSession ?? throw new InvalidOperationException("Battle 阶段缺少账号会话端口（必须由 Match 移交）");
                 _account = accountSession.Scope;
 
                 // 视图域：工厂建视图组（表现层装配点：自有 BattleView 作用域 + 视图根 + 资源取件；缺角色资源＝无角色视图）
                 rig = _views.Create(_account, DevHooks.Current?.CreateBattleOverlay(), DispatchTeleport);
                 await rig.LoadAsync(ct);
 
-                // 对局运行端口（会话域构造 Match/Battle 会话；流程不认战斗域内部件）
+                // 对局运行端口（Battle 域构造 Match/Battle 会话；流程不认战斗域内部件）
                 _run = _runs.Create(accountSession);
                 _run.AttachView(rig);                // 视图域归运行端口持有（拆除由会话统一逆序）
                 rig = null;                           // 所有权已移交：finally 不再重复释放

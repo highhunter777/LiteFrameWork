@@ -114,7 +114,7 @@
     },
     {
       "id": "review-tasks",
-      "title": "评审任务",
+      "title": "子代理评审任务",
       "artifacts": [
         {
           "path": "reviews/task-review.md",
@@ -132,6 +132,9 @@
         {
           "path": "reviews/task-review.md",
           "fields": {
+            "评审方式": [
+              "独立子代理"
+            ],
             "结论": [
               "PASS",
               "通过"
@@ -146,7 +149,7 @@
     },
     {
       "id": "tests-first",
-      "title": "先写测试",
+      "title": "子代理先写测试",
       "artifacts": [
         {
           "path": "test-plan.md",
@@ -163,7 +166,7 @@
     },
     {
       "id": "implement",
-      "title": "正式施工",
+      "title": "子代理正式施工",
       "artifacts": [
         {
           "path": "build-log.md",
@@ -186,7 +189,7 @@
     },
     {
       "id": "review-code",
-      "title": "子代理评审代码",
+      "title": "主代理评审代码",
       "artifacts": [
         {
           "path": "reviews/code-review.md",
@@ -209,7 +212,7 @@
           "path": "reviews/code-review.md",
           "fields": {
             "评审方式": [
-              "独立子代理"
+              "主代理"
             ],
             "结论": [
               "PASS",

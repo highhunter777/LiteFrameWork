@@ -13,7 +13,13 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "codegen"))
+from _codegen import load_module  # noqa: E402
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E402
+
+# The client constant path comes from gen-build-hash.shared_out_file (single
+# source); local-chain never keeps its own copy of the BuildHash location.
+GEN_BUILD_HASH = load_module("gen-build-hash")
 
 DEFAULT_ROOM_ID = "lobby-default"
 KEYS = ("ENVELOPE_PSK", "AUTH_SIGNING_KEY", "LOBBY_INSTANCE_KEY", "LOBBY_TICKET_KEY", "SETTLEMENT_KEY")
@@ -147,8 +153,13 @@ def invoke_keys(cfg):
     print(f"{'LOBBY_DEFAULT_ROOM_ID':<28} {cfg.get('LOBBY_DEFAULT_ROOM_ID') or DEFAULT_ROOM_ID + ' (default)'}")
 
 
+def path_report():
+    """The generated constant this status consumer reads (repo-relative POSIX)."""
+    return [{"path": GEN_BUILD_HASH.SHARED_OUT_REL, "kind": "input"}]
+
+
 def build_hash(root):
-    path = root / "Assets/LiteNet/Protocol/BuildHash.g.cs"
+    path = Path(GEN_BUILD_HASH.shared_out_file(root))
     if not path.is_file():
         return "(BuildHash.g.cs missing)"
     match = re.search(r'public const string Value = "([0-9a-f]{16})"', path.read_text(encoding="utf-8", errors="replace"))

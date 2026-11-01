@@ -19,8 +19,8 @@ namespace LiteFramework.Core.Tests
     /// </summary>
     public sealed class CompositionBudgetTests
     {
-        /// <summary>批 1 完成后应在位的最小装配段数量（12 段就地；Ui 段待 UI 逻辑工厂端口后归位）。</summary>
-        private const int MinimumCompositions = 12;   // 13 段中 UiComposition 待 IUiLogicFactory 端口（过渡期住 App/）
+        /// <summary>装配段数量下限（18 段全部就地；Ui 段随 ILuaUiBinding 端口化归位后不再有 App 过渡段）。</summary>
+        private const int MinimumCompositions = 13;
 
         [Fact]
         public void 模块目录不得残留于Bootstrap()

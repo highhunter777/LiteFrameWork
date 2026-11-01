@@ -1,18 +1,18 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteGame.View;
 using UnityEngine;
 using LiteFramework.UI;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Dev;
-using LiteGame.Modules.Framework;
+using LiteGame.Modules.Composition;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.Settings;
+using LiteGame.Modules.Ui;
 
 namespace LiteGame
 {
@@ -178,12 +178,13 @@ namespace LiteGame
                 .AddModule(new LuaHostModule(gameObject))        // ⑩ 脚本宿主（同 GameObject 组件）
                 .AddModule(new ConfigModule(_appComposition.ConfigServiceFactory()))          // ⑪ 表投影数据源
                 .AddModule(new MapComposition())                 // ⑫ 地图提供者（依赖 ⑪ 的表链）
-                .AddModule(new UiServiceModule())                // ⑬ UI 能力：服务/导航/反馈面（投影面由 ② 保证）
+                .AddModule(new UiComposition(_appComposition.LuaUiBindingFactory()))         // ⑬ UI 能力：服务/导航/反馈面（Lua 桥经端口装订）
                 .AddModule(new InputModule(_appComposition.IntentSourceFactory()))            // ⑭ 输入服务（设备源由组合根注入）
                 .AddModule(new MetaComposition(_deployBake))     // ⑮ 联机入口（部署快照 + 客户端 + 入口编排件）
-                .AddModule(new BattleComposition())              // ⑯ 战斗域（表现内核 + 视图组工厂；相机归 ②）
-                .AddModule(new SessionComposition())             // ⑰ 会话（账号/对局工厂 + 传输端口）
-                .AddModule(new ProcedureComposition(_appComposition.LuaBridgesFactory()));    // ⑱ 应用壳（流程机 + 页面流 + 恢复）
+                .AddModule(new BattleComposition(() => DevHooks.Diagnostics))  // ⑯ 战斗域（表现内核 + 会话/对局工厂；诊断由 App 注入）
+                .AddModule(new SessionComposition())             // ⑰ 会话（账号会话 + 传输端口；对局运行归 ⑯）
+                .AddModule(new ProcedureComposition(_appComposition.LuaBridgesFactory(),        // ⑱ 应用壳（流程机 + 页面流 + 恢复）
+                    _appComposition.LuaRegistryFillerFactory()));
         }
 
         private void Update()

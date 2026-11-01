@@ -7,31 +7,6 @@ using LiteGame.Modules.Input;
 
 namespace LiteGame.Modules.Dev
 {
-    /// <summary>
-    /// 开发装配端口（由 `LiteGame.Dev` 实现；产品程序集只认本接口，不引用开发程序集）。
-    /// 能力面 = 会话实现 / 容器装饰（GM/弱网/调试内核装配）/ 传输包装 / 对局诊断登记 / 对局开发叠加层。
-    /// </summary>
-    public interface IDevAssembly
-    {
-        /// <summary>建开发会话（发布形态不走本接口——空实现直接 `NullDevSession`）。</summary>
-        IDevSession CreateSession();
-
-        /// <summary>装配期装饰容器（GM 命令/弱网/调试内核）；返回的句柄负责注销与静态收口。</summary>
-        IDisposable Decorate(DevServices services);
-
-        /// <summary>包装传输工厂（弱网注入装饰器）；装配根在创建会话工厂前调用。</summary>
-        Func<bool, MatchTransport> WrapTransportFactory(Func<bool, MatchTransport> inner);
-
-        /// <summary>对局诊断登记端口（DevHUD/GM 页读口）。</summary>
-        IBattleDevDiagnostics BattleDiagnostics { get; }
-
-        /// <summary>建对局开发叠加层（爆头诊断绘制/自瞄验证；每次进局一件）。</summary>
-        IBattleDevOverlay CreateBattleOverlay();
-
-        /// <summary>注入宿主上的开发运行期调节件（DebugRuntimeTuner；未挂载 = no-op）。</summary>
-        void InjectRuntimeTuners(UnityEngine.GameObject host, IWorldClock worldClock, IUIClock uiClock,
-            EventBus events, CommandCenter commands);
-    }
 
     /// <summary>装配期交给开发层的服务面（只读范围：容器/命令/场景/输入/会话）。</summary>
     public sealed class DevServices

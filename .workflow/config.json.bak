@@ -1,0 +1,1333 @@
+{
+  "schema_version": 1,
+  "validation": {
+    "placeholders": [
+      "待填写"
+    ],
+    "min_section_chars": 1
+  },
+  "timeout_seconds": 600,
+  "commands": [
+    {
+      "name": "L1",
+      "cmd": [
+        "python",
+        "scripts/gate/test.py",
+        "--suite",
+        "L1",
+        "--profile",
+        "PullRequest"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "doc",
+      "cmd": [
+        "python",
+        "scripts/gate/doc-lint.py"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "restore",
+      "cmd": [
+        "python",
+        "scripts/gate/restore-check.py"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "l0",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "scripts.tests.test_l0_dep_scan",
+        "-v"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "toolchain-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "toolchain-check",
+      "cmd": [
+        "python",
+        "scripts/toolchain.py",
+        "check"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "toolchain-docs-check",
+      "cmd": [
+        "python",
+        "scripts/toolchain.py",
+        "docs",
+        "--check"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "doc-lane",
+      "cmd": [
+        "python",
+        "scripts/gate/test.py",
+        "--suite",
+        "Doc"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "l2-meta",
+      "cmd": [
+        "python",
+        "scripts/gate/l2-unity-gate.py",
+        "--meta-scan-only"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "debug-kernel-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "DebugKernelEditModeTests"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-static-text-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStaticTextEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-contract-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractGeneratorEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-contract-diff-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractDiffEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "widget-spec-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "WidgetSpecEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "widget-manifest-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWidgetManifestEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "page-manifest-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPageManifestEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-validation-rules-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationRulesEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-rule-exceptions-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiRuleExceptionsEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-toolchain-wiring-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiToolchainWiringEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "editor-tool-catalog-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "EditorToolCatalogEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-text-rule-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiTextRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-rule-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-retirement-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRetirementEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-theme-generator-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeAssetGeneratorEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-theme-tokens-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeTokensEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-resolver-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleResolverEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-ref-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRefEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-theme-state-tokens-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeStateTokensEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-widget-theme-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWidgetThemeEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-ref-rule-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRefRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-device-profiles-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiDeviceProfilesEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-preview-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPreviewEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-preview-locale-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPreviewLocaleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-preview-matrix-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPreviewMatrixEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-workbench-device-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWorkbenchDeviceEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-preview-driver-playmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "playmode",
+        "--filter",
+        "UiPreviewDriverPlayModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 1200
+    },
+    {
+      "name": "ui-theme-apply-playmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "playmode",
+        "--filter",
+        "UiThemeApplyPlayModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-layout-performance-rule-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiLayoutPerformanceRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-lua-reference-scanner-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiLuaReferenceScannerEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-contract-reconciliation-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractReconciliationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "bindsearch-unification-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "BindSearchUnificationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-validation-core-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-binding-tools-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiBindingToolsEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-behavior-playmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "playmode",
+        "--filter",
+        "UiBehaviorPlayModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 1200
+    },
+    {
+      "name": "ui-uimain-retirement-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiUimainRetirementEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-workbench-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWorkbenchEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-page-scaffold-register-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPageScaffoldRegisterEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "battle-smoke-playmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "playmode",
+        "--filter",
+        "BattleSmokePlayModeTests",
+        "--timeout",
+        "900"
+      ],
+      "timeout": 1800
+    },
+    {
+      "name": "uiform-row-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_uiform_row.py",
+        "-v"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "build-plan-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_build_plan.py",
+        "-v"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "lane-filter-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_test_lane_filter.py",
+        "-v"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "weaknet-l3-tests",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~WeakNet",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "weaknet-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "WeakNetWiringEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-selectable-theme-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-selectable-applier-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeApplierEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-theme-binder-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeBinderEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-selectable-rule-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleSelectableRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-text-style-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiTextStyleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "domain-matrix",
+      "cmd": [
+        "python",
+        "scripts/gate/domain-matrix.py",
+        "--check"
+      ],
+      "timeout": 120
+    },
+    {
+      "name": "sync-and-sim-litesync",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+        "--nologo"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "sync-and-sim-litesim",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteSim.Core.Tests/LiteSim.Core.Tests.csproj",
+        "--nologo"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "sync-and-sim-contract",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SyncAndSimContract",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "sync-and-sim-check-shared",
+      "cmd": [
+        "python",
+        "scripts/codegen/toolbox.py",
+        "build-hash",
+        "--check-shared"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "codegen-check",
+      "cmd": [
+        "python",
+        "scripts/codegen/toolbox.py",
+        "all",
+        "--check"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "sync-and-sim-e2e",
+      "cmd": [
+        "python",
+        "scripts/gate/sync-and-sim-e2e.py"
+      ],
+      "timeout": 3600
+    },
+    {
+      "name": "session-boundary",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SessionBoundaryTests",
+        "--nologo"
+      ],
+      "timeout": 600
+    }
+  ],
+  "red_commands": [
+    {
+      "name": "build-player-platform-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_build_player.py",
+        "-v"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "ui-selectable-theme-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-selectable-applier-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeApplierEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-theme-binder-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeBinderEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-selectable-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleSelectableRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-text-migration-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiTextStyleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-ref-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRefEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-validation-b4-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "module-dependency-decl-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~ModuleDependencyDeclTests",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "composition-budget-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~CompositionBudgetTests",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "domain-boundary-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~DomainBoundaryTests",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "sync-and-sim-geometry-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteSim.Core.Tests/LiteSim.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SyncAndSimGeometryContract",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "sync-and-sim-contract-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SyncAndSimContract",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "toolbox-tests",
+      "cmd": ["python", "-m", "unittest", "scripts.tests.test_toolbox", "-v"],
+      "timeout": 300
+    },
+    {
+      "name": "codegen-rot-tests",
+      "cmd": ["python", "-m", "unittest", "scripts.tests.test_codegen_rot", "-v"],
+      "timeout": 300
+    },
+    {
+      "name": "gen-path-report-tests",
+      "cmd": ["python", "-m", "unittest", "scripts.tests.test_gen_path_report", "-v"],
+      "timeout": 300
+    },
+    {
+      "name": "gen-luban-check-tests",
+      "cmd": ["python", "-m", "unittest", "scripts.tests.test_gen_luban_check", "-v"],
+      "timeout": 300
+    },
+    {
+      "name": "gen-proto-check-tests",
+      "cmd": ["python", "-m", "unittest", "scripts.tests.test_gen_proto_check", "-v"],
+      "timeout": 300
+    },
+    {
+      "name": "session-boundary-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~SessionBoundaryTests",
+        "--nologo"
+      ],
+      "timeout": 600
+    }
+  ],
+  "stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "artifacts": [
+        {
+          "path": "plan.md",
+          "template": "plan.md",
+          "sections": [
+            "背景与目标",
+            "需求澄清与假设",
+            "范围与非目标",
+            "现状与约束",
+            "候选方案与取舍",
+            "设计要点",
+            "通用性与扩展性",
+            "测试策略",
+            "验收标准",
+            "风险与回滚"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "artifacts": [
+        {
+          "path": "reviews/plan-review.md",
+          "template": "reviews/plan-review.md",
+          "sections": [
+            "评审输入",
+            "方案检查",
+            "验收标准可判定性",
+            "发现的问题与处理",
+            "评审结论"
+          ]
+        }
+      ],
+      "verdicts": [
+        {
+          "path": "reviews/plan-review.md",
+          "fields": {
+            "评审方式": [
+              "独立子代理"
+            ],
+            "结论": [
+              "PASS",
+              "通过"
+            ],
+            "验收标准": [
+              "PASS",
+              "通过"
+            ],
+            "阻塞问题": [
+              "0",
+              "无"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "artifacts": [
+        {
+          "path": "acceptance.md",
+          "template": "acceptance.md",
+          "sections": [
+            "验收标准",
+            "提审记录",
+            "用户确认",
+            "变更记录"
+          ]
+        }
+      ],
+      "verdicts": [
+        {
+          "path": "acceptance.md",
+          "fields": {
+            "确认结论": [
+              "通过",
+              "确认"
+            ]
+          }
+        }
+      ],
+      "approval": true
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "artifacts": [
+        {
+          "path": "tasks.md",
+          "sections": [
+            "任务清单"
+          ]
+        }
+      ],
+      "min_tasks": 1
+    },
+    {
+      "id": "review-tasks",
+      "title": "子代理评审任务",
+      "artifacts": [
+        {
+          "path": "reviews/task-review.md",
+          "template": "reviews/task-review.md",
+          "sections": [
+            "评审输入",
+            "覆盖与追溯",
+            "检查项",
+            "发现的问题与处理",
+            "评审结论"
+          ]
+        }
+      ],
+      "verdicts": [
+        {
+          "path": "reviews/task-review.md",
+          "fields": {
+            "评审方式": [
+              "独立子代理"
+            ],
+            "结论": [
+              "PASS",
+              "通过"
+            ],
+            "阻塞问题": [
+              "0",
+              "无"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tests-first",
+      "title": "子代理先写测试",
+      "artifacts": [
+        {
+          "path": "test-plan.md",
+          "template": "test-plan.md",
+          "sections": [
+            "测试策略",
+            "用例清单",
+            "预期失败证据",
+            "运行方式"
+          ]
+        }
+      ],
+      "require_red_verification": true
+    },
+    {
+      "id": "implement",
+      "title": "子代理正式施工",
+      "artifacts": [
+        {
+          "path": "build-log.md",
+          "template": "build-log.md",
+          "sections": [
+            "施工记录",
+            "关键决定",
+            "偏差与处理",
+            "问题与修复"
+          ]
+        }
+      ],
+      "require_tasks_complete": true
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "require_tasks_complete": true,
+      "require_verification": true
+    },
+    {
+      "id": "review-code",
+      "title": "主代理评审代码",
+      "artifacts": [
+        {
+          "path": "reviews/code-review.md",
+          "template": "reviews/code-review.md",
+          "sections": [
+            "变更范围",
+            "正确性与边界",
+            "测试充分性",
+            "通用性与扩展性",
+            "安全与性能",
+            "发现的问题与处理",
+            "复测记录",
+            "评审结论"
+          ]
+        }
+      ],
+      "verdicts": [
+        {
+          "path": "reviews/code-review.md",
+          "fields": {
+            "评审方式": [
+              "主代理"
+            ],
+            "结论": [
+              "PASS",
+              "通过"
+            ],
+            "阻塞问题": [
+              "0",
+              "无"
+            ],
+            "通用性": [
+              "PASS",
+              "通过"
+            ],
+            "扩展性": [
+              "PASS",
+              "通过"
+            ]
+          }
+        }
+      ],
+      "require_tasks_complete": true,
+      "require_verification": true
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "artifacts": [
+        {
+          "path": "tasks.md",
+          "sections": [
+            "任务清单"
+          ]
+        },
+        {
+          "path": "build-log.md",
+          "sections": [
+            "交付摘要",
+            "验证结果",
+            "未决事项",
+            "文件清单",
+            "后续建议"
+          ]
+        }
+      ],
+      "require_tasks_complete": true,
+      "require_verification": true
+    }
+  ]
+}

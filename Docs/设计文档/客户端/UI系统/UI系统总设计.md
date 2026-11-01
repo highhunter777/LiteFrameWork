@@ -405,7 +405,7 @@ Page Logic (C# UIBindBase 或 Lua)
 <a id="ch-ui-api-spec"></a>
 
 - **唯一源**：`Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`（schema `UiApiSpec.schema.json`）逐条声明 C# 名、Lua 名、参数/返回、文档、暴露面与手工处理器。
-- **生成物**（`scripts/codegen/gen-ui-api.py`，`--check` 逐字节确定性）：
+- **生成物**（`scripts/codegen/toolbox.py ui-api`，`--check` 逐字节确定性）：
   - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindIndex.Api.g.cs`——受控 API 的 **partial 方法声明**；实现体留在 `UIBindIndex.cs`，签名漂移即编译失败（不靠测试兜）；
   - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindBase.Api.g.cs`——`UIBindBase` 的转发体（手写文件只留生命周期与索引装配）；
   - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UiApiManifest.g.cs`——`ApiVersion` 与三张清单（Lua 名 / shim 名 / 手工处理器名），供能力声明与守卫对账；

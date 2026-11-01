@@ -53,7 +53,8 @@ namespace LiteGame
             s_nav = nav ?? throw new ArgumentNullException(nameof(nav));
         }
 
-        /// <summary>装配期注入语言服务工厂（text 门面后端；与页面索引 BindLocale 共用同一实例——UiServiceModule）。</summary>
+        /// <summary>装配期注入语言服务工厂（text 门面后端；与页面索引 BindLocale 共用同一实例——
+        /// 由 UI 段经 <c>ILuaUiBinding.BindTextFacade</c> 交给本门面）。</summary>
         public static void BindText(Func<ILocalizationService> localeProvider)
         {
             s_localeProvider = localeProvider ?? throw new ArgumentNullException(nameof(localeProvider));

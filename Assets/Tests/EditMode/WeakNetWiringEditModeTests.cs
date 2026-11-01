@@ -34,22 +34,20 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void WrapFactory_LeavesTestRoomUntouched()
+        public void Wrap_LeavesTestRoomUntouched()
         {
             var runtime = new WeakNetRuntime(() => 0);
             var transport = new FakeTransport();
-            Func<bool, MatchTransport> factory = _ => new MatchTransport(transport, null);
-            Func<bool, MatchTransport> wrapped = WeakNetWiring.WrapFactory(factory, runtime);
-            Assert.AreSame(transport, wrapped(true).Transport);
+            IClientTransport wrapped = WeakNetWiring.Wrap(testRoom: true, transport, runtime);
+            Assert.AreSame(transport, wrapped);
         }
 
         [Test]
-        public void WrapFactory_WrapsRealRoom_AndDisabledIsPassthrough()
+        public void Wrap_WrapsRealRoom_AndDisabledIsPassthrough()
         {
             var runtime = new WeakNetRuntime(() => 0);
             var inner = new FakeTransport();
-            Func<bool, MatchTransport> factory = _ => new MatchTransport(inner, null);
-            IClientTransport wrapped = WeakNetWiring.WrapFactory(factory, runtime)(false).Transport;
+            IClientTransport wrapped = WeakNetWiring.Wrap(testRoom: false, inner, runtime);
             Assert.IsInstanceOf<WeakNetClientTransport>(wrapped);
             wrapped.Send(new ArraySegment<byte>(new byte[] { 1, 2 }), true);
             Assert.AreEqual(1, inner.Sent.Count);
@@ -101,8 +99,7 @@ namespace LiteGame.Tests.EditMode
             runtime.TrySetPreset("lan", out _);
             runtime.Wrap(fake);
             Assert.IsTrue(runtime.TakeSnapshot().Enabled);
-            Func<bool, MatchTransport> factory = _ => new MatchTransport(new FakeTransport(), null);
-            WeakNetWiring.WrapFactory(factory, runtime)(true);
+            WeakNetWiring.Wrap(testRoom: true, new FakeTransport(), runtime);
             Assert.IsFalse(runtime.TakeSnapshot().Enabled);
         }
 

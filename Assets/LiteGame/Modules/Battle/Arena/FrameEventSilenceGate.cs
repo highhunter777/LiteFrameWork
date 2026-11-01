@@ -1,7 +1,7 @@
 using System;
 using LiteSim;
 
-namespace LiteGame.View
+namespace LiteGame
 {
     /// <summary>
     /// 帧事件静默门（回滚重放/和解去重）：帧号 ≤ <see cref="SilenceUntilFrame"/> 的事件丢弃，

@@ -3,6 +3,7 @@ using LiteFramework;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Dev;
 using LiteGame.Modules.Map;
+using LiteNet.Transport;
 using LiteSim;
 
 namespace LiteGame
@@ -37,7 +38,17 @@ namespace LiteGame
                 return new MatchTransport(
                     CreateTransport(testRoom, rules, deploy, gameplayDigestBase, maps, roomValues), rules);
             };
-            _factory = DevHooks.Current?.WrapTransportFactory(inner) ?? inner;   // 弱网注入装饰器（开发形态）
+            // 弱网注入装饰器（开发形态）：只包传输本身，本局规则原样带过（开发端口不认识会话域类型）
+            _factory = testRoom =>
+            {
+                MatchTransport match = inner(testRoom);
+                IDevAssembly dev = DevHooks.Current;
+                if (dev == null || match.Transport == null) return match;
+                IClientTransport wrapped = dev.WrapTransport(testRoom, match.Transport);
+                return ReferenceEquals(wrapped, match.Transport)
+                    ? match
+                    : new MatchTransport(wrapped, match.Rules);
+            };
         }
 
         public MatchTransport Create(bool testRoom) => _factory(testRoom);
