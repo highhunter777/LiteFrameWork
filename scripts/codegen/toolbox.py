@@ -15,8 +15,8 @@ center; per-tool why/notes stay in each script's header):
   proto         battle.proto -> Packages/com.litegame.net/Core/Proto/Generated/Battle.cs
   luban         table chain regen (C#/binary/lua/LuaKeys); alias of Luban/gen.bat
   sync-code     [StateLayer] fields -> EntitySlot.Sync.g.cs (checksum plumbing)
-  ui-page       #uiform + UiPageManifest + Contracts -> UiPageCatalog.g.cs
-  ui-api        UiApiSpec.json -> UIBindIndex/UIBindBase/shim/dispatch/manifest/参考表
+  ui-page       #uiform + UIPageManifest + Contracts -> UIPageCatalog.g.cs
+  ui-api        UIApiSpec.json -> UIBindIndex/UIBindBase/shim/dispatch/manifest/参考表
   refresh-hash  refresh orchestration: gen -> RoomServer build -> Unity recompile -> reconcile
 
 `all` runs ALL_ORDER (luban -> ui-page -> ui-api -> sync-code -> proto ->
@@ -68,8 +68,8 @@ TOOLS = {
     'proto':        ('gen_proto.py',      '--protoc <protoc.exe>',           'battle.proto -> Generated/Battle.cs (protoc must match runtime version)'),
     'luban':        ('gen_luban.py',      '[--python <python>]',             'table chain regen (C#/binary/lua/LuaKeys); alias of Luban/gen.bat'),
     'sync-code':    ('gen_sync_code.py',  '',                                '[StateLayer] fields -> EntitySlot.Sync.g.cs (checksum plumbing)'),
-    'ui-page':      ('gen-ui-page.py',    '[--check]',                        '#uiform + UiPageManifest + Contracts -> UiPageCatalog.g.cs'),
-    'ui-api':       ('gen-ui-api.py',     '[--check]',                        'UiApiSpec.json -> UIBindIndex/UIBindBase/shim/dispatch/manifest/参考表'),
+    'ui-page':      ('gen-ui-page.py',    '[--check]',                        '#uiform + UIPageManifest + Contracts -> UIPageCatalog.g.cs'),
+    'ui-api':       ('gen-ui-api.py',     '[--check]',                        'UIApiSpec.json -> UIBindIndex/UIBindBase/shim/dispatch/manifest/参考表'),
     'refresh-hash': ('refresh-hash.py',   '[--skip-server-build] [--skip-unity-recompile] [--allow-incomplete]', 'refresh orchestration: gen -> RoomServer build -> Unity recompile -> reconcile'),
 }
 

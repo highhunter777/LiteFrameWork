@@ -1,6 +1,6 @@
 using System;
 using Xunit;
-using LiteFramework;
+using LiteGame.Modules.Input;
 
 namespace LiteSim.Tests
 {

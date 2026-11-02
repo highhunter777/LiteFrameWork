@@ -8,7 +8,7 @@ using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 
 using LiteSync.Client;
 namespace LiteGame
@@ -17,7 +17,7 @@ namespace LiteGame
     /// **只编排**：各阶段的业务实现住各自域（战斗/会话/联机入口），本段不认业务内部。
     ///
     /// **适配器依赖收成端口**：两件 Lua 桥件（房间/产品桥、注册表填充器）由装配根产出注入；
-    /// 页面目录与页面数据面经 Ui 域端口取用——本段不直引 `LiteGame.Adapters.*`，
+    /// 页面目录与页面数据面经 UI 域端口取用——本段不直引 `LiteGame.Adapters.*`，
     /// 故与其余 17 段同住 `Modules/**`。</summary>
     public sealed class ProcedureComposition : IClientModule, IClientModuleGraph
     {
@@ -41,7 +41,7 @@ namespace LiteGame
         public IReadOnlyList<string> DependsOn => new[]
         {
             "PlatformInfrastructure", "Camera", "DevSession", "Content", "Events", "LuaHost",
-            "Config", "Map", "Ui", "Input", "Meta", "Battle", "Session",
+            "Config", "Map", "UI", "Input", "Meta", "Battle", "Session",
         };
 
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
@@ -52,8 +52,8 @@ namespace LiteGame
             UIService ui = context.Require<UIService>();
             UINavigationController nav = context.Require<UINavigationController>();
             IAccountSessionControl accountControl = context.Require<IAccountSessionControl>();
-            IPageDirectory pages = context.Require<IPageDirectory>();          // 页面目录端口（Ui 段产出）
-            IPageDataFactory pageData = context.Require<IPageDataFactory>();   // 数据面端口（Ui 段产出）
+            IPageDirectory pages = context.Require<IPageDirectory>();          // 页面目录端口（UI 段产出）
+            IPageDataFactory pageData = context.Require<IPageDataFactory>();   // 数据面端口（UI 段产出）
             ISettlementSummary settlement = context.Require<ISettlementSummary>();   // 结算摘要端口（Battle 段产出）
 
             // 页面流（入口/开局关房/结算三处流程×页面接缝）——只吃目录/数据两个端口，不认生成物与 Lua 表
@@ -89,7 +89,7 @@ namespace LiteGame
             IContentService content = context.Require<IContentService>();
             IConfigService config = context.Require<IConfigService>();
             LuaComponent lua = context.Require<LuaComponent>();
-            // 注册表填充器经端口注入：三注册表与页面目录的具体形态归适配器/Ui 域
+            // 注册表填充器经端口注入：三注册表与页面目录的具体形态归适配器/UI 域
             ILuaRegistryFiller filler = _createRegistryFiller(config, lua, pages);
             var rootToken = context.RootScope.Token;
 

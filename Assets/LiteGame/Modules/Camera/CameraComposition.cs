@@ -15,7 +15,7 @@ namespace LiteGame.Modules.Camera
     /// - 有 vcam → 服务解析并接线（对局相机可用）；
     /// - 没 vcam → 记一条**装配缺口**日志，服务保持"未解析"，等切到带 vcam 的场景自动接上。
     ///
-    /// 位置在 `Ui`/`Input` 之前：启动页要有投影面，输入段的瞄准相机迟绑定也读本段产物。
+    /// 位置在 `UI`/`Input` 之前：启动页要有投影面，输入段的瞄准相机迟绑定也读本段产物。
     /// </summary>
     public sealed class CameraComposition : IClientModule, IClientModuleGraph
     {

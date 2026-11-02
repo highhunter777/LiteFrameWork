@@ -19,11 +19,11 @@ namespace LiteGame.Tests.UI.PlayMode
     /// 真 Lua 页面生命周期 PlayMode 用例（《框架先行》§4 包③退出条件"**真 Lua**/Prefab/
     /// 动画资源组合运行，取消、暂停、**复用**、**卸载**可验证"）。
     ///
-    /// 与 `UiU0EditModeTests` 的差异是本组存在的理由：EditMode 版由用例显式泵 Tick，PlayMode 走
+    /// 与 `UIU0EditModeTests` 的差异是本组存在的理由：EditMode 版由用例显式泵 Tick，PlayMode 走
     /// 真实 PlayerLoop + 真实转场 runner——**转场期间的状态迁移在 EditMode 下根本不发生**。
     ///
     /// 链路：真 LuaEnv（loader 读磁盘 `LiteGame/Lua/**.lua`）→ `LuaBehaviourAdapter`
-    /// （真 ui-API 派发表）→ 真注册表模块 `Tests.UiTestPage`（测试载体）→ 真 prefab → `UIService` 真转场。
+    /// （真 ui-API 派发表）→ 真注册表模块 `Tests.UITestPage`（测试载体）→ 真 prefab → `UIService` 真转场。
     ///
     /// 断言口径取 [UI测试开发专项 §4.3](../docs)：页面状态 / 实例 Created·Reused·Destroyed /
     /// 资源 Acquired·Released——**不只断言"最终可见"**。
@@ -32,8 +32,8 @@ namespace LiteGame.Tests.UI.PlayMode
     public sealed class LuaPagePlayModeTests
     {
         private const int TestPageFormId = 9001;
-        private const string TestPageLocation = "Assets/ShareResource/UI/Screens/Tmp_UiTestPage.prefab";
-        private const string TestPageRequire = "Tests.UiTestPage";
+        private const string TestPageLocation = "Assets/ShareResource/UI/Screens/Tmp_UITestPage.prefab";
+        private const string TestPageRequire = "Tests.UITestPage";
 
         private sealed class StaticCatalog : IPageCatalog
         {
@@ -189,7 +189,7 @@ namespace LiteGame.Tests.UI.PlayMode
             Assert.AreEqual(0, LuaShows(_env), "取消路径不得跑过 OnShow（页面从未完成展示）");
         }
 
-        // ---- 辅助（口径同 UiU0EditModeTests，此处走真实 PlayerLoop）----
+        // ---- 辅助（口径同 UIU0EditModeTests，此处走真实 PlayerLoop）----
 
         /// <summary>真 LuaEnv：loader 读磁盘 `Assets/LiteGame/Lua/**.lua`，并绑 log 全局表。</summary>
         private static LuaEnv NewLuaEnv()

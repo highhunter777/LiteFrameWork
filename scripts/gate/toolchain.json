@@ -150,7 +150,7 @@
       "writes": ["asset"],
       "outputs": [
         { "path": "Assets/ShareResource/UI/Screens/", "kind": "asset" },
-        { "path": "Assets/LiteGame/Editor/UiTools/UiPageManifest.json", "kind": "data" }
+        { "path": "Assets/LiteGame/Editor/UITools/UIPageManifest.json", "kind": "data" }
       ],
       "destructive": false,
       "order": 35
@@ -171,8 +171,8 @@
         { "path": "Luban/Data/#uiform.xlsx", "kind": "data" },
         { "path": "Assets/LiteGame/Lua/UI/", "kind": "source" },
         { "path": "Assets/GameData/Generated/", "kind": "generated" },
-        { "path": "Assets/LiteGame/Editor/UiTools/UiPageManifest.json", "kind": "data" },
-        { "path": "Assets/LiteGame/Editor/UiTools/Contracts/", "kind": "data" }
+        { "path": "Assets/LiteGame/Editor/UITools/UIPageManifest.json", "kind": "data" },
+        { "path": "Assets/LiteGame/Editor/UITools/Contracts/", "kind": "data" }
       ],
       "destructive": false,
       "order": 36
@@ -291,7 +291,7 @@
       "menu": "LiteGame/UI/绑定/生成物 hash/记录（全部）",
       "writes": ["asset"],
       "outputs": [
-        { "path": "Assets/LiteGame/Editor/UiTools/UiBindManifest.json", "kind": "data" }
+        { "path": "Assets/LiteGame/Editor/UITools/UIBindManifest.json", "kind": "data" }
       ],
       "destructive": false,
       "order": 100
@@ -309,7 +309,7 @@
       "menu": "LiteGame/UI/绑定/生成物 hash/记录（选中 Prefab）",
       "writes": ["asset"],
       "outputs": [
-        { "path": "Assets/LiteGame/Editor/UiTools/UiBindManifest.json", "kind": "data" }
+        { "path": "Assets/LiteGame/Editor/UITools/UIBindManifest.json", "kind": "data" }
       ],
       "destructive": false,
       "order": 110
@@ -327,7 +327,7 @@
       "menu": "LiteGame/UI/契约/生成页面契约（全部登记页）",
       "writes": ["asset"],
       "outputs": [
-        { "path": "Assets/LiteGame/Editor/UiTools/Contracts/", "kind": "asset" }
+        { "path": "Assets/LiteGame/Editor/UITools/Contracts/", "kind": "asset" }
       ],
       "destructive": false,
       "order": 120
@@ -360,7 +360,7 @@
       "menu": "LiteGame/UI/契约/生成控件清单",
       "writes": ["asset"],
       "outputs": [
-        { "path": "Assets/LiteGame/Editor/UiTools/UiWidgetManifest.json", "kind": "data" }
+        { "path": "Assets/LiteGame/Editor/UITools/UIWidgetManifest.json", "kind": "data" }
       ],
       "destructive": false,
       "order": 140
@@ -378,7 +378,7 @@
       "menu": "LiteGame/UI/契约/对账页面清单",
       "writes": ["asset"],
       "outputs": [
-        { "path": "Assets/LiteGame/Editor/UiTools/UiPageManifest.json", "kind": "data" }
+        { "path": "Assets/LiteGame/Editor/UITools/UIPageManifest.json", "kind": "data" }
       ],
       "destructive": false,
       "order": 150
@@ -574,7 +574,7 @@
       "kind": "cli",
       "plane": "external",
       "purpose": "dev",
-      "summary": "#uiform + UiPageManifest + Contracts → UiPageCatalog.g.cs（PageDefinition 单源）。",
+      "summary": "#uiform + UiPageManifest + Contracts → UIPageCatalog.g.cs（PageDefinition 单源）。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
       "command": ["python", "scripts/codegen/toolbox.py", "ui-page"],
       "args": [
@@ -582,7 +582,7 @@
       ],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteGame/Modules/Ui/Generated/UiPageCatalog.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 25
@@ -594,7 +594,7 @@
       "kind": "cli",
       "plane": "external",
       "purpose": "dev",
-      "summary": "UiApiSpec.json → UIBindIndex 声明 / UIBindBase 转发 / Lua shim / dispatch / 清单 / 参考表（UI API 单源）。",
+      "summary": "UIApiSpec.json → UIBindIndex 声明 / UIBindBase 转发 / Lua shim / dispatch / 清单 / 参考表（UI API 单源）。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
       "command": ["python", "scripts/codegen/toolbox.py", "ui-api"],
       "args": [
@@ -604,8 +604,8 @@
       "outputs": [
         { "path": "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindIndex.Api.g.cs", "kind": "generated" },
         { "path": "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindBase.Api.g.cs", "kind": "generated" },
-        { "path": "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UiApiManifest.g.cs", "kind": "generated" },
-        { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/UiApiShim.g.cs", "kind": "generated" },
+        { "path": "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIApiManifest.g.cs", "kind": "generated" },
+        { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/UIApiShim.g.cs", "kind": "generated" },
         { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs", "kind": "generated" }
       ],
       "destructive": false,
@@ -1309,7 +1309,7 @@
     }
 ,
     {"id": "build.plan", "title": "构建 preflight", "category": "build", "kind": "cli", "plane": "external", "purpose": "delivery", "summary": "按 git diff 输出内环/交付两套最小重建集（只读，零写盘）。", "docs": "Docs/说明/10-测试与门禁.md", "command": ["python", "scripts/build/build-plan.py"], "args": [{"name": "base", "type": "string", "description": "git 基线（默认 origin/main）"}, {"name": "changed-file", "type": "string", "description": "直接指定改动路径（可重复，绕过 git）"}, {"name": "json", "type": "bool", "description": "输出机器可读 JSON"}, {"name": "project-path", "type": "path", "description": "工程根（必须是当前仓库）"}], "writes": ["none"], "destructive": false, "order": 5},
-    {"id": "ui.style.tokens", "title": "生成主题资产（JSON→SO）", "category": "ui", "kind": "action", "plane": "editor", "purpose": "dev", "handler": "ui.style.tokens", "summary": "从令牌源 UiStyleTokens.json 确定性生成 UiThemeAsset（幂等；失败零写盘）。", "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md", "menu": "LiteGame/UI/样式工具/生成主题资产（令牌 JSON→SO）", "writes": ["asset", "generated"], "outputs": [{"path": "Assets/GameData/Config/UI/", "kind": "asset"}], "destructive": false, "order": 59}
+    {"id": "ui.style.tokens", "title": "生成主题资产（JSON→SO）", "category": "ui", "kind": "action", "plane": "editor", "purpose": "dev", "handler": "ui.style.tokens", "summary": "从令牌源 UIStyleTokens.json 确定性生成 UiThemeAsset（幂等；失败零写盘）。", "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md", "menu": "LiteGame/UI/样式工具/生成主题资产（令牌 JSON→SO）", "writes": ["asset", "generated"], "outputs": [{"path": "Assets/GameData/Config/UI/", "kind": "asset"}], "destructive": false, "order": 59}
   ],
   "surfaces": [
     {

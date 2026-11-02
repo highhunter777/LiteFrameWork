@@ -14,7 +14,7 @@ using XLua;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Shared;
 using LiteGame.Modules.Shared;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -66,7 +66,7 @@ namespace LiteGame.Tests.EditMode
         public void SetUp()
         {
             _probe = new ProbeLogic();
-            PageDefinition lobbyPage = Array.Find(LiteGame.Modules.Ui.UiPageCatalog.All, page => page.LuaPath == LuaKeys.UI.Page_Lobby);
+            PageDefinition lobbyPage = Array.Find(LiteGame.Modules.UI.UIPageCatalog.All, page => page.LuaPath == LuaKeys.UI.Page_Lobby);
             Assert.IsNotNull(lobbyPage, "生成页面目录缺大厅页（页面流回大厅用例前置）");
             _ui = new UIService(new StaticCatalog(new[]
                 {
@@ -77,7 +77,7 @@ namespace LiteGame.Tests.EditMode
                 loadPrefab: (loc, ct) => UniTask.FromResult<IUIPrefabLease>(UIPrefabLeases.Unowned(FakePrefab())),
                 transitionStrategy: new InstantTransition());
             _nav = new UINavigationController(_ui);
-            _baselineBack = () => _nav.BackAsync();               // UiComposition 同款基线装订
+            _baselineBack = () => _nav.BackAsync();               // UIComposition 同款基线装订
             _ui.Focus.PlatformBack = _baselineBack;
 
             var lua = Scope.CreateGameObject("lua-host").AddComponent<LuaComponent>();
@@ -86,8 +86,8 @@ namespace LiteGame.Tests.EditMode
             Bridge.Bind(LoadRealTables);                            // 页面寻址反查（真表——与生产同源）
 
             // Lua 桥装订面（生产同款：逻辑工厂/数据投射/文本门面）——PageFlow 只吃目录/数据两个端口
-            var binding = new LuaUiBinding(lua, new UiLuaRegistry());
-            _flow = new PageFlow(_nav, _ui, UiPageDirectory.Instance, binding.PageData, new SettlementSummary());
+            var binding = new LuaUIBinding(lua, new UILuaRegistry());
+            _flow = new PageFlow(_nav, _ui, UIPageDirectory.Instance, binding.PageData, new SettlementSummary());
         }
 
         [TearDown]

@@ -24,9 +24,9 @@ namespace LiteGame.Modules.Composition
         {
             _clocks = FrameworkClocks.Create();
             context.Put<IWorldClock>(_clocks.World);
-            context.Put<IUIClock>(_clocks.Ui);
+            context.Put<IUIClock>(_clocks.UI);
             context.Put<IWallClock>(_clocks.Wall);
-            UiAnimationClock.Bind(_clocks.Ui);             // 动画时钟：DOTween Manual 轨/序列帧接入 UIClock
+            UIAnimationClock.Bind(_clocks.UI);             // 动画时钟：DOTween Manual 轨/序列帧接入 UIClock
             return UniTask.CompletedTask;
         }
 

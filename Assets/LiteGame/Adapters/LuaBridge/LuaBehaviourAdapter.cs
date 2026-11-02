@@ -5,7 +5,7 @@ using LiteFramework;
 using LiteFramework.UI;
 using UnityEngine;
 using XLua;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 
 namespace LiteGame
 {
@@ -26,14 +26,14 @@ namespace LiteGame
     /// </summary>
     public sealed partial class LuaBehaviourAdapter : IUIFormLogic, ILocaleBound
     {
-        /// <summary>ui-API 的 Lua 门面模板（生成物 <see cref="UiApiShim.LuaTemplate"/>；
-        /// 缺省时长占位符在此替换为 <see cref="UiFxDefaults"/> 的值）。</summary>
-        private static readonly string UiApiShimSource = UiApiShim.LuaTemplate
-            .Replace("%FxPulseStrength%", ToLuaLiteral(UiFxDefaults.PulseStrength))
-            .Replace("%FxPulseDuration%", ToLuaLiteral(UiFxDefaults.PulseDuration))
-            .Replace("%FxFlashDuration%", ToLuaLiteral(UiFxDefaults.FlashDuration))
-            .Replace("%FxSlideDuration%", ToLuaLiteral(UiFxDefaults.SlideDuration))
-            .Replace("%FxBubbleDuration%", ToLuaLiteral(UiFxDefaults.BubbleDuration));
+        /// <summary>ui-API 的 Lua 门面模板（生成物 <see cref="UIApiShim.LuaTemplate"/>；
+        /// 缺省时长占位符在此替换为 <see cref="UIFxDefaults"/> 的值）。</summary>
+        private static readonly string UIApiShimSource = UIApiShim.LuaTemplate
+            .Replace("%FxPulseStrength%", ToLuaLiteral(UIFxDefaults.PulseStrength))
+            .Replace("%FxPulseDuration%", ToLuaLiteral(UIFxDefaults.PulseDuration))
+            .Replace("%FxFlashDuration%", ToLuaLiteral(UIFxDefaults.FlashDuration))
+            .Replace("%FxSlideDuration%", ToLuaLiteral(UIFxDefaults.SlideDuration))
+            .Replace("%FxBubbleDuration%", ToLuaLiteral(UIFxDefaults.BubbleDuration));
 
         /// <summary>float → Lua 数字字面量（InvariantCulture：跨区域环境小数点恒定）。</summary>
         private static string ToLuaLiteral(float v)
@@ -94,7 +94,7 @@ namespace LiteGame
             var api = _env.NewTable();
             var dispatch = new Func<string, LuaTable, object>(Dispatch);
             _env.Global.Set<string, Func<string, LuaTable, object>>("__ui_api_c", dispatch);
-            var shim = _env.DoString(UiApiShimSource, "ui_api_shim");
+            var shim = _env.DoString(UIApiShimSource, "ui_api_shim");
             _env.DoString("__ui_api_c = nil");
             if (shim != null && shim.Length > 0 && shim[0] is LuaTable apiTable)
             {

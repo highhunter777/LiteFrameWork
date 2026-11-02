@@ -1,7 +1,5 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-using LiteFramework;
 using LiteSim;
-using LiteFramework;
 using LiteGame;
 
 namespace LiteGame

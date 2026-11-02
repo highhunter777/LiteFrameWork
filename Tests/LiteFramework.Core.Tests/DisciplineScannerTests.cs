@@ -524,7 +524,7 @@ namespace LiteFramework.Tests
         public void 纪律_R12_边界目录内_对应适配器import放行()
         {
             // **每个边界只放行它对应的那一个适配器**——不是"边界目录里什么都能 import"。
-            // 适配器在 `Adapters/` 层；框架侧在 `Assets/LiteFramework/Runtime/Modules/`，
+            // 适配器在 `Adapters/` 层；框架侧在 `Assets/LiteFramework/Runtime/{Services,Framework}/`，
             // Lua 桥归 `Assets/LiteGame/Adapters/LuaBridge/`（目录一变规则就红，本用例即其表现）。
             Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Adapters/YooAsset/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
@@ -532,7 +532,7 @@ namespace LiteFramework.Tests
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Assets/LiteGame/Adapters/LuaBridge/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Modules/UI/Anim/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Services/UI/Anim/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
             // JSON 序列化器：只有适配层可引（消费方走 IJsonSerializer / IJsonCodec 端口）
             Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Adapters/Newtonsoft/NewtonsoftJsonCodec.cs",
@@ -545,23 +545,23 @@ namespace LiteFramework.Tests
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/Adapters/LuaBridge/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/UI/Anim/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Services/UI/Anim/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
         }
 
         [Fact]
         public void 纪律_R12_边界外_适配器import被命中()
         {
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Services/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/App/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/UI/Adapter.cs",
+            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Services/UI/Adapter.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
             // JSON 序列化器同守：业务/框架代码只认 IJsonSerializer / IJsonCodec 端口
             Assert.Equal(1, CountAt("Assets/LiteGame/Modules/Meta/MetaJson.cs",
                 "using Newtonsoft.Json.Linq;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Services/C.cs",
                 "using Newtonsoft.Json;", LintRule.R12AdapterBoundary));
         }
 
@@ -571,14 +571,14 @@ namespace LiteFramework.Tests
             // 边界表的路径比较两端补斜杠：`Scripting.XLua` 不得放行 `Scripting.XLuaExtras`
             Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Adapters/XLuaExtras/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/UI/Animation/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Services/UI/Animation/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
         }
 
         [Fact]
         public void 纪律_R12_非适配器import与限定名不受影响()
         {
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Modules/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Services/C.cs",
                 "using System.Collections;", LintRule.R12AdapterBoundary));
 
             // 边界表只列已登记的适配器（见 DisciplineScanner.R12Boundaries）——其它第三方不受 R12 管
@@ -590,7 +590,7 @@ namespace LiteFramework.Tests
         public void 纪律_R12_注释里的using不算违规()
         {
             // 与其它规则同口径：注释先剔除再匹配
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Modules/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Services/C.cs",
                 "// 该文件不用 using YooAsset; 了", LintRule.R12AdapterBoundary));
         }
 

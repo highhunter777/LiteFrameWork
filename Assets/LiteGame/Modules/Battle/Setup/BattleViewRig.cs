@@ -69,7 +69,7 @@ namespace LiteGame
         internal BattleViewRig(IContentService content, IInputService input, ICameraService camera,
             ClientScope account, IVFXService vfx = null, LiteFramework.IWorldClock worldClock = null,
             AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null,
-            Func<UiThemeAsset> themeProvider = null, LiteGame.IDevSession dev = null,
+            Func<UIThemeAsset> themeProvider = null, LiteGame.IDevSession dev = null,
             IBattleDevOverlay devOverlay = null, Action<SimVector3> teleportDispatch = null,
             ILookPreferences lookPreferences = null, RootMotionDigestHolder rootMotionDigest = null)
         {

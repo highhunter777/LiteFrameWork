@@ -15,7 +15,7 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly string[] ProductRoots =
         {
-            "Assets/LiteFramework/Runtime/Modules",
+            "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Framework",
             "Assets/LiteGame/App",
             "Assets/LiteGame/Adapters/LuaBridge",
         };

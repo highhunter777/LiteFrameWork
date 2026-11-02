@@ -4,14 +4,14 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.Modules.Shared;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 
 using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
     /// 五页页面流（批C-④，《上云测试页面层级设计》§1 页面关系）：页面寻址
-    /// （lua_path → PageDefinition id，经 Ui 域端口 <see cref="IPageDirectory"/>）与**流程侧页面切换**——
+    /// （lua_path → PageDefinition id，经 UI 域端口 <see cref="IPageDirectory"/>）与**流程侧页面切换**——
     /// 首进 Main 开登录页；对局开局（StartGame）关房间页；对局结束开结算页（失败/离场回大厅）；
     /// 对局中打开设置页（HUD 菜单钮 / 空栈 Back 的对局菜单语义——导航数据 `battleExit` 供
     /// 设置页门控"退出对局"按钮）。

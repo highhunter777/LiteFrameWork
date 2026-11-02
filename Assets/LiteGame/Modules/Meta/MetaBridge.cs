@@ -95,7 +95,7 @@ namespace LiteGame
             => Run(s_meta.ListRecordsAsync(RecordsLimit), cb, r => RecordsTable(env, r.Value)).ForgetLogged("MetaBridge");
 
         /// <summary>统一异步收口：恰好一次回调；异常不外抛（转 reason）——页面回调异常不得外溢。
-        /// fire-and-forget 显式化（.Forget()——CS4014 收口，Bridge.Ui.Close 同款）。</summary>
+        /// fire-and-forget 显式化（.Forget()——CS4014 收口，Bridge.UI.Close 同款）。</summary>
         private static async UniTask Run<T>(UniTask<MetaCall<T>> task, LuaFunction cb,
             Func<MetaCall<T>, object> okPayload)
         {

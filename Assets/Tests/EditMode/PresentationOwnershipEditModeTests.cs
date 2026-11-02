@@ -19,7 +19,7 @@ namespace LiteGame.Tests.EditMode
     /// 表现域所有权与时钟用例：
     /// ① PrefabLeaseCache——共享租约、ReleaseAll 归零、释放后拒绝（UI-05 同源问题的表现域落点）；
     /// ② AudioService StopAll/Shutdown——总线全局停止与释放面（§6.2/§12.3 预算基线面）；
-    /// ③ UiAnimationClock/DotweenUiClockDriver——DOTween Manual 轨按 UIClock 派发（暂停即停）+ 轨隔离，
+    /// ③ UIAnimationClock/DotweenUIClockDriver——DOTween Manual 轨按 UIClock 派发（暂停即停）+ 轨隔离，
     ///    AnimatedImage 走 UIClock 步进（《动画模块专项设计》§1 裁决"SetUpdate(true) ≠ UIClock"）。
     /// 时序：UTCS 定向续延 + 手动 Tick；不依赖 PlayerLoop/YooAsset。
     /// </summary>
@@ -114,7 +114,7 @@ namespace LiteGame.Tests.EditMode
             try
             {
                 audio.Play(AudioService.Group.Effect, clip);
-                audio.Play(AudioService.Group.Ui, clip);
+                audio.Play(AudioService.Group.UI, clip);
                 audio.StopAll();
 
                 audio.Shutdown();                                // 释放面：停止 + 根销毁
@@ -135,12 +135,12 @@ namespace LiteGame.Tests.EditMode
         public void 动效时钟_Driver按UIClock派发Manual轨_暂停即停()
         {
             var clock = new FakeUIClock();
-            var driver = new DotweenUiClockDriver(clock);
+            var driver = new DotweenUIClockDriver(clock);
 
             DOTween.defaultEaseType = Ease.Linear;               // 去缓动：进度 = 步进/时长，断言直读
             float value = 0f;
             DOTween.To(() => value, v => value = v, 1f, 0.25f)
-                .SetUpdate(UpdateType.Manual, true);             // UIClock 轨（与 UiFx/转场同款）
+                .SetUpdate(UpdateType.Manual, true);             // UIClock 轨（与 UIFx/转场同款）
 
             clock.ScaledDelta = 0f;                              // 暂停：UIClock 步进为零
             driver.Tick(0.016f);
@@ -159,13 +159,13 @@ namespace LiteGame.Tests.EditMode
         /// <summary>
         /// 轨隔离：<c>ManualUpdate</c> 只推进 <see cref="UpdateType.Manual"/> 轨——
         /// Normal/Late/Fixed 轨的既有 Tween 不受影响。这是 UIClock 接管"只动 UI 轨"的前提；
-        /// 若此用例失败，说明 DOTween 版本语义变化，UiAnimationClock 的接线口径须重新评估。
+        /// 若此用例失败，说明 DOTween 版本语义变化，UIAnimationClock 的接线口径须重新评估。
         /// </summary>
         [Test]
         public void 动效时钟_Manual轨只推进Manual_引擎轨不受影响()
         {
             var clock = new FakeUIClock { ScaledDelta = 0.5f };
-            var driver = new DotweenUiClockDriver(clock);
+            var driver = new DotweenUIClockDriver(clock);
 
             DOTween.defaultEaseType = Ease.Linear;               // 去缓动：进度 = 步进/时长，断言直读
 
@@ -183,8 +183,8 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 动效时钟_未绑定退化真实帧步进()
         {
-            UiAnimationClock.ResetForEditorReload();             // 未绑定：Delta = Time.unscaledDeltaTime（≥0）
-            Assert.GreaterOrEqual(UiAnimationClock.Delta, 0f, "编辑器/测试兜底语义——不抛不 NaN");
+            UIAnimationClock.ResetForEditorReload();             // 未绑定：Delta = Time.unscaledDeltaTime（≥0）
+            Assert.GreaterOrEqual(UIAnimationClock.Delta, 0f, "编辑器/测试兜底语义——不抛不 NaN");
         }
 
         [Test]
@@ -202,7 +202,7 @@ namespace LiteGame.Tests.EditMode
                 ?.Invoke(anim, null);
 
             var clock = new FakeUIClock { ScaledDelta = 0.5f };  // 0.5s > 1/10s——步进必然推进
-            UiAnimationClock.Bind(clock);
+            UIAnimationClock.Bind(clock);
 
             typeof(AnimatedImage).GetMethod("Update", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.Invoke(anim, null);
@@ -216,7 +216,7 @@ namespace LiteGame.Tests.EditMode
 
             foreach (var s in anim.Frames) UnityEngine.Object.DestroyImmediate(s);
             UnityEngine.Object.DestroyImmediate(tex);
-            UiAnimationClock.ResetForEditorReload();
+            UIAnimationClock.ResetForEditorReload();
         }
 
         [Test]
@@ -232,7 +232,7 @@ namespace LiteGame.Tests.EditMode
                 ?.Invoke(spin, null);
 
             var clock = new FakeUIClock { ScaledDelta = 0.5f };  // 180°/s × 0.5s = 90°
-            UiAnimationClock.Bind(clock);
+            UIAnimationClock.Bind(clock);
 
             typeof(RotatingImage).GetMethod("Update", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.Invoke(spin, null);
@@ -243,7 +243,7 @@ namespace LiteGame.Tests.EditMode
                 ?.Invoke(spin, null);
             Assert.AreEqual(90f, rect.localEulerAngles.z, 0.01f, "暂停时角度保持（时停语义——不崩不回退）");
 
-            UiAnimationClock.ResetForEditorReload();
+            UIAnimationClock.ResetForEditorReload();
         }
     }
 }

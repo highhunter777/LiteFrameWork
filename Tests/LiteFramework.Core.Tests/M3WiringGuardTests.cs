@@ -27,7 +27,7 @@ namespace LiteFramework.Core.Tests
         public void 内容缓存清理_先关运行时_再删产物_最后回退记录()
         {
             string text = File.ReadAllText(Path.Combine(RepoRoot(),
-                "Assets/LiteFramework/Runtime/Modules/Content/ContentCacheMaintenance.cs"));
+                "Assets/LiteFramework/Runtime/Services/Content/ContentCacheMaintenance.cs"));
 
             int shutdown = text.IndexOf("ShutdownAsync(", StringComparison.Ordinal);
             int delete = text.IndexOf("DeleteDirectory(ReleaseLayout.CandidateRootRelative", StringComparison.Ordinal);
@@ -42,7 +42,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             string service = File.ReadAllText(Path.Combine(root,
-                "Assets/LiteFramework/Runtime/Modules/Hosting/Recovery/ErrorRecoveryService.cs"));
+                "Assets/LiteFramework/Runtime/Framework/Hosting/Recovery/ErrorRecoveryService.cs"));
             string actions = File.ReadAllText(Path.Combine(root,
                 "Assets/LiteGame/Modules/Procedure/Recovery/AppRecoveryActions.cs"));
             string content = File.ReadAllText(Path.Combine(root,

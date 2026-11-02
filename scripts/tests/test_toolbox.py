@@ -296,7 +296,7 @@ class DeprecatedContractTests(unittest.TestCase):
 
     def test_ui_page_stale_check_hint_points_at_the_toolbox(self):
         with tempfile.TemporaryDirectory() as temp:
-            missing = Path(temp) / "UiPageCatalog.g.cs"
+            missing = Path(temp) / "UIPageCatalog.g.cs"
             result = run_script("scripts/codegen/gen-ui-page.py", "--check",
                                 "--output", str(missing), timeout=120)
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)

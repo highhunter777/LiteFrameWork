@@ -4,9 +4,9 @@
 > 版本：1.0
 > 日期：2026-10-22
 > 定位：回答“页面逻辑（Lua/C#）能调用哪些受控 API、参数与错误语义是什么、列表行怎么传”。本文只做查询，不裁决生命周期/架构。
-> 生成：§3 表由 `scripts/codegen/toolbox.py ui-api` 从 `Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json` 生成（`<!-- BEGIN/END:ui-api:lua -->` 之间，勿手改；改 API 先改 spec）。
+> 生成：§3 表由 `scripts/codegen/toolbox.py ui-api` 从 `Assets/LiteGame/Editor/UITools/UIApi/UIApiSpec.json` 生成（`<!-- BEGIN/END:ui-api:lua -->` 之间，勿手改；改 API 先改 spec）。
 > 不做的事：不定义页面业务；不替代[UI 系统总设计](UI系统总设计.md)的状态机/导航契约；不记录施工状态。
-> 冲突裁决：与代码不一致以代码为准，并顺手修本文。源码入口：`Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`（API 单源）、`Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Assets/LiteGame/Adapters/LuaBridge/LuaBehaviourAdapter.cs`、`LuaBridge/LuaListRows.cs`、`LuaBridge/Bridge.Data.cs`。
+> 冲突裁决：与代码不一致以代码为准，并顺手修本文。源码入口：`Assets/LiteGame/Editor/UITools/UIApi/UIApiSpec.json`（API 单源）、`Assets/LiteFramework/Runtime/Services/UI/Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Assets/LiteGame/Adapters/LuaBridge/LuaBehaviourAdapter.cs`、`LuaBridge/LuaListRows.cs`、`LuaBridge/Bridge.Data.cs`。
 > 关联：[UI 系统总设计](UI系统总设计.md) · [UI 制作规范](../../../规范/05-UI制作.md) · [UI 命名与控件词表参考](UI命名与控件词表参考.md)
 
 ## 1. 分层与入口
@@ -118,7 +118,7 @@ protected virtual void OnHide();
 
 | 方法 | 参数 | 说明 |
 | --- | --- | --- |
-| `Pulse(name, strength?, duration?)` | 强度/时长 | 透明度呼吸两次；缺省来自 `UiFxDefaults` |
+| `Pulse(name, strength?, duration?)` | 强度/时长 | 透明度呼吸两次；缺省来自 `UIFxDefaults` |
 | `Flash(name, duration?)` | 时长 | 一次性高亮回落 |
 | `Slide(name, ox?, oy?, duration?)` | 偏移/时长 | 从偏移滑回原位 |
 

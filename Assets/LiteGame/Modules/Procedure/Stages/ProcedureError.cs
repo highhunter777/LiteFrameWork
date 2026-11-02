@@ -16,7 +16,7 @@ namespace LiteGame
     public sealed class ProcedureError : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
         /// <summary>最小错误 UI 根名——幂等判定用（Error 流程可重入，不重复建 UI）。</summary>
-        private const string ErrorUiRootName = "BootstrapErrorUI";
+        private const string ErrorUIRootName = "BootstrapErrorUI";
 
         /// <summary>Player 冒烟（scripts/player-smoke.ps1）与日志检索的固定标记。</summary>
         private const string SmokeMarker = "[BootstrapError]";
@@ -98,9 +98,9 @@ namespace LiteGame
         /// </summary>
         private static void ShowMinimalErrorUI(string message, ErrorKind kind)
         {
-            if (GameObject.Find(ErrorUiRootName) != null) return;   // 幂等：Error 可重入
+            if (GameObject.Find(ErrorUIRootName) != null) return;   // 幂等：Error 可重入
 
-            var root = new GameObject(ErrorUiRootName, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            var root = new GameObject(ErrorUIRootName, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = root.GetComponent<CanvasScaler>();

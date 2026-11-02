@@ -12,7 +12,7 @@ namespace LiteGame.Tests.EditMode
     /// 绑定遍历统一（审计 L247 收口）：生成器域标记收集与 hash/契约/校验域共用同一「哪些节点属于本页/本模板」
     /// 语义——<c>Clone_</c> 子树、模板（prefab 实例）内部件不入本页 marks；嵌套 <c>BindRoot</c> 不深入；
     /// 根节点自身不入。既有语义（标识符校验/重名收集/层级遍历序）保留在生成器域适配内。
-    /// 真实资产面零 BindRoot（探针实证），统一后生成物零变化由 hash 回归套件（UiBindingToolsEditModeTests）另守。
+    /// 真实资产面零 BindRoot（探针实证），统一后生成物零变化由 hash 回归套件（UIBindingToolsEditModeTests）另守。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class BindSearchUnificationEditModeTests

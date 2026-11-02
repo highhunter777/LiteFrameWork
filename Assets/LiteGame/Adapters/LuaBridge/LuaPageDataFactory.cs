@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LiteFramework.UI;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 using XLua;
 
 namespace LiteGame

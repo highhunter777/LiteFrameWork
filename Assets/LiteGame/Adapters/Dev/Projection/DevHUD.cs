@@ -29,8 +29,8 @@ namespace LiteGame
     /// statToggles（单模块段 bool 开关）/ showNetDiag（联机诊断段——读口 <see cref="BattleDiagnostics"/>，
     /// 无对局整段不显示）/ showPerf（性能段——本机帧样本自算）/ showLogRecent / logRecentLines / showErrorsLine。
     /// 首次运行（本机无折叠记忆）的展开集读 `DevStartupConfig.DevHudDefaultExpanded`；此后以持久化折叠态为准。
-    /// 0.25s 节流轮询：聚合单串，交 UI Toolkit `Label` 渲染（`DevHudUiToolkitHost`；字体不可用或
-    /// `renderWithUiToolkit=false` 时自动回退 IMGUI）；**帧采样与可见性解耦**（隐藏期间性能窗不冻结）。
+    /// 0.25s 节流轮询：聚合单串，交 UI Toolkit `Label` 渲染（`DevHudUIToolkitHost`；字体不可用或
+    /// `renderWithUIToolkit=false` 时自动回退 IMGUI）；**帧采样与可见性解耦**（隐藏期间性能窗不冻结）。
     /// 热键：F1 总开关 / F4 复制文本 / F5 日志级别过滤 / F6 仅本局 / F7 落现场包 / F8 导出 JSON / F9 过滤模式
     /// （F2 = 开发面板、F3 = 开发控制台）。
     /// 日志行带关联上下文（会话/对局/帧/席位，见 <see cref="LogEntry"/>）；只读，不写运行态。</summary>
@@ -80,7 +80,7 @@ namespace LiteGame
         [Tooltip("DPI/字号缩放（0.5–3.0；只缩放字号）")]
         [Range(0.5f, 3f)] public float hudScale = 1f;
         [Tooltip("用 UI Toolkit 渲染（默认）；关闭则回退 IMGUI")]
-        public bool renderWithUiToolkit = true;
+        public bool renderWithUIToolkit = true;
 
         private static readonly string[] LevelFilterNames = { "全部", "警告+", "错误+" };
 
@@ -110,7 +110,7 @@ namespace LiteGame
         private float _layoutHeight;
 
         private DiagnosticsBundleWriter _diagWriter;
-        private DevHudUiToolkitHost _ui;          // null = IMGUI 回退
+        private DevHudUIToolkitHost _ui;          // null = IMGUI 回退
 
         /// <summary>总开关（编辑器 GM 面板投影位；F1 等效翻转——开发包 Player 无 GM 面板时 F1 即唯一入口）。</summary>
         public bool Visible
@@ -215,10 +215,10 @@ namespace LiteGame
         private void Start()
         {
             TryBindKernel();
-            if (!renderWithUiToolkit) return;
+            if (!renderWithUIToolkit) return;
             try
             {
-                _ui = new DevHudUiToolkitHost(transform);
+                _ui = new DevHudUIToolkitHost(transform);
                 _ui.Visible = _visible;
             }
             catch (Exception ex)

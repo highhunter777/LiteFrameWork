@@ -24,7 +24,7 @@ namespace LiteGame
         public bool WorldPaused;
 
         [Header("UI 时钟")]
-        public bool UiPaused;
+        public bool UIPaused;
 
         [Header("事件中心")]
         public bool StrictMode = true;
@@ -86,9 +86,9 @@ namespace LiteGame
                 Default = 0f,
                 Min = 0f,
                 Max = 1f,
-                Get = () => UiPaused ? 1f : 0f,
-                Set = value => UiPaused = value >= 0.5f,
-                Reset = () => UiPaused = false,
+                Get = () => UIPaused ? 1f : 0f,
+                Set = value => UIPaused = value >= 0.5f,
+                Reset = () => UIPaused = false,
             });
             into.Add(new DebugTunable
             {
@@ -125,7 +125,7 @@ namespace LiteGame
         {
             WorldTimeScale = 1f;
             WorldPaused = false;
-            UiPaused = false;
+            UIPaused = false;
         }
 
         private void Update()
@@ -133,7 +133,7 @@ namespace LiteGame
             if (_world == null || !SyncEnabled) return;    // 关同步：滑杆停管，时钟归程序直控
             _world.TimeScale = WorldTimeScale;
             _world.Paused   = WorldPaused;
-            _ui.Paused      = UiPaused;
+            _ui.Paused      = UIPaused;
             _events.StrictMode = StrictMode;
         }
     }

@@ -57,7 +57,7 @@ namespace LiteGame.Modules.Settings
             if (svc == null) throw new ArgumentNullException(nameof(svc));
 
             MasterVolume = new Setting<float>(svc, "volume", 0.8f, v => Math.Clamp(v, 0f, 1f));
-            // 音效开关（批C-⑥ 增项）：关 = Effect 组静音（Ui/Voice/Bgm 不受影响——"音效"语义面）
+            // 音效开关（批C-⑥ 增项）：关 = Effect 组静音（UI/Voice/Bgm 不受影响——"音效"语义面）
             SoundEnabled = new Setting<bool>(svc, "sfx", true);
 
             Quality = new Setting<int>(svc, "quality", 2, v => Math.Clamp(v, 0, 3));

@@ -4,11 +4,11 @@
 
 Inputs:
   - Luban/Data/#uiform.xlsx        (runtime directory source: id/lua_path/prefab/layer/full_screen)
-  - Assets/LiteGame/Editor/UiTools/UiPageManifest.json
-  - Assets/LiteGame/Editor/UiTools/Contracts/*.contract.json
+  - Assets/LiteGame/Editor/UITools/UIPageManifest.json
+  - Assets/LiteGame/Editor/UITools/Contracts/*.contract.json
 
 Output:
-  - Assets/LiteGame/Modules/Ui/Generated/UiPageCatalog.g.cs
+  - Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs
 
 The generated file is the only runtime page directory. Contracts/manifest/hash stay
 editor-side; runtime code reads PageDefinition via IPageCatalog.
@@ -34,9 +34,9 @@ import _uiform_row  # noqa: E402
 ROOT = Path(repo_root())
 TOOL = "ui-page"
 DEFAULT_TABLE = ROOT / "Luban" / "Data" / "#uiform.xlsx"
-DEFAULT_MANIFEST = ROOT / "Assets" / "LiteGame" / "Editor" / "UiTools" / "UiPageManifest.json"
-DEFAULT_CONTRACTS = ROOT / "Assets" / "LiteGame" / "Editor" / "UiTools" / "Contracts"
-DEFAULT_OUTPUT = ROOT / "Assets" / "LiteGame" / "Modules" / "Ui" / "Generated" / "UiPageCatalog.g.cs"
+DEFAULT_MANIFEST = ROOT / "Assets" / "LiteGame" / "Editor" / "UITools" / "UIPageManifest.json"
+DEFAULT_CONTRACTS = ROOT / "Assets" / "LiteGame" / "Editor" / "UITools" / "Contracts"
+DEFAULT_OUTPUT = ROOT / "Assets" / "LiteGame" / "Modules" / "UI" / "Generated" / "UIPageCatalog.g.cs"
 
 
 def _rel(path):
@@ -75,7 +75,7 @@ def path_report():
 
 
 def parse_args(argv=None):
-    parser = argparse.ArgumentParser(description="Generate UiPageCatalog.g.cs")
+    parser = argparse.ArgumentParser(description="Generate UIPageCatalog.g.cs")
     parser.add_argument("--table", default=str(DEFAULT_TABLE))
     parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST))
     parser.add_argument("--contracts", default=str(DEFAULT_CONTRACTS))
@@ -162,7 +162,7 @@ def build_definitions(args):
         prefab_path = "Assets/" + prefab
         page = by_form.get(form_id) or by_prefab.get(prefab_path)
         if page is None:
-            raise ValueError(f"tbuiform id={form_id} 未在 UiPageManifest 登记（prefab={prefab_path}）")
+            raise ValueError(f"tbuiform id={form_id} 未在 UIPageManifest 登记（prefab={prefab_path}）")
         if page.get("luaPath") is not None and str(page.get("luaPath")) != lua_path:
             warnings.append(f"id={form_id} lua_path 表/清单不一致：{lua_path!r} vs {page.get('luaPath')!r}")
         contract = load_contract(contracts_dir, page)
@@ -189,7 +189,7 @@ def build_definitions(args):
         for form in page.get("forms", []):
             form_id = int(form.get("formId") or 0)
             if form_id and form_id not in table_ids:
-                raise ValueError(f"UiPageManifest 的 formId={form_id} 不在 #uiform 表中（{page.get('name')}）")
+                raise ValueError(f"UIPageManifest 的 formId={form_id} 不在 #uiform 表中（{page.get('name')}）")
 
     definitions.sort(key=lambda item: item["id"])
     return definitions, warnings
@@ -201,10 +201,10 @@ def render(definitions, head):
         "using System.Collections.Generic;",
         "using LiteFramework.UI;",
         "",
-        "namespace LiteGame.Modules.Ui",
+        "namespace LiteGame.Modules.UI",
         "{",
         "    /// <summary>生成的页面目录（PageDefinition 单制品）；运行时经 IPageCatalog 取件。</summary>",
-        "    public sealed class UiPageCatalog : IPageCatalog",
+        "    public sealed class UIPageCatalog : IPageCatalog",
         "    {",
         "        /// <summary>全部页面定义（按 Id 升序；工具/注册表填充可用）。</summary>",
         "        public static readonly PageDefinition[] All = new PageDefinition[]",
@@ -271,15 +271,15 @@ def render(definitions, head):
         "        private static readonly Dictionary<int, PageDefinition> ById = BuildIndex();",
         "",
         "        /// <summary>进程级只读实例（生成的目录无可变状态）。</summary>",
-        "        public static UiPageCatalog Instance { get; } = new UiPageCatalog();",
+        "        public static UIPageCatalog Instance { get; } = new UIPageCatalog();",
         "",
         "        private static Dictionary<int, PageDefinition> BuildIndex()",
         "        {",
         "            var byId = new Dictionary<int, PageDefinition>(All.Length);",
         "            foreach (PageDefinition page in All)",
         "            {",
-        "                if (page == null) throw new InvalidOperationException(\"UiPageCatalog 含空页面定义\");",
-        "                if (byId.ContainsKey(page.Id)) throw new InvalidOperationException(\"UiPageCatalog 页面 Id 重复：\" + page.Id);",
+        "                if (page == null) throw new InvalidOperationException(\"UIPageCatalog 含空页面定义\");",
+        "                if (byId.ContainsKey(page.Id)) throw new InvalidOperationException(\"UIPageCatalog 页面 Id 重复：\" + page.Id);",
         "                byId.Add(page.Id, page);",
         "            }",
         "            return byId;",
@@ -288,7 +288,7 @@ def render(definitions, head):
         "        public PageDefinition Get(int id)",
         "        {",
         "            if (!ById.TryGetValue(id, out PageDefinition page))",
-        "                throw new KeyNotFoundException(\"页面目录无此 Id：\" + id + \"——核对 #uiform/UiPageManifest 并重跑 gen-ui-page.py\");",
+        "                throw new KeyNotFoundException(\"页面目录无此 Id：\" + id + \"——核对 #uiform/UIPageManifest 并重跑 gen-ui-page.py\");",
         "            return page;",
         "        }",
         "    }",

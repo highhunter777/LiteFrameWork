@@ -5,7 +5,7 @@
 > 日期：2026-10-22
 > 定位：回答“大型/多端项目里，UI 资产、页面、运行时、工具与协作如何分层并互相约束”。本文是 UI 领域的唯一架构入口；运行时与绑定的**现行能力**以代码为准，本文只裁决目标契约与边界。
 > 不做的事：不替代 Prefab Stage 做布局编辑；不定义具体页面的业务逻辑；不定义 GM/网络/世界 VFX；不把目标能力描述成当前能力；不记录施工状态（归 `Docs/施工进度/`）。
-> 冲突裁决：UI 运行时状态机、导航单写者、资源租约、绑定所有权以 `Assets/LiteFramework/Runtime/Modules/UI/**`、`Assets/LiteCodeGen/**` 的现行代码为准；工具形态以[UI 编辑器工具链专项设计](UI编辑器工具链专项设计.md)为准；美术/工程接口以[UI 美术协作与交接规范](../../../规范/06-UI美术协作与交接.md)为准；制作硬规则以[UI 制作规范](../../../规范/05-UI制作.md)为准。
+> 冲突裁决：UI 运行时状态机、导航单写者、资源租约、绑定所有权以 `Assets/LiteFramework/Runtime/Services/UI/**`、`Assets/LiteCodeGen/**` 的现行代码为准；工具形态以[UI 编辑器工具链专项设计](UI编辑器工具链专项设计.md)为准；美术/工程接口以[UI 美术协作与交接规范](../../../规范/06-UI美术协作与交接.md)为准；制作硬规则以[UI 制作规范](../../../规范/05-UI制作.md)为准。
 > 关联：[UI 编辑器工具链专项设计](UI编辑器工具链专项设计.md) · [UI 运行时调试工具链专项设计](UI运行时调试工具链专项设计.md) · [UI 美术协作与交接规范](../../../规范/06-UI美术协作与交接.md) · [UI 制作规范](../../../规范/05-UI制作.md) · [UI 命名与控件词表参考](UI命名与控件词表参考.md) · [UI 逻辑 API 参考](UI逻辑API参考.md)
 
 ## 1. 定位与裁决
@@ -24,9 +24,9 @@
 
 | 基座 | 代码入口 | 保留理由 |
 | --- | --- | --- |
-| UI 服务与页面实例 | `Assets/LiteFramework/Runtime/Modules/UI/UIService.cs`、`UIForm.cs`、`UIFormStore.cs`、`UIStack.cs`、`UILayerGroup.cs`、`UIFormLogicBinder.cs`、`UIFormCacheEvictor.cs`、`UIFormStats.cs`、`UILayerGroupFactory.cs` | 已具备打开合流、取消、缓存、租约、遮盖、状态机与失败回滚；服务只留开关管线与缓存记账，逻辑解析/换表、预算淘汰、统计、根装配各成协作件 |
-| 导航/模态/焦点/输入 | `UINavigationController.cs`、`UIModalStack.cs`、`UIFocusCoordinator.cs`、`Input/UiInput.cs` | 单写者、Back 优先级、模态射线与焦点已收口 |
-| 转场与动效原语 | `Transition/UITransitionRunner.cs`、`Anim/UiAnimationClock.cs`、`Anim/UiFx.cs` | 状态机 + 超时 + 时钟 + 唯一 DOTween 入口 |
+| UI 服务与页面实例 | `Assets/LiteFramework/Runtime/Services/UI/UIService.cs`、`UIForm.cs`、`UIFormStore.cs`、`UIStack.cs`、`UILayerGroup.cs`、`UIFormLogicBinder.cs`、`UIFormCacheEvictor.cs`、`UIFormStats.cs`、`UILayerGroupFactory.cs` | 已具备打开合流、取消、缓存、租约、遮盖、状态机与失败回滚；服务只留开关管线与缓存记账，逻辑解析/换表、预算淘汰、统计、根装配各成协作件 |
+| 导航/模态/焦点/输入 | `UINavigationController.cs`、`UIModalStack.cs`、`UIFocusCoordinator.cs`、`Input/UIInput.cs` | 单写者、Back 优先级、模态射线与焦点已收口 |
+| 转场与动效原语 | `Transition/UITransitionRunner.cs`、`Anim/UIAnimationClock.cs`、`Anim/UIFx.cs` | 状态机 + 超时 + 时钟 + 唯一 DOTween 入口 |
 | 绑定与生成 | `Assets/LiteCodeGen/**`、`Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Bind/BindIndexBuilder.cs` | 名字绑定、运行时索引、C# 生成类、受控 API、所有权互斥 |
 | 控件与列表 | `Widgets/**`、`VirtualList.cs`、`SimpleListView.cs` | 既有控件模板与窗口复用内核 |
 | Lua 桥接 | `LuaUI.cs`、`LuaBridge/LuaBehaviourAdapter.cs` | 页面逻辑、白名单、环境重建 |
@@ -36,7 +36,7 @@
 
 - 编辑器工具链：制作工作台、起页/登记、绑定编辑与生成入口、样式工具、校验核心、预览、资源检查。
 - 运行时调试工具链：读模型、页面目录、状态注入、可点性、深检、写回、证据。
-- 视觉组织：设计令牌、样式引用、组件状态、图集/字体策略的**设计与工具**（运行期 `UiFx` 等保留）。
+- 视觉组织：设计令牌、样式引用、组件状态、图集/字体策略的**设计与工具**（运行期 `UIFx` 等保留）。
 - 美术/工程协作：角色、所有权、页面契约、交接门、度量。
 - 文档体系：旧 UI 设计文档已归档；本套文档为现行权威。
 
@@ -142,10 +142,10 @@ Assets/ShareResource/UI/
   Hud/            Hud_*.prefab（战斗 HUD 组合）
   Icons/          图标源/图集输入
   Patches/        仅编辑器/dev 的 UIPatch 输出（不进包）
-Assets/LiteFramework/Runtime/Modules/UI/        运行时基座（不改结构）
-Assets/LiteGame/Modules/Ui/      页面流程适配（PageFlow/ResultRanking 等）
+Assets/LiteFramework/Runtime/Services/UI/        运行时基座（不改结构）
+Assets/LiteGame/Modules/UI/      页面流程适配（PageFlow/ResultRanking 等）
 Assets/LiteGame/Lua/UI/      Lua 页面逻辑
-Assets/LiteGame/Editor/UiTools/  编辑器工具链（可重构）
+Assets/LiteGame/Editor/UITools/  编辑器工具链（可重构）
 Assets/LiteGame/Adapters/Dev/Projection/  运行内只读 HUD/控制台/面板（dev-only）
 Docs/设计文档/客户端/UI/      本套设计文档
 ```
@@ -167,7 +167,7 @@ Docs/设计文档/客户端/UI/      本套设计文档
 - 关闭：`CloseAsync(reason)`；系统原因跳过出栈拦截与离场；`CloseAllOpen` 覆盖 Covered/Paused；`ShutdownAsync` 幂等。
 - 展示作用域：每次打开重建 `ClientScope`，关闭时取消异步、逆序释放订阅；`DisplayGeneration` 用于迟到结果丢弃。
 - 输入与遮盖：`CanvasGroup` 的 `alpha/interactable/blocksRaycasts` 由实例与协调者共同决定；页面不得自行假设 `interactable=true` 就是可点。
-- 静态文案接缝（增量）：`PrepareForShow` 惰性创建 `UiStaticTextBinder`（扫描页面根下 `LTextKeyRef`，无标记时零订阅）；语言服务经同一 `LocaleProvider` 注入，一次驱动 `ILocaleBound` 与静态文案；`EnterClosing` 退订、`DestroyInstance` 释放——池化复用不得继续被旧语言事件刷新。
+- 静态文案接缝（增量）：`PrepareForShow` 惰性创建 `UIStaticTextBinder`（扫描页面根下 `LTextKeyRef`，无标记时零订阅）；语言服务经同一 `LocaleProvider` 注入，一次驱动 `ILocaleBound` 与静态文案；`EnterClosing` 退订、`DestroyInstance` 释放——池化复用不得继续被旧语言事件刷新。
 
 **UINavigationController**：
 
@@ -181,11 +181,11 @@ Docs/设计文档/客户端/UI/      本套设计文档
 - 遮盖从“仍逻辑打开且有遮盖能力”的页面推导，不只看 Active。
 - 焦点保存/恢复、首个可交互件聚焦、平台返回轮询由协调者负责；页面不得抢焦点。
 
-**UITransitionRunner / UiAnimationClock / UiFx**：
+**UITransitionRunner / UIAnimationClock / UIFx**：
 
 - 转场是表现阶段，不决定页面是否存在；结果区分 Completed/Skipped/TimedOut/Cancelled/Failed。
 - 输入锁在转场接受时生效，恢复由协调者计算，不无条件写 `blocksRaycasts=true`。
-- UI 动效只走 `UiFx`（唯一 DOTween 入口）与 `UIClock`；转场策略是 `UiFx` 的组合消费者。
+- UI 动效只走 `UIFx`（唯一 DOTween 入口）与 `UIClock`；转场策略是 `UIFx` 的组合消费者。
 - 事务取消源归 `OperationScope`（`ui.transition`）：策略只读 `MotionPlayback.Token`；超时/页面回收/权威取消统一 `Scope.Cancel`，收尾按结果标记后 `Dispose`；播放容器不再持有 `CancellationTokenSource`。
 
 **资源与缓存**：
@@ -202,8 +202,8 @@ Docs/设计文档/客户端/UI/      本套设计文档
 - **C# 生成类**：`BindRoot` + `BindNode` → `BindGenerator` 生成 `Xxx.cs` / `Xxx.Designer.cs`，只提供强类型字段引用（不参与索引登记）。
 - **所有权互斥**：同一控件只能被数据绑定或命令式之一驱动；Debug 三宏下违例当场抛。
 - **生命周期**：按钮、输入控件、列表行、本地化 key 的订阅随 `UnbindAll`/展示作用域清理；池化复用不得留旧回调。
-- **受控 API**：`SetText/SetTextKey/SetVisible/SetInteractable/SetProgress/SetHp/StartCountdown/SetSlider/SetToggle/SetDropdown/SetList/OnListClick/UiFx` 等；详见[UI 逻辑 API 参考](UI逻辑API参考.md)。
-- **绑定面遍历单源**：编辑器侧 `UiBindSurfaceWalker` 一次深度优先给出「本页/本模板」归属（绑定根、`Clone_` 子树、嵌套模板实例、模板内部件）；绑定 hash、页面契约生成与校验共用同一遍历，禁止各写一份。
+- **受控 API**：`SetText/SetTextKey/SetVisible/SetInteractable/SetProgress/SetHp/StartCountdown/SetSlider/SetToggle/SetDropdown/SetList/OnListClick/UIFx` 等；详见[UI 逻辑 API 参考](UI逻辑API参考.md)。
+- **绑定面遍历单源**：编辑器侧 `UIBindSurfaceWalker` 一次深度优先给出「本页/本模板」归属（绑定根、`Clone_` 子树、嵌套模板实例、模板内部件）；绑定 hash、页面契约生成与校验共用同一遍历，禁止各写一份。
 
 **生成物纪律**：生成文件禁手改；源 prefab 的绑定面 hash 与生成物清单由工具记录；CI 复算，漏生成即红。
 
@@ -220,7 +220,7 @@ Docs/设计文档/客户端/UI/      本套设计文档
 
 <a id="ch-page-catalog"></a>
 
-- **运行时目录**：`PageDefinition`（生成物 `UiPageCatalog.g.cs`，运行时经 `IPageCatalog` 取件）。运行时只认 `Id`/`Name`/`Location`/`LuaPath`/`Layer`/`FullScreen`/`CacheStrategy` 七项；`#uiform`、contract、manifest、hash 均为生成器输入或编辑器域，不进运行时。
+- **运行时目录**：`PageDefinition`（生成物 `UIPageCatalog.g.cs`，运行时经 `IPageCatalog` 取件）。运行时只认 `Id`/`Name`/`Location`/`LuaPath`/`Layer`/`FullScreen`/`CacheStrategy` 七项；`#uiform`、contract、manifest、hash 均为生成器输入或编辑器域，不进运行时。
 - **页面单制品**：一个页面 = 一条 `PageDefinition` + 一个 prefab；Lua 是页面逻辑代码，不计入制品数。
 - **页面 ID 段**（推荐）：
 
@@ -233,17 +233,17 @@ Docs/设计文档/客户端/UI/      本套设计文档
 | 900–999 | 开发/调试专用页（不得进 release 目录） |
 
 - **页面清单（页面关系）**：登录 → 大厅 → 房间 → 对局 → 结算 → 大厅；设置可从大厅/对局返回；战绩从大厅进入；加载/Toast/Dialog 是系统面，不占业务导航历史。
-- **编辑器清单**：`UiPageManifest`（工具维护的注册表，不进运行时）记录页面 Owner、契约路径、设计稿链接、设备档、状态（五态词表与迁移表见[工具链专项设计 §8.5](UI编辑器工具链专项设计.md#ch-page-manifest)）。它是 `PageDefinition` 生成器的输入，不再是独立的运行时制品。
+- **编辑器清单**：`UIPageManifest`（工具维护的注册表，不进运行时）记录页面 Owner、契约路径、设计稿链接、设备档、状态（五态词表与迁移表见[工具链专项设计 §8.5](UI编辑器工具链专项设计.md#ch-page-manifest)）。它是 `PageDefinition` 生成器的输入，不再是独立的运行时制品。
 - **命名**：`Page_<Semantic>`、`Hud_<Semantic>`、`Tmp_<Widget>`；详见[UI 制作规范 §命名](../../../规范/05-UI制作.md)。
 
 ### 5.1.1 页面单制品（PageDefinition）
 
 <a id="ch-page-definition"></a>
 
-- **唯一源**：`#uiform`（id/prefab/lua/layer/fullscreen）+ `UiPageManifest`（Owner/状态/设备档/缓存策略）+ `UiPageContract`（绑定表/文案；控件表已由 prefab BindNode 生成），由 `codegen.ui-page` 生成器合并为 `PageDefinition`。
-- **生成物**：`Assets/LiteGame/Modules/Ui/Generated/UiPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteFramework` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，`LiteGame.Adapters.LuaBridge` 也要消费；生成物只依赖壳类型，不依赖产品程序集。
+- **唯一源**：`#uiform`（id/prefab/lua/layer/fullscreen）+ `UIPageManifest`（Owner/状态/设备档/缓存策略）+ `UIPageContract`（绑定表/文案；控件表已由 prefab BindNode 生成），由 `codegen.ui-page` 生成器合并为 `PageDefinition`。
+- **生成物**：`Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteFramework` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，`LiteGame.Adapters.LuaBridge` 也要消费；生成物只依赖壳类型，不依赖产品程序集。
 - **缺失处理**：缺失 contract 的 Tmp 页告警并以空绑定表生成；缺失 prefab/table 行 fail-fast；同一 prefab 多行（如 201/206）各生成一条，id 独立。
-- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Assets/LiteFramework/Runtime/Modules`、`Assets/LiteGame/Modules`、`Assets/LiteGame/Adapters/LuaBridge` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
+- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Assets/LiteFramework/Runtime/Services`、`Assets/LiteGame/Modules`、`Assets/LiteGame/Adapters/LuaBridge` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
 - **迁移结果**：旧 `UIFormInfo`/`UIFormCatalog` 已删除；运行时只认 `PageDefinition`/`IPageCatalog`。
 
 ### 5.2 生命周期与状态机
@@ -303,14 +303,14 @@ Docs/设计文档/客户端/UI/      本套设计文档
 - **遮盖**：全屏页只遮盖严格更低层；同组全屏互斥；Covered/Paused 仍可关闭；关闭最高全屏时先确定下一遮盖源。
 - **模态**：模态有真实射线遮罩；`TopModalId` 决定 Back 优先；模态登记与页面状态解耦。
 - **焦点**：页面打开聚焦首个可交互件；关闭恢复保存焦点；键盘/手柄/平台返回统一由 `UIFocusCoordinator` 处理。
-- **输入**：`UiInput.EnsureEventSystem` 幂等建位；页面不得自建 EventSystem；自定义控件必须遵守上层输入锁，不能只信自身 `interactable`。
+- **输入**：`UIInput.EnsureEventSystem` 幂等建位；页面不得自建 EventSystem；自定义控件必须遵守上层输入锁，不能只信自身 `interactable`。
 
 ### 5.6 转场
 
 - Push/Pop/Replace 由导航操作决定；动画策略不决定页面是否存在。
 - 转场可取消、可超时（默认 2s）、可降级为立即完成；迟到回调受代次保护。
 - 输入锁在转场接受时生效；转场结束由协调者恢复输入，不直接写 `blocksRaycasts=true`。
-- 转场参数（时长/曲线/位移）来自令牌与 `UiFxDefaults`；页面不得写魔法数。
+- 转场参数（时长/曲线/位移）来自令牌与 `UIFxDefaults`；页面不得写魔法数。
 
 ### 5.7 缓存与资源租约
 
@@ -380,11 +380,11 @@ Page Logic (C# UIBindBase 或 Lua)
 - 内容版本切换时清缓存实例或按版本键隔离；不得复用旧 env 的对象。
 - 调试补丁只走 `UiPatch`，不形成第二套资产真相。
 
-### 5.13 UI 操作串行化（IUiOperationQueue）
+### 5.13 UI 操作串行化（IUIOperationQueue）
 
 <a id="ch-ui-queue"></a>
 
-- **唯一排队原语**：`LiteFramework.UI.IUiOperationQueue<T>`（实现 `UiOperationQueue<T>`）提供容量、优先级、
+- **唯一排队原语**：`LiteFramework.UI.IUIOperationQueue<T>`（实现 `UIOperationQueue<T>`）提供容量、优先级、
   就绪筛选、拒绝计数与取队；**运行时代码不得再为 UI 调度私建 `Queue<T>`/`List<T>` 队列**。
   执行时序仍归各消费者（导航/转场/弹窗各自泵动），排队语义只此一份。
 - **使用面**：
@@ -398,24 +398,24 @@ Page Logic (C# UIBindBase 或 Lua)
   不在本节假装已生效。
 - **契约**：队列满在创建/入栈/OnShow 之前拒绝（类型化 `UIOpenException(Rejected)`）；排队期取消 = 不执行、
   不加载；拒绝与丢弃均可观测（`RejectedCount` / `DroppedCount`）。
-- **目标形态（架构收敛线 §4.5）**：导航、转场、弹窗降级为 `IUiOperationQueue` 的策略/适配器，不再各自持有队列、超时与取消状态；`OperationScope` 统一承载超时/取消/合并键。上文的“各自泵动”仅作过渡形态保留，不是终态。
+- **目标形态（架构收敛线 §4.5）**：导航、转场、弹窗降级为 `IUIOperationQueue` 的策略/适配器，不再各自持有队列、超时与取消状态；`OperationScope` 统一承载超时/取消/合并键。上文的“各自泵动”仅作过渡形态保留，不是终态。
 
-### 5.14 UI API 单源（UiApiSpec）
+### 5.14 UI API 单源（UIApiSpec）
 
 <a id="ch-ui-api-spec"></a>
 
-- **唯一源**：`Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`（schema `UiApiSpec.schema.json`）逐条声明 C# 名、Lua 名、参数/返回、文档、暴露面与手工处理器。
+- **唯一源**：`Assets/LiteGame/Editor/UITools/UIApi/UIApiSpec.json`（schema `UIApiSpec.schema.json`）逐条声明 C# 名、Lua 名、参数/返回、文档、暴露面与手工处理器。
 - **生成物**（`scripts/codegen/toolbox.py ui-api`，`--check` 逐字节确定性）：
-  - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindIndex.Api.g.cs`——受控 API 的 **partial 方法声明**；实现体留在 `UIBindIndex.cs`，签名漂移即编译失败（不靠测试兜）；
-  - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindBase.Api.g.cs`——`UIBindBase` 的转发体（手写文件只留生命周期与索引装配）；
-  - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UiApiManifest.g.cs`——`ApiVersion` 与三张清单（Lua 名 / shim 名 / 手工处理器名），供能力声明与守卫对账；
-  - `Assets/LiteGame/Adapters/LuaBridge/Generated/UiApiShim.g.cs`——Lua `self.ui` 门面模板；
+  - `Assets/LiteFramework/Runtime/Services/UI/Bind/Generated/UIBindIndex.Api.g.cs`——受控 API 的 **partial 方法声明**；实现体留在 `UIBindIndex.cs`，签名漂移即编译失败（不靠测试兜）；
+  - `Assets/LiteFramework/Runtime/Services/UI/Bind/Generated/UIBindBase.Api.g.cs`——`UIBindBase` 的转发体（手写文件只留生命周期与索引装配）；
+  - `Assets/LiteFramework/Runtime/Services/UI/Bind/Generated/UIApiManifest.g.cs`——`ApiVersion` 与三张清单（Lua 名 / shim 名 / 手工处理器名），供能力声明与守卫对账；
+  - `Assets/LiteGame/Adapters/LuaBridge/Generated/UIApiShim.g.cs`——Lua `self.ui` 门面模板；
   - `Assets/LiteGame/Adapters/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs`——payload 表派发 switch；
   - `Docs/设计文档/客户端/UI系统/UI逻辑API参考.md` §3 的生成区（`<!-- BEGIN/END:ui-api:lua -->` 之间）。
 - **手工例外**：`showConfirm`（异步确认）、`setList`/`onListClick`（LuaTable 行转换）、`onButton`（Lua 闭包）在 spec 标 `manual`；生成的 dispatch `default` 转 `TryDispatchManual`，其余 API 不得手写派发。
-- **默认值单源**：动效/气泡缺省仍只认 `UiFxDefaults`——shim 生成 `%Fx*%` 占位符，适配器启动期用常量替换；spec 不复制数值。
-- **版本**：`BridgeCapabilitySet.ApiVersion` 读生成的 `UiApiManifest.ApiVersion`（spec `apiVersion`）；新增 API = 改 spec + 重生成。
-- **守卫**：`UiApiSpecGuardTests` 对账清单/版本/shim/dispatch；`gen-ui-api.py --check` 挂工具链（`codegen.ui-api`）。
+- **默认值单源**：动效/气泡缺省仍只认 `UIFxDefaults`——shim 生成 `%Fx*%` 占位符，适配器启动期用常量替换；spec 不复制数值。
+- **版本**：`BridgeCapabilitySet.ApiVersion` 读生成的 `UIApiManifest.ApiVersion`（spec `apiVersion`）；新增 API = 改 spec + 重生成。
+- **守卫**：`UIApiSpecGuardTests` 对账清单/版本/shim/dispatch；`gen-ui-api.py --check` 挂工具链（`codegen.ui-api`）。
 
 ## 6. 视觉与样式体系
 
@@ -435,16 +435,16 @@ Page Logic (C# UIBindBase 或 Lua)
 | Motion | `motion.fast`、`motion.normal`、`motion.slow`、`ease.standard` | 时长/曲线 |
 | Icon | `icon.size.s`、`icon.size.m`、`icon.size.l` | 图标尺寸/描边 |
 
-- 令牌源为 JSON（设计态），生成 `UiThemeAsset`（Unity 读面）；运行时通过 `UiStyleResolver` 解析，不读 JSON。
+- 令牌源为 JSON（设计态），生成 `UIThemeAsset`（Unity 读面）；运行时通过 `UIStyleResolver` 解析，不读 JSON。
 - 令牌 ID 用点分层级；改名需提供迁移映射与旧 ID 别名，至少保留一个次版本。
 - 主题/变体只在真实需求出现时增加（如高对比、活动主题）；首版只有 Default。
 
 ### 6.2 引用与应用
 
-- prefab 上的颜色/字号/间距优先挂**引用组件**（`UiStyleRef`〔颜色，P2-3 B2〕/`UiTextStyleRef`〔文字档〕），而不是裸值；`UiStyleRef` 只声明不驱动，值由应用核心单写。`UiTextStyleRef.UseInstanceOverrides` 供模板实例保留自身属性（合法覆盖，工具不应用/不判 Mismatch，仍计未标记债）。
+- prefab 上的颜色/字号/间距优先挂**引用组件**（`UIStyleRef`〔颜色，P2-3 B2〕/`UITextStyleRef`〔文字档〕），而不是裸值；`UIStyleRef` 只声明不驱动，值由应用核心单写。`UITextStyleRef.UseInstanceOverrides` 供模板实例保留自身属性（合法覆盖，工具不应用/不判 Mismatch，仍计未标记债）。
 - 编辑期 Applier 按令牌批量应用（`ui.style.colors-refresh` 三段式：refs 声明应用 → widget 状态 token 迁移 → 裸值最近匹配收敛〔跳过已声明与 `IThemeGraphicWriter` 认领的目标 Graphic〕）。批量工具的"可回退"＝**幂等重跑零变更＋变更仅经工具落盘（版本管理可回退）**——Unity Undo 记录在 PrefabUtility 批量模式下不跨资产落盘生效，交互式单页 Undo 如未来需要另批上机制。
-- 运行期只读解析（`UiStyleResolver`，核心住 LiteFramework.UI、编辑器 `UiTokenCatalog` 委托）；主题由 bootstrap 一次装载 `UiTheme.asset`，经 `UIService` ctor 形参 → `UIForm.ThemeProvider` 注入，页面装配期（PrepareForShow）**统一走 `UiThemeBinder`**（`IThemeBound` 注入 → `UiStyleRef` 应用 → writer 自身/祖先跳过 → 未知令牌 Warning 一次）——装载缺失降级＝保持烘焙值＋Warning 一次。HUD 经 `UIService.ThemeAssetProvider` → `ProcedureBattle` → `BattleViewAssets` 在实例化后调用同一 binder。主题切换的驱动点即该注入缝（换资产重注入＋重开页面重应用）。不允许页面自行改全局材质/颜色。
-- 状态色（Normal/Pressed/Disabled/Selected）**已令牌化**：自研三 widget（StateButton/TabGroup/StarRating）以伴生 token 字段声明、装配期经 `IThemeBound` 解析，取值序＝token 可解析→令牌现值，否则序列化 fallback；uGUI 原生 `Selectable.colors` 由 `UiSelectableTheme` 接缝覆盖（5 枚 `color.state.selectable.*`，46 个 ColorTint Selectable = 33 直挂组件 + 13 模板继承；只写状态 tint、保留 multiplier/fade，仅 ColorTint 生效）。不在业务代码里写 RGB。
+- 运行期只读解析（`UIStyleResolver`，核心住 LiteFramework.UI、编辑器 `UITokenCatalog` 委托）；主题由 bootstrap 一次装载 `UITheme.asset`，经 `UIService` ctor 形参 → `UIForm.ThemeProvider` 注入，页面装配期（PrepareForShow）**统一走 `UIThemeBinder`**（`IThemeBound` 注入 → `UIStyleRef` 应用 → writer 自身/祖先跳过 → 未知令牌 Warning 一次）——装载缺失降级＝保持烘焙值＋Warning 一次。HUD 经 `UIService.ThemeAssetProvider` → `ProcedureBattle` → `BattleViewAssets` 在实例化后调用同一 binder。主题切换的驱动点即该注入缝（换资产重注入＋重开页面重应用）。不允许页面自行改全局材质/颜色。
+- 状态色（Normal/Pressed/Disabled/Selected）**已令牌化**：自研三 widget（StateButton/TabGroup/StarRating）以伴生 token 字段声明、装配期经 `IThemeBound` 解析，取值序＝token 可解析→令牌现值，否则序列化 fallback；uGUI 原生 `Selectable.colors` 由 `UISelectableTheme` 接缝覆盖（5 枚 `color.state.selectable.*`，46 个 ColorTint Selectable = 33 直挂组件 + 13 模板继承；只写状态 tint、保留 multiplier/fade，仅 ColorTint 生效）。不在业务代码里写 RGB。
 - 裸值必须能被校验器识别并登记例外（Owner/原因/到期），不得静默通过；引用对账由 `ui.style.ref` 五判据（未知令牌 Error/值漂移 Warning/无目标 Error/widget 三态/`IThemeGraphicWriter` 自身或祖先双写者 Error）；Selectable 状态色由 `ui.style.selectable`（缺组件 Warning/无 Selectable Error/未知令牌 Error/ColorBlock 漂移 Warning/非 ColorTint 跳过）。
 
 ### 6.3 字体与文本
@@ -466,7 +466,7 @@ Page Logic (C# UIBindBase 或 Lua)
 ### 6.5 组件状态与变体
 
 - 每个控件模板声明状态：Normal/Hover/Pressed/Disabled/Selected/Loading/Empty/Error（按需）。
-- 状态用 Animator 之外的显式组件/`UiFx`/`Selectable` 驱动；UI prefab 默认禁用 Animator（例外登记）。
+- 状态用 Animator 之外的显式组件/`UIFx`/`Selectable` 驱动；UI prefab 默认禁用 Animator（例外登记）。
 - 状态色映射表（P2-3 B2/B4 冻结；取值权威＝prefab 序列化现值量化，零可见变化；近金/近灰不合并——合并属可见色变需另行裁决）：
 
   | 令牌 | 值 | 来源 |
@@ -486,7 +486,7 @@ Page Logic (C# UIBindBase 或 Lua)
   | color.state.selectable.disabled | #C8C8C880 | disabledColor（alpha 0.5） |
 
   复用 1 枚：Tmp_TabGroup 常态白＝`color.text.bright`。
-  **实例覆盖**：模板实例有意的属性偏离由 `UiTextStyleRef.UseInstanceOverrides` 标为合法覆盖——工具不应用/不判 Mismatch，但仍计入未标记债（不静默通过）。
+  **实例覆盖**：模板实例有意的属性偏离由 `UITextStyleRef.UseInstanceOverrides` 标为合法覆盖——工具不应用/不判 Mismatch，但仍计入未标记债（不静默通过）。
 - 变体（Variant）只用于同一控件的尺寸/风格差异；业务页面不得成为模板的 Variant（避免跨 owner 继承）。
 - 模板插槽用命名容器（`Cot_Header`/`Cot_Body`/`Cot_Footer`），插槽内容由页面填充；模板不读取业务数据。
 
@@ -527,12 +527,12 @@ Page Logic (C# UIBindBase 或 Lua)
 - `SafeAreaReceiver` 作用于可交互内容容器；背景可铺满。
 - 安全区在分辨率/方向/刘海变化时重算；页面不得在 `OnShow` 只算一次。
 - 设备档至少覆盖：16:9、19.5:9、20:9、4:3、16:10、超宽 21:9；横屏为主，竖屏预留。
-- **设备档数据单源（P2-3 B3 现行）**：`Assets/LiteGame/Editor/UiTools/UiDeviceProfiles.json`（schema [UiDeviceProfiles.schema.json](UiDeviceProfiles.schema.json)）——含分辨率/方向/宽高比/安全区 inset/可选 DPI/`inMatrix`；预置六横屏档＋两条竖屏预留（`inMatrix=false`）。预览驱动、工作台下拉与截图矩阵三方读同一档案，代码不复制分辨率/inset 字面量；竖屏启用＝档案 `inMatrix=true`（P4 验收）。
+- **设备档数据单源（P2-3 B3 现行）**：`Assets/LiteGame/Editor/UITools/UIDeviceProfiles.json`（schema [UIDeviceProfiles.schema.json](UIDeviceProfiles.schema.json)）——含分辨率/方向/宽高比/安全区 inset/可选 DPI/`inMatrix`；预置六横屏档＋两条竖屏预留（`inMatrix=false`）。预览驱动、工作台下拉与截图矩阵三方读同一档案，代码不复制分辨率/inset 字面量；竖屏启用＝档案 `inMatrix=true`（P4 验收）。
 - 预览工具提供设备档切换（GameView 分辨率反射切换，失败降级为仅模拟安全区；见[工具链专项 §7.1](UI编辑器工具链专项设计.md#ch-preview)）；真机验收必须用真实包。
 
 ### 7.4 输入抽象
 
-- 统一走 Input System；`UiInput` 建 EventSystem/InputSystemUIInputModule。
+- 统一走 Input System；`UIInput` 建 EventSystem/InputSystemUIInputModule。
 - 鼠标/触控：点击热区不小于令牌最小值；禁止 hover-only 操作；长按/拖拽有替代路径。
 - 键盘/手柄：焦点可见、导航顺序明确、Submit/Cancel 映射统一；模态拦截 Back。
 - 输入锁：模态/转场/暂停由协调者计算；页面只读 `interactable/blocksRaycasts` 结果，不自行改写全局输入。
@@ -617,21 +617,21 @@ Page Logic (C# UIBindBase 或 Lua)
 | 层 | 载体 | 例子 |
 | --- | --- | --- |
 | 转场 | `UITransitionRunner` + 策略 | 页面 Push/Pop/Replace |
-| 控件动效 | `UiFx` | 按钮脉冲、图标闪烁、面板滑入 |
+| 控件动效 | `UIFx` | 按钮脉冲、图标闪烁、面板滑入 |
 | UI 粒子 | 模板化粒子/效果宿主 | 奖励爆发、升级光效 |
-| UI 音效 | `AudioService.Group.Ui` | 点击、确认、错误 |
+| UI 音效 | `AudioService.Group.UI` | 点击、确认、错误 |
 | 世界 VFX | 表现/VFX 域 | 命中、爆炸、场景特效 |
 
 ### 9.2 播放契约
 
-- 所有 UI 动效走 `UiFx`；不直接 `DOTween`，不挂 Animator（例外登记）。
+- 所有 UI 动效走 `UIFx`；不直接 `DOTween`，不挂 Animator（例外登记）。
 - 动效只写表现属性（透明度/位置/缩放/颜色），不携带判定，不改业务数据。
 - 动效绑定展示作用域：页面关闭/隐藏即杀；迟到回调用代次丢弃。
 - 同一属性同一时刻只有一个动效写者；业务写入与动效冲突时显式协调（先 Kill 再写）。
 
 ### 9.3 定义与预算
 
-- 时长/曲线来自 Motion 令牌；默认值集中在 `UiFxDefaults`，Lua shim 与 C# 同源。
+- 时长/曲线来自 Motion 令牌；默认值集中在 `UIFxDefaults`，Lua shim 与 C# 同源。
 - 效果定义声明：目标、通道、时长、优先级、上限、降级策略。
 - 同时可见粒子系统数、UI 音效并发数有预算；低端档降级为静态/无粒子。
 - 减少动效模式：转场立即完成，控件动效跳过或缩短。
@@ -662,8 +662,8 @@ Page Logic (C# UIBindBase 或 Lua)
 ### 10.3 表与清单
 
 - 运行时页面目录：`tbuiform` 五列，不改运行时不加列。
-- 编辑器页面清单：`UiPageManifest`（工具生成）记录 Owner/契约/设计稿/设备档/状态；不进包。
-- 控件清单：`UiWidgetManifest`（工具生成）从 `Tmp_*` + WidgetSpec 汇总；供工作台/校验/文档使用。
+- 编辑器页面清单：`UIPageManifest`（工具生成）记录 Owner/契约/设计稿/设备档/状态；不进包。
+- 控件清单：`UIWidgetManifest`（工具生成）从 `Tmp_*` + WidgetSpec 汇总；供工作台/校验/文档使用。
 - 表数据与代码生成物分别走 Luban/生成器；UI 文档不复制表结构。
 
 ### 10.4 热更与版本
@@ -739,7 +739,7 @@ Page Logic (C# UIBindBase 或 Lua)
 | 阶段 | 目标 | 退出条件 |
 | --- | --- | --- |
 | P0 冻结与基线 | 旧文档归档；UI 资产/代码/页面清单盘点；基线性能与设备矩阵 | 新文档索引可用；旧链接全部指向归档/新文档；基线证据可复查 |
-| P1 契约与校验 | `WidgetSpec`、`UiPageManifest`、Page Contract、校验核心、命名/绑定 hash | 美术可生成契约；工程可消费；CI 能红；正负例齐 |
+| P1 契约与校验 | `WidgetSpec`、`UIPageManifest`、Page Contract、校验核心、命名/绑定 hash | 美术可生成契约；工程可消费；CI 能红；正负例齐 |
 | P2 工作台与起页 | 单工作台 + 美术/工程 Lane；起页/登记拆分；绑定编辑；样式令牌；布局预览 | 美术独立起页并交接；工程登记/接线；工具入口全部走 Hub/CLI |
 | P3 运行时调试 | 读模型 + 页面命令 + 状态注入 + 可点性 + 编辑器深检 + F8 | 真包内可回答页面/绑定/布局/输入/性能问题；release 零残留 |
 | P4 迁移与多端 | 现有 7 页 + HUD 迁移；安全区/设备档；性能预算；视觉基线 | PC + 移动横屏验收；关键页面无首开失败；预算有证据 |

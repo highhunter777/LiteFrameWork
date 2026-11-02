@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace LiteFramework.Core.Tests
@@ -22,7 +23,7 @@ namespace LiteFramework.Core.Tests
         /// <summary>8 个共享能力域（每个域一份命名空间；批 5 · A25）。</summary>
         private static readonly string[] SharedDomains =
         {
-            "Composition", "Ui", "Input", "Settings", "Config", "Camera", "Map", "Dev",
+            "Composition", "UI", "Input", "Settings", "Config", "Camera", "Map", "Dev",
         };
 
         /// <summary>批 2 后战斗域 `Abstractions/` 必须包含的业务端口。</summary>
@@ -151,6 +152,125 @@ namespace LiteFramework.Core.Tests
             Assert.True(offenders.Length == 0,
                 "LiteGame.Core 只放跨域契约/纯计算（登记在 CoreDirectories）；常量归 LiteGame.Shared。未登记目录："
                 + string.Join(", ", offenders));
+        }
+
+        /// <summary>
+        /// 战斗包图守卫：叶子子模块不得依赖装配包 `Setup/`——那会形成包级回边。
+        /// 历史：`Combat/BattleFeedbackAssembler` 持 `Setup/BattleViewAssets`，与 `Setup → Combat` 构成 2 环；
+        /// 2026-11-03 把 `BattleViewAssets` 下移域根破环，本条守卫防再生。
+        /// </summary>
+        [Fact]
+        public void 战斗叶子子模块不得引用装配包()
+        {
+            string root = RepoRoot();
+            string battle = Path.Combine(root, "Assets", "LiteGame", "Modules", "Battle");
+            string setup = Path.Combine(battle, "Setup");
+            if (!Directory.Exists(setup)) return;
+
+            HashSet<string> setupTypes = TopLevelTypeNames(setup);
+            string[] leaves = { "Aim", "Arena", "Characters", "Combat", "Commands", "Hud", "Session", "Settlement" };
+
+            var offenders = new List<string>();
+            foreach (string leaf in leaves)
+            {
+                string dir = Path.Combine(battle, leaf);
+                if (!Directory.Exists(dir)) continue;
+
+                foreach (string file in Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
+                {
+                    string code = StripComments(File.ReadAllText(file));
+                    foreach (string type in setupTypes)
+                    {
+                        if (Regex.IsMatch(code, @"\b" + Regex.Escape(type) + @"\b"))
+                            offenders.Add(Relative(root, file) + " → " + type);
+                    }
+                }
+            }
+
+            Assert.True(offenders.Count == 0,
+                "叶子子模块不得依赖装配包 Setup（会形成包级回边，按 R-D 把共用件下移域根）："
+                + string.Join("; ", offenders));
+        }
+
+        /// <summary>
+        /// 共享子模块（`Arena/`）不得依赖叶子子模块：它被 4 个包消费，只应认识域根与 `Abstractions/`。
+        /// </summary>
+        [Fact]
+        public void 共享子模块不得引用叶子包()
+        {
+            string root = RepoRoot();
+            string battle = Path.Combine(root, "Assets", "LiteGame", "Modules", "Battle");
+            string shared = Path.Combine(battle, "Arena");
+            if (!Directory.Exists(shared)) return;
+
+            string[] leaves = { "Aim", "Characters", "Combat", "Commands", "Hud", "Session", "Settlement", "Setup" };
+            var leafTypes = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string leaf in leaves)
+            {
+                string dir = Path.Combine(battle, leaf);
+                if (Directory.Exists(dir)) foreach (string t in TopLevelTypeNames(dir)) leafTypes.Add(t);
+            }
+
+            var offenders = new List<string>();
+            foreach (string file in Directory.GetFiles(shared, "*.cs", SearchOption.AllDirectories))
+            {
+                string code = StripComments(File.ReadAllText(file));
+                foreach (string type in leafTypes)
+                {
+                    if (Regex.IsMatch(code, @"\b" + Regex.Escape(type) + @"\b"))
+                        offenders.Add(Relative(root, file) + " → " + type);
+                }
+            }
+
+            Assert.True(offenders.Count == 0,
+                "共享子模块 Arena 只许依赖域根与 Abstractions；引用叶子包会制造回边：" + string.Join("; ", offenders));
+        }
+
+        private static HashSet<string> TopLevelTypeNames(string dir)
+        {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            var pattern = new Regex(@"\b(?:public|internal)\s+(?:sealed\s+|static\s+|abstract\s+|partial\s+)*(?:class|interface|struct|enum|record)\s+(\w+)");
+            foreach (string file in Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
+                foreach (Match m in pattern.Matches(StripComments(File.ReadAllText(file))))
+                    names.Add(m.Groups[1].Value);
+            return names;
+        }
+
+        /// <summary>去掉块注释、行注释与字符串字面量（注释里提到类型名不算依赖）。</summary>
+        private static string StripComments(string text)
+        {
+            var sb = new System.Text.StringBuilder(text.Length);
+            int i = 0, n = text.Length;
+            while (i < n)
+            {
+                char c = text[i];
+                if (c == '/' && i + 1 < n && text[i + 1] == '/')
+                {
+                    while (i < n && text[i] != '\n') i++;
+                }
+                else if (c == '/' && i + 1 < n && text[i + 1] == '*')
+                {
+                    i += 2;
+                    while (i + 1 < n && !(text[i] == '*' && text[i + 1] == '/')) i++;
+                    i += 2;
+                }
+                else if (c == '"')
+                {
+                    i++;
+                    while (i < n && text[i] != '"')
+                    {
+                        if (text[i] == '\\') i++;
+                        i++;
+                    }
+                    i++;
+                }
+                else
+                {
+                    sb.Append(c);
+                    i++;
+                }
+            }
+            return sb.ToString();
         }
 
         private static string FirstNamespace(string file)

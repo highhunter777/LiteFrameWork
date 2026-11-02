@@ -288,3 +288,6 @@ BuildProfiles/*.local.json
 
 # 共享 NuGet 包本地 feed（scripts/build/pack-shared.py 产物，不入库）
 LocalPackages/
+
+# DSH 会话产物（不入库）
+.dsh-artifacts/

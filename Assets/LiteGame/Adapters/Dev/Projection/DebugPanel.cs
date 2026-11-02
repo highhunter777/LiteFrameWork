@@ -23,7 +23,7 @@ namespace LiteGame
 
         private DebugKernel _kernel;
         private IDisposable _inputLease;
-        private DebugPanelUiToolkitHost _ui;
+        private DebugPanelUIToolkitHost _ui;
         private IReadOnlyList<DebugTunable> _runtimeTunables;
         private bool _tunablesBound;
         private bool _open;
@@ -62,7 +62,7 @@ namespace LiteGame
                 BindKernel();
                 EnsureInputBlocker();
             }
-            EnsureUi();
+            EnsureUI();
             if (_kernel != null && !_tunablesBound) RebuildTunables();
 
             if (_kernel != null && Time.unscaledTime >= _nextRefresh)
@@ -77,7 +77,7 @@ namespace LiteGame
             _open = true;
             BindKernel();
             EnsureInputBlocker();
-            EnsureUi();
+            EnsureUI();
             if (_kernel != null) RebuildTunables();
             _ui?.SetVisible(true);
             _nextRefresh = 0f;
@@ -128,12 +128,12 @@ namespace LiteGame
             catch (Exception ex) { SetStatus("输入拦截注册失败：" + ex.Message, true); }
         }
 
-        private void EnsureUi()
+        private void EnsureUI()
         {
             if (_ui != null || _uiFailed) return;
             try
             {
-                _ui = new DebugPanelUiToolkitHost(transform, _liveOptions, OnToggle, OnEnter, OnExit, OnTeleport,
+                _ui = new DebugPanelUIToolkitHost(transform, _liveOptions, OnToggle, OnEnter, OnExit, OnTeleport,
                     null, null, null, OnForceDisconnect, OnForceReconnect, OnToggleSuppressReconnect);
                 _ui.SetVisible(_open);
                 _tunablesBound = false;

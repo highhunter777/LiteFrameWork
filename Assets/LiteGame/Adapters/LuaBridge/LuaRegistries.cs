@@ -18,9 +18,9 @@ namespace LiteGame
     public interface IStrategyLuaRegistry : ILuaRegistry<LuaTable> { }
 
     /// <summary>UI 逻辑表注册表实现（kind="UI"）。</summary>
-    public sealed class UiLuaRegistry : LuaRegistry<LuaTable>, IUILuaRegistry
+    public sealed class UILuaRegistry : LuaRegistry<LuaTable>, IUILuaRegistry
     {
-        public UiLuaRegistry() : base("UI") { }
+        public UILuaRegistry() : base("UI") { }
     }
 
     /// <summary>内容处理器注册表实现（kind="Content"）。</summary>

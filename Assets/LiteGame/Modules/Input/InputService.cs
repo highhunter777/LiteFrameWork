@@ -1,6 +1,5 @@
 ﻿using System;
 using LiteSim;
-using LiteFramework;
 
 namespace LiteGame.Modules.Input
 {

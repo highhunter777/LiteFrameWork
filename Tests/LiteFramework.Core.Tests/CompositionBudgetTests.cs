@@ -19,7 +19,7 @@ namespace LiteFramework.Core.Tests
     /// </summary>
     public sealed class CompositionBudgetTests
     {
-        /// <summary>装配段数量下限（18 段全部就地；Ui 段随 ILuaUiBinding 端口化归位后不再有 App 过渡段）。</summary>
+        /// <summary>装配段数量下限（18 段全部就地；UI 段随 ILuaUIBinding 端口化归位后不再有 App 过渡段）。</summary>
         private const int MinimumCompositions = 13;
 
         [Fact]

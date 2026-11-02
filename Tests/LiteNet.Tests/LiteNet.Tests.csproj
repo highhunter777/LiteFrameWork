@@ -25,7 +25,7 @@
          IDiagRecordSink 端口）与本组的会话/房间面在**一次失败**里对齐——测试项目专用引用，
          不改变生产依赖边界（Core 无引擎引用；服务端/客户端程序集不新增依赖）。 -->
     <ProjectReference Include="..\..\Assets\LiteFramework\LiteFramework.Core.csproj" />
-    <ProjectReference Include="..\..\Assets\LiteFramework\Runtime\Modules\LiteFramework.Async.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteFramework\Runtime\LiteFramework.Async.csproj" />
   </ItemGroup>
 
   <!-- DI-3 会话工厂 L1 直测：Account 半边（工厂 + BattleClient）零引擎依赖，按源链接惯例纳入——

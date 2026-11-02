@@ -77,13 +77,13 @@ namespace LiteGame.Tests.UI.PlayMode
                 _assetsReady = true;
             }
 
-            (_env, _module) = NewEnvWithModule("Tests.UiTestPage");
+            (_env, _module) = NewEnvWithModule("Tests.UITestPage");
 
             _ui = new UIService(
                 new StaticCatalog(new[]
                 {
                     new PageDefinition { Id = TestPageFormId, Layer = 0, FullScreen = true,
-                        LuaPath = "Tests.UiTestPage", Location = "Assets/ShareResource/UI/Screens/Tmp_UiTestPage.prefab" },
+                        LuaPath = "Tests.UITestPage", Location = "Assets/ShareResource/UI/Screens/Tmp_UITestPage.prefab" },
                 }),
                 // resolver 读**实例字段**——env 重建后同一 UIService 的复用路径会解析到新 env 的模块
                 logicResolver: info => new LuaBehaviourAdapter(_env, _module),
@@ -127,7 +127,7 @@ namespace LiteGame.Tests.UI.PlayMode
             // --- 复刻 §10.2 顺序：DropAllLogic（env.Dispose 前清旧引用）→ env 死亡 → 新 env/重 require ---
             _ui.DropAllLogic();
             _env.Dispose();                              // 旧 env 死亡时点——旧 LuaFunction 全部失效
-            (_env, _module) = NewEnvWithModule("Tests.UiTestPage");   // 重预载/重 require（模块计数归零）
+            (_env, _module) = NewEnvWithModule("Tests.UITestPage");   // 重预载/重 require（模块计数归零）
 
             var reopen = _ui.ShowAsync(TestPageFormId);      // 复用缓存实例：新逻辑必须来自新 env
             yield return WaitUniTask(reopen, 20f);
@@ -179,11 +179,11 @@ namespace LiteGame.Tests.UI.PlayMode
             // **断言通道（踩坑记录）**：SafeCall 走 LiteFramework.Log（环形缓冲 + ErrorCount，
             // helper 未注入时不桥接 UnityEngine 日志）——LogAssert 看不到它。可诊断断言用
             // **产品诊断面**：ErrorCount 增量 + Recent 缓冲内容（含 formId/阶段/异常类型与内容），
-            // 与 EditMode 先例（UiU0EditModeTests 的 ErrorCount 口径）一致。
+            // 与 EditMode 先例（UIU0EditModeTests 的 ErrorCount 口径）一致。
             int errBefore = LiteFramework.Log.ErrorCount;
 
             _env.DoString(@"
-local m = require('Tests.UiTestPage')
+local m = require('Tests.UITestPage')
 m.OnInit = function(self, ctx, data) error('诊断注入:OnInit 失败') end");
 
             var open = _ui.ShowAsync(TestPageFormId);
@@ -244,7 +244,7 @@ return m";
         }
 
         private int LuaShows(LuaEnv env)
-            => Convert.ToInt32(env.DoString("return require('Tests.UiTestPage').__shows")[0]);
+            => Convert.ToInt32(env.DoString("return require('Tests.UITestPage').__shows")[0]);
 
         private static async UniTask<IUIPrefabLease> LoadRealPrefabAsync(string location, CancellationToken ct)
         {

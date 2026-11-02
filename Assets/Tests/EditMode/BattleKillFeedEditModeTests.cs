@@ -15,7 +15,7 @@ namespace LiteGame.Tests.EditMode
     /// 全局击杀提示的 L2 EditMode 覆盖（击杀提示批）：
     /// ① <see cref="PublicCombatFeed"/>——首份快照/重连不重播、重复重发去重、新条入队、Reset 复位；
     /// ② <see cref="BattleKillFeedDriver"/>——多条堆叠、行格式（"你"/"玩家{k}"/"玩家{v} 阵亡"）、
-    /// 武器图标按装备槽取图、驻留到时回收（计时走 <see cref="UiAnimationClock"/> 可控假件）。
+    /// 武器图标按装备槽取图、驻留到时回收（计时走 <see cref="UIAnimationClock"/> 可控假件）。
     /// 真场景观感（字号/落位）归 PlayMode/手测。
     /// </summary>
     public sealed class BattleKillFeedEditModeTests : UnityTestBase
@@ -38,13 +38,13 @@ namespace LiteGame.Tests.EditMode
         public void BindClock()
         {
             _clock = new FakeUIClock { ScaledDelta = 0f };
-            UiAnimationClock.Bind(_clock);
+            UIAnimationClock.Bind(_clock);
         }
 
         [TearDown]
         public void UnbindClock()
         {
-            UiAnimationClock.ResetForEditorReload();      // 不留全局残留（其他用例依赖未绑定形态）
+            UIAnimationClock.ResetForEditorReload();      // 不留全局残留（其他用例依赖未绑定形态）
         }
 
         /// <summary>构一批事件（Death 型；Value = 击杀帧装备槽——与 proto 的 kind 释义一致）。</summary>

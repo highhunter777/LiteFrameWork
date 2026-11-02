@@ -11,11 +11,11 @@ namespace LiteFramework.Core.Tests
     public sealed class OperationScopeGuardTests
     {
         [Theory]
-        [InlineData("Assets/LiteFramework/Runtime/Modules/UI/UIService.cs")]
-        [InlineData("Assets/LiteFramework/Runtime/Modules/UI/UINavigationController.cs")]
-        [InlineData("Assets/LiteFramework/Runtime/Modules/UI/Transition/UITransitionRunner.cs")]
-        [InlineData("Assets/LiteFramework/Runtime/Modules/Content/PatchRunner.cs")]
-        [InlineData("Assets/LiteFramework/Runtime/Modules/Content/HttpCandidateFetcher.cs")]
+        [InlineData("Assets/LiteFramework/Runtime/Services/UI/UIService.cs")]
+        [InlineData("Assets/LiteFramework/Runtime/Services/UI/UINavigationController.cs")]
+        [InlineData("Assets/LiteFramework/Runtime/Services/UI/Transition/UITransitionRunner.cs")]
+        [InlineData("Assets/LiteFramework/Runtime/Services/Content/PatchRunner.cs")]
+        [InlineData("Assets/LiteFramework/Runtime/Services/Content/HttpCandidateFetcher.cs")]
         public void 已迁移文件_只经OperationScope持有取消(string relativePath)
         {
             string root = RepoRoot();
@@ -32,10 +32,10 @@ namespace LiteFramework.Core.Tests
         public void 转场_取消源归作用域_播放容器只读令牌()
         {
             string root = RepoRoot();
-            string motion = File.ReadAllText(Path.Combine(root, "Assets/LiteFramework/Runtime/Modules/UI/Anim/MotionOutcome.cs"));
+            string motion = File.ReadAllText(Path.Combine(root, "Assets/LiteFramework/Runtime/Services/UI/Anim/MotionOutcome.cs"));
             Assert.DoesNotContain("new CancellationTokenSource", motion);
 
-            string context = File.ReadAllText(Path.Combine(root, "Assets/LiteFramework/Runtime/Modules/UI/Transition/TransitionReq.cs"));
+            string context = File.ReadAllText(Path.Combine(root, "Assets/LiteFramework/Runtime/Services/UI/Transition/TransitionReq.cs"));
             Assert.Contains("OperationScope Scope", context);
             Assert.DoesNotContain("CancellationTokenSource", context);
         }

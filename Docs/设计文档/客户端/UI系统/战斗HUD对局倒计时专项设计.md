@@ -133,7 +133,7 @@ Hud_Battle
 | --- | --- | --- |
 | 字体资产 | 复用 HUD 全树同一份 `Assets/ShareResource/Fonts/NotoSansSC SDF.asset` | 不为一个读数引入第二字体/第二图集 |
 | 字号 | 语义档位"读数级"，建议 30–34（`Txt_Score`=22、`Txt_Ammo`=54、`Txt_RespawnCountdown`=72 之间） | 最终值制作侧定档；**代码不设置字号** |
-| 颜色 | 沿用 HUD 现有烘焙值口径（本节点不挂 `UiStyleRef`） | HUD 全树当前零令牌引用，单点接令牌会造成视觉来源分叉；如接令牌须同批登记 HUD 例外（规范 05 UI-TEXT-08） |
+| 颜色 | 沿用 HUD 现有烘焙值口径（本节点不挂 `UIStyleRef`） | HUD 全树当前零令牌引用，单点接令牌会造成视觉来源分叉；如接令牌须同批登记 HUD 例外（规范 05 UI-TEXT-08） |
 | `raycastTarget` | **false**（TMP 默认 true，必须显式关） | 规范 05 UI-RENDER-02；`BattleHudMenuEditModeTests` 钉住"全 HUD 恰 1 个 raycastTarget=true（菜单钮）" |
 | 富文本/自动换行 | 关闭 | 纯数字文本，无样式标签 |
 | 静态文案 | 不挂 `LTextKeyRef` | 动态数值，走驱动写 `text` |
@@ -265,7 +265,7 @@ bool TryGetMatchClock(out BattleMatchClockFacts clock);   // false = 未对齐/�
 
 | 扩展 | 触发条件 | 形态约束 |
 | --- | --- | --- |
-| 低时提示（≤10s 变色/脉冲） | 玩家反馈"看不到快没时间了" | **禁止代码写 RGB**：prefab 预置 normal/urgent 两个变体节点（各自挂 `UiStyleRef`），驱动切显隐；脉冲走 `UiFx` + `UiAnimationClock`（红线 9） |
+| 低时提示（≤10s 变色/脉冲） | 玩家反馈"看不到快没时间了" | **禁止代码写 RGB**：prefab 预置 normal/urgent 两个变体节点（各自挂 `UIStyleRef`），驱动切显隐；脉冲走 `UIFx` + `UIAnimationClock`（红线 9） |
 | 准备/开局倒计时 | 出现"开局前 3-2-1"赛制需求 | 需 Sim 侧新增阶段或房间命令，先立协议与判定专项 |
 | 加时赛 | 赛制需要平局加时 | `MatchStateData.Round` + `MatchRules` 扩展，HUD 复用同一驱动 |
 | 团队模式比分同排 | `Team=1` 落地 | 与 `Txt_Score` 联合排版，作为一次 Level 设计 |

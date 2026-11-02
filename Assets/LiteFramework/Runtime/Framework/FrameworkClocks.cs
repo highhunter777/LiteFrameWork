@@ -8,14 +8,14 @@ namespace LiteFramework
     {
         public readonly WorldClock World;
 
-        public readonly UIClock Ui;
+        public readonly UIClock UI;
 
         public readonly SystemWallClock Wall;
 
         private FrameworkClocks(WorldClock world, UIClock ui, SystemWallClock wall)
         {
             World = world;
-            Ui = ui;
+            UI = ui;
             Wall = wall;
         }
 

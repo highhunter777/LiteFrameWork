@@ -6,7 +6,7 @@
 > Owner：客户端工具；运行时/绑定契约由客户端 UI 负责
 > 定位：回答“美术与工程如何用一套工具完成 UI 的起页、布局、绑定、样式、文案、契约、校验、预览与登记”。本文只裁工具形态、输入输出与门禁，不重复运行时的生命周期/导航契约。
 > 不做的事：不做第二套画布/布局格式；不做 Figma 导入；不做运行时特效播放器；不替代 Prefab Stage；不把目标工具描述成已有工具；不记录施工状态。
-> 冲突裁决：资产写入以 Unity 序列化/Pipeline 为准（`Docs/工具链/Unity操作规范.md`）；工具入口/清单以 `scripts/gate/toolchain.json` 与[开发工具链平台专项设计](../../架构/开发工具链平台专项设计.md)为准；页面契约字段以本文 §5 与 `UiPageContract.schema.json` 为准；角色/交接以[UI 美术协作与交接规范](../../../规范/06-UI美术协作与交接.md)为准。
+> 冲突裁决：资产写入以 Unity 序列化/Pipeline 为准（`Docs/工具链/Unity操作规范.md`）；工具入口/清单以 `scripts/gate/toolchain.json` 与[开发工具链平台专项设计](../../架构/开发工具链平台专项设计.md)为准；页面契约字段以本文 §5 与 `UIPageContract.schema.json` 为准；角色/交接以[UI 美术协作与交接规范](../../../规范/06-UI美术协作与交接.md)为准。
 > 关联：[UI 系统总设计](UI系统总设计.md) · [UI 运行时调试工具链专项设计](UI运行时调试工具链专项设计.md) · [UI 制作规范](../../../规范/05-UI制作.md) · [UI 命名与控件词表参考](UI命名与控件词表参考.md)
 
 ## 1. 定位与工具边界
@@ -110,7 +110,7 @@
 1. 从视觉基线**复制**为自包含 prefab（不生成 Variant，避免跨 owner 继承）。
 2. 改根名与文件名一致；`EnsureRootContract` 幂等补齐根组件：`Canvas`、`CanvasScaler`（`ScaleWithScreenSize`，1920×1080，`match=0.5`）、`GraphicRaycaster`、`CanvasGroup`；安全区优先挂**现有拉伸 `Cot_*` 内容容器**（`Tmp_BaselineA/B` → `Cot_Baseline`），已有 `SafeAreaReceiver` 则保留（`Tmp_ListScreen` 内容节点已带），都没有才新建 `Cot_SafeArea` 并把原内容按序搬入。
 3. 不写 `tbuiform`、不生成 Lua、不生成绑定类。
-4. 生成页面草稿元数据（`UiPageManifest` 条目：Owner=美术、状态=草案）。
+4. 生成页面草稿元数据（`UIPageManifest` 条目：Owner=美术、状态=草案）。
 5. 草稿契约：美术跑 `ui.contract` 时，批量把草稿页纳入（`formId=0`，见 §5.2），作为交接前可评审产物。
 
 产物：`Assets/ShareResource/UI/Screens/Page_<Semantic>.prefab` + 草稿清单条目 + 草稿契约。
@@ -141,7 +141,7 @@
 
 ### 3.5 生成契约（美术触发，双方消费）
 
-- 从 prefab 生成 `UiPageContract`（见 §5）；无契约不进入工程交接。
+- 从 prefab 生成 `UIPageContract`（见 §5）；无契约不进入工程交接。
 - **草稿契约**：`ui.contract` 批量在按表行生成之后，纳入清单中 `forms` 为空、状态 `Draft` 的页面（`formId=0`、`luaPath=null`、草稿层/全屏默认，维护字段取清单）；同一 prefab 已在表行集合中则不重复。缺清单时显式告警“草稿契约未纳入”，不伪造。
 - 漂移对账：草稿走 `Regenerate(allowDraft:true)`，仍逐字节比较判 Error（布局改动后必须重生成）。
 - 契约生成是确定性动作：深度优先、无时间戳、字段排序稳定；重复生成无 diff。
@@ -157,7 +157,7 @@
 1. 预检：契约存在/可读、`page.name` 匹配、`formId=0`、`prefabGuid` 与当前 prefab 一致（防同名旧契约）；页面清单条目为 `Draft` 且无登记行；id 不冲突/不在保留区；layer 0–3；prefab 存在。全部在写面之前。
 2. 生成 Lua 最小骨架（已存在则保留，不覆盖作者逻辑）。
 3. 写 `Luban/Data/#uiform.xlsx` 一行（id/lua_path/prefab/layer/full_screen；**备份先于写**，失败也回传备份句柄），随后跑 `codegen.luban` → `codegen.build-hash`（红线 1）。
-4. 更新 `UiPageManifest`：对账 → 状态 `Draft → Registered`、写入缓存策略、刷新 `contractPresent`。
+4. 更新 `UIPageManifest`：对账 → 状态 `Draft → Registered`、写入缓存策略、刷新 `contractPresent`。
 5. 重生成契约填真实 `formId`/layer/fullScreen/luaPath（`ui.contract` 判据同源）；失败显式报红，不回滚已登记的清单，提示重跑 `ui.contract`。
 6. 绑定 hash 清单条目：仅页面挂 `BindRoot`（C# 生成类）时记录；无 `BindRoot` 不伪造条目。
 
@@ -223,10 +223,10 @@
 
 ### 5.1 定义
 
-`UiPageContract` 是从 prefab + `tbuiform` 行生成的**只读页面接口描述**，是美术→工程的唯一交接物：
+`UIPageContract` 是从 prefab + `tbuiform` 行生成的**只读页面接口描述**，是美术→工程的唯一交接物：
 
 - 真相：prefab（BindNode/LTextKeyRef/样式引用/嵌套模板）+ `tbuiform` 行。
-- 产物：`Assets/LiteGame/Editor/UiTools/Contracts/<PageName>.contract.json`；不进运行时/不进包。
+- 产物：`Assets/LiteGame/Editor/UITools/Contracts/<PageName>.contract.json`；不进运行时/不进包。
 - 写入：生成器写；禁手改；编辑器显式触发。
 - 版本：`schemaVersion` 主.次；主版本不兼容，次版本只做向后兼容追加；废弃字段至少保留一个次版本。
 - 消费：工作台契约透视、校验规则、引用对账、CI diff、工程接线。
@@ -291,7 +291,7 @@
 - **`kind` 初始推断**：交互/列表/进度类组件（Selectable、ScrollRect、VirtualList、SimpleListView、UIWidget、ProgressBar、Stepper、UIDropdownWrap）记 `Command`；其余记 `None`。`Bound` 需静态绑定标记出现后再产生，当前生成器不臆造。
 - **`required` 初始推断**：`Command` 记 `true`，`None` 记 `false`；后续引用对账可细化。
 - **`cacheStrategy`**：`tbuiform` 尚无缓存策略列；它是**页面清单维护字段**（默认 `Lru`，可在工作台/登记窗口选 `Resident`/`Lru`/`DestroyOnClose`），对账保留、契约投影同值，运行时暂不消费。
-- **草稿契约**：未登记页（起页后、`tbuiform` 无行）可生成契约，`page.formId=0`、`luaPath=null`、`layer/fullScreen` 取单源默认（`UiContractGenerator.DraftLayer=0`/`DraftFullScreen=true`）；登记后重生成填真实身份。`UiPageContract.schema.json` 的 `formId` 最小值为 0 即此义。
+- **草稿契约**：未登记页（起页后、`tbuiform` 无行）可生成契约，`page.formId=0`、`luaPath=null`、`layer/fullScreen` 取单源默认（`UIContractGenerator.DraftLayer=0`/`DraftFullScreen=true`）；登记后重生成填真实身份。`UIPageContract.schema.json` 的 `formId` 最小值为 0 即此义。
 - **批量与多行**：`ui.contract` 按 `tbuiform` 全量生成——表只读一次、按 prefab 去重、输出确定性。根名不在 `Page_/Hud_/Tmp_` 契约面的非常驻壳（若出现）显式跳过并告警，不计失败；同一 prefab 多行登记取**首行**，其余行由页面清单 `forms[]` 承担并告警。
 - **`LTextKeyRef`**：只存 `Key`；`text[]` 的 `args` 固定 0。参数/复数/富文本替换属于工程动态文案，不进静态契约。
 - **确定性**：深度优先、按 `nodePath`（事件按 `bindName|event`）稳定排序；JSON 固定字段序、LF 换行、UTF-8 无 BOM；负例只返回错误，不写盘。
@@ -322,7 +322,7 @@
 
 - 同一校验核心供工作台、菜单、CLI、EditMode 测试调用。
 - 输入：资产集合 + 源码面（Lua/C# 引用）+ 规则配置。
-- 输出：`UiIssue { ruleId, severity, asset, node, message, fixHint }` + 汇总。
+- 输出：`UIIssue { ruleId, severity, asset, node, message, fixHint }` + 汇总。
 - 报告不依赖打开窗口；CI 可非零退出；正例与违规负例同库。
 
 ### 6.2 规则族
@@ -344,7 +344,7 @@
 - `Error`：阻断提交/CI；必须修复或登记例外。
 - `Warning`：可提交但必须可见；同一页面 Warning 数量进入质量度量。
 - `Info`：提示优化，不阻断。
-- **例外登记**：`UiRuleExceptions`（`Assets/LiteGame/Editor/UiTools/UiRuleExceptions.json`，手工维护的配置、不是生成物；schema：[UiRuleExceptions.schema.json](UiRuleExceptions.schema.json)）。
+- **例外登记**：`UiRuleExceptions`（`Assets/LiteGame/Editor/UITools/UIRuleExceptions.json`，手工维护的配置、不是生成物；schema：[UIRuleExceptions.schema.json](UIRuleExceptions.schema.json)）。
   - 条目必填：`ruleId` / `asset` / `owner` / `reason` / `expiry`（`yyyy-MM-dd`）；`node` 可空＝该资产任意节点；`asset`/`node` 支持任意位置 `*` 通配。
   - 命中且未过期：问题**仍然出现**，级别降一级（`Error→Warning`、`Warning→Info`）并在报文末尾标注「例外：Owner，到期 expiry」——不静默、不删除问题。
   - 过期：不再降级，问题回到原级别；同时报 `ui.rule-exception.expired`（Warning）要求清理。
@@ -377,8 +377,8 @@
 | **真链路** | Boot → 登录 → 目标页 / PlayMode；真实数据与行为 | 不用布局档冒充运行时验收 |
 
 - 布局档场景是编辑器工具资产，不进收集组/不进包。
-- **现行口径（P2-3 B3 冻结）**：布局档由 `UiPreviewDriver` 实例化目标 prefab；设备档/语言/字体缩放在 Play 内免重启切换（编辑器写 `SessionState` → 驱动轮询应用；安全区经 `SafeAreaReceiver.SetStrategy` 注入）。
-- **设备档单源**：`Assets/LiteGame/Editor/UiTools/UiDeviceProfiles.json`（schema [UiDeviceProfiles.schema.json](UiDeviceProfiles.schema.json)）——六横屏档＋竖屏预留、`inMatrix` 标记；驱动/工作台/矩阵三方共用，不允许第二份分辨率/inset 字面量。GameView 分辨率经内部 API 反射切换（`SetCustomResolution`），失败降级为仅模拟安全区并在矩阵索引记 `resolutionApplied=false`。
+- **现行口径（P2-3 B3 冻结）**：布局档由 `UIPreviewDriver` 实例化目标 prefab；设备档/语言/字体缩放在 Play 内免重启切换（编辑器写 `SessionState` → 驱动轮询应用；安全区经 `SafeAreaReceiver.SetStrategy` 注入）。
+- **设备档单源**：`Assets/LiteGame/Editor/UITools/UIDeviceProfiles.json`（schema [UIDeviceProfiles.schema.json](UIDeviceProfiles.schema.json)）——六横屏档＋竖屏预留、`inMatrix` 标记；驱动/工作台/矩阵三方共用，不允许第二份分辨率/inset 字面量。GameView 分辨率经内部 API 反射切换（`SetCustomResolution`），失败降级为仅模拟安全区并在矩阵索引记 `resolutionApplied=false`。
 - **语言**：tbltext 文件直载（`ConfigTableFileSource` 全表字节模式 + `LTextCatalog`）构建 `LocalizationService`；`PseudoLocale` 装饰器产出 ≥30% 长文本与音标符；不改表、不写盘。直载失败时驱动上报 `LocaleStatus=unavailable`（静默保持作者文本），矩阵据此把该组合记失败并写降级记录，**不假绿**。
 - **字体缩放**：1.0/1.15/1.3（与总设计 §7.5 同源），对页面 TMP 记录原值后乘档，切档/退出恢复。
 - **交互切档**：预览工具条提供设备档（含分辨率）/语言/字体三组轮换按钮，写 `SessionState`＋修订号，驱动轮询免重启应用；退出预览还原 GameView 分辨率与页面状态。
@@ -398,14 +398,14 @@
 
 ### 8.1 样式工具
 
-- 令牌源：JSON → 生成 `UiThemeAsset`（SO）；工具只读生成物与 prefab 引用。
-- **现行口径（P2-3a 冻结）**：源＝`Assets/LiteGame/Editor/UiTools/UiStyleTokens.json`（设计态、不进包；格式以 [UiStyleTokens.schema.json](UiStyleTokens.schema.json) 2.0 为准）；生成物＝`Assets/GameData/Config/UI/UiTheme.asset`（随 `Assets/GameData/Config` 收集组进包）；入口＝`ui.style.tokens`（幂等：同源重跑 `changed=false` 且不触碰资产；校验失败零写盘；手改资产被覆盖并报告变更）。
+- 令牌源：JSON → 生成 `UIThemeAsset`（SO）；工具只读生成物与 prefab 引用。
+- **现行口径（P2-3a 冻结）**：源＝`Assets/LiteGame/Editor/UITools/UIStyleTokens.json`（设计态、不进包；格式以 [UIStyleTokens.schema.json](UIStyleTokens.schema.json) 2.0 为准）；生成物＝`Assets/GameData/Config/UI/UITheme.asset`（随 `Assets/GameData/Config` 收集组进包）；入口＝`ui.style.tokens`（幂等：同源重跑 `changed=false` 且不触碰资产；校验失败零写盘；手改资产被覆盖并报告变更）。
 - **组按消费者落地**：P2-3a 写 `color`（12）与 `typography`（5）；P2-3 B2 补 8 枚 `color.state.*`；P2-3 B4 补 44 枚精确色（含 2 枚 `color.debug.*` 夹具色）与 5 枚 `color.state.selectable.*`，共 **69 个唯一 ID**（值允许按状态语义重值，显式 ID 消费）；`spacing/radius/elevation/motion/icon` 仍空集，随首个应用器/解析器批次补值——不预造无消费者的令牌。
-- **读面**：编辑器侧经 `UiTokenCatalog`（每次操作装载一次、按参数下传，禁静态缓存）；`UiStyle`/`UiTextStyle` 的旧名保留为只读属性（调用点源兼容），值一律来自生成物。
+- **读面**：编辑器侧经 `UITokenCatalog`（每次操作装载一次、按参数下传，禁静态缓存）；`UIStyle`/`UITextStyle` 的旧名保留为只读属性（调用点源兼容），值一律来自生成物。
 - **漂移判定**：`ui.style.token-drift` 按 JSON 重算快照（ID/值/`sourceHash`）与 SO 逐字段比对，不一致即 Error 并提示重跑生成；生成器的"是否写盘"用同一个快照比较（单源）。
-- 刷新/应用：`ui.style.colors-refresh` **三段式**：① refs 段——按 `UiStyleRef` 声明精确应用（权威写者；跳过 `IThemeGraphicWriter` 认领的目标 Graphic）；② widget 迁移段——三 widget（StateButton/TabGroup/StarRating）状态色字段按最近匹配填 token ID（已填跳过＝幂等、不命中不填＝留空合法；**不填 `color.state.selectable.*`**）；③ 裸值段——未声明节点最近匹配收敛（跳过已声明与 writer 子树）。幂等、报告分段（应用/跳过/未知令牌/填入/未命中）；"可回退"＝幂等重跑＋变更仅经工具落盘（版本管理可回退；总设计 §6.2 同批澄清）。字号/间距应用待对应引用组件批次。
-- **Selectable 状态色迁移**（P2-3 B4）：`UiSelectableThemeApplier.EnsureAll(dirs)` 只给直挂 ColorTint Selectable 补 `UiSelectableTheme`，跳过嵌套 prefab 实例（源模板继承），**不写任何颜色/ColorBlock**；报告 Added/Direct/Inherited/Skipped，幂等。真实面 33 直挂 + 13 继承 = 46 覆盖。
-- **文字档精确迁移**（P2-3 B4）：`UiTextStyleTool.MigrateExactRoleRefs(catalog, dirs)` 只给属性与角色档逐项一致、无标记、非嵌套实例的文本补 `UiTextStyleRef`；只加组件不改属性；多档歧义跳过并报告；实例合法覆盖由 `UiTextStyleRef.UseInstanceOverrides` 标记（不应用/不判 Mismatch，仍计未标记债）。真实面新增 23 组件/覆盖 37 节点（14 继承）。
+- 刷新/应用：`ui.style.colors-refresh` **三段式**：① refs 段——按 `UIStyleRef` 声明精确应用（权威写者；跳过 `IThemeGraphicWriter` 认领的目标 Graphic）；② widget 迁移段——三 widget（StateButton/TabGroup/StarRating）状态色字段按最近匹配填 token ID（已填跳过＝幂等、不命中不填＝留空合法；**不填 `color.state.selectable.*`**）；③ 裸值段——未声明节点最近匹配收敛（跳过已声明与 writer 子树）。幂等、报告分段（应用/跳过/未知令牌/填入/未命中）；"可回退"＝幂等重跑＋变更仅经工具落盘（版本管理可回退；总设计 §6.2 同批澄清）。字号/间距应用待对应引用组件批次。
+- **Selectable 状态色迁移**（P2-3 B4）：`UISelectableThemeApplier.EnsureAll(dirs)` 只给直挂 ColorTint Selectable 补 `UISelectableTheme`，跳过嵌套 prefab 实例（源模板继承），**不写任何颜色/ColorBlock**；报告 Added/Direct/Inherited/Skipped，幂等。真实面 33 直挂 + 13 继承 = 46 覆盖。
+- **文字档精确迁移**（P2-3 B4）：`UITextStyleTool.MigrateExactRoleRefs(catalog, dirs)` 只给属性与角色档逐项一致、无标记、非嵌套实例的文本补 `UITextStyleRef`；只加组件不改属性；多档歧义跳过并报告；实例合法覆盖由 `UITextStyleRef.UseInstanceOverrides` 标记（不应用/不判 Mismatch，仍计未标记债）。真实面新增 23 组件/覆盖 37 节点（14 继承）。
 - 漂移报告：区分“引用缺失/解析值不符/裸值/令牌不存在”；运行时实例变化不进资产报告。
 - 字体检查：字体族/fallback/语言覆盖/缺字/atlas 容量。
 - 图集检查：引用 sprite 是否进图集、图集分组、九宫格边界、Image.Type。
@@ -424,21 +424,21 @@
 
 | 生成物 | 路径 | 消费者 |
 | --- | --- | --- |
-| `UiPageContract` | `Assets/LiteGame/Editor/UiTools/Contracts/*.contract.json` | 工程接线、校验、CI、调试读模型 |
-| `UiBindManifest` | `Assets/LiteGame/Editor/UiTools/UiBindManifest.json` | 绑定 hash 对账 |
-| `UiPageManifest` | `Assets/LiteGame/Editor/UiTools/UiPageManifest.json` | 工作台页面清单/Owner/状态/设计稿 |
-| `UiWidgetManifest` | `Assets/LiteGame/Editor/UiTools/UiWidgetManifest.json` | 控件库/文档/校验 |
-| `UiThemeAsset` | `Assets/GameData/Config/UI/`（SO） | 运行时样式解析 |
+| `UIPageContract` | `Assets/LiteGame/Editor/UITools/Contracts/*.contract.json` | 工程接线、校验、CI、调试读模型 |
+| `UiBindManifest` | `Assets/LiteGame/Editor/UITools/UIBindManifest.json` | 绑定 hash 对账 |
+| `UIPageManifest` | `Assets/LiteGame/Editor/UITools/UIPageManifest.json` | 工作台页面清单/Owner/状态/设计稿 |
+| `UIWidgetManifest` | `Assets/LiteGame/Editor/UITools/UIWidgetManifest.json` | 控件库/文档/校验 |
+| `UIThemeAsset` | `Assets/GameData/Config/UI/`（SO） | 运行时样式解析 |
 
-> `UiThemeAsset`：P2-3a 起由 `ui.style.tokens` 从 `UiStyleTokens.json` 生成；P2-3 B2/B4 有运行期消费链（bootstrap 一次装载 → `UIForm.ThemeProvider` / HUD `BattleViewAssets` → 装配期 `UiThemeBinder` 注入），共 69 色（12 基础 + 8 B2 状态 + 44 精确 + 5 Selectable；映射表见总设计 §6.5）；其余五组仍空集（按消费者落地）。
-> 例外登记不是生成物，单独记：`Assets/LiteGame/Editor/UiTools/UiRuleExceptions.json`（手工维护，见 §6.3）。
+> `UIThemeAsset`：P2-3a 起由 `ui.style.tokens` 从 `UIStyleTokens.json` 生成；P2-3 B2/B4 有运行期消费链（bootstrap 一次装载 → `UIForm.ThemeProvider` / HUD `BattleViewAssets` → 装配期 `UIThemeBinder` 注入），共 69 色（12 基础 + 8 B2 状态 + 44 精确 + 5 Selectable；映射表见总设计 §6.5）；其余五组仍空集（按消费者落地）。
+> 例外登记不是生成物，单独记：`Assets/LiteGame/Editor/UITools/UIRuleExceptions.json`（手工维护，见 §6.3）。
 > 生成物禁手改；路径/格式变更与 schema 同批更新。
 
 ### 8.4 控件规格与控件清单（v1.0 冻结）
 
 <a id="ch-widget-spec"></a>
 
-`WidgetSpec` 是控件模板的能力声明（总设计 §1.4），挂在 `Widgets/Tmp_*.prefab` 根上；`UiWidgetManifest`
+`WidgetSpec` 是控件模板的能力声明（总设计 §1.4），挂在 `Widgets/Tmp_*.prefab` 根上；`UIWidgetManifest`
 是它的投影（生成物，禁手改）。字段模型与口径如下：
 
 ```json
@@ -473,12 +473,12 @@
 - **字段口径**：
   - `Owner`/`Summary`：模板归属（RACI，默认 `art.ui`）与一句话用途（对齐《UI 命名与控件词表参考》§3「用途」）。
   - `Slots[]`：插槽容器路径（`Cot_*`/`Slot_*`），保持声明序（header/body/footer 语义序）；`Required` 表示页面使用该控件时必须填充。
-  - `States[]`：`UiWidgetState` 词表（Normal/Hover/Pressed/Disabled/Selected/Loading/Empty/Error，总设计 §6.5 单源），按枚举值序输出。
+  - `States[]`：`UIWidgetState` 词表（Normal/Hover/Pressed/Disabled/Selected/Loading/Empty/Error，总设计 §6.5 单源），按枚举值序输出。
   - `Events[]`：`类型.成员` 形式，只声明模板内**真实存在的公开事件或 UnityEvent 字段**（如 `Stepper.OnChanged`、`UIEventRelay.OnClicked`）；UGUI 内建事件按 `类型.成员` 同样写法（如 `Button.onClick`）。
   - `SizeBehavior`：`Fixed`（模板固定尺寸）/`Expand`（沿父容器拉伸）/`FitContent`（随内容自适应）。
   - `Constraints[]`：事实性使用约束（自由文本，如「固定尺寸单轴」「同时可见上限 MaxVisible」），不做结构化臆造。
-  - `properties[]`：**不重复声明**——真相是控件字段上的 `UiWidgetProperty`（`UiWidgetPropertyCatalog` 枚举），清单只做投影。
-- **生成口径**：模板清单＝目录（`Widgets/Tmp_*`，不另存清单文件）；每模板读根 `WidgetSpec` + 受控属性 + 绑定面 hash（`UiBindGenerationHash`）；按模板名稳定排序、无时间戳、LF、UTF-8 无 BOM、重复生成逐字节一致。
+  - `properties[]`：**不重复声明**——真相是控件字段上的 `UiWidgetProperty`（`UIWidgetPropertyCatalog` 枚举），清单只做投影。
+- **生成口径**：模板清单＝目录（`Widgets/Tmp_*`，不另存清单文件）；每模板读根 `WidgetSpec` + 受控属性 + 绑定面 hash（`UIBindGenerationHash`）；按模板名稳定排序、无时间戳、LF、UTF-8 无 BOM、重复生成逐字节一致。
 - **`sourceHash` 输入**：`template|owner|summary|size` + `slot(name/required/description)` + `state` + `event` + `constraint` + `property(nodePath/component/member/kind)` + `bindingHash`；**不含** `prefabPath`/`prefabGuid`/生成器版本/告警（模板移动不改指纹）。
 - **校验口径**：缺 `WidgetSpec` 记 Warning（`specPresent=false`，清单仍可生成；Error 归 §6 校验规则族）；插槽名不合约定、插槽节点不存在、插槽重名、事件为空/重名/成员解析不到、状态重复、约束空串/重名、模板根名与文件名不一致 → Error，负例不写盘。
 - **作者面**：Inspector 支持「从节点发现插槽」（复用绑定面遍历单源，排除 `Clone_` 子树/模板内部件/嵌套 `BindRoot` 子树），幂等并入且保留作者填写。
@@ -490,7 +490,7 @@
 
 <a id="ch-page-manifest"></a>
 
-`UiPageManifest` 是**工具维护的页面注册表**（总设计 §5.1/§10.3：编辑器清单，不进运行时、不进包）：
+`UIPageManifest` 是**工具维护的页面注册表**（总设计 §5.1/§10.3：编辑器清单，不进运行时、不进包）：
 身份字段从 `tbuiform` 刷新，维护字段（Owner/状态/设计稿/设备档/备注）由工具 API 更新并在对账时保留。
 之所以不是纯生成物：起页可在表行之前产生草稿条目（§3.1），登记后再更新状态（§3.6）。
 
@@ -507,7 +507,7 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Lobby.contract.json",
+      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Page_Lobby.contract.json",
       "contractPresent": false,
       "designRef": null,
       "deviceProfiles": [],
@@ -524,7 +524,7 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_Dialog.contract.json",
+      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Tmp_Dialog.contract.json",
       "contractPresent": false,
       "deviceProfiles": []
     }
@@ -564,10 +564,10 @@
 | `ui.page-register` | 页面登记（工程） | window | asset/source/generated | 写 tbuiform、Lua/C# 骨架、Luban、hash |
 | `ui.bind-generate` | 绑定生成 | action | generated | C# 生成类 + hash 记录 |
 | `ui.binding-hash` | 绑定 hash 对账 | action | data | 记录/校验生成物 |
-| `ui.contract` | 契约生成/刷新 | action | asset(data) | 生成 `UiPageContract` |
+| `ui.contract` | 契约生成/刷新 | action | asset(data) | 生成 `UIPageContract` |
 | `ui.contract-diff` | 契约 diff | action | none | 与基线比较；CI 可用 |
-| `ui.widget-manifest` | 控件清单生成 | action | asset(data) | 生成 `UiWidgetManifest` |
-| `ui.page-manifest` | 页面清单对账 | action | asset(data) | 生成 `UiPageManifest` |
+| `ui.widget-manifest` | 控件清单生成 | action | asset(data) | 生成 `UIWidgetManifest` |
+| `ui.page-manifest` | 页面清单对账 | action | asset(data) | 生成 `UIPageManifest` |
 | `ui.validate` | 全量校验 | action | none | 统一报告 |
 | `ui.validate-art` | 增量校验（美术） | action | none | <10s，中文提示 |
 | `ui.style.*` | 令牌刷新/应用/报告 | action | asset/none | 颜色/文字/间距 |
@@ -580,7 +580,7 @@
 | 阶段 | 范围 | 退出条件 |
 | --- | --- | --- |
 | T0 基线 | 资产/页面/控件盘点；旧工具冻结；页面清单；校验规则盘点 | 清单可用；旧入口收口；基线报告可复查 |
-| T1 契约与清单 | `WidgetSpec`、`UiPageManifest`、`UiWidgetManifest`、Page Contract、schema、diff | 契约可生成/对账；正负例齐 |
+| T1 契约与清单 | `WidgetSpec`、`UIPageManifest`、`UIWidgetManifest`、Page Contract、schema、diff | 契约可生成/对账；正负例齐 |
 | T2 工作台 | 宿主 + 页面/控件/绑定/校验透视；起页/登记拆分 | 美术起页、工程登记；上下文共享 |
 | T3 样式与预览 | 令牌工具、设备档、截图矩阵、增量校验 | 美术独立交接；预览覆盖中/英/长文本/安全区 |
 | T4 CI 与全量 | 规则族全量、hash/契约/资源门禁、报告 | CI 能红；报告可定位 |

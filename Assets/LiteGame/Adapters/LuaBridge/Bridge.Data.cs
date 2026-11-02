@@ -7,7 +7,7 @@ using XLua;
 using cfg;
 using LiteFramework.UI;
 using LiteGame.Modules.Config;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 
 namespace LiteGame
 {
@@ -54,7 +54,7 @@ namespace LiteGame
         }
 
         /// <summary>装配期注入语言服务工厂（text 门面后端；与页面索引 BindLocale 共用同一实例——
-        /// 由 UI 段经 <c>ILuaUiBinding.BindTextFacade</c> 交给本门面）。</summary>
+        /// 由 UI 段经 <c>ILuaUIBinding.BindTextFacade</c> 交给本门面）。</summary>
         public static void BindText(Func<ILocalizationService> localeProvider)
         {
             s_localeProvider = localeProvider ?? throw new ArgumentNullException(nameof(localeProvider));
@@ -73,11 +73,11 @@ namespace LiteGame
             data.Set("GetItem", new Func<int, LuaTable>(id => Data.GetItemLua(env, id)));
             data.Set("ListMaps", new Func<LuaTable>(() => Data.ListMapsLua(env)));   // 地图目录（开房选图下拉）
             var ui = env.NewTable();
-            ui.Set("GetLogic", new Func<string, LuaTable>(Ui.GetLogic));
-            ui.Set("Show", new Action<string, LuaTable>(Ui.Show));          // 真实门面（委托需 Generate Code）
-            ui.Set("Replace", new Action<string, LuaTable>(Ui.Replace));    // 替换打开（返回栈不残留）
-            ui.Set("Close", new Action<string>(Ui.Close));
-            ui.Set("IsOpen", new Func<string, bool>(Ui.IsOpen));
+            ui.Set("GetLogic", new Func<string, LuaTable>(UI.GetLogic));
+            ui.Set("Show", new Action<string, LuaTable>(UI.Show));          // 真实门面（委托需 Generate Code）
+            ui.Set("Replace", new Action<string, LuaTable>(UI.Replace));    // 替换打开（返回栈不残留）
+            ui.Set("Close", new Action<string>(UI.Close));
+            ui.Set("IsOpen", new Func<string, bool>(UI.IsOpen));
             var content = env.NewTable();
             content.Set("GetProcessor", new Func<int, LuaTable>(Content.GetProcessor));
             var text = env.NewTable();
@@ -173,9 +173,9 @@ namespace LiteGame
         /// lua_path → 页面 id（生成目录反查；未登记返回 -1）。
         /// 页面寻址的单源解析口——页面脚本与产品流程（PageFlow）都按 lua_path 寻址（如 `UI.Page_Lobby`，
         /// 与 <c>LuaKeys</c> 常量同文），magic id 不进脚本（禁硬编码）。实现委托模块侧解析器
-        /// <see cref="LiteGame.Modules.Ui.UiPageResolver"/>（页面目录归产品模块，Lua 桥不持有第二份）。
+        /// <see cref="LiteGame.Modules.UI.UIPageResolver"/>（页面目录归产品模块，Lua 桥不持有第二份）。
         /// </summary>
-        public static int ResolveUIFormId(string luaPath) => LiteGame.Modules.Ui.UiPageResolver.Resolve(luaPath);
+        public static int ResolveUIFormId(string luaPath) => LiteGame.Modules.UI.UIPageResolver.Resolve(luaPath);
 
         /// <summary>DevReload 专用（§2.7）：env 重建后旧 LuaTable 引用全失效，缓存必须清空。</summary>
         public static void ClearLuaCaches()
@@ -189,7 +189,7 @@ namespace LiteGame
         /// **按 lua_path 寻址**（如 `UI.Page_Lobby`，与 LuaKeys 常量同文）：id 反查走生成页面目录
         /// （<see cref="Data.ResolveUIFormId"/>），magic id 不进脚本。
         /// Show/Replace 经导航单写者排队（产品打开三通道收口口径），fire-and-forget（Lua 无 await），错误经日志观测。</summary>
-        public static class Ui
+        public static class UI
         {
             /// <summary>打开界面（压栈）：lua_path → PageDefinition（经单写者队列）；data 为 Lua 表（包装成 LuaUIData 传入生命周期）。</summary>
             public static void Show(string pagePath, LuaTable data)

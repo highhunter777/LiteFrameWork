@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("LiteGame.Adapters.Dev")]
 [assembly: InternalsVisibleTo("LiteGame.Editor")]
 [assembly: InternalsVisibleTo("LiteGame.Editor.Core")]
-[assembly: InternalsVisibleTo("LiteGame.Editor.UiTools")]
+[assembly: InternalsVisibleTo("LiteGame.Editor.UITools")]
 [assembly: InternalsVisibleTo("LiteGame.EditModeTests")]
 [assembly: InternalsVisibleTo("LiteGame.UI.PlayModeTests")]
 [assembly: InternalsVisibleTo("LiteGame.Modules.Session")]

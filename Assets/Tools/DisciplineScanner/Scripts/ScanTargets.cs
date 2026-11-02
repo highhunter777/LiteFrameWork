@@ -84,7 +84,7 @@ namespace Tools.DisciplineScan
         };
 
         /// <summary>UI 层：R10 不得直发业务包（禁 INetworkService 契约）。</summary>
-        public static readonly LintRule[] UiLayerRules =
+        public static readonly LintRule[] UILayerRules =
         {
             LintRule.R10UiSendsBusinessPacket,
         };
@@ -149,7 +149,7 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// `Assets/LiteGame/` 下**允许存在的顶层目录**（《客户端总设计》§5 顶层分层）；
-        /// 框架侧 `LiteFramework.*` 住 `Assets/LiteFramework/Runtime/Modules/`（见 <see cref="Default"/> 扫描目标）。
+        /// 框架侧 `LiteFramework.*` 住 `Assets/LiteFramework/Runtime/{Services,Framework}/`（见 <see cref="Default"/> 扫描目标）。
         ///
         /// 新增顶层目录必须在此登记，并说明它属于 §5 的哪一层（或为何是例外）。
         /// 未登记的目录会让本规则报红——**目录一变就红**，与 R12 边界表同一纪律。
@@ -193,13 +193,14 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Unity", UnityRules),
             // R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
             // IEnumerable 迭代器的 `yield return` 会被误报。
-            new ScanTarget("Assets/LiteFramework/Runtime/Modules", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Modules）
+            new ScanTarget("Assets/LiteFramework/Runtime/Services", GameRules),
+            new ScanTarget("Assets/LiteFramework/Runtime/Framework", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Services/Framework）
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/YooAsset", GameRules),                          // R8/R12（第三方桥接件）
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/XLua", GameRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/InputSystem", GameRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Newtonsoft", GameRules),
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）
-            new ScanTarget("Assets/LiteFramework/Runtime/Modules/UI", UiLayerRules),                                // R10 UI 层不发业务包
+            new ScanTarget("Assets/LiteFramework/Runtime/Services/UI", UILayerRules),                                // R10 UI 层不发业务包
             // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
             new ScanTarget("Assets/RoomServer/Core", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
             new ScanTarget("Packages/com.litegame.sim", ConfigPortRules, ConfigPortExcludes),             // R13 数值读口禁读（机制面；表现层与读口定义文件除外）
@@ -457,7 +458,7 @@ namespace Tools.DisciplineScan
         /// <summary>第一方代码根（注释卫生扫描范围；第三方与生成物不在内）。</summary>
         public static readonly string[] CommentHygieneRoots =
         {
-            "Assets/LiteFramework/Runtime/Modules",
+            "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Framework",
             "Assets/LiteGame",
             "Assets/LiteFramework",
             "Packages/com.litegame.sim",

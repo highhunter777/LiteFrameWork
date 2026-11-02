@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LiteGame.Editor;
-using LiteGame.Editor.UiTools.Binding;
-using LiteGame.Editor.UiTools.Compose;
-using LiteGame.Editor.UiTools.Contracts;
-using LiteGame.Editor.UiTools.Page;
-using LiteGame.Editor.UiTools.Preview;
-using LiteGame.Editor.UiTools.Validation;
-using LiteGame.Editor.UiTools.Widgets;
-using LiteGame.Editor.UiTools.Workbench;
+using LiteGame.Editor.UITools.Binding;
+using LiteGame.Editor.UITools.Compose;
+using LiteGame.Editor.UITools.Contracts;
+using LiteGame.Editor.UITools.Page;
+using LiteGame.Editor.UITools.Preview;
+using LiteGame.Editor.UITools.Validation;
+using LiteGame.Editor.UITools.Widgets;
+using LiteGame.Editor.UITools.Workbench;
 using LiteGame.EditorTools;
 using LiteGame.EditorTools.UI;
 using LiteSim.Editor;
@@ -24,7 +24,7 @@ namespace LiteGame.Toolchain
         {
             RegisterBaking(registry);
             RegisterGm(registry);
-            RegisterUi(registry);
+            RegisterUI(registry);
             RegisterActions(registry);
             RegisterContent(registry);
         }
@@ -60,31 +60,31 @@ namespace LiteGame.Toolchain
             registry.RegisterPage("debug.net-diag", () => new GmNetDiagPage());
         }
 
-        private static void RegisterUi(EditorToolRegistry registry)
+        private static void RegisterUI(EditorToolRegistry registry)
         {
-            registry.RegisterWindow("ui.workbench", UiWorkbenchWindow.Open);
-            registry.RegisterWindow("ui.page-scaffold", UiPageScaffoldWindow.Open);
-            registry.RegisterWindow("ui.page-register", UiPageRegisterWindow.Open);
-            registry.RegisterWindow("ui.preview-matrix", UiPreviewMatrixWindow.Open);
+            registry.RegisterWindow("ui.workbench", UIWorkbenchWindow.Open);
+            registry.RegisterWindow("ui.page-scaffold", UIPageScaffoldWindow.Open);
+            registry.RegisterWindow("ui.page-register", UIPageRegisterWindow.Open);
+            registry.RegisterWindow("ui.preview-matrix", UIPreviewMatrixWindow.Open);
 
-            registry.RegisterAction("ui.validate", ValidateUi);
-            registry.RegisterAction("ui.contract", GenerateUiContracts);
-            registry.RegisterAction("ui.contract-diff", DiffUiContracts);
-            registry.RegisterAction("ui.widget-manifest", GenerateUiWidgetManifest);
-            registry.RegisterAction("ui.page-manifest", SyncUiPageManifest);
-            registry.RegisterAction("ui.style.colors-refresh", ApplyUiColors);
-            registry.RegisterAction("ui.style.colors-report", ReportUiColors);
-            registry.RegisterAction("ui.style.text-report", ReportUiText);
-            registry.RegisterAction("ui.style.text-apply", ApplyUiText);
+            registry.RegisterAction("ui.validate", ValidateUI);
+            registry.RegisterAction("ui.contract", GenerateUIContracts);
+            registry.RegisterAction("ui.contract-diff", DiffUIContracts);
+            registry.RegisterAction("ui.widget-manifest", GenerateUIWidgetManifest);
+            registry.RegisterAction("ui.page-manifest", SyncUIPageManifest);
+            registry.RegisterAction("ui.style.colors-refresh", ApplyUIColors);
+            registry.RegisterAction("ui.style.colors-report", ReportUIColors);
+            registry.RegisterAction("ui.style.text-report", ReportUIText);
+            registry.RegisterAction("ui.style.text-apply", ApplyUIText);
             registry.RegisterAction("ui.style.tokens", GenerateThemeTokens);
             registry.RegisterAction("ui.binding-hash-all", () =>
             {
-                UiBindGenerationHash.RecordAllForTool();
+                UIBindGenerationHash.RecordAllForTool();
                 return Ok("已重记录全部 BindRoot prefab（见 Console）。");
             });
             registry.RegisterAction("ui.binding-hash-selected", () =>
             {
-                UiBindGenerationHash.RecordSelectedForTool();
+                UIBindGenerationHash.RecordSelectedForTool();
                 return Ok("已记录选中 prefab（见 Console）。");
             });
         }
@@ -128,24 +128,24 @@ namespace LiteGame.Toolchain
             });
         }
 
-        private static ToolResult ValidateUi()
+        private static ToolResult ValidateUI()
         {
-            UiReport report = UiValidator.Run();
+            UIReport report = UIValidator.Run();
             return Report(report.ToString(), report.Passed);
         }
 
-        private static ToolResult GenerateUiContracts()
+        private static ToolResult GenerateUIContracts()
         {
-            UiContractBatchResult batch = UiContractBatch.Generate();
+            UIContractBatchResult batch = UIContractBatch.Generate();
             if (!batch.Ok) return ToolResult.Failed(batch.Summary, batch.ToReport());
             return batch.Warnings.Count > 0
                 ? ToolResult.Warning(batch.Summary, batch.ToReport())
                 : ToolResult.Success(batch.Summary, batch.ToReport());
         }
 
-        private static ToolResult DiffUiContracts()
+        private static ToolResult DiffUIContracts()
         {
-            UiContractBatchDiffResult diff = UiContractBatch.Diff();
+            UIContractBatchDiffResult diff = UIContractBatch.Diff();
             if (!diff.Ok) return ToolResult.Failed(diff.Summary, diff.ToReport());
             bool hasNotice = diff.ChangedCount > 0 || diff.MissingBaseline.Count > 0 || diff.Warnings.Count > 0;
             return hasNotice
@@ -153,57 +153,57 @@ namespace LiteGame.Toolchain
                 : ToolResult.Success(diff.Summary, diff.ToReport());
         }
 
-        private static ToolResult GenerateUiWidgetManifest()
+        private static ToolResult GenerateUIWidgetManifest()
         {
-            UiWidgetManifestGenerationResult generated = UiWidgetManifestGenerator.GenerateToDisk();
+            UIWidgetManifestGenerationResult generated = UIWidgetManifestGenerator.GenerateToDisk();
             if (!generated.Ok) return ToolResult.Failed("控件清单生成失败。", generated.ErrorText);
 
             int warnings = generated.Warnings != null ? generated.Warnings.Count : 0;
             string summary = "控件清单：" + generated.Manifest.Widgets.Count + " 个控件 / 告警 " + warnings;
-            string details = summary + "\n写入 " + UiWidgetManifestPaths.DefaultPath;
+            string details = summary + "\n写入 " + UIWidgetManifestPaths.DefaultPath;
             foreach (string warning in generated.Warnings ?? new List<string>()) details += "\n  告警 " + warning;
             return warnings > 0 ? ToolResult.Warning(summary, details) : ToolResult.Success(summary, details);
         }
 
-        private static ToolResult SyncUiPageManifest()
+        private static ToolResult SyncUIPageManifest()
         {
-            UiPageManifestSyncResult sync = UiPageManifestSync.SyncToDisk();
+            UIPageManifestSyncResult sync = UIPageManifestSync.SyncToDisk();
             if (!sync.Ok) return ToolResult.Failed("页面清单对账失败。", sync.ErrorText);
 
             int pages = sync.Manifest.Pages?.Count ?? 0;
             int forms = sync.Manifest.Pages?.Sum(page => page.Forms?.Count ?? 0) ?? 0;
             int warnings = sync.Warnings != null ? sync.Warnings.Count : 0;
             string summary = "页面清单：" + pages + " 页 / " + forms + " 行登记 / 告警 " + warnings;
-            string details = summary + "\n写入 " + UiPageManifestPaths.DefaultPath;
+            string details = summary + "\n写入 " + UIPageManifestPaths.DefaultPath;
             foreach (string warning in sync.Warnings ?? new List<string>()) details += "\n  告警 " + warning;
             return warnings > 0 ? ToolResult.Warning(summary, details) : ToolResult.Success(summary, details);
         }
 
-        private static ToolResult ApplyUiColors()
+        private static ToolResult ApplyUIColors()
         {
-            var applied = UiStyleTool.ApplyColors(UiStyleTool.DefaultScanDirs);
+            var applied = UIStyleTool.ApplyColors(UIStyleTool.DefaultScanDirs);
             return Ok("已刷新 UI 颜色：prefab " + applied.prefabs + "，graphics " + applied.graphics + "。");
         }
 
-        private static ToolResult ReportUiColors()
+        private static ToolResult ReportUIColors()
         {
             List<(string asset, string node, Color color)> drifts =
-                UiStyleTool.ReportDrift(UiStyleTool.DefaultScanDirs);
+                UIStyleTool.ReportDrift(UIStyleTool.DefaultScanDirs);
             if (drifts.Count == 0) return Ok("UI 颜色无漂移。");
             string text = string.Join("\n", drifts.Select(item =>
                 item.asset + " / " + item.node + " / #" + ColorUtility.ToHtmlStringRGBA(item.color)));
             return Ok("UI 颜色漂移 " + drifts.Count + " 条：\n" + text);
         }
 
-        private static ToolResult ApplyUiText()
+        private static ToolResult ApplyUIText()
         {
-            var applied = UiTextStyleTool.ApplyTextStyles();
+            var applied = UITextStyleTool.ApplyTextStyles();
             return Ok("已应用文字档：prefab " + applied.prefabs + "，写入 " + applied.writes + "。");
         }
 
-        private static ToolResult ReportUiText()
+        private static ToolResult ReportUIText()
         {
-            List<UiTextIssue> issues = UiTextStyleTool.ReportTextDrift();
+            List<UITextIssue> issues = UITextStyleTool.ReportTextDrift();
             if (issues.Count == 0) return Ok("文字档无漂移。");
             string text = string.Join("\n", issues.Select(issue =>
                 issue.Asset + " / " + issue.Node + " / " + issue.Kind + " / " + issue.Detail));
@@ -213,7 +213,7 @@ namespace LiteGame.Toolchain
         /// <summary>令牌源 JSON → 主题资产 SO（《UI 编辑器工具链专项设计》§8.1）：幂等、失败零写盘。</summary>
         private static ToolResult GenerateThemeTokens()
         {
-            UiThemeGenerationResult result = UiThemeAssetGenerator.Generate();
+            UIThemeGenerationResult result = UIThemeAssetGenerator.Generate();
             return result.Success ? Ok(result.Summary()) : ToolResult.Failed(result.Summary());
         }
     }

@@ -42,7 +42,7 @@ namespace LiteGame
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
         public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[]
         {
-            "PlatformInfrastructure", "Identity", "Camera", "DevSession", "Content", "Settings", "Clocks", "Config", "Ui", "Input",
+            "PlatformInfrastructure", "Identity", "Camera", "DevSession", "Content", "Settings", "Clocks", "Config", "UI", "Input",
         };
 
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)

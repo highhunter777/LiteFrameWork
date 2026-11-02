@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using LiteFramework.UI;
 using LiteCodeGen;
-using LiteGame.Editor.UiTools.Widgets;
+using LiteGame.Editor.UITools.Widgets;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -51,7 +51,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(0, spec.Slots.Length);
             Assert.AreEqual(0, spec.States.Length);
             Assert.AreEqual(0, spec.Events.Length);
-            Assert.AreEqual(UiWidgetSizeBehavior.Fixed, spec.SizeBehavior);
+            Assert.AreEqual(UIWidgetSizeBehavior.Fixed, spec.SizeBehavior);
             Assert.AreEqual(0, spec.Constraints.Length);
         }
 

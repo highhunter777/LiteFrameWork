@@ -29,7 +29,7 @@ namespace LiteGame
         private readonly AudioService _audio;
         private readonly CommandCenter _commands;
         private readonly CrosshairFeelProfile _crosshairFeel;
-        private readonly Func<UiThemeAsset> _themeProvider;
+        private readonly Func<UIThemeAsset> _themeProvider;
         private readonly IDevSession _dev;
         private readonly ILookPreferences _lookPreferences;
         private readonly RootMotionDigestHolder _rootMotionDigest;   // 根位移摘要登记口（容器装配期单实例）
@@ -38,7 +38,7 @@ namespace LiteGame
 
         public BattleViewGroupFactory(IContentService content, IInputService input, ICameraService camera,
             IVFXService vfx, IWorldClock worldClock, AudioService audio, CommandCenter commands,
-            CrosshairFeelProfile crosshairFeel, Func<UiThemeAsset> themeProvider, IDevSession dev,
+            CrosshairFeelProfile crosshairFeel, Func<UIThemeAsset> themeProvider, IDevSession dev,
             ILookPreferences lookPreferences, RootMotionDigestHolder rootMotionDigest,
             Func<IBattleDevOverlay> devOverlayOf = null)
         {

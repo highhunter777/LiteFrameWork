@@ -13,17 +13,17 @@ namespace LiteGame.Modules.Settings
     public sealed class GraphicsSettingsApplier
     {
         /// <summary>UI 画质档数（低/中/高）；<c>GameSettings.Quality</c> 值域 0..3，UI 只暴露 0..2。</summary>
-        public const int UiQualityTiers = 3;
+        public const int UIQualityTiers = 3;
 
         /// <summary>UI 档 → 平台档位名（缺同名档位时按序号钳位，不发明画质等级）。</summary>
         private static readonly string[] TierNames = { "Low", "Medium", "High" };
 
         /// <summary>UI 档（0..2，越界钳制）。</summary>
-        public int Quality(GameSettings settings) => Mathf.Clamp(settings.Quality.Get(), 0, UiQualityTiers - 1);
+        public int Quality(GameSettings settings) => Mathf.Clamp(settings.Quality.Get(), 0, UIQualityTiers - 1);
 
         public void SetQuality(GameSettings settings, int tier)
         {
-            settings.Quality.Set(Mathf.Clamp(tier, 0, UiQualityTiers - 1));
+            settings.Quality.Set(Mathf.Clamp(tier, 0, UIQualityTiers - 1));
             Apply(settings);
         }
 

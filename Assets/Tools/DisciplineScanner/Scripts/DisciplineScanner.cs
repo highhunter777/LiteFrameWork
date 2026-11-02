@@ -233,7 +233,7 @@ namespace Tools.DisciplineScan
         private static readonly (string Adapter, string[] AllowedRoots)[] R12Boundaries =
         {
             // 适配器层（《客户端总设计》§5 顶层框图第四层 `Adapters`）：
-            // 框架侧适配器统一住 `Assets/LiteFramework/Runtime/Modules/Adapters/<程序集后缀>/`，
+            // 框架侧适配器统一住 `Assets/LiteFramework/Runtime/Adapters/<程序集后缀>/`，
             // **目录名 = 层标签**（程序集名不含 Adapters 前缀；asmdef 不要求目录名与程序集名相同）。
             ("YooAsset", new[] { "Assets/LiteFramework/Runtime/Adapters/YooAsset/" }),
             // XLua：宿主（env/预载/校验）住框架侧 Adapters；**Lua 桥**（生命周期/数据门面/注册表）是产品侧绑定层，
@@ -242,12 +242,12 @@ namespace Tools.DisciplineScan
             // Unity.InputSystem：输入设备适配——框架侧设备源只认 Platform.Unity；**UI 输入适配**
             // （EventSystem/输入模块建位 + 平台返回键直读）随 UI 服务装配归 UI 框架侧（同下 DOTween 的
             // `UI/Anim` 判例——UI 框架专属适配住专属子目录，收敛在一个文件）
-            ("UnityEngine.InputSystem", new[] { "Assets/LiteFramework/Runtime/Adapters/InputSystem/", "Assets/LiteFramework/Runtime/Modules/UI/Input/", "Assets/LiteGame/Adapters/Unity/InputSystem/" }),
+            ("UnityEngine.InputSystem", new[] { "Assets/LiteFramework/Runtime/Adapters/InputSystem/", "Assets/LiteFramework/Runtime/Services/UI/Input/", "Assets/LiteGame/Adapters/Unity/InputSystem/" }),
             // Cinemachine：相机适配（同上）——消费者只认 ICameraService 端口，不认识这个包
             ("Cinemachine", new[] { "Assets/LiteGame/Adapters/Unity/Cinemachine/" }),
             // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 UI 框架（LiteFramework.UI）的
             // 专属适配，住其 Anim 子目录（同 InputSystem 的 UI/Input 判例）
-            ("DG.Tweening", new[] { "Assets/LiteFramework/Runtime/Modules/UI/Anim/" }),
+            ("DG.Tweening", new[] { "Assets/LiteFramework/Runtime/Services/UI/Anim/" }),
             // Newtonsoft：JSON 序列化器（第三方）。消费方只认 Core 端口——
             // IJsonSerializer（整对象↔文本，文件/存档）与 IJsonCodec（严格契约读取）；
             // 实现类与 JToken 映射全部收在此目录，业务/框架代码出现 `using Newtonsoft` 即违规。

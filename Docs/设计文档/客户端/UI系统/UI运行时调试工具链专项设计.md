@@ -82,7 +82,7 @@
 | --- | --- | --- |
 | `bindings[]` | BindName → 组件类型 / 驱动方式（Bound/Command/None）/ 是否被消费 / 缺失/重复 / 来源 A/B / 近 1s 写入计数（dev-only） | `UIBindIndex` 只读视图 + dev 计数 |
 | `consumers[]` | Lua/C# 字符串字面量中对 BindName 的引用（file:line） | 编辑器引用扫描（只读） |
-| `contract` | 契约是否存在、sourceHash、与 prefab 的漂移、controls 差异 | `UiPageContract` 生成/校验结果 |
+| `contract` | 契约是否存在、sourceHash、与 prefab 的漂移、controls 差异 | `UIPageContract` 生成/校验结果 |
 | `templates[]` | 页面使用的模板、版本/hash、内部件是否被误暴露 | 契约 + 资源扫描 |
 
 ### 3.3 布局、文本、样式
@@ -91,7 +91,7 @@
 | --- | --- | --- |
 | `layout` | Canvas 根/层、CanvasScaler 参考分辨率/Match、SafeArea 矩形、RectTransform 屏幕矩形、Raycaster/CanvasGroup/RaycastTarget | `UIForm.Root/Canvas`、`CanvasScaler`、`SafeAreaReceiver` |
 | `text/locale` | 当前 locale、`ILocaleBound` 页面、缺 key、静态/动态文案归属、字体/缺字 | `ILocalizationService`、`LTextLabel`、契约 |
-| `style` | 选中节点的令牌引用/解析值、是否裸值、可写属性白名单 | `UiStyleRef`/`UiTextStyleRef`、`UiStyleResolver`、`Graphic`/`TMP_Text` |
+| `style` | 选中节点的令牌引用/解析值、是否裸值、可写属性白名单 | `UIStyleRef`/`UITextStyleRef`、`UIStyleResolver`、`Graphic`/`TMP_Text` |
 
 ### 3.4 性能与资源
 
@@ -99,7 +99,7 @@
 | --- | --- | --- |
 | `performance` | Canvas rebuild/批次、Layout 重建、CanvasRenderer/Graphic 计数、TMP 字体/SDF 状态、绑定写入计数、UI GC 采样 | `ProfilerRecorder`（按 Unity 版本对齐）、dev 计数、场景采样 |
 | `resources` | 页面/模板租约、缓存实例、图集/字体来源、bundle 名（可用时） | `UIService`/`UIFormStore`/内容服务只读 |
-| `effects` | 活跃 `UiFx` 句柄数/目标、粒子/音效并发 | `UiFx` dev 计数、效果服务只读 |
+| `effects` | 活跃 `UIFx` 句柄数/目标、粒子/音效并发 | `UIFx` dev 计数、效果服务只读 |
 
 ### 3.5 采集纪律
 

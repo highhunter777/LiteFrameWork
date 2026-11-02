@@ -12,7 +12,7 @@ using LiteGame.Modules.Composition;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.Settings;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 
 namespace LiteGame
 {
@@ -40,7 +40,7 @@ namespace LiteGame
         public static void ResetForEditorReload()
         {
             s_booted = false;
-            LiteFramework.UI.UiAnimationClock.ResetForEditorReload();
+            LiteFramework.UI.UIAnimationClock.ResetForEditorReload();
         }
 
         private ClientHost _host;
@@ -178,7 +178,7 @@ namespace LiteGame
                 .AddModule(new LuaHostModule(gameObject))        // ⑩ 脚本宿主（同 GameObject 组件）
                 .AddModule(new ConfigModule(_appComposition.ConfigServiceFactory()))          // ⑪ 表投影数据源
                 .AddModule(new MapComposition())                 // ⑫ 地图提供者（依赖 ⑪ 的表链）
-                .AddModule(new UiComposition(_appComposition.LuaUiBindingFactory()))         // ⑬ UI 能力：服务/导航/反馈面（Lua 桥经端口装订）
+                .AddModule(new UIComposition(_appComposition.LuaUIBindingFactory()))         // ⑬ UI 能力：服务/导航/反馈面（Lua 桥经端口装订）
                 .AddModule(new InputModule(_appComposition.IntentSourceFactory()))            // ⑭ 输入服务（设备源由组合根注入）
                 .AddModule(new MetaComposition(_deployBake))     // ⑮ 联机入口（部署快照 + 客户端 + 入口编排件）
                 .AddModule(new BattleComposition(() => DevHooks.Diagnostics,
@@ -204,7 +204,7 @@ namespace LiteGame
             _active = false;
             // 宿主关停后 UI 动效时钟必须清绑：静态残留会指向已销毁时钟，后续裸建 UIService
             // （PlayMode 夹具/工具）仍走 Manual 轨而无人泵 → 转场 2s 超时。
-            LiteFramework.UI.UiAnimationClock.ResetForEditorReload();
+            LiteFramework.UI.UIAnimationClock.ResetForEditorReload();
             s_booted = false;                                 // 同一 Play 会话允许重新引导（测试/编辑器重建）
         }
     }

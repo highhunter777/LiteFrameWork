@@ -14,6 +14,6 @@
 | [设置系统专项设计](设置系统专项设计.md) | 设置项单源（分组/存储键/值域/默认）、四组生效器（音频/图形/显示/控制）、影子管线资产与平台能力矩阵、`Bridge.settings` 门面、设置面板页签结构与文案键 |
 | [战斗 HUD 对局倒计时专项设计](战斗HUD对局倒计时专项设计.md) | 局时 `mm:ss` 的语义/真值源/显示状态机/刷新纪律/prefab 落位与验收（草案） |
 
-- 机器可读 schema：[UiPageContract.schema.json](UiPageContract.schema.json) · [UiStyleTokens.schema.json](UiStyleTokens.schema.json) · [UiWidgetManifest.schema.json](UiWidgetManifest.schema.json) · [UiPageManifest.schema.json](UiPageManifest.schema.json) · [UiRuleExceptions.schema.json](UiRuleExceptions.schema.json) · [UiDeviceProfiles.schema.json](UiDeviceProfiles.schema.json)。
+- 机器可读 schema：[UIPageContract.schema.json](UIPageContract.schema.json) · [UIStyleTokens.schema.json](UIStyleTokens.schema.json) · [UIWidgetManifest.schema.json](UIWidgetManifest.schema.json) · [UIPageManifest.schema.json](UIPageManifest.schema.json) · [UIRuleExceptions.schema.json](UIRuleExceptions.schema.json) · [UIDeviceProfiles.schema.json](UIDeviceProfiles.schema.json)。
 - 旧体系（已退役）：全文见 [2026-10-22/UI旧体系](../../../归档记录/2026-10-22/UI旧体系/README.md)；旧路径 `客户端/UI/` 的跳转壳已退役，映射见 [2026-10-29 归档说明](../../../归档记录/2026-10-29/README.md)。
 - 操作手册：[08-UI 制作与调试](../../../说明/08-UI与Lua脚本层.md)；调试：[13-调试手册](../../../说明/13-调试面与排障.md)。

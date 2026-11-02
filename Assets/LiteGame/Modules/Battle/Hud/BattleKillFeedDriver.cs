@@ -22,7 +22,7 @@ namespace LiteGame
     /// - **行格式** <c>击杀者 [武器图标] 死者</c>：击杀者为本地 → "你"，否则占位 <c>玩家{k}</c>
     ///   （<see cref="PlayerIdentity"/> 身份序号单源——与排行榜/阵亡归属共用）；`killer==0`（自杀/环境）
     ///   → <c>玩家{v} 阵亡</c>（无图标）；武器图标按击杀帧装备槽取图（缺件静默降级：不显示图标）；
-    /// - **计时**：单条驻留 <see cref="RowDwellSeconds"/> 秒，步进走 <see cref="UiAnimationClock.Delta"/>
+    /// - **计时**：单条驻留 <see cref="RowDwellSeconds"/> 秒，步进走 <see cref="UIAnimationClock.Delta"/>
     ///   （红线 9：控件计时统一 UIClock）；
     /// - **写纪律**：仅行内容变化时写；隐藏行整组 <c>SetActive(false)</c>；
     /// - 测试注：镜像/本地 Id/队列走构造注入（同面板与排行榜驱动）——EditMode 确定性驱动。
@@ -86,7 +86,7 @@ namespace LiteGame
         {
             if (_disposed) return;
 
-            float delta = UiAnimationClock.Delta;                 // 控件计时统一 UIClock（红线 9）
+            float delta = UIAnimationClock.Delta;                 // 控件计时统一 UIClock（红线 9）
 
             for (int i = 0; i < RowCount; i++)                    // ① 到期行回收
             {

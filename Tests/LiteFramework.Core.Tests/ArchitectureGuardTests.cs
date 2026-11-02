@@ -63,7 +63,7 @@ namespace LiteFramework.Core.Tests
         [Fact]
         public void 硬边_UI队列唯一实现()
         {
-            // I4 / §4.11 10：除 IUiOperationQueue 的实现外，UI 运行时代码不得声明 Queue<...> 作为调度器。
+            // I4 / §4.11 10：除 IUIOperationQueue 的实现外，UI 运行时代码不得声明 Queue<...> 作为调度器。
             string root = RepoRoot();
             string uiRoot = Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Modules", "UI");
             var offenders = new List<string>();
@@ -71,7 +71,7 @@ namespace LiteFramework.Core.Tests
 
             foreach (string file in Directory.GetFiles(uiRoot, "*.cs", SearchOption.AllDirectories))
             {
-                if (string.Equals(Path.GetFileName(file), "UiOperationQueue.cs", StringComparison.Ordinal)) continue;
+                if (string.Equals(Path.GetFileName(file), "UIOperationQueue.cs", StringComparison.Ordinal)) continue;
                 string rel = Path.GetRelativePath(root, file).Replace('\\', '/');
                 foreach (string line in File.ReadAllLines(file))
                 {

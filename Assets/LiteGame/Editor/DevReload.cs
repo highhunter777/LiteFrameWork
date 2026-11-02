@@ -7,7 +7,7 @@ using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Shared;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 
 namespace LiteGame.Editor
 {
@@ -74,7 +74,7 @@ namespace LiteGame.Editor
             lua.Init(preloader, events, productBridge.BindGlobals);   //    env 重建 + 事件桥/游戏桥重绑（产品门面单源装订——与 Preload 同口；同一实例保 Bridge.room 会话不丢）
             lua.DoMain();                                  // ⑤ 重跑 main.lua
 
-            var filler = new LiteGame.RegistryFiller(config, LiteGame.Modules.Ui.UiPageCatalog.All, lua, ui, content, strategy);
+            var filler = new LiteGame.RegistryFiller(config, LiteGame.Modules.UI.UIPageCatalog.All, lua, ui, content, strategy);
             var report = filler.FillAll(CancellationToken.None);   // ⑥ 同一条填充路径（§2.4 ③）
             if (report.HasFailures)
             {

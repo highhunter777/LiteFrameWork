@@ -184,7 +184,7 @@ namespace LiteGame.Tests.UI.PlayMode
         /// <summary>
         /// 确认缝（批 3 · A14）：<see cref="ConfirmDialogRouter"/> 绑定真实现后，经
         /// <c>FeedbackService.ConfirmAsync → DialogService</c> 弹真 prefab，选确认返回 true。
-        /// 与 Lua 门面用例（<c>UiConfirmApiEditModeTests</c>）分工：那条钉回调语义，这条钉**真资源返回链**。
+        /// 与 Lua 门面用例（<c>UIConfirmApiEditModeTests</c>）分工：那条钉回调语义，这条钉**真资源返回链**。
         /// </summary>
         [UnityTest]
         public IEnumerator 确认框_路由器绑定Feedback_真资源选确认返回true()

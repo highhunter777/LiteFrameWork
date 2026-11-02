@@ -5,7 +5,7 @@
         "LiteGame.Shared",
         "LiteGame.Modules.Procedure",
         "LiteGame.Modules.Session",
-        "LiteGame.Modules.Ui",
+        "LiteGame.Modules.UI",
         "LiteGame.Modules.Config",
         "LiteGame.Modules.Settings",
         "LiteFramework.Core",

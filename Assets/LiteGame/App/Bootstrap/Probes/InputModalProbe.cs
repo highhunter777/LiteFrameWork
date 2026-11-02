@@ -8,7 +8,7 @@ using UnityEngine;
 using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Input;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 
 namespace LiteGame
 {
@@ -122,7 +122,7 @@ namespace LiteGame
                         if (formId <= 0)
                         {
                             string modalPrefab = "Assets/" + ModalFormPrefab;
-                            foreach (PageDefinition page in UiPageCatalog.All)
+                            foreach (PageDefinition page in UIPageCatalog.All)
                                 if (page.Location == modalPrefab) { formId = page.Id; break; }
                             if (formId <= 0)
                             {

@@ -8,7 +8,7 @@ using LiteGame.Modules.Config;
 using LiteGame.Modules.Dev;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Settings;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 using LiteSim;
 
 using LiteSync.Client;
@@ -30,8 +30,8 @@ namespace LiteGame
     {
         private IDisposable _devDecoration;      // 开发装配装饰句柄（GM/弱网/调试内核；null = 发布形态）
 
-        // ---- Lua 桥三注册表：**本文件是唯一 new 点**（Ui 段/填充器/回填服务/门面绑定共用同一批实例）----
-        private readonly UiLuaRegistry _uiRegistry = new UiLuaRegistry();
+        // ---- Lua 桥三注册表：**本文件是唯一 new 点**（UI 段/填充器/回填服务/门面绑定共用同一批实例）----
+        private readonly UILuaRegistry _uiRegistry = new UILuaRegistry();
         private readonly ContentLuaRegistry _contentRegistry = new ContentLuaRegistry();
         private readonly StrategyLuaRegistry _strategyRegistry = new StrategyLuaRegistry();
 
@@ -67,13 +67,13 @@ namespace LiteGame
                 return (room, new ProductBridges(room));
             };
 
-        /// <summary>Lua 桥装订面工厂（Ui 段端口）：逻辑工厂/数据投射/文本门面三件共用同一 Lua 宿主与
-        /// UI 注册表；适配器类型只出现在本文件，Ui 段经 <c>ILuaUiBinding</c> 消费。</summary>
-        internal Func<LuaComponent, ILuaUiBinding> LuaUiBindingFactory()
-            => lua => new LuaUiBinding(lua, _uiRegistry);
+        /// <summary>Lua 桥装订面工厂（UI 段端口）：逻辑工厂/数据投射/文本门面三件共用同一 Lua 宿主与
+        /// UI 注册表；适配器类型只出现在本文件，UI 段经 <c>ILuaUIBinding</c> 消费。</summary>
+        internal Func<LuaComponent, ILuaUIBinding> LuaUIBindingFactory()
+            => lua => new LuaUIBinding(lua, _uiRegistry);
 
         /// <summary>注册表填充器工厂（流程段端口 <c>ILuaRegistryFiller</c>）：三注册表由本文件持有，
-        /// 页面目录经 Ui 域端口传入（流程段不认注册表与页面的具体类型）。</summary>
+        /// 页面目录经 UI 域端口传入（流程段不认注册表与页面的具体类型）。</summary>
         internal Func<IConfigService, LuaComponent, IPageDirectory, ILuaRegistryFiller> LuaRegistryFillerFactory()
             => (config, lua, pages) => new RegistryFiller(config, pages.All, lua,
                 _uiRegistry, _contentRegistry, _strategyRegistry);
@@ -207,7 +207,7 @@ namespace LiteGame
         {
             services.SetTickOrder(
                 typeof(IMainThreadDispatcher), typeof(IWorldClock), typeof(IUIClock),
-                typeof(DotweenUiClockDriver), typeof(UIService),   // EventBus 无队列、不再实现 ITickable（M3-7 7b）
+                typeof(DotweenUIClockDriver), typeof(UIService),   // EventBus 无队列、不再实现 ITickable（M3-7 7b）
                 typeof(ILogicScheduler), typeof(IUIScheduler), typeof(ITimelineRunner),
                 typeof(IVFXService), typeof(DialogService), typeof(ToastTicker),
                 typeof(ICommandCenter),

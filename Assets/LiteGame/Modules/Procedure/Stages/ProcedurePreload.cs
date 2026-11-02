@@ -7,7 +7,7 @@ using LiteFramework.UI;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Shared;
 using LiteGame.Modules.Shared;
-using LiteGame.Modules.Ui;
+using LiteGame.Modules.UI;
 
 namespace LiteGame
 {

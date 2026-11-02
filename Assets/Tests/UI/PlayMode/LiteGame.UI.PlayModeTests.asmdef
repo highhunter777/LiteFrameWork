@@ -25,7 +25,7 @@
         "UnityEngine.TestRunner",
         "xLuaMain",
         "LiteGame.Shared",
-        "LiteGame.Modules.Ui",
+        "LiteGame.Modules.UI",
         "LiteGame.Modules.Procedure",
         "LiteGame.Modules.Meta",
         "LiteGame.Modules.Session",

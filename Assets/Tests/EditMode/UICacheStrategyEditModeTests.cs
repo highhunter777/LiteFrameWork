@@ -12,7 +12,7 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// per-form 缓存策略（§5.2 U2 表列：Resident 不淘汰 / DestroyOnClose 关即销毁 / LRU 默认）。
-    /// 全替身零真资源——与 UiU1EditModeTests 同口径（含 Await 泵转场）。
+    /// 全替身零真资源——与 UIU1EditModeTests 同口径（含 Await 泵转场）。
     /// </summary>
     public sealed class UICacheStrategyEditModeTests : UnityTestBase
     {
@@ -38,7 +38,7 @@ namespace LiteGame.Tests.EditMode
                     UniTask.FromResult<IUIPrefabLease>(UIPrefabLeases.Unowned(FakePrefab("p" + loc))));
         }
 
-        /// <summary>即时转场（缓存策略语义隔离：不播表现——转场契约由 UiTransitionEditModeTests 专测）。</summary>
+        /// <summary>即时转场（缓存策略语义隔离：不播表现——转场契约由 UITransitionEditModeTests 专测）。</summary>
         private sealed class InstantTransition : ITransitionStrategy
         {
             public UniTask PlayShow(UIForm form, CancellationToken ct) => UniTask.CompletedTask;

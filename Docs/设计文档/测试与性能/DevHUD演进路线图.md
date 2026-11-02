@@ -133,7 +133,7 @@ section.Append(sink, ctx);        // IMGUI: ImguiHudSink(StringBuilder)
 ```
 
 - 过渡：`DevHUD.renderWithUiToolkit`（默认 true）+ 构造失败自动回退 IMGUI；稳定后删 IMGUI 分支。
-- 剥离：`DevHudUiToolkitHost` 与 DevHUD 同程序集、同三宏；无资产，release 零残留。
+- 剥离：`DevHudUIToolkitHost` 与 DevHUD 同程序集、同三宏；无资产，release 零残留。
 - 输入：F1、F4–F9 仍在 DevHUD；滚动走 `WheelEvent`；过滤框待自定义输入（避免与 WASD 冲突）。
 
 ### 5.5 分段落地

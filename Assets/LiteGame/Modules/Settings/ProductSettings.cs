@@ -19,7 +19,7 @@ namespace LiteGame.Modules.Settings
     public sealed class ProductSettings
     {
         /// <summary>UI 画质档数（低/中/高）；GameSettings.Quality 值域 0..3，UI 只暴露 0..2。</summary>
-        public const int UiQualityTiers = GraphicsSettingsApplier.UiQualityTiers;
+        public const int UIQualityTiers = GraphicsSettingsApplier.UIQualityTiers;
 
         private static ProductSettings s_instance;          // 装订面（Lua 全局表；与 MetaBridge.s_meta 同范式）
 

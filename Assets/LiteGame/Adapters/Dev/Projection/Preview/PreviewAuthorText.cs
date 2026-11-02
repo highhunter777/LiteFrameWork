@@ -9,7 +9,7 @@ namespace LiteGame
 {
     /// <summary>
     /// 布局档静态文案的作者原串快照（P2-3 B3）：切回「作者文本」或退出预览时把 LTextKeyRef 目标
-    /// 写回加载时的原文；不依赖 UIForm 生命周期，也不改运行时 UiStaticTextBinder 的 Bind(null) 语义。
+    /// 写回加载时的原文；不依赖 UIForm 生命周期，也不改运行时 UIStaticTextBinder 的 Bind(null) 语义。
     /// </summary>
     public sealed class PreviewAuthorText
     {

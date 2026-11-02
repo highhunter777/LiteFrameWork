@@ -13,7 +13,7 @@
         "LiteGame.Modules.Map",
         "LiteGame.Modules.Meta",
         "LiteGame.Modules.Session",
-        "LiteGame.Modules.Ui",
+        "LiteGame.Modules.UI",
         "LiteNet",
         "LiteSync",
         "LiteSim",

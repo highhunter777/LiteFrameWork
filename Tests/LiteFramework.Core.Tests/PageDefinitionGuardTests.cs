@@ -14,7 +14,7 @@ namespace LiteFramework.Core.Tests
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
             "Assets/LiteGame/Modules/Config/TableLayout.cs",
-            "Assets/LiteGame/Modules/Ui/Generated/UiPageCatalog.g.cs",
+            "Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs",
         };
 
         [Fact]
@@ -22,7 +22,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             var offenders = new List<string>();
-            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame/App", "Assets/LiteGame/Modules", "Assets/LiteGame/Adapters/LuaBridge" };
+            string[] roots = { "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Framework", "Assets/LiteGame/App", "Assets/LiteGame/Modules", "Assets/LiteGame/Adapters/LuaBridge" };
 
             foreach (string relativeRoot in roots)
             {
@@ -37,7 +37,7 @@ namespace LiteFramework.Core.Tests
                         string trimmed = line.TrimStart();
                         if (trimmed.StartsWith("//", StringComparison.Ordinal)) continue;
                         if (line.Contains("Tbuiform") || line.Contains("TbUIForm")
-                            || line.Contains("UiPageManifest") || line.Contains("UiPageContract")
+                            || line.Contains("UIPageManifest") || line.Contains("UIPageContract")
                             || line.Contains("UIContractGenerator"))
                         {
                             offenders.Add(rel + " :: " + trimmed);
