@@ -206,14 +206,14 @@ def render(types: dict, counts: dict) -> str:
         "Meta": "业务域（联机入口/大厅）",
         "Session": "业务域（账号/对局/传输所有权）",
         "Procedure": "应用壳（流程/页面流/恢复）",
-        "Camera": "共享能力（投影面/相机端口）",
-        "Config": "共享能力（表/文本/投影）",
-        "Dev": "共享能力（开发装配缝）",
+        "Camera": "能力（投影面/相机端口）",
+        "Config": "能力（表/文本/投影）",
+        "Dev": "契约包（开发装配缝）",
         "Composition": "组装件（框架/内容/身份 8 段装配入口，只被组合根引）",
-        "Input": "共享能力（意图/输入）",
-        "Map": "共享能力（地图表/场景）",
-        "Settings": "共享能力（设置/偏好）",
-        "Ui": "共享能力（页面目录/寻址）",
+        "Input": "能力（意图/输入）",
+        "Map": "能力（地图表/场景）",
+        "Settings": "能力（设置/偏好）",
+        "Ui": "能力（页面目录/寻址）",
     }
     for domain in DOMAIN_ORDER:
         lines.append("| " + domain + " | " + roles[domain] + " | " + str(len(types[domain])) + " |")

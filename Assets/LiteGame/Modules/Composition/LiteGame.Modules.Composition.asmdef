@@ -2,6 +2,7 @@
     "name": "LiteGame.Modules.Composition",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "LiteGame.Core",
         "LiteGame.Modules.Dev",

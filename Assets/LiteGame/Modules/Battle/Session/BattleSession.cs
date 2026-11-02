@@ -96,7 +96,7 @@ namespace LiteGame
             if (_disposed) throw new ObjectDisposedException(nameof(BattleSession));
             IBattleViewGroup view = View
                 ?? throw new InvalidOperationException("视图域未挂入：ActivateView 须在 AttachView 之后调用");
-            view.Attach(Context, openBattleMenu);
+            (view as IBattleViewAttachment)?.Attach(Context, openBattleMenu);   // 挂载属实现件接缝（契约包不引 BattleContext）
         }
 
         /// <summary>拆视图域（幂等）：消费者/视图/租约作用域由视图组自身逆序完成。</summary>

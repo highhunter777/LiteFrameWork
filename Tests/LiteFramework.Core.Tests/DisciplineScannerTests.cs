@@ -116,10 +116,10 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_默认排除_编辑器目录与生成物与引擎自身()
         {
-            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteSim/Scripts/Editor/Foo.cs"));
-            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteSim/Scripts/Map/SimTrigTables.cs"));
+            Assert.True(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Editor/Foo.cs"));
+            Assert.True(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs"));
             Assert.True(DisciplineScanner.IsExcluded("Assets/Tools/DisciplineScanner/Scripts/DisciplineScanner.cs"));
-            Assert.False(DisciplineScanner.IsExcluded("Assets/LiteSim/Scripts/Map/SimTrig.cs"));
+            Assert.False(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Map/SimTrig.cs"));
         }
 
         [Fact]
@@ -208,12 +208,12 @@ namespace LiteFramework.Tests
             {
                 ScanTarget t = ScanTargets.Default[i];
                 if (Array.IndexOf(t.Rules, LintRule.R13StaticConfigPort) < 0) continue;
-                if (t.Root == "Assets/LiteSim") sim = true;
+                if (t.Root == "Packages/com.litegame.sim") sim = true;
                 if (t.Root == "Assets/RoomServer/Core") runtime = true;
                 if (t.Root == "Assets/RoomServer/Modules") app = true;
                 if (t.Root == "Server/RoomServer") host = true;
             }
-            Assert.True(sim, "R13 缺 Assets/LiteSim 受守根——Sim 机制面将不受纪律扫描把守");
+            Assert.True(sim, "R13 缺 Packages/com.litegame.sim 受守根——Sim 机制面将不受纪律扫描把守");
             Assert.True(runtime, "R13 缺 Assets/RoomServer/Core 受守根");
             Assert.True(app, "R13 缺 Assets/RoomServer/Modules 受守根");
             Assert.True(host, "R13 缺 Server/RoomServer 受守根");

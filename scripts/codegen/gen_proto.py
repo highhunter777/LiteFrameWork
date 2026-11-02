@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Generate LiteNet protocol code from battle.proto. The generated file is
-# checked in (Assets/LiteNet/Core/Proto/Generated/Battle.cs) so the runtime keeps
+# checked in (Packages/com.litegame.net/Core/Proto/Generated/Battle.cs) so the runtime keeps
 # zero toolchain dependency.
 #
 # protoc source: nuget package Google.Protobuf.Tools (tools/windows_x64/protoc.exe);
@@ -10,8 +10,8 @@
 #                 python scripts/codegen/toolbox.py proto --check [--protoc <protoc.exe>]
 # Direct entry:   python scripts/codegen/gen_proto.py --check [--protoc <protoc.exe>]
 #                 python scripts/codegen/gen_proto.py --protoc <protoc.exe>
-# Output:         Assets/LiteNet/Core/Proto/Generated/Battle.cs (generated file, DO NOT EDIT)
-#                 Assets/LiteNet/Core/Proto/Generated/Battle.cs.input (freshness stamp)
+# Output:         Packages/com.litegame.net/Core/Proto/Generated/Battle.cs (generated file, DO NOT EDIT)
+#                 Packages/com.litegame.net/Core/Proto/Generated/Battle.cs.input (freshness stamp)
 # Rerun when:     battle.proto changed (then rerun build-hash: Proto/ is in its source set)
 
 import argparse
@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _codegen import info, input_digest, normalize_eol, repo_root, run_tool
 
 TOOL = 'proto'
-PROTO_REL = 'Assets/LiteNet/Core/Proto/battle.proto'
+PROTO_REL = 'Packages/com.litegame.net/Core/Proto/battle.proto'
 PROTO_DIR_REL = posixpath.dirname(PROTO_REL)
 PROTO_OUT_REL = posixpath.join(PROTO_DIR_REL, 'Generated', 'Battle.cs')
 # Freshness stamp next to the protoc output; it is NOT in the BuildHash closure

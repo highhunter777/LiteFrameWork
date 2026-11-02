@@ -16,8 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Assets\LiteSim\LiteSim.csproj" />
-    <ProjectReference Include="..\..\Assets\LiteSync\LiteSync.csproj" />
+    <ProjectReference Include="..\..\Packages/com.litegame.sim\LiteSim.csproj" />
+    <ProjectReference Include="..\..\Packages/com.litegame.sync\LiteSync.csproj" />
     <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
   </ItemGroup>
 

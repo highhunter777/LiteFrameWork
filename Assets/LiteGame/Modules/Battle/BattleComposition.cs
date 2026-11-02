@@ -22,6 +22,7 @@ namespace LiteGame
     public sealed class BattleComposition : IClientModule, IClientModuleGraph
     {
         private readonly Func<IBattleDevDiagnostics> _devDiagnostics;
+        private readonly Func<IBattleDevOverlay> _devOverlay;
         private PrefabLeaseCache _prefabs;
         private AudioService _audio;
         private EntityService _entities;
@@ -29,9 +30,11 @@ namespace LiteGame
 
         /// <param name="devDiagnostics">开发诊断实现提供者（App 注入开发诊断读口；
         /// null = 发布形态不登记诊断）。</param>
-        public BattleComposition(Func<IBattleDevDiagnostics> devDiagnostics = null)
+        public BattleComposition(Func<IBattleDevDiagnostics> devDiagnostics = null,
+            Func<IBattleDevOverlay> devOverlay = null)
         {
             _devDiagnostics = devDiagnostics;
+            _devOverlay = devOverlay;
         }
 
         public string Name => "Battle";
@@ -90,7 +93,8 @@ namespace LiteGame
                 context.Require<UIService>().ThemeAssetProvider,      // HUD 状态色主题注入
                 context.Require<IDevSession>(),                        // dev 投影读本局规则（实例端口）
                 context.Require<ILookPreferences>(),                   // 视角手感偏好（设置段单实例）
-                rootMotionDigest));                                    // 根位移摘要登记口（对局装载写入）
+                rootMotionDigest,                                      // 根位移摘要登记口（对局装载写入）
+                _devOverlay));                                         // 开发叠加层来源（发布 null）
             return UniTask.CompletedTask;
         }
 

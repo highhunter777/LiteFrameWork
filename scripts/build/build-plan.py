@@ -206,7 +206,7 @@ def _area_for(path, shared_files, shared_targets, shared_links, meta_targets, me
         p.startswith("Assets/LiteFramework/Runtime/Modules/")
         or p.startswith("Assets/LiteGame/")
         or p.startswith("Assets/LiteFramework/")
-        or p.startswith("Assets/LiteSim/")
+        or p.startswith("Packages/com.litegame.sim/")
         or p.startswith("Assets/LiteTesting/")
     ):
         return "client_code"

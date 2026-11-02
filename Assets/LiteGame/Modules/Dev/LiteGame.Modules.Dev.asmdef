@@ -2,6 +2,7 @@
     "name": "LiteGame.Modules.Dev",
     "rootNamespace": "LiteGame.Modules.Dev",
     "references": [
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",

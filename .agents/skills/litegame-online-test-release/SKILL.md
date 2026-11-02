@@ -43,7 +43,7 @@ python scripts/codegen/toolbox.py build-hash --check          # shared + meta
 python scripts/codegen/toolbox.py build-hash --check-shared   # 出包门禁同款
 ```
 
-`--check` 不通过就停。生成器改了 shared 常量 → 重发 Room + 重打客户端；改了 meta 常量 → 重发 Meta。客户端常量在 `Assets/LiteNet/Protocol/BuildHash.g.cs` 的 `BuildHash.Value`。
+`--check` 不通过就停。生成器改了 shared 常量 → 重发 Room + 重打客户端；改了 meta 常量 → 重发 Meta。客户端常量在 `Packages/com.litegame.net/Protocol/BuildHash.g.cs` 的 `BuildHash.Value`。
 
 ### 1.2 编辑器
 

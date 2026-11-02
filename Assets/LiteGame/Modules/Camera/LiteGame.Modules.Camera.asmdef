@@ -2,6 +2,7 @@
     "name": "LiteGame.Modules.Camera",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "UniTask"
     ],

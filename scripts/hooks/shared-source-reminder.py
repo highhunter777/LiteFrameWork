@@ -25,15 +25,15 @@ except Exception:
 # gen-build-hash.SHARED_TARGETS -- scripts/tests/test_hook_reminder.py keeps the
 # two interlocked so a flatten/move cannot leave a silent gap here.
 SHARED_SOURCE_PREFIXES = (
-    "assets/litesim/scripts/",
-    "assets/litesim/systems/",
-    "assets/litenet/core/proto/",
-    "assets/litenet/core/protocol/",
-    "assets/litenet/core/transport/security/",
-    "assets/litesync/shared/",
-    "assets/litesync/snapshot/",
-    "assets/litesync/input/",
-    "assets/litesync/events/",
+    "packages/com.litegame.sim/scripts/",
+    "packages/com.litegame.sim/systems/",
+    "packages/com.litegame.net/core/proto/",
+    "packages/com.litegame.net/core/protocol/",
+    "packages/com.litegame.net/core/transport/security/",
+    "packages/com.litegame.sync/shared/",
+    "packages/com.litegame.sync/snapshot/",
+    "packages/com.litegame.sync/input/",
+    "packages/com.litegame.sync/events/",
     "assets/gamedata/generated/",
 )
 

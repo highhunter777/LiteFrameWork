@@ -4,7 +4,7 @@
 Pinned by this file (tests-first, implementation task T1):
 
 - the reminder fires for the CURRENT repository paths (the pre-flatten
-  ``Assets/LiteSim/Core/...`` prefixes are rot, see codegen-rot-paths.json);
+  ``Packages/com.litegame.sim/Core/...`` prefixes are rot, see codegen-rot-paths.json);
 - every directory in ``gen-build-hash.SHARED_TARGETS`` (all 10 source sets)
   triggers the 红线1 reminder - the hook and the BuildHash source set are
   interlocked by this test instead of a path fixture that can rot;
@@ -25,15 +25,15 @@ HOOK = ROOT / "scripts" / "hooks" / "shared-source-reminder.py"
 GEN_BUILD_HASH = ROOT / "scripts" / "codegen" / "gen-build-hash.py"
 
 SHARED_TARGET_DIRS = (
-    "Assets/LiteSim/Scripts",
-    "Assets/LiteSim/Systems",
-    "Assets/LiteNet/Core/Proto",
-    "Assets/LiteNet/Core/Protocol",
-    "Assets/LiteNet/Core/Transport/Security",
-    "Assets/LiteSync/Shared",
-    "Assets/LiteSync/Snapshot",
-    "Assets/LiteSync/Input",
-    "Assets/LiteSync/Events",
+    "Packages/com.litegame.sim/Scripts",
+    "Packages/com.litegame.sim/Systems",
+    "Packages/com.litegame.net/Core/Proto",
+    "Packages/com.litegame.net/Core/Protocol",
+    "Packages/com.litegame.net/Core/Transport/Security",
+    "Packages/com.litegame.sync/Shared",
+    "Packages/com.litegame.sync/Snapshot",
+    "Packages/com.litegame.sync/Input",
+    "Packages/com.litegame.sync/Events",
     "Assets/GameData/Generated",
 )
 
@@ -78,14 +78,14 @@ class HookReminderTests(unittest.TestCase):
 
     def test_zcode_shared_source_warning(self):
         self.require_hook()
-        payload = self.reminder("Assets/LiteSim/Scripts/World/Foo.cs")
+        payload = self.reminder("Packages/com.litegame.sim/Scripts/World/Foo.cs")
         context = payload["additionalContext"]
         self.assertIn("红线1", context)
         self.assertIn("toolbox.py build-hash", context)
 
     def test_claude_serialized_schema(self):
         self.require_hook()
-        payload = self.reminder("Assets/LiteSim/Scripts/World/Foo.cs", env_name="CLAUDE_PROJECT_DIR")
+        payload = self.reminder("Packages/com.litegame.sim/Scripts/World/Foo.cs", env_name="CLAUDE_PROJECT_DIR")
         self.assertEqual(payload["hookSpecificOutput"]["hookEventName"], "PostToolUse")
         context = payload["hookSpecificOutput"]["additionalContext"]
         self.assertIn("红线1", context)
@@ -107,14 +107,14 @@ class HookReminderTests(unittest.TestCase):
 
     def test_proto_file_reminder_points_at_the_toolbox(self):
         self.require_hook()
-        context = self.reminder("Assets/LiteNet/Core/Proto/battle.proto")["additionalContext"]
+        context = self.reminder("Packages/com.litegame.net/Core/Proto/battle.proto")["additionalContext"]
         self.assertIn("红线1", context)
         self.assertIn("toolbox.py proto", context)
         self.assertIn("toolbox.py build-hash", context)
 
     def test_generated_proto_directory_reminder(self):
         self.require_hook()
-        context = self.reminder("Assets/LiteNet/Core/Proto/Generated/Battle.cs")["additionalContext"]
+        context = self.reminder("Packages/com.litegame.net/Core/Proto/Generated/Battle.cs")["additionalContext"]
         self.assertIn("红线1", context)
 
     def test_meta_source_reminder_points_at_the_toolbox(self):

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -15,7 +15,7 @@ namespace LiteSim.Editor
     /// 不等即说明：Unity 运行时与 .NET 的浮点路径出现了差异——确定性/预测质量的直接证据。
     ///
     /// 入口：菜单「LiteSim/对账 IEEE 基线」；CI 入口 <c>RunCli</c>（batchmode 退出码）；
-    /// 另供 EditMode 用例调用 <see cref="Verify"/>（见 `Assets/LiteSim/Core/Tests/Editor`）。
+    /// 另供 EditMode 用例调用 <see cref="Verify"/>（见 `Packages/com.litegame.sim/Core/Tests/Editor`）。
     /// </summary>
     public static class IeeeBaselineChecker
     {

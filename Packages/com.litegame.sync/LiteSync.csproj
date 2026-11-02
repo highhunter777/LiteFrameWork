@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">  <!--
+    双轨编译（同 Packages/com.litegame.net/LiteNet.csproj、Packages/com.litegame.sim/LiteSim.csproj 模式）：LiteSync 在 Unity（asmdef）与 dotnet（本 csproj）两侧编译。
+    - 空壳阶段（T43）：本程序集暂不含生产代码；下列目录 glob 先就位，T44 搬迁 15 件后自动纳入编译
+    - references: LiteNet + LiteSim（asmdef 的 dotnet 对应物）：同步层向下依赖协议/传输与仿真结构
+    - noEngineReferences: true（客户端/服务端共用，异步只用 BCL Task，禁 UniTask）
+    - Google.Protobuf 预编译引用：Unity 侧用 Vendor DLL + link.xml，dotnet 侧走 NuGet，同一版本号 3.36.1
+    - LangVersion 9.0：与 Unity 侧 C# 能力对齐，防双轨漂移（dotnet 侧先用了 Unity 编不了的语法 = 假绿）
+    - EnableDefaultCompileItems=false：显式 include Shared/Snapshot/Input/Events/Client/Properties，防把 Editor/Unity 层扫进来
+    - Unity 忽略 .csproj，本文件入库仅供 dotnet（测试/服务端）使用
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <IsPackable>true</IsPackable>
+    <PackageId>LiteGame.Sync</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Shared/**/*.cs" />
+    <Compile Include="Snapshot/**/*.cs" />
+    <Compile Include="Input/**/*.cs" />
+    <Compile Include="Events/**/*.cs" />
+    <Compile Include="Client/**/*.cs" />
+    <Compile Include="Properties/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- protobuf：dotnet 侧走 NuGet（传递引用流转到 RoomServer/Tests）；Unity 侧用 Vendor DLL + link.xml，同一版本号 -->
+    <PackageReference Include="Google.Protobuf" Version="3.36.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Packages\com.litegame.net\LiteNet.csproj" />
+    <ProjectReference Include="..\..\Packages\com.litegame.sim\LiteSim.csproj" />
+  </ItemGroup>
+
+</Project>

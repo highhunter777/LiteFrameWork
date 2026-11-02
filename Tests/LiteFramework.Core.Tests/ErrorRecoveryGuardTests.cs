@@ -13,7 +13,7 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly string[] Roots =
         {
-            "Assets/LiteFramework", "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteNet",
+            "Assets/LiteFramework", "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Packages/com.litegame.net",
         };
 
         [Fact]

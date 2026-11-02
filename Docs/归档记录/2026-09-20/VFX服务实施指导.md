@@ -2,7 +2,7 @@
 
 > 依据：**《动作与特效设计》§2**（特效 = 服务（机制）+ 内容表：§2.1 定位判据 / §2.2 API 草案 / §2.3 三条边界 / §2.4 基础预算与降级 / §2.5 升级判据 / §2.6 验收）；《状态同步实施方案》§6.2（`silenceUntilFrame` 防重播住 View）；《联机Demo美术资源清单》§0-4/§0-6（**特效不携带判定** / **命名即引用** `fx_`）与 §4 特效清单（P1 六件）；《自研框架设计方案》§8.1 四模式判据。
 > 定位：**表现层服务**（不是系统）——无玩法状态、不参与判定、不改 Sim；**服务不调用其他服务**（音效由编排方分别调）。
-> 归属落位：**`Assets/LiteSim/View/Vfx/`（`LiteSim.View` 程序集）**——与相机服务同层（表现层专属：跟 Sim 实体挂点/跟随），**不进 `LiteFramework`**（框架只放契约）、**不进 LiteGame 壳**（声音壳是通用壳件，VFX 是表现层件）。
+> 归属落位：**`Packages/com.litegame.sim/View/Vfx/`（`LiteSim.View` 程序集）**——与相机服务同层（表现层专属：跟 Sim 实体挂点/跟随），**不进 `LiteFramework`**（框架只放契约）、**不进 LiteGame 壳**（声音壳是通用壳件，VFX 是表现层件）。
 > 工期：**1 天**；预算 ~600 行（含测试 ~200）。
 
 ---
@@ -42,7 +42,7 @@
 ## 2. 分步实施（逐件施工图）
 
 ```
-Assets/LiteSim/View/Vfx/
+Packages/com.litegame.sim/View/Vfx/
 ├── IVFXService.cs      # Play(name, attach, follow, scale) / Stop(handle) / StopAll(attach) + VfxHandle
 ├── VfxService.cs       # 加载(句柄缓存) + 池(按 prefab) + 挂点跟随 + 定时回收 + 预算 + 统计 + 竞态处理
 ├── VfxCatalog.cs       # 名 → 地址（收集组约定）+ 类别（决定低端跳过白名单）

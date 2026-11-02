@@ -20,7 +20,7 @@
 #
 # Toolbox entry:  python scripts/codegen/toolbox.py sync-code [--check]
 # Direct entry:   python scripts/codegen/gen_sync_code.py [--check]
-# Output:         Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs
+# Output:         Packages/com.litegame.sim/Diagnostics/Generated/EntitySlot.Sync.g.cs
 #                 (checked in -- same convention as Battle.cs / BuildHash.g.cs;
 #                  CRLF line endings -- matches the checked-in artifact)
 # Rerun when:     a [StateLayer]-decorated struct/field changed (then rerun build-hash).
@@ -35,7 +35,7 @@ from _codegen import digest_text, info, normalize_eol, repo_root, run_tool, sign
 
 TOOL = 'sync-code'
 ROOT = repo_root()
-OUT_REL = 'Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs'
+OUT_REL = 'Packages/com.litegame.sim/Diagnostics/Generated/EntitySlot.Sync.g.cs'
 OUT_FILE = os.path.join(ROOT, *OUT_REL.split('/'))
 
 # Structs covered by generation. Slot-index layering (see below) applies to
@@ -44,14 +44,14 @@ OUT_FILE = os.path.join(ROOT, *OUT_REL.split('/'))
 # The three kind tables (ItemState/ProjectileState/ZoneState) are world-visible
 # faces folded identically into BOTH profiles, like EntitySlot.
 TARGETS = [
-    ('EntitySlot',      'Assets/LiteSim/Scripts/World/EntitySlot.cs'),
-    ('WeaponRuntime',   'Assets/LiteSim/Scripts/Pipeline/SimCombatRuntime.cs'),
-    ('ActionRuntime',   'Assets/LiteSim/Scripts/Pipeline/SimCombatRuntime.cs'),
-    ('StatusSlotData',  'Assets/LiteSim/Scripts/Pipeline/SimCombatRuntime.cs'),
-    ('MatchBagSlot',    'Assets/LiteSim/Scripts/Pipeline/SimMatchRuntime.cs'),
-    ('ItemState',       'Assets/LiteSim/Scripts/World/EntityKindTables.cs'),
-    ('ProjectileState', 'Assets/LiteSim/Scripts/World/EntityKindTables.cs'),
-    ('ZoneState',       'Assets/LiteSim/Scripts/World/EntityKindTables.cs'),
+    ('EntitySlot',      'Packages/com.litegame.sim/Scripts/World/EntitySlot.cs'),
+    ('WeaponRuntime',   'Packages/com.litegame.sim/Scripts/Pipeline/SimCombatRuntime.cs'),
+    ('ActionRuntime',   'Packages/com.litegame.sim/Scripts/Pipeline/SimCombatRuntime.cs'),
+    ('StatusSlotData',  'Packages/com.litegame.sim/Scripts/Pipeline/SimCombatRuntime.cs'),
+    ('MatchBagSlot',    'Packages/com.litegame.sim/Scripts/Pipeline/SimMatchRuntime.cs'),
+    ('ItemState',       'Packages/com.litegame.sim/Scripts/World/EntityKindTables.cs'),
+    ('ProjectileState', 'Packages/com.litegame.sim/Scripts/World/EntityKindTables.cs'),
+    ('ZoneState',       'Packages/com.litegame.sim/Scripts/World/EntityKindTables.cs'),
 ]
 
 

@@ -2,10 +2,10 @@
     "name": "LiteGame.Modules.Procedure",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "LiteGame.Core",
         "LiteGame.Shared",
-        "LiteGame.Modules.Battle",
         "LiteGame.Modules.Camera",
         "LiteGame.Modules.Config",
         "LiteGame.Modules.Dev",
@@ -20,7 +20,8 @@
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask",
-        "xLuaMain"
+        "xLuaMain",
+        "LiteGame.Battle.Abstractions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -22,8 +22,8 @@
 | --- | --- |
 | `Assets/LiteFramework/Runtime` | `LiteFramework.Runtime`：Host、Modules（UI/内容/动画/相机/输入/音频/实体/对局/本地化…）、Core（DI/Scope/Event/Command/Fsm/Pool/Clock/IO/Logging） |
 | `Assets/LiteFramework/Editor` | 编辑器侧（工具页件、诊断） |
-| `Assets/LiteSim` | 确定性判定：单 `LiteSim.asmdef`（Scripts/Systems）＋ `LiteSim.Editor`；客户端/服务端/测试三处共编 |
-| `Assets/LiteNet/Core` | 协议（proto 生成物）、编解码纯函数、KCP 传输、安全信封、会话 |
+| `Packages/com.litegame.sim` | 确定性判定：单 `LiteSim.asmdef`（Scripts/Systems）＋ `LiteSim.Editor`；客户端/服务端/测试三处共编 |
+| `Packages/com.litegame.net/Core` | 协议（proto 生成物）、编解码纯函数、KCP 传输、安全信封、会话 |
 | `Assets/LiteView/Modules` | 表现层：SimView、角色/动画、VFX、相机驱动 |
 | `Assets/LiteView/Core` · `Adapters` | 表现纯件（伤害数字/命中反馈/变换）与引擎适配 |
 | `Assets/LiteBattle/Abstractions` | 对局接口（`IBattleView`/`IIntentSource` 等端口） |

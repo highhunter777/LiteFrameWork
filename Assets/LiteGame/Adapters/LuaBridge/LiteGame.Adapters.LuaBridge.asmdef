@@ -3,12 +3,12 @@
     "rootNamespace": "LiteGame",
     "references": [
         "LiteGame.Shared",
-        "LiteGame.Modules.Battle",
         "LiteGame.Modules.Procedure",
         "LiteGame.Modules.Session",
         "LiteGame.Modules.Ui",
         "LiteGame.Modules.Config",
         "LiteGame.Modules.Settings",
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "LiteNet",
         "LiteSync",
@@ -18,7 +18,8 @@
         "xLuaMain",
         "LiteGame.Modules.Meta",
         "LiteGame.Modules.Map",
-        "LiteGame.Modules.Dev"
+        "LiteGame.Modules.Dev",
+        "LiteGame.Battle.Abstractions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

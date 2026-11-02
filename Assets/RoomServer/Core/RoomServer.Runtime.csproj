@@ -11,7 +11,8 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <PackageId>LiteGame.Room.Core</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,9 +27,9 @@
 
   <ItemGroup>
     <!-- **只引 LiteSim**：R11 红线禁止本层出现 proto/LiteNet（纯化扫描会命中 "using LiteNet"）。 -->
-    <ProjectReference Include="..\..\..\Assets\LiteNet\LiteNet.csproj" />
-    <ProjectReference Include="..\..\..\Assets\LiteSync\LiteSync.csproj" />
-    <ProjectReference Include="..\..\..\Assets\LiteSim\LiteSim.csproj" />
+    <ProjectReference Include="..\..\..\Packages/com.litegame.net\LiteNet.csproj" />
+    <ProjectReference Include="..\..\..\Packages/com.litegame.sync\LiteSync.csproj" />
+    <ProjectReference Include="..\..\..\Packages/com.litegame.sim\LiteSim.csproj" />
   </ItemGroup>
 
 </Project>

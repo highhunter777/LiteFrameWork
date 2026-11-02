@@ -1,0 +1,8 @@
+{
+  "name": "com.litegame.net",
+  "version": "0.1.0",
+  "displayName": "LiteGame Net",
+  "description": "协议与传输（proto 生成物 + 打包解包纯函数 + KCP 客户端）：双轨共编件。",
+  "unity": "2022.3",
+  "dependencies": {}
+}

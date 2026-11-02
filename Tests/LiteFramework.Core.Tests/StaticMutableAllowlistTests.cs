@@ -33,7 +33,7 @@ namespace LiteFramework.Core.Tests
         public void 静态可变字段仅限基线()
         {
             string root = RepoRoot();
-            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteSim", "Assets/LiteNet", "Assets/LiteSync" };
+            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework", "Packages/com.litegame.sim", "Packages/com.litegame.net", "Packages/com.litegame.sync" };
             var rx = new Regex(@"^\s*public\s+static\s+(?!readonly\b)(?!const\b)(?!class\b)(?!partial\b)(?!void\b)(?!event\b)[\w<>,\[\]\.]+\s+([A-Za-z_]\w*)\s*(=[^=>]|;)");
             var offenders = new List<string>();
             foreach (string dir in roots)
@@ -43,7 +43,7 @@ namespace LiteFramework.Core.Tests
                 foreach (string file in Directory.GetFiles(full, "*.cs", SearchOption.AllDirectories))
                 {
                     string rel = Path.GetRelativePath(root, file).Replace('\\', '/');
-                    // kcp2k 是第三方 vendor（Assets/LiteNet/Adapters/kcp2k），其静态日志钩子不属自有代码基线。
+                    // kcp2k 是第三方 vendor（Packages/com.litegame.net/Adapters/kcp2k），其静态日志钩子不属自有代码基线。
                     if (rel.Contains("/Adapters/kcp2k/")) continue;
                     foreach (string line in File.ReadAllLines(file))
                     {

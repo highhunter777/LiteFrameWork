@@ -14,7 +14,7 @@
 | GM 写口 | `TestModeOptions` → `SimTestRules.ActiveMatch`（内存单实例），改完两端立刻同值 | 客户端改的是自己的预测；权威完全不知道 |
 | 结论 | 免死/弹药/爆头"开关即生效" | **必须**：①规则随房下发 ②双端同值应用 ③服务端授权 |
 
-代码事实：`MatchTestRules`（`Assets/LiteSim/Core/Scripts/MatchTestRules.cs:16-42`：`NoDeath:19`、`InfiniteAmmo:23`、爆头覆写 `:30/:33`）只有一个消费点 `SimStep.Step(..., rules: _testRules)`（`RoomRuntime.cs:581`）；线上构房恒传 `null`（`Server/RoomServer/RoomInstance.cs:275-276`），仅本地服注入（`Assets/LiteGame/DevLocalServer/LocalServerTransport.cs:83-96`）。`SimTestRules.cs:9-10` 原文即「**在线房间级下发未做**——真 KCP 形态不提供测试房」。
+代码事实：`MatchTestRules`（`Packages/com.litegame.sim/Core/Scripts/MatchTestRules.cs:16-42`：`NoDeath:19`、`InfiniteAmmo:23`、爆头覆写 `:30/:33`）只有一个消费点 `SimStep.Step(..., rules: _testRules)`（`RoomRuntime.cs:581`）；线上构房恒传 `null`（`Server/RoomServer/RoomInstance.cs:275-276`），仅本地服注入（`Assets/LiteGame/DevLocalServer/LocalServerTransport.cs:83-96`）。`SimTestRules.cs:9-10` 原文即「**在线房间级下发未做**——真 KCP 形态不提供测试房」。
 
 ---
 

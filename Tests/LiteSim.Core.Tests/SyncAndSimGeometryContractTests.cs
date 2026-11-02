@@ -34,8 +34,8 @@ namespace LiteSim.Tests
         [Fact]
         public void UT04_LiteNet_NoUsingLiteSim()
         {
-            string dir = RepoPath("Assets/LiteNet");
-            Assert.True(Directory.Exists(dir), "缺少 Assets/LiteNet 目录");
+            string dir = RepoPath("Packages/com.litegame.net");
+            Assert.True(Directory.Exists(dir), "缺少 Packages/com.litegame.net 目录");
 
             var offenders = new List<string>();
             foreach (string file in Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
@@ -185,7 +185,7 @@ namespace LiteSim.Tests
                 @"\bCombatConfig\s*\.\s*(?:" + string.Join("|", OldGeometryMembers) + @")\b";
             var offenders = new List<string>();
 
-            foreach (string relativeRoot in new[] { "Assets/LiteSim/Scripts", "Assets/LiteSim/Systems" })
+            foreach (string relativeRoot in new[] { "Packages/com.litegame.sim/Scripts", "Packages/com.litegame.sim/Systems" })
             {
                 string dir = RepoPath(relativeRoot);
                 Assert.True(Directory.Exists(dir), "缺少判定面目录：" + relativeRoot);

@@ -3,6 +3,7 @@
     "rootNamespace": "LiteGame",
     "references": [
         "LiteGame.Modules.Config",
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "LiteFramework.Editor",
         "LiteCodeGen.Runtime",

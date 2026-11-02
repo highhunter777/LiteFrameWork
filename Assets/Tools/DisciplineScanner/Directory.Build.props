@@ -2,7 +2,7 @@
 
   <!--
     双轨编译产物重定向：dotnet 侧的 bin/obj 不落在 Assets 目录内（Unity 会扫描 obj 里的生成 .cs）。
-    点开头的目录 Unity 资产数据库直接忽略。（与 Assets/LiteFramework、Assets/LiteSim 同款，各目录平级需各一份。）
+    点开头的目录 Unity 资产数据库直接忽略。（与 Assets/LiteFramework、Packages/com.litegame.sim 同款，各目录平级需各一份。）
   -->
   <PropertyGroup>
     <BaseIntermediateOutputPath>.dotnet/obj/</BaseIntermediateOutputPath>

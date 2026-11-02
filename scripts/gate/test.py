@@ -124,6 +124,28 @@ def _restore_and_build(name, project, dotnet):
         )
 
     solution = project / "Tests" / "Tests.slnx"
+    # 共享包（Server/RoomServer 以 PackageReference 消费）：缺件/过期才重打，产物在 LocalPackages/（不入库）
+    packer = project / "scripts" / "build" / "pack-shared.py"
+    if packer.exists():
+        info("quality/test", "-> ensure shared packages (LocalPackages/)")
+        run_or_raise([sys.executable, str(packer), "--ensure"], f"{name} shared package pack failed", cwd=project)
+    info("quality/test", "-> restore solution (shared packages feed)")
+    run_or_raise(
+        [
+            dotnet,
+            "restore",
+            str(solution),
+            "--disable-parallel",
+            "--ignore-failed-sources",
+            "--verbosity",
+            "minimal",
+            "-m:1",
+            "-p:BuildInParallel=false",
+        ],
+        f"{name} solution restore failed",
+        cwd=project,
+    )
+
     info("quality/test", "-> build solution (single MSBuild node)")
     run_or_raise(
         [

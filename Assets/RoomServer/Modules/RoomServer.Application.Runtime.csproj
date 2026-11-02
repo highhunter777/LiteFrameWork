@@ -21,7 +21,8 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <PackageId>LiteGame.Room.Application</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,12 +33,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Assets\LiteNet\LiteNet.csproj" />
-    <ProjectReference Include="..\..\..\Assets\LiteSync\LiteSync.csproj" />
-    <ProjectReference Include="..\..\..\Assets\LiteSim\LiteSim.csproj" />
+    <ProjectReference Include="..\..\..\Packages/com.litegame.net\LiteNet.csproj" />
+    <ProjectReference Include="..\..\..\Packages/com.litegame.sync\LiteSync.csproj" />
+    <ProjectReference Include="..\..\..\Packages/com.litegame.sim\LiteSim.csproj" />
     <ProjectReference Include="..\Core\RoomServer.Runtime.csproj" />
     <!-- protobuf：本程序集**不进 Unity 双轨**——它依赖 protobuf，而本仓 Unity 侧用的是
-         Vendor DLL（Assets/LiteNet/Vendor/Google.Protobuf）而非 NuGet。若日后要进 Unity，
+         Vendor DLL（Packages/com.litegame.net/Vendor/Google.Protobuf）而非 NuGet。若日后要进 Unity，
          需改成与 LiteNet 相同的 vendor DLL 方案（见该 csproj 顶部注释）。 -->
     <PackageReference Include="Google.Protobuf" Version="3.36.1" />
   </ItemGroup>

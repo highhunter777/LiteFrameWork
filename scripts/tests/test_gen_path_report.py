@@ -46,17 +46,17 @@ BUILTIN_PRODUCTS = {
     "local-chain": ("local-chain.py", ROOT / "scripts" / "local"),
 }
 
-SHARED_OUT_REL = "Assets/LiteNet/Core/Protocol/BuildHash.g.cs"
+SHARED_OUT_REL = "Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs"
 BUILD_HASH_INPUTS = (
-    "Assets/LiteSim/Scripts",
-    "Assets/LiteSim/Systems",
-    "Assets/LiteNet/Core/Proto",
-    "Assets/LiteNet/Core/Protocol",
-    "Assets/LiteNet/Core/Transport/Security",
-    "Assets/LiteSync/Shared",
-    "Assets/LiteSync/Snapshot",
-    "Assets/LiteSync/Input",
-    "Assets/LiteSync/Events",
+    "Packages/com.litegame.sim/Scripts",
+    "Packages/com.litegame.sim/Systems",
+    "Packages/com.litegame.net/Core/Proto",
+    "Packages/com.litegame.net/Core/Protocol",
+    "Packages/com.litegame.net/Core/Transport/Security",
+    "Packages/com.litegame.sync/Shared",
+    "Packages/com.litegame.sync/Snapshot",
+    "Packages/com.litegame.sync/Input",
+    "Packages/com.litegame.sync/Events",
     "Assets/GameData/Generated",
 )
 
@@ -188,15 +188,15 @@ class PathSingleSourceTests(unittest.TestCase):
     def test_proto_uses_proto_rel_for_the_input(self):
         module = load("path_report_proto", "gen_proto.py")
         entries = fetch_report(module, "proto")
-        self.assertEqual(module.PROTO_REL, "Assets/LiteNet/Core/Proto/battle.proto")
+        self.assertEqual(module.PROTO_REL, "Packages/com.litegame.net/Core/Proto/battle.proto")
         self.assertIn(module.PROTO_REL, paths_of(entries, "input"))
         self.assertIn(
-            "Assets/LiteNet/Core/Proto/Generated/Battle.cs", paths_of(entries, "output"))
+            "Packages/com.litegame.net/Core/Proto/Generated/Battle.cs", paths_of(entries, "output"))
 
     def test_sync_code_output_constant_is_the_current_path(self):
         module = load("path_report_sync_code", "gen_sync_code.py")
         entries = fetch_report(module, "sync-code")
-        expected = "Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs"
+        expected = "Packages/com.litegame.sim/Diagnostics/Generated/EntitySlot.Sync.g.cs"
         self.assertEqual(rel_of(module.OUT_FILE), expected)
         self.assertIn(expected, paths_of(entries, "output"))
         for _name, source in module.TARGETS:

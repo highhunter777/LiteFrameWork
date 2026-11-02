@@ -3,7 +3,7 @@
 
 Contract pinned by this file (tests-first, implementation task T2):
 
-- ``gen_proto.SIDECAR_REL`` == "Assets/LiteNet/Core/Proto/Generated/Battle.cs.input";
+- ``gen_proto.SIDECAR_REL`` == "Packages/com.litegame.net/Core/Proto/Generated/Battle.cs.input";
 - sidecar payload is one line ``battle.proto sha256:<8 hex>`` where the digest is
   the line-ending-normalized input digest of ``PROTO_REL`` (same algorithm as
   ``_codegen.input_digest``: sha256 over ``"<rel>\\0<normalized content>"``,
@@ -29,9 +29,9 @@ ROOT = Path(__file__).resolve().parents[2]
 CODEGEN = ROOT / "scripts" / "codegen"
 sys.path.insert(0, str(CODEGEN))
 
-PROTO_REL = "Assets/LiteNet/Core/Proto/battle.proto"
-BATTLE_REL = "Assets/LiteNet/Core/Proto/Generated/Battle.cs"
-SIDECAR_REL = "Assets/LiteNet/Core/Proto/Generated/Battle.cs.input"
+PROTO_REL = "Packages/com.litegame.net/Core/Proto/battle.proto"
+BATTLE_REL = "Packages/com.litegame.net/Core/Proto/Generated/Battle.cs"
+SIDECAR_REL = "Packages/com.litegame.net/Core/Proto/Generated/Battle.cs.input"
 
 
 def load_gen_proto():

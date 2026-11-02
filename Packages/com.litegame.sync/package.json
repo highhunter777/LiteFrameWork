@@ -1,0 +1,8 @@
+{
+  "name": "com.litegame.sync",
+  "version": "0.1.0",
+  "displayName": "LiteGame Sync",
+  "description": "快照/输入/事件的编解码与客户端同步状态机（双轨共编件：Unity asmdef + 服务端 NuGet）。",
+  "unity": "2022.3",
+  "dependencies": {}
+}

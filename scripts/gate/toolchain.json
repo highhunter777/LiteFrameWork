@@ -541,7 +541,7 @@
       ],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteNet/Core/Protocol/BuildHash.g.cs", "kind": "generated" },
+        { "path": "Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs", "kind": "generated" },
         { "path": "Server/MetaServer/Host/BuildHash.g.cs", "kind": "generated" }
       ],
       "destructive": false,
@@ -562,7 +562,7 @@
       ],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteNet/Core/Proto/Generated/Battle.cs", "kind": "generated" }
+        { "path": "Packages/com.litegame.net/Core/Proto/Generated/Battle.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 20
@@ -643,7 +643,7 @@
       "command": ["python", "scripts/codegen/toolbox.py", "sync-code"],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs", "kind": "generated" }
+        { "path": "Packages/com.litegame.sim/Diagnostics/Generated/EntitySlot.Sync.g.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 40
@@ -666,7 +666,7 @@
       ],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteNet/Core/Protocol/BuildHash.g.cs", "kind": "generated" },
+        { "path": "Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs", "kind": "generated" },
         { "path": "Server/MetaServer/Host/BuildHash.g.cs", "kind": "generated" }
       ],
       "destructive": false,
@@ -687,7 +687,7 @@
       "destructive": false,
       "order": 60,
       "outputs": [
-        { "path": "Assets/LiteSim/Scripts/Map/SimTrigTables.cs", "kind": "generated" }
+        { "path": "Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },

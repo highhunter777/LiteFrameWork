@@ -2,6 +2,7 @@
     "name": "LiteFramework.Runtime",
     "rootNamespace": "LiteFramework",
     "references": [
+        "LiteFramework.Core",
         "LiteCodeGen.Runtime",
         "DOTween.Modules",
         "UniTask",

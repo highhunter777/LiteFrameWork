@@ -55,7 +55,7 @@ namespace LiteGame.Tests.EditMode
                 => OnData?.Invoke(new ArraySegment<byte>(PacketCodec.Encode(type, message)), true);
         }
 
-        private sealed class FakeViewGroup : IBattleViewGroup
+        private sealed class FakeViewGroup : IBattleViewGroup, IBattleViewAttachment
         {
             public bool Attached;
             public bool Disposed;

@@ -14,7 +14,7 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly string[] ProductRoots =
         {
-            "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteNet",
+            "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework", "Packages/com.litegame.net",
         };
 
         private static readonly string[] BackgroundSymbols =

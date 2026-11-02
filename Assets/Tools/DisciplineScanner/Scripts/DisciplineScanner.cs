@@ -32,7 +32,7 @@ namespace Tools.DisciplineScan
         /// <summary>R8 禁 Resources.Load/LoadAsync（`Assets/LiteGame` / `Assets/LiteFramework/Runtime/Modules`）：破「资源唯一入口」——统一走资源服务/收集组。</summary>
         R8ResourcesLoad = 8,
 
-        /// <summary>R9 禁 Mod 相关类型（`Assets/LiteSim`）：守《模组系统设计》红线 M1「模组永不进 Sim」（判定必须在权威内）。</summary>
+        /// <summary>R9 禁 Mod 相关类型（`Packages/com.litegame.sim`）：守《模组系统设计》红线 M1「模组永不进 Sim」（判定必须在权威内）。</summary>
         R9ModInSim = 9,
 
         /// <summary>R10 禁 INetworkService（`UI 层`）：UI 层不得直发业务包（网络契约归框架层，业务数据经事件/桥过）。</summary>

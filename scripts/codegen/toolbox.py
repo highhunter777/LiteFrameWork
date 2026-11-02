@@ -12,7 +12,7 @@ Usage:
 Tools (form/operation details: the generator toolbox design doc, Docs design
 center; per-tool why/notes stay in each script's header):
   build-hash    buildHash generator; --check = build gate (Join handshake red line)
-  proto         battle.proto -> Assets/LiteNet/Core/Proto/Generated/Battle.cs
+  proto         battle.proto -> Packages/com.litegame.net/Core/Proto/Generated/Battle.cs
   luban         table chain regen (C#/binary/lua/LuaKeys); alias of Luban/gen.bat
   sync-code     [StateLayer] fields -> EntitySlot.Sync.g.cs (checksum plumbing)
   ui-page       #uiform + UiPageManifest + Contracts -> UiPageCatalog.g.cs
@@ -95,7 +95,7 @@ LOCAL_CHAIN_REL = 'scripts/local/local-chain.py'
 # parses the declaring source. BakeTargets carries its paths both as consts and
 # as MapTarget inline constructor arguments (e.g. TrainingGround).
 UNITY_DECLARERS = (
-    ('sim-trig', 'Assets/LiteSim/Editor/SimTrigTableGenerator.cs'),
+    ('sim-trig', 'Packages/com.litegame.sim/Editor/SimTrigTableGenerator.cs'),
     ('bake-targets', 'Assets/LiteGame/Editor/Baking/BakeTargets.cs'),
 )
 UNITY_REPO_ROOTS = ('Assets/', 'Luban/', 'Tests/', 'Server/', 'Docs/',
@@ -125,7 +125,7 @@ Generation mode requires --protoc (protoc is not vendored in the repository);
 # not read as stale). trig is NOT part of ALL_ORDER and is not a gate: it needs
 # a running Unity editor with the unity-pipeline server.
 UNITY_PORT_REL = 'Library/Pipeline/.unity-pipeline-port'
-TRIG_SOURCE_REL = 'Assets/LiteSim/Scripts/Map/SimTrigTables.cs'
+TRIG_SOURCE_REL = 'Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs'
 TRIG_CHECK_CODE = 'return LiteGame.Toolchain.SimTrigCli.IsUpToDate();'
 TRIG_GENERATE_CODE = 'return LiteGame.Toolchain.SimTrigCli.Run(false);'
 TRIG_EVAL_TIMEOUT = 300

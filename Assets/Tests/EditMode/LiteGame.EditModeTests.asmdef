@@ -10,6 +10,7 @@
         "LiteGame.Adapters.Unity",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "Unity.InputSystem",
         "Cinemachine",
@@ -42,7 +43,8 @@
         "LiteGame.Modules.Meta",
         "LiteGame.Modules.Session",
         "LiteGame.Modules.Map",
-        "LiteGame.Modules.Dev"
+        "LiteGame.Modules.Dev",
+        "LiteGame.Battle.Abstractions"
     ],
     "includePlatforms": [
         "Editor"

@@ -3,9 +3,9 @@
 # 用途：Join 握手 buildHash 校验 + 启动期断言——两端 hash 不等 → 拒绝进房（《状态同步实施方案》§40/§380）。
 #
 # 覆盖范围（**两端必须逐字节一致的东西**）：
-#   Assets/LiteSim/Scripts/**   —— 判定逻辑（Sim 内所有确定性行为）
-#   Assets/LiteNet/Core/Proto/**          —— 协议单源（.proto + 生成物）
-#   Assets/LiteNet/Core/Protocol/**       —— 打包解包纯函数
+#   Packages/com.litegame.sim/Scripts/**   —— 判定逻辑（Sim 内所有确定性行为）
+#   Packages/com.litegame.net/Core/Proto/**          —— 协议单源（.proto + 生成物）
+#   Packages/com.litegame.net/Core/Protocol/**       —— 打包解包纯函数
 #   SHARED_LINK_FILES                —— 两端源链接共编的映射/布局件（RoomServer.csproj <Compile Include>；
 #                                       csproj 每加一条出树链接，这里必须同批加对应条目）
 #   注：Systems/ 与 Scripts/ 平级（2026-09-19 目录收纳的最终形态），同属判定源集，
@@ -29,7 +29,7 @@
 # 两个模式（2026-10-07 起校验时点 = 构建前，开发期不校验——`BuildHashTests`/
 # `BuildHashSourceSet.g.cs` 随之退役，规则单源回归本脚本）：
 #   生成（默认）  python scripts/codegen/gen-build-hash.py
-#       改了 Sim/协议/表后重跑，产出 `Assets/LiteNet/Core/Protocol/BuildHash.g.cs`；
+#       改了 Sim/协议/表后重跑，产出 `Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs`；
 #       RoomServer 重建 + Unity 重编译把新常量各自烤进产物（refresh-hash.py 编排这三步）。
 #       **同时产出第二个目标**（P1④）：`Server/MetaServer/Host/BuildHash.g.cs` = Meta 自身
 #       源集摘要（含源链接件）——取代旧的手写占位 "meta-0.0.0-unwired"；改 Meta 源码后同样重跑。
@@ -51,18 +51,18 @@ from _codegen import info, repo_root, run_tool, signature  # noqa: E402
 TOOL = 'build-hash'
 ROOT = repo_root()
 SHARED_TARGETS = [
-    'Assets/LiteSim/Scripts',
-    'Assets/LiteSim/Systems',
-    'Assets/LiteNet/Core/Proto',
-    'Assets/LiteNet/Core/Protocol',
+    'Packages/com.litegame.sim/Scripts',
+    'Packages/com.litegame.sim/Systems',
+    'Packages/com.litegame.net/Core/Proto',
+    'Packages/com.litegame.net/Core/Protocol',
     # 安全信封（2026-10-03）：装饰在 Transport 上的线上协议层——密文帧形状/握手版本
     # 变更即两端 wire 不兼容，必须进 buildHash 闭包（KCP 适配层本体仍不入闭包：纯传输）。
-    'Assets/LiteNet/Core/Transport/Security',
+    'Packages/com.litegame.net/Core/Transport/Security',
     # 同步协议层（2026-10-31 批 6）：仅共享映射/会话子集进闭包；LiteSync/Client（客户端专属）不入。
-    'Assets/LiteSync/Shared',
-    'Assets/LiteSync/Snapshot',
-    'Assets/LiteSync/Input',
-    'Assets/LiteSync/Events',
+    'Packages/com.litegame.sync/Shared',
+    'Packages/com.litegame.sync/Snapshot',
+    'Packages/com.litegame.sync/Input',
+    'Packages/com.litegame.sync/Events',
     # Luban 生成的表行类/读取器（gen.bat Pass 2 产出）：两端共编（服务端 csproj 通配 include 全目录、
     # 客户端 `Luban.Tables.asmdef`）——**生成读码身份**（列/类型/schema）在此钉住；表**数值**不在这里
     # （.bytes 不进闭包，见头部"不覆盖"段——值面守卫 = CombatConfigDigest 运行期摘要）。
@@ -99,7 +99,7 @@ META_EXTRA_FILES = [
     'Assets/LiteGame/Modules/Meta/Wire/MetaWireLimits.cs',
     'Assets/LiteFramework/Runtime/Adapters/Newtonsoft/WireJsonSettings.cs',
 ]
-SHARED_OUT_REL = 'Assets/LiteNet/Core/Protocol/BuildHash.g.cs'
+SHARED_OUT_REL = 'Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs'
 
 
 def shared_out_file(root):

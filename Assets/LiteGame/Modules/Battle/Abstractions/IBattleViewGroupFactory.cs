@@ -15,9 +15,9 @@ namespace LiteGame
         IBattleViewGroup LastCreated { get; }
 
         /// <param name="account">本局 Account 作用域（视图在其下建 BattleView 子作用域）。</param>
-        /// <param name="devOverlay">本局开发叠加层（发布形态 null = 零开销）。</param>
         /// <param name="teleportDispatch">传送分发（开发形态本地服宿主钩子；可空）。</param>
-        IBattleViewGroup Create(ClientScope account, IBattleDevOverlay devOverlay,
-            Action<SimVector3> teleportDispatch);
+        /// <remarks>开发叠加层不在签名里：它是实现件依赖，由装配期 <c>Func&lt;IBattleDevOverlay&gt;</c> 注入工厂
+        /// （契约包不引用表现层类型，规范 04 §6.8 R-D）。</remarks>
+        IBattleViewGroup Create(ClientScope account, Action<SimVector3> teleportDispatch);
     }
 }

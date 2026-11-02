@@ -49,9 +49,9 @@ SYNC_OUTPUT = ROOT / "Assets" / "LiteSim" / "Diagnostics" / "Generated" / "Entit
 
 # artifact path -> toolbox tool token (10 artifacts, plan v8 assumption 1)
 GENERATED = {
-    "Assets/LiteNet/Core/Protocol/BuildHash.g.cs": "build-hash",
+    "Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs": "build-hash",
     "Server/MetaServer/Host/BuildHash.g.cs": "build-hash",
-    "Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs": "sync-code",
+    "Packages/com.litegame.sim/Diagnostics/Generated/EntitySlot.Sync.g.cs": "sync-code",
     "Assets/LiteGame/Modules/Ui/Generated/UiPageCatalog.g.cs": "ui-page",
     "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindIndex.Api.g.cs": "ui-api",
     "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindBase.Api.g.cs": "ui-api",

@@ -49,11 +49,11 @@ class BuildPlanTests(unittest.TestCase):
             "Missing/Link.cs", set(), (), {"Missing/Link.cs"}))
 
     def test_deleted_or_renamed_shared_prefix_is_still_shared(self):
-        plan = self.plan(["Assets/LiteNet/Core/Protocol/Deleted.cs"])
-        self.assertEqual(self.finding(plan, "Assets/LiteNet/Core/Protocol/Deleted.cs")["area"], "shared")
+        plan = self.plan(["Packages/com.litegame.net/Core/Protocol/Deleted.cs"])
+        self.assertEqual(self.finding(plan, "Packages/com.litegame.net/Core/Protocol/Deleted.cs")["area"], "shared")
 
     def test_project_file_is_two_end_build_config(self):
-        path = "Assets/LiteSim/LiteSim.csproj"
+        path = "Packages/com.litegame.sim/LiteSim.csproj"
         item = self.finding(self.plan([path]), path)
         self.assertEqual(item["area"], "project_settings")
         self.assertIn("rebuild_client_player", item["deliveryActions"])
@@ -97,8 +97,8 @@ class BuildPlanTests(unittest.TestCase):
         self.assertTrue(any("不需要出包" in note for note in plan["notes"]), plan["notes"])
 
     def test_shared_source_requires_hash_client_server_and_publish(self):
-        plan = self.plan(["Assets/LiteNet/Core/Protocol/Wire.cs"])
-        item = self.finding(plan, "Assets/LiteNet/Core/Protocol/Wire.cs")
+        plan = self.plan(["Packages/com.litegame.net/Core/Protocol/Wire.cs"])
+        item = self.finding(plan, "Packages/com.litegame.net/Core/Protocol/Wire.cs")
         self.assertEqual(item["area"], "shared")
         self.assertIn("regen_buildhash", item["innerActions"])
         for action in ("rebuild_client_player", "rebuild_server_room", "publish_server"):
@@ -116,8 +116,8 @@ class BuildPlanTests(unittest.TestCase):
         self.assertTrue(any("MapTableProjection" in note for note in plan["notes"]), plan["notes"])
 
     def test_proto(self):
-        plan = self.plan(["Assets/LiteNet/Proto/Wire.proto"])
-        item = self.finding(plan, "Assets/LiteNet/Proto/Wire.proto")
+        plan = self.plan(["Packages/com.litegame.net/Proto/Wire.proto"])
+        item = self.finding(plan, "Packages/com.litegame.net/Proto/Wire.proto")
         self.assertEqual(item["area"], "proto")
         self.assertIn("regen_proto", item["innerActions"])
         self.assertIn("publish_server", item["deliveryActions"])
@@ -243,11 +243,11 @@ class BuildPlanTests(unittest.TestCase):
 
     def test_priority_conflicts(self):
         plan = self.plan([
-            "Assets/LiteSim/Scripts/Editor/Helper.cs",
+            "Packages/com.litegame.sim/Scripts/Editor/Helper.cs",
             "Assets/LiteGame/Lua/UI/Page_Login.lua",
             "Assets/LiteGame/Editor/Toolchain/Registry/EditorToolHandlers.cs",
         ])
-        self.assertEqual(self.finding(plan, "Assets/LiteSim/Scripts/Editor/Helper.cs")["area"], "editor_code")
+        self.assertEqual(self.finding(plan, "Packages/com.litegame.sim/Scripts/Editor/Helper.cs")["area"], "editor_code")
         self.assertEqual(self.finding(plan, "Assets/LiteGame/Lua/UI/Page_Login.lua")["area"], "content")
         self.assertEqual(self.finding(plan, "Assets/LiteGame/Editor/Toolchain/Registry/EditorToolHandlers.cs")["area"], "editor_code")
 
@@ -269,7 +269,7 @@ class BuildPlanTests(unittest.TestCase):
 
     def test_mixed_changes_are_deduped_in_semantic_order(self):
         plan = self.plan([
-            "Assets/LiteNet/Core/Protocol/Wire.cs",
+            "Packages/com.litegame.net/Core/Protocol/Wire.cs",
             "Assets/LiteGame/Modules/Procedure/Stages/ProcedureMatch.cs",
             "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
             "Docs/项目说明/11-联机测试流程.md",
@@ -306,7 +306,7 @@ class BuildPlanTests(unittest.TestCase):
         rows = [
             ("Assets/ShareResource/UI/Screens/Page_Lobby.prefab", {"rebuild_content_bundle", "rebuild_client_player"}),
             ("Server/RoomServer/Program.cs", {"rebuild_server_room", "publish_server"}),
-            ("Assets/LiteNet/Core/Protocol/Wire.cs", {"rebuild_client_player", "rebuild_server_room", "publish_server"}),
+            ("Packages/com.litegame.net/Core/Protocol/Wire.cs", {"rebuild_client_player", "rebuild_server_room", "publish_server"}),
             ("Assets/RoomServer/Core/Ghost.cs", {"rebuild_server_room", "publish_server"}),
             ("Luban/Data/weapons.xlsx", {"rebuild_content_bundle", "rebuild_client_player", "rebuild_server_room", "publish_server"}),
             ("deploy/roomserver.windows.json", {"publish_room_config", "restart_room"}),
@@ -319,7 +319,7 @@ class BuildPlanTests(unittest.TestCase):
     # ---- AC5 JSON ----
 
     def test_json_shape(self):
-        plan = self.plan(["Assets/LiteNet/Core/Protocol/Wire.cs"])
+        plan = self.plan(["Packages/com.litegame.net/Core/Protocol/Wire.cs"])
         self.assertEqual(plan["schemaVersion"], 1)
         for key in (
             "base", "head", "innerLoop", "delivery", "deliveryNeedsPlayerBuild",
@@ -333,9 +333,9 @@ class BuildPlanTests(unittest.TestCase):
     # ---- AC9 normalization ----
 
     def test_path_normalization_and_dedup(self):
-        plan = self.plan([".\\Assets\\LiteNet\\Core\\Protocol\\Wire.cs", "Assets/LiteNet/Core/Protocol/Wire.cs"])
+        plan = self.plan([".\\Assets\\LiteNet\\Core\\Protocol\\Wire.cs", "Packages/com.litegame.net/Core/Protocol/Wire.cs"])
         self.assertEqual(len(plan["findings"]), 1)
-        self.assertEqual(plan["findings"][0]["path"], "Assets/LiteNet/Core/Protocol/Wire.cs")
+        self.assertEqual(plan["findings"][0]["path"], "Packages/com.litegame.net/Core/Protocol/Wire.cs")
 
     # ---- AC4 drift ----
 
@@ -376,7 +376,7 @@ class BuildPlanTests(unittest.TestCase):
 
     def test_cli_changed_file_json(self):
         result = subprocess.run(
-            [sys.executable, str(SCRIPT), "--changed-file", "Assets/LiteNet/Core/Protocol/Wire.cs", "--json"],
+            [sys.executable, str(SCRIPT), "--changed-file", "Packages/com.litegame.net/Core/Protocol/Wire.cs", "--json"],
             cwd=str(ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

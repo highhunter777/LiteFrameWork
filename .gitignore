@@ -43,14 +43,15 @@ XLuaSamples/
 # 双轨编译的手写工程文件（被 Tests.slnx / 测试工程引用，保留入库）
 !Assets/LiteFramework/*.csproj
 !Assets/LiteFramework/Runtime/Modules/Hosting/*.csproj
-!Assets/LiteSim/*.csproj
-!Assets/LiteNet/*.csproj
+!Packages/com.litegame.sim/*.csproj
+!Packages/com.litegame.net/*.csproj
+!Packages/com.litegame.sync/*.csproj
 !Assets/Tools/DisciplineScanner/*.csproj
 !Assets/LiteTesting/*.csproj
 !RoomServer/*.csproj
 !Assets/RoomServer/Core/*.csproj
 !Assets/RoomServer/Modules/*.csproj
-!Assets/LiteNet/Diagnostics/*.csproj
+!Packages/com.litegame.net/Diagnostics/*.csproj
 !MetaServer/*.csproj
 !Tests/LiteFramework.Core.Tests/*.csproj
 !Tests/LiteSim.Core.Tests/*.csproj
@@ -284,3 +285,6 @@ BuildProfiles/*.local.json
 
 # ===== Artifacts/ (UI preview matrix screenshots/index; generated evidence, not versioned) =====
 [Aa]rtifacts/
+
+# 共享 NuGet 包本地 feed（scripts/build/pack-shared.py 产物，不入库）
+LocalPackages/

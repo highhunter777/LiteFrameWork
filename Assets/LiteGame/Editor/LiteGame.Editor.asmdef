@@ -10,6 +10,7 @@
         "LiteGame.Adapters.Unity",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "LiteFramework.Editor",
         "LiteCodeGen.Runtime",

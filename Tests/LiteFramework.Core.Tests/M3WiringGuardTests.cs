@@ -13,14 +13,14 @@ namespace LiteFramework.Core.Tests
         public void RoomClient_协议分发已外提()
         {
             string root = RepoRoot();
-            string path = Path.Combine(root, "Assets/LiteSync/Client/RoomClient.cs");
+            string path = Path.Combine(root, "Packages/com.litegame.sync/Client/RoomClient.cs");
             string text = File.ReadAllText(path);
 
             Assert.Contains("_inbound.Handle(", text);                  // 入站走分发件
             Assert.Contains("_outbound.", text);                        // 出站走打包件
             Assert.DoesNotContain("switch (type)", text);               // 协议分发表不得回涨到门面类
-            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteSync/Client/RoomInbound.cs")));
-            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteSync/Client/RoomOutbound.cs")));
+            Assert.True(File.Exists(Path.Combine(root, "Packages/com.litegame.sync/Client/RoomInbound.cs")));
+            Assert.True(File.Exists(Path.Combine(root, "Packages/com.litegame.sync/Client/RoomOutbound.cs")));
         }
 
         [Fact]

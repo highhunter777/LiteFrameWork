@@ -231,7 +231,7 @@ class TrigContractTests(unittest.TestCase):
                          "trig must not call the generator's direct write entry")
 
     def test_sim_trig_generator_exposes_a_read_only_up_to_date_check(self):
-        generator = ROOT / "Assets/LiteSim/Editor/SimTrigTableGenerator.cs"
+        generator = ROOT / "Packages/com.litegame.sim/Editor/SimTrigTableGenerator.cs"
         self.assertTrue(generator.is_file())
         text = generator.read_text(encoding="utf-8", errors="replace")
         self.assertIn("IsUpToDate", text)

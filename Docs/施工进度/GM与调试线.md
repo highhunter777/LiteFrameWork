@@ -1087,15 +1087,15 @@
 
 > 2026-10-23。**状态：已完成（附验证证据）**——用户裁决“按第二条开工”：枪械数值本体不进调参注册表（已是 `#weapon.xlsx` 表数据），但给本地测试模式加**运行期试验覆写**（伤害/射速起步）。修正第 21 章“18 项未含武器参数”时的基数（16→18）与 F11 白名单（4→6）。
 
-范围：`MatchTestRules` 实例覆写（R13 口径）+ 武器试验 provider；**动共享源（`Assets/LiteSim/Core`）→ BuildHash 重算**。
+范围：`MatchTestRules` 实例覆写（R13 口径）+ 武器试验 provider；**动共享源（`Packages/com.litegame.sim/Core`）→ BuildHash 重算**。
 
 ### 交付面
 
 | 件 | 变更 |
 |---|---|
-| `Assets/LiteSim/Core/Scripts/MatchTestRules.cs` | 增 `DamageOverride`/`RpmOverride`（不进摘要、不可重放）+ 解析口 `ResolveWeaponDamage`/`ResolveFireIntervalFrames`（null/未覆写恒表值） |
-| `Assets/LiteSim/Core/Systems/WeaponSystem.cs` | `TryConsumeShot` 击发节拍走解析口（rpm 覆写按 `ceil(TickRate×60/rpm)` 重算，不改表定义） |
-| `Assets/LiteSim/Core/Systems/ShootingSystem.cs` | `baseDamage`（已装备武器）走解析口 |
+| `Packages/com.litegame.sim/Core/Scripts/MatchTestRules.cs` | 增 `DamageOverride`/`RpmOverride`（不进摘要、不可重放）+ 解析口 `ResolveWeaponDamage`/`ResolveFireIntervalFrames`（null/未覆写恒表值） |
+| `Packages/com.litegame.sim/Core/Systems/WeaponSystem.cs` | `TryConsumeShot` 击发节拍走解析口（rpm 覆写按 `ceil(TickRate×60/rpm)` 重算，不改表定义） |
+| `Packages/com.litegame.sim/Core/Systems/ShootingSystem.cs` | `baseDamage`（已装备武器）走解析口 |
 | `Assets/LiteGame/App/Debug/TestModeRuntime.cs` | 增 `WeaponDamageOverride`/`WeaponRpmOverride` 跨局待用值 |
 | `Assets/LiteGame/App/Debug/WeaponDebugTunables.cs`（新） | `weapon.damage`/`weapon.rpm`（Sandbox、RuntimeVisible、默认值来自武器表 `WeaponConfig.Default`，复位清 -1 回表值；活动局 + 待用值双落） |
 | `Assets/LiteGame/App/Bootstrap/ContainerModule.cs` | 注入 `WeaponDebugTunables` 到内核 |
@@ -1141,7 +1141,7 @@
 
 | 件 | 变更 |
 |---|---|
-| `Assets/LiteNet/Diagnostics/WeakNet/`（新） | `WeakNetProfile`/`WeakNetRandom`/`WeakNetStats`/`WeakNetClientTransport`；整目录三宏守卫（服务端 .NET 无宏 → 不含类型；release 不编译） |
+| `Packages/com.litegame.net/Diagnostics/WeakNet/`（新） | `WeakNetProfile`/`WeakNetRandom`/`WeakNetStats`/`WeakNetClientTransport`；整目录三宏守卫（服务端 .NET 无宏 → 不含类型；release 不编译） |
 | `Assets/LiteGame/App/Debug/WeakNet/`（新） | `WeakNetRuntime`（实例，profile/包装/统计/`IDebugTunableProvider`）、`WeakNetPresets`、`WeakNetSnapshot`、`NetHistory`（4Hz/240/降采样）、`WeakNetWiring`、`SetWeakNetPreset` 命令 |
 | 装配 | `ContainerModule` 开发宏内建 runtime、包装真 KCP 工厂（`testRoom` 不包）；`DebugKernel` 注入并暴露快照；`BattleClient` 转发 `WeakNet OnError` |
 | 读数/写口 | DevHUD 联机段注入行；F12 `weak <preset>` 经命令中心审计；F11/`tune` 数值旋钮 |

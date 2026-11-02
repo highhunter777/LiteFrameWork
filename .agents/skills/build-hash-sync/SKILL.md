@@ -1,6 +1,6 @@
 ---
 name: build-hash-sync
-description: 共享源集改动后的生成物重生成流程(BuildHash / 协议 / Luban 表)。只要动过或即将动 Assets/LiteSim/{Scripts,Systems}、Assets/LiteNet/Core/{Proto,Protocol,Transport/Security}、Assets/GameData/Generated(生成读码面)、.proto 文件、Luban 表源(Luban/Data、Luban/Defines)、Assets/GameData/Config 表数据,或用户提到 BuildHash、握手、生成物、重生成、出包前检查,就必须先加载本 skill——漏跑 = 出包门禁被拦/两端常量不同步时 Join 拒进房。
+description: 共享源集改动后的生成物重生成流程(BuildHash / 协议 / Luban 表)。只要动过或即将动 Packages/com.litegame.sim/{Scripts,Systems}、Packages/com.litegame.net/Core/{Proto,Protocol,Transport/Security}、Assets/GameData/Generated(生成读码面)、.proto 文件、Luban 表源(Luban/Data、Luban/Defines)、Assets/GameData/Config 表数据,或用户提到 BuildHash、握手、生成物、重生成、出包前检查,就必须先加载本 skill——漏跑 = 出包门禁被拦/两端常量不同步时 Join 拒进房。
 ---
 
 # 共享源集与生成物同步(BuildHash / 协议 / 表)
@@ -16,16 +16,16 @@ description: 共享源集改动后的生成物重生成流程(BuildHash / 协议
 
 | 改了什么 | 必跑 |
 |---|---|
-| `Assets/LiteSim/{Scripts,Systems}`、`Assets/LiteNet/Core/{Proto,Protocol,Transport/Security}`、`Assets/GameData/Generated`、源链接共编件(`SHARED_LINK_FILES`) | ★ `python scripts/codegen/toolbox.py build-hash` |
+| `Packages/com.litegame.sim/{Scripts,Systems}`、`Packages/com.litegame.net/Core/{Proto,Protocol,Transport/Security}`、`Assets/GameData/Generated`、源链接共编件(`SHARED_LINK_FILES`) | ★ `python scripts/codegen/toolbox.py build-hash` |
 | `Assets/GameData/Config/*.bytes`(表**数值**) | 不必跑(数据面守卫＝运行期摘要)；两端发布顺序见规范 03 的目录搬动行 |
-| `.proto`(源在 `Assets/LiteNet/Core/Proto/*.proto`) | ★ `python scripts/codegen/toolbox.py proto --protoc <protoc.exe>` **再** ★ BuildHash 重跑 |
+| `.proto`(源在 `Packages/com.litegame.net/Core/Proto/*.proto`) | ★ `python scripts/codegen/toolbox.py proto --protoc <protoc.exe>` **再** ★ BuildHash 重跑 |
 | 表源(`Luban/Data/*.xlsx`、`Luban/Defines/` schema) | ★ `Luban/gen.bat`(双端重生成 C#/binary/Lua)**再** ★ BuildHash 重跑(读码面在闭包内——只改数值也随 gen.bat 重生成同一份读码,常量不动) |
 | 出包前 | `python scripts/codegen/toolbox.py build-hash --check`(复算比对;`build-player.py` 门禁步也会做) |
 
 ## 规则
 
 1. **先改源、后重生成,顺序不能反**:重生成以当前源内容为输入,生成后源又有改动必须重跑。
-2. **生成物勿手改**:`Assets/LiteNet/Core/Proto/Generated/`、`Assets/LiteNet/Core/Protocol/BuildHash.g.cs`、`Assets/GameData/Config/*.bytes`、`Assets/LiteGame/Lua/Cfg/*.lua` 都是生成物——要改行为就改它的源(表源 / .proto / 共享源),再重生成。
+2. **生成物勿手改**:`Packages/com.litegame.net/Core/Proto/Generated/`、`Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs`、`Assets/GameData/Config/*.bytes`、`Assets/LiteGame/Lua/Cfg/*.lua` 都是生成物——要改行为就改它的源(表源 / .proto / 共享源),再重生成。
 3. **统一入口**:`python scripts/codegen/toolbox.py <tool> [args...]`,门禁/CI/脚本内部只走 toolbox；人工直调 deprecated；工具形态/失败语义的权威是 `Docs/设计文档/架构/生成器工具箱专项设计.md`。
 4. protoc 来自 nuget `Google.Protobuf.Tools`,版本须与运行时对齐;`Proto/Generated/Battle.cs` 勿手改。
 5. 改表数值同时涉及代码默认值的:表值与默认值必须一致(L1 表守卫钉住);机制面禁读静态读口(R13,见修改指南 §1.3)。

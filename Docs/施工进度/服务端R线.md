@@ -226,8 +226,8 @@
 | 交付 | 位置 | 设计依据 |
 | --- | --- | --- |
 | 重连票据 CSPRNG | `RoomServer/Application/ReconnectService.cs`（`TokenEntropyBytes = 16`、`RandomNumberGenerator.GetBytes`、base64url 去 padding） | §P0-6 |
-| 规范化远端地址（纯函数） | `Assets/LiteNet/Transport/RemoteAddress.cs`（新增，含 .meta） | §4 冲突裁定「per-IP 限流」 |
-| 传输端口扩展 | `Assets/LiteNet/Transport/IRoomTransport.cs` + `KcpTransportServer.cs` | 同上（"连接元数据"；null = 未知地址语义入契约） |
+| 规范化远端地址（纯函数） | `Packages/com.litegame.net/Transport/RemoteAddress.cs`（新增，含 .meta） | §4 冲突裁定「per-IP 限流」 |
+| 传输端口扩展 | `Packages/com.litegame.net/Transport/IRoomTransport.cs` + `KcpTransportServer.cs` | 同上（"连接元数据"；null = 未知地址语义入契约） |
 | 分层限流器 | `RoomServer/Application/RateLimiter.cs`（新增：`RateLimitSettings` + `RateLimiter`；显式虚拟时钟 `nowMs`） | §343、§595 |
 | 配置装载 + 范围校验 | `RoomServer/RoomServerConfig.cs`（`rate_limit` 分区：四 lane 突发/速率 + `buckets` + `idle_ms`；缺省走 Default，越界/非对象拒载；`Describe()` 带 `rateLimit=[…]`） | §429、§520/§600 |
 | 自带配置 | `Config/roomserver.json`（`rate_limit` 段 + `_comment` 说明） | 同上 |
@@ -286,7 +286,7 @@ NAT 规模、单连接包速率的定标归容量/压测（R4/G5），本批不�
 `RateLimiter`（Host 侧、带时钟）与 `ReconnectService` 改动落**根 `RoomServer/` 工程**——
 `Assets/RoomServer/Application` 的 csproj 头注释明示"带 Socket/kcp2k/文件/时钟的 Application 文件
 （ServerHost、ServerLoop、ReconnectService…）**不得**挪进来"。`RemoteAddress`（纯函数）住
-`Assets/LiteNet/Transport`，随 LiteNet 双轨共编。全部新文件在 buildHash 闭包（Sim/Protocol/Proto/Data）之外。
+`Packages/com.litegame.net/Transport`，随 LiteNet 双轨共编。全部新文件在 buildHash 闭包（Sim/Protocol/Proto/Data）之外。
 
 ### 5. 验证证据
 
@@ -360,13 +360,13 @@ NAT 规模、单连接包速率的定标归容量/压测（R4/G5），本批不�
 
 #### 2026-10-03 · 批1 交付（并行会话实现 + 本会话接手收口）
 
-**接手盘点**：并行会话已交付 `Assets/LiteNet/Transport/Security` 六件（约 900 行）与双端装配（`Program.cs` 服务器侧 fail-closed、`BattleClient`/`ProcedureMatch` 客户端侧对称）、4 例假传输测试；**缺**：握手攻击面用例、真 KCP 回环验证、buildHash 源集纳入、设计/进度文档与本索引。
+**接手盘点**：并行会话已交付 `Packages/com.litegame.net/Transport/Security` 六件（约 900 行）与双端装配（`Program.cs` 服务器侧 fail-closed、`BattleClient`/`ProcedureMatch` 客户端侧对称）、4 例假传输测试；**缺**：握手攻击面用例、真 KCP 回环验证、buildHash 源集纳入、设计/进度文档与本索引。
 
 **本会话接手补齐**：
 
 - **攻击面用例 6 例**（假传输）：垃圾首包断开、ClientHello 不可靠信道拒绝、伪造 ClientFinish 拒绝不建会话、建立会话后重放握手包按解密失败处置断开、伪服务器 ServerHello 客户端验证明失败自断、载荷上限边界（64KB 通过/越界加密口抛）。
 - **真实 KCP 回环 1 例**：信封装饰器套真 KCP 两端（127.0.0.1:28896），握手 + Join→JoinAck 全链可用（假件抹不掉的 Socket 时序/MTU/KCP 会话层由此钉住）。
-- **buildHash 源集**：`Assets/LiteNet/Transport/Security` 进 `gen-build-hash.py` 闭包（52→58 文件，哈希 `13badf83…`）——信封是线上协议层，帧形状/握手版本变更必须两端同变、错配在 Join 握手被拒；KCP 适配层本体维持不入闭包（纯传输）。
+- **buildHash 源集**：`Packages/com.litegame.net/Transport/Security` 进 `gen-build-hash.py` 闭包（52→58 文件，哈希 `13badf83…`）——信封是线上协议层，帧形状/握手版本变更必须两端同变、错配在 Join 握手被拒；KCP 适配层本体维持不入闭包（纯传输）。
 - **文档**：本文件 + 《安全信封专项设计》（设计索引同步）+ `BattleClient` 新参数 XML 注释（fail-closed 口径写透）。
 
 **验证证据**：

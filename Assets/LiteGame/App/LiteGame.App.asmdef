@@ -10,6 +10,7 @@
         "LiteGame.Adapters.Unity",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "LiteGame.Adapters.LuaBridge",
         "LiteNet",
@@ -25,7 +26,8 @@
         "LiteGame.Modules.Session",
         "LiteGame.Modules.Map",
         "LiteGame.Modules.Dev",
-        "LiteGame.Modules.Composition"
+        "LiteGame.Modules.Composition",
+        "LiteGame.Battle.Abstractions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

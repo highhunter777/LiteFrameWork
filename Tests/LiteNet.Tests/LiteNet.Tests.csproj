@@ -15,9 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Assets\LiteNet\LiteNet.csproj" />
-    <ProjectReference Include="..\..\Assets\LiteSync\LiteSync.csproj" />
-    <ProjectReference Include="..\..\Assets\LiteSim\LiteSim.csproj" />
+    <ProjectReference Include="..\..\Packages/com.litegame.net\LiteNet.csproj" />
+    <ProjectReference Include="..\..\Packages/com.litegame.sync\LiteSync.csproj" />
+    <ProjectReference Include="..\..\Packages/com.litegame.sim\LiteSim.csproj" />
     <ProjectReference Include="..\..\Server\RoomServer\RoomServer.csproj" />
     <ProjectReference Include="..\..\Server\ReplayTool\ReplayTool.csproj" />
     <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />

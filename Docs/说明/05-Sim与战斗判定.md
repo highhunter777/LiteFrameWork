@@ -7,7 +7,7 @@
 
 ## 1. 判定层的位置与目标
 
-判定代码位于 `Assets/LiteSim/`：纯 C#、零引擎依赖，客户端（Unity）与服务端（RoomServer，.NET 8）**引用同一份源**。战斗的"真相"只在这一层产生：网络层搬运差异与摘要，表现层只读。
+判定代码位于 `Packages/com.litegame.sim/`：纯 C#、零引擎依赖，客户端（Unity）与服务端（RoomServer，.NET 8）**引用同一份源**。战斗的"真相"只在这一层产生：网络层搬运差异与摘要，表现层只读。
 
 联机模型是**服务器权威 + 客户端预测**：
 
@@ -19,7 +19,7 @@
 
 ## 2. 逻辑帧：60Hz 定长 + 累加器追帧
 
-`Assets/LiteSim/Scripts/Pipeline/FrameDriver.cs` 是客户端预测路径的帧推进器（`RollbackSim` 持有）：
+`Packages/com.litegame.sim/Scripts/Pipeline/FrameDriver.cs` 是客户端预测路径的帧推进器（`RollbackSim` 持有）：
 
 ```text
 _accumulator += realDelta
@@ -54,7 +54,7 @@ if (_accumulator >= Dt) _accumulator = 0   // 追不上就丢余量，防死亡�
 
 ## 3. 系统顺序：`SimStep` 是唯一契约
 
-`Assets/LiteSim/Scripts/Pipeline/SimStep.cs` 是硬编码直线调用，没有注册表、数组或特性扫描：
+`Packages/com.litegame.sim/Scripts/Pipeline/SimStep.cs` 是硬编码直线调用，没有注册表、数组或特性扫描：
 
 ```text
 前置：Match.Phase == Finished → 清命令缓冲并 return
@@ -131,11 +131,11 @@ SimStep.Step(..., advanceMatch: false)
 
 公共口径只覆盖"全量快照可重建、客户端可预测"的层：私有面（他人弹药/技能 CD/背包/资源）、`RngState`、状态效果明细**不进比对**——客户端永远无法重建，进了只会制造永假和解。
 
-字段清单不手写：实体与运行态结构的公开/全量字段由 `[StateLayer]` 标注生成到 `Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs`（生成器 `scripts/codegen/toolbox.py sync-code`）。给结构体加判定字段后必须重跑生成器，漏改表现为"该层分叉但和解不报"的静默漂移。
+字段清单不手写：实体与运行态结构的公开/全量字段由 `[StateLayer]` 标注生成到 `Packages/com.litegame.sim/Diagnostics/Generated/EntitySlot.Sync.g.cs`（生成器 `scripts/codegen/toolbox.py sync-code`）。给结构体加判定字段后必须重跑生成器，漏改表现为"该层分叉但和解不报"的静默漂移。
 
 ## 6. 客户端预测、回滚、和解
 
-`Assets/LiteSim/Scripts/Pipeline/RollbackSim.cs`：
+`Packages/com.litegame.sim/Scripts/Pipeline/RollbackSim.cs`：
 
 - **环与历史**：快照环容量 `MaxRollbackFrames+1 = 9`，输入历史 32 帧；构造期 `Capture(0)` 锚定帧 0，第 1 步回滚天然可用。
 - **每渲染帧**：`Tick` 先 `PrepareNext(Frame+1)`、重置 `_rollbacksThisFrame`，再 `FrameDriver.Tick`；停预测期不推进。
@@ -213,7 +213,7 @@ SimStep.Step(..., advanceMatch: false)
 ## 10. 边界与当前形态
 
 1. **`FramePump` 零生产调用点**：定次步进（1:1）已实现，但客户端与服务端都不用它。
-2. **`MovementValues` 装载了没人读**：18 字段中只有 `Gravity` 经 `CombatValues` 进机制，其余 17 项（走/跑/冲/滑铲/钩爪/闪现等）在 `Assets/LiteSim` 内无引用。
+2. **`MovementValues` 装载了没人读**：18 字段中只有 `Gravity` 经 `CombatValues` 进机制，其余 17 项（走/跑/冲/滑铲/钩爪/闪现等）在 `Packages/com.litegame.sim` 内无引用。
 3. **静态读口仍在**：`CombatConfig.Loaded`、`WeaponConfig.Loaded` 作为表现面读口存在，机制面由纪律扫描 R13 禁止读取；生产构造（`BattleContext.OnStartGame`）仍从静态取实例后按参数下传。
 4. **瞄准是屏心射线**：`AimPoint` 由相机屏幕射线与"实体圆柱→地面"求交得到，采集侧解算、服务端校验与判定；表现层的越肩相机数学在 `Assets/LiteGame/Modules/Camera/TpsCameraMath.cs`。
 5. **私有面不预测**：弹药/技能 CD/背包/资源只随本人快照与权威反馈刷新，客户端不重建；这也是增量和解只比对公共面的原因。

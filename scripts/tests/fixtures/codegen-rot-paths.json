@@ -6,48 +6,48 @@
       "tool": "proto",
       "kind": "path",
       "file": "scripts/codegen/gen_proto.py",
-      "declared": "Assets/LiteNet/Proto",
-      "actual": "Assets/LiteNet/Core/Proto",
+      "declared": "Packages/com.litegame.net/Proto",
+      "actual": "Packages/com.litegame.net/Core/Proto",
       "note": "proto_dir was hardcoded instead of being derived from PROTO_REL"
     },
     {
       "tool": "sync-code",
       "kind": "path",
       "file": "scripts/codegen/gen_sync_code.py",
-      "declared": "Assets/LiteSim/Core/Diagnostics/Generated/EntitySlot.Sync.g.cs",
-      "actual": "Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs",
+      "declared": "Packages/com.litegame.sim/Core/Diagnostics/Generated/EntitySlot.Sync.g.cs",
+      "actual": "Packages/com.litegame.sim/Diagnostics/Generated/EntitySlot.Sync.g.cs",
       "note": "OUT_FILE pointed at the flattened-away LiteSim/Core tree"
     },
     {
       "tool": "sim-trig",
       "kind": "path",
-      "file": "Assets/LiteSim/Editor/SimTrigTableGenerator.cs",
-      "declared": "Assets/LiteSim/Core/Scripts/SimTrigTables.cs",
-      "actual": "Assets/LiteSim/Scripts/Map/SimTrigTables.cs",
+      "file": "Packages/com.litegame.sim/Editor/SimTrigTableGenerator.cs",
+      "declared": "Packages/com.litegame.sim/Core/Scripts/SimTrigTables.cs",
+      "actual": "Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs",
       "note": "OutputPath pointed at the flattened-away LiteSim/Core/Scripts tree"
     },
     {
       "tool": "refresh-hash",
       "kind": "path",
       "file": "scripts/codegen/refresh-hash.py",
-      "declared": "Assets/LiteNet/Protocol/BuildHash.g.cs",
-      "actual": "Assets/LiteNet/Core/Protocol/BuildHash.g.cs",
+      "declared": "Packages/com.litegame.net/Protocol/BuildHash.g.cs",
+      "actual": "Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs",
       "note": "client constant read the pre-Core layout path"
     },
     {
       "tool": "local-chain",
       "kind": "path",
       "file": "scripts/local/local-chain.py",
-      "declared": "Assets/LiteNet/Protocol/BuildHash.g.cs",
-      "actual": "Assets/LiteNet/Core/Protocol/BuildHash.g.cs",
+      "declared": "Packages/com.litegame.net/Protocol/BuildHash.g.cs",
+      "actual": "Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs",
       "note": "build_hash() read the pre-Core layout path (status showed missing)"
     },
     {
       "tool": "hook",
       "kind": "path",
       "file": "scripts/hooks/shared-source-reminder.py",
-      "declared": "Assets/LiteSim/Core/Systems",
-      "actual": "Assets/LiteSim/Systems",
+      "declared": "Packages/com.litegame.sim/Core/Systems",
+      "actual": "Packages/com.litegame.sim/Systems",
       "note": "reminder prefixes still used the pre-flatten litesim/core/... tree"
     },
     {

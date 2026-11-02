@@ -1,0 +1,21 @@
+{
+    "name": "LiteGame.Battle.Abstractions",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteFramework.Core",
+        "LiteGame.Modules.Input",
+        "LiteNet",
+        "LiteSim",
+        "LiteSync",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

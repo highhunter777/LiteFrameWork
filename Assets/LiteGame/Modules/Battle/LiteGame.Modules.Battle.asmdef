@@ -7,6 +7,7 @@
         "LiteGame.Modules.Input",
         "LiteGame.Modules.Camera",
         "LiteGame.Core",
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "LiteNet",
         "LiteSync",
@@ -15,7 +16,8 @@
         "Luban.Tables",
         "UniTask",
         "Unity.TextMeshPro",
-        "LiteGame.Shared"
+        "LiteGame.Shared",
+        "LiteGame.Battle.Abstractions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

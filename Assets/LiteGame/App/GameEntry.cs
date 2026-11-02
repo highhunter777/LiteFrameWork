@@ -181,7 +181,8 @@ namespace LiteGame
                 .AddModule(new UiComposition(_appComposition.LuaUiBindingFactory()))         // ⑬ UI 能力：服务/导航/反馈面（Lua 桥经端口装订）
                 .AddModule(new InputModule(_appComposition.IntentSourceFactory()))            // ⑭ 输入服务（设备源由组合根注入）
                 .AddModule(new MetaComposition(_deployBake))     // ⑮ 联机入口（部署快照 + 客户端 + 入口编排件）
-                .AddModule(new BattleComposition(() => DevHooks.Diagnostics))  // ⑯ 战斗域（表现内核 + 会话/对局工厂；诊断由 App 注入）
+                .AddModule(new BattleComposition(() => DevHooks.Diagnostics,
+                    () => DevHooks.Current?.CreateBattleOverlay()))  // ⑯ 战斗域（表现内核 + 会话/对局工厂；诊断由 App 注入）
                 .AddModule(new SessionComposition())             // ⑰ 会话（账号会话 + 传输端口；对局运行归 ⑯）
                 .AddModule(new ProcedureComposition(_appComposition.LuaBridgesFactory(),        // ⑱ 应用壳（流程机 + 页面流 + 恢复）
                     _appComposition.LuaRegistryFillerFactory()));

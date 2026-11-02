@@ -39,7 +39,7 @@ namespace LiteGame
     /// **已烘焙、执行层未接线**：本件只把 `rootmotion.bin` 装载为 <see cref="RootMotionCatalog"/> 并登记摘要
     /// （<see cref="RootMotionDigestHolder"/>）＋日志；动作位移的 Sim 执行层尚未接线，**当前无生产消费者**。
     /// </summary>
-    internal sealed class BattleViewRig : IBattleViewGroup
+    internal sealed class BattleViewRig : IBattleViewGroup, IBattleViewAttachment
     {
         private readonly IContentService _content;   // 内容服务（grip.bin 数据产物取件）
         private readonly IInputService _input;       // 输入服务（设备源注入/清派发状态）

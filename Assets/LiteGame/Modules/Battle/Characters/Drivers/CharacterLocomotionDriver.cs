@@ -280,152 +280,173 @@ namespace LiteGame
                     continue;
                 }
 
-                var s = _slots[i] ?? (_slots[i] = new SlotAnim());
-                if (s.Player == null)
-                {
-                    // 发现面＝视图绑定组件（直 Clip 形态的视图入口）：无组件＝灰盒——
-                    // 裸 Animator 不构成"可动画视图"判据；组件含 RequireComponent，Animator 不可被单独剥除。
-                    // 片源优先取组件声明的清单（视图自含），装配传入清单作回退——两者同资产时等价。
-                    var binding = go.GetComponentInChildren<LiteAnimator>(true);
-                    var animator = binding?.Animator;
-                    var manifest = binding != null ? binding.Manifest : null;
-                    if (manifest == null) manifest = _manifest;
-                    if (animator == null || (animator.runtimeAnimatorController == null && manifest == null))
-                    {
-                        // 灰盒视图：无绑定组件/无 Animator、或无任何片源（控制器与清单皆空）——只记位置
-                        // （保持速度判断的帧间基准），不建播放器/机器。不打日志：每帧路径不得刷屏；
-                        // 降级事实由 IModuleStats（views 计数）与用例承担观测。
-                        RememberPosition(s, go);
-                        continue;
-                    }
+                var s = EnsureSlotFor(i, go);
+                if (s == null) continue;                  // 灰盒视图：只记位置，不建播放器/状态机
 
-                    var backend = _backendFactory.Create(animator, _profile);
-                    backend.RegisterManifest(manifest);   // 装配期逐键登记（后注册＝清单为权威；引用缺失后端计数）
-                    s.Backend = backend;
-                    s.Player = new AnimationPlayer(backend, _profile);
-
-                    // 换弹倍率：片段时长 / Sim 换弹时长（WeaponConfig.Default.ReloadFrames / TickRate）——
-                    // 动画收势与弹药回国同帧；钳制在 Profile 登记区间（越界会被播放器拒绝）；未知片段时长 ⇒ 1×
-                    _profile.TryGetDefinition(CharacterAnimationIds.Reload, out var reloadDef);   // 构造期已校验在册
-                    backend.TryGetClipSeconds(reloadDef.Binding, out float reloadSeconds);
-                    float reloadTarget = (float)WeaponConfig.Default.ReloadFrames / SimConfig.TickRate;
-                    float reloadSpeed = reloadSeconds > 0f && reloadTarget > 0f
-                        ? Mathf.Clamp(reloadSeconds / reloadTarget, reloadDef.MinSpeed, reloadDef.MaxSpeed)
-                        : 1f;
-
-                    // 上下文窄面构造：播放器 + 权重容器（驱动器复用数组，零分配）+ 窗长/换弹倍率
-                    s.Ctx = new SlotAnimContext(s.Player, _moveWeights, _aimWeights, _fireHoldSeconds, reloadSpeed);
-                    s.Machine = CombatAnimMachine.Build(s.Ctx, ResolveMoveDurations(backend));
-                    s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根；无控制器时即唯一落位兜底）
-
-                    // 持枪/俯仰/枪口对齐三件套：都消费 grip.bin（数据产物单源，编译期无常量）；
-                    // catalog 缺失或某骨路径不存在 → 对应项显性降级（不建、不静默假装生效）。
-                    SlotWeaponConstraints constraints = SlotWeaponConstraints.Create(
-                        animator, _gripCatalog, i, go, ref _warnedMissingGripCatalog);
-                    s.Grip = constraints.Grip;
-                    s.Posture = constraints.Posture;
-                    s.WeaponAim = constraints.WeaponAim;
-
-                    Log.Info($"slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
-                        + $"ctrl={(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "none")}"
-                        + $" manifest={(_manifest != null ? "on" : "off")} layers={animator.layerCount}"
-                        + $" 持枪约束={(constraints.Grip != null ? "on" : "off")}"
-                        + $" 窗长={_fireHoldSeconds:0.##}s 换弹倍率={reloadSpeed:0.##}×（片段「{reloadDef.Binding}」{reloadSeconds:0.###}s）", LogTag.Anim);
-                }
-
-                if (s.HasPos && dt > 0f)
-                {
-                    float measuredSpeed = MeasureSpeed(s, go.transform.position, dt, out Vector3 moveDir);
-                    float speed = measuredSpeed;
-
-                    // **远端（快照插值驱动）测速低通 + snap 抑制**：插值/丢包/复活硬切会让视图帧间
-                    // 位移出现单帧尖峰；直接喂锁存会触发 Idle↔Walk↔Run 假切换（"动画不连续"）。
-                    // 本地/无快照形态（测试/沙盒）位移本身平滑，但**复活/传送同样是一次瞬移**——
-                    // 单帧位移 25m ⇒ 2500 m/s 会把移动锁存拉成"走路"，整段假步态；故本地也做同一量级抑制：
-                    // 超过 <see cref="SnapSpeedThreshold"/> 视为硬切，本帧按 0 计（姿态由机器事实决定，
-                    // 不因瞬移误进 Walk）。
-                    bool snapshotDriven = _view.HasSnapshotSource && !_view.IsLocalSlot(i);
-                    if (snapshotDriven)
-                    {
-                        if (measuredSpeed > SnapSpeedThreshold)
-                        {
-                            s.SmoothedSpeed = 0f;
-                            s.HasSmoothedSpeed = true;
-                        }
-                        else if (!s.HasSmoothedSpeed)
-                        {
-                            s.SmoothedSpeed = measuredSpeed;
-                            s.HasSmoothedSpeed = true;
-                        }
-                        else
-                        {
-                            s.SmoothedSpeed = Mathf.Lerp(s.SmoothedSpeed, measuredSpeed,
-                                1f - Mathf.Exp(-SnapshotSpeedSmoothSharpness * dt));
-                        }
-                        speed = s.SmoothedSpeed;
-                    }
-                    else if (measuredSpeed > SnapSpeedThreshold)
-                    {
-                        speed = 0f;                        // 本地瞬移（复活/传送）：不计入测速
-                    }
-
-                    s.MovingLatch = LocomotionBlendMath.UpdateLatch(s.MovingLatch, speed);   // 锁存公式单源
-
-                    // 事实喂入（单机单上下文——层间不引用，全部经 ctx 单点**整体替换**，无半更新态）。
-                    // **死亡只读权威状态**（本地=预测态经快照和解、远端=快照渲染态）：不再由帧事件
-                    // 置不可逆锁存——客户端预测出来的死亡事件不得把角色按在死亡叶里（《角色状态与动作
-                    // 专项设计》§死亡表现：状态可重建，事件只做反馈）。复活=IsDead 变假（Hp 回满），
-                    // 战斗根自然退出死亡叶，不再依赖 LifeStartFrame 复位。
-                    bool dead = _view.IsDead(i);
-                    s.Ctx.Feed(new SlotAnimFacts(
-                        isAiming: _view.IsAiming(i),
-                        isFireStance: _view.IsFireStance(i),   // 射击语境窗（Sim 权威——扣扳机/成功开火统一进窗）
-                        isReloading: _view.IsReloading(i),  // 换弹事实（Sim 权威——武器私有面投影）
-                        isDead: dead,
-                        isMoving: s.MovingLatch,
-                        speed: speed,
-                        moveRelAngleDeg: moveDir == Vector3.zero
-                            ? 0f
-                            : Vector3.SignedAngle(go.transform.rotation * Vector3.forward, moveDir, Vector3.up)));
-                    if (dead && s.Machine.Current != CharacterAnimId.Dead)
-                    {
-                        s.Ctx.ReleaseReloadUpper();      // 死亡压过一切：换弹叠加层让位（下帧前即释放，不等轮询兜底）
-                        s.Machine.Request(CharacterAnimId.Dead);   // 状态轮询路径：重建/迟到者按死亡事实强制进叶
-                    }
-
-                    s.Machine.Tick(dt);                   // 根→叶 OnUpdate + 事务帧末应用（一帧一事务）
-
-                    // 换弹：Overlay 上半身一次性叠加（**不进战斗根**——战斗根接管会停 Base MoveBlend，
-                    // 脚定住而世界位移照旧即滑步；叠加层只盖上半身，腿继续由 MoveBlend 走）。
-                    // 放在机 Tick 之后：机不再因换弹迁根，腿的权重维护与叠加层提交互不干扰。
-                    s.Ctx.UpdateReloadUpper(s.Ctx.IsReloading, s.Ctx.IsDead);
-
-                }
-
-                RememberPosition(s, go);
-                s.Player?.Tick(dt);                        // 唯一驱动入口（§7）
-
-                // 持枪约束：**必须在播放器 Tick 之后**——Graph.Evaluate 刚把本帧动画姿态写完，
-                // 此刻读到的武器骨局部变换就是"动画本该给的值"，约束按幅度缩放覆写它
-                // （单一写者契约：换弹期这根骨归约束；退出即停写，动画下帧自然接管）。
-                s.Grip?.Update(s.Ctx?.ReloadSubmitted ?? false);
-
-                // 俯仰姿态（TPS）：**只给本地玩家**——相机 pitch 是本地事实，套到远端会让别人的
-                // 上半身跟着本机镜头仰俯。射击语境（瞄准 ∨ 开火驻留窗——与激光同谓词族）内写，
-                // 写序同持枪约束（Evaluate 后）；语境外不写（动画值原样）。
-                if (s.Posture != null && _cameraPitchOf != null && _view.IsLocalSlot(i))
-                    s.Posture.Update(
-                        (s.Ctx?.IsAiming ?? false) || (s.Ctx?.IsFireStance ?? false),
-                        _cameraPitchOf());
-
-                // 枪口对齐（ADS + 腰射）：只给本地玩家；把枪口前向掰向准心世界点。
-                // 写序在俯仰姿态之后（枪骨位姿已由动画/姿态定稿），退出射击语境即停写。
-                bool aiming = s.Ctx?.IsAiming ?? false;
-                bool firing = s.Ctx?.IsFireStance ?? false;
-                if (s.WeaponAim != null && _aimPointOf != null && _view.IsLocalSlot(i)
-                    && (aiming || firing) && _aimPointOf() is Vector3 aimPoint)
-                    s.WeaponAim.Update(aiming, firing, aimPoint);
+                FeedFactsAndStep(i, go, s, dt);
+                ApplyPoseConstraints(i, go, s, dt);
             }
+        }
+
+        /// <summary>槽位建立：视图发现面（绑定组件）→ 片源判定 → 播放器/状态机/武器约束装配。</summary>
+        /// <returns>灰盒视图返回 null（仅记帧间位置基准，不建播放器/机器）。</returns>
+        private SlotAnim EnsureSlotFor(int i, GameObject go)
+        {
+            var s = _slots[i] ?? (_slots[i] = new SlotAnim());
+            if (s.Player != null) return s;
+
+            // 发现面＝视图绑定组件（直 Clip 形态的视图入口）：无组件＝灰盒——
+            // 裸 Animator 不构成"可动画视图"判据；组件含 RequireComponent，Animator 不可被单独剥除。
+            // 片源优先取组件声明的清单（视图自含），装配传入清单作回退——两者同资产时等价。
+            var binding = go.GetComponentInChildren<LiteAnimator>(true);
+            var animator = binding?.Animator;
+            var manifest = binding != null ? binding.Manifest : null;
+            if (manifest == null) manifest = _manifest;
+            if (animator == null || (animator.runtimeAnimatorController == null && manifest == null))
+            {
+                // 灰盒视图：无绑定组件/无 Animator、或无任何片源（控制器与清单皆空）——只记位置
+                // （保持速度判断的帧间基准），不建播放器/机器。不打日志：每帧路径不得刷屏；
+                // 降级事实由 IModuleStats（views 计数）与用例承担观测。
+                RememberPosition(s, go);
+                return null;
+            }
+
+            var backend = _backendFactory.Create(animator, _profile);
+            backend.RegisterManifest(manifest);   // 装配期逐键登记（后注册＝清单为权威；引用缺失后端计数）
+            s.Backend = backend;
+            s.Player = new AnimationPlayer(backend, _profile);
+
+            // 换弹倍率：片段时长 / Sim 换弹时长（WeaponConfig.Default.ReloadFrames / TickRate）——
+            // 动画收势与弹药回国同帧；钳制在 Profile 登记区间（越界会被播放器拒绝）；未知片段时长 ⇒ 1×
+            _profile.TryGetDefinition(CharacterAnimationIds.Reload, out var reloadDef);   // 构造期已校验在册
+            backend.TryGetClipSeconds(reloadDef.Binding, out float reloadSeconds);
+            float reloadTarget = (float)WeaponConfig.Default.ReloadFrames / SimConfig.TickRate;
+            float reloadSpeed = reloadSeconds > 0f && reloadTarget > 0f
+                ? Mathf.Clamp(reloadSeconds / reloadTarget, reloadDef.MinSpeed, reloadDef.MaxSpeed)
+                : 1f;
+
+            // 上下文窄面构造：播放器 + 权重容器（驱动器复用数组，零分配）+ 窗长/换弹倍率
+            s.Ctx = new SlotAnimContext(s.Player, _moveWeights, _aimWeights, _fireHoldSeconds, reloadSpeed);
+            s.Machine = CombatAnimMachine.Build(s.Ctx, ResolveMoveDurations(backend));
+            s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根；无控制器时即唯一落位兜底）
+
+            // 持枪/俯仰/枪口对齐三件套：都消费 grip.bin（数据产物单源，编译期无常量）；
+            // catalog 缺失或某骨路径不存在 → 对应项显性降级（不建、不静默假装生效）。
+            SlotWeaponConstraints constraints = SlotWeaponConstraints.Create(
+                animator, _gripCatalog, i, go, ref _warnedMissingGripCatalog);
+            s.Grip = constraints.Grip;
+            s.Posture = constraints.Posture;
+            s.WeaponAim = constraints.WeaponAim;
+
+            Log.Info($"slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
+                + $"ctrl={(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "none")}"
+                + $" manifest={(_manifest != null ? "on" : "off")} layers={animator.layerCount}"
+                + $" 持枪约束={(constraints.Grip != null ? "on" : "off")}"
+                + $" 窗长={_fireHoldSeconds:0.##}s 换弹倍率={reloadSpeed:0.##}×（片段「{reloadDef.Binding}」{reloadSeconds:0.###}s）", LogTag.Anim);
+
+            return s;
+        }
+
+        /// <summary>每帧事实与状态机：测速低通/锁存 → 事实喂入 → 死亡轮询 → 机 Tick → 换弹叠加层提交。</summary>
+        private void FeedFactsAndStep(int i, GameObject go, SlotAnim s, float dt)
+        {
+            if (s.HasPos && dt > 0f)
+            {
+                float measuredSpeed = MeasureSpeed(s, go.transform.position, dt, out Vector3 moveDir);
+                float speed = measuredSpeed;
+
+                // **远端（快照插值驱动）测速低通 + snap 抑制**：插值/丢包/复活硬切会让视图帧间
+                // 位移出现单帧尖峰；直接喂锁存会触发 Idle↔Walk↔Run 假切换（"动画不连续"）。
+                // 本地/无快照形态（测试/沙盒）位移本身平滑，但**复活/传送同样是一次瞬移**——
+                // 单帧位移 25m ⇒ 2500 m/s 会把移动锁存拉成"走路"，整段假步态；故本地也做同一量级抑制：
+                // 超过 <see cref="SnapSpeedThreshold"/> 视为硬切，本帧按 0 计（姿态由机器事实决定，
+                // 不因瞬移误进 Walk）。
+                bool snapshotDriven = _view.HasSnapshotSource && !_view.IsLocalSlot(i);
+                if (snapshotDriven)
+                {
+                    if (measuredSpeed > SnapSpeedThreshold)
+                    {
+                        s.SmoothedSpeed = 0f;
+                        s.HasSmoothedSpeed = true;
+                    }
+                    else if (!s.HasSmoothedSpeed)
+                    {
+                        s.SmoothedSpeed = measuredSpeed;
+                        s.HasSmoothedSpeed = true;
+                    }
+                    else
+                    {
+                        s.SmoothedSpeed = Mathf.Lerp(s.SmoothedSpeed, measuredSpeed,
+                            1f - Mathf.Exp(-SnapshotSpeedSmoothSharpness * dt));
+                    }
+                    speed = s.SmoothedSpeed;
+                }
+                else if (measuredSpeed > SnapSpeedThreshold)
+                {
+                    speed = 0f;                        // 本地瞬移（复活/传送）：不计入测速
+                }
+
+                s.MovingLatch = LocomotionBlendMath.UpdateLatch(s.MovingLatch, speed);   // 锁存公式单源
+
+                // 事实喂入（单机单上下文——层间不引用，全部经 ctx 单点**整体替换**，无半更新态）。
+                // **死亡只读权威状态**（本地=预测态经快照和解、远端=快照渲染态）：不再由帧事件
+                // 置不可逆锁存——客户端预测出来的死亡事件不得把角色按在死亡叶里（《角色状态与动作
+                // 专项设计》§死亡表现：状态可重建，事件只做反馈）。复活=IsDead 变假（Hp 回满），
+                // 战斗根自然退出死亡叶，不再依赖 LifeStartFrame 复位。
+                bool dead = _view.IsDead(i);
+                s.Ctx.Feed(new SlotAnimFacts(
+                    isAiming: _view.IsAiming(i),
+                    isFireStance: _view.IsFireStance(i),   // 射击语境窗（Sim 权威——扣扳机/成功开火统一进窗）
+                    isReloading: _view.IsReloading(i),  // 换弹事实（Sim 权威——武器私有面投影）
+                    isDead: dead,
+                    isMoving: s.MovingLatch,
+                    speed: speed,
+                    moveRelAngleDeg: moveDir == Vector3.zero
+                        ? 0f
+                        : Vector3.SignedAngle(go.transform.rotation * Vector3.forward, moveDir, Vector3.up)));
+                if (dead && s.Machine.Current != CharacterAnimId.Dead)
+                {
+                    s.Ctx.ReleaseReloadUpper();      // 死亡压过一切：换弹叠加层让位（下帧前即释放，不等轮询兜底）
+                    s.Machine.Request(CharacterAnimId.Dead);   // 状态轮询路径：重建/迟到者按死亡事实强制进叶
+                }
+
+                s.Machine.Tick(dt);                   // 根→叶 OnUpdate + 事务帧末应用（一帧一事务）
+
+                // 换弹：Overlay 上半身一次性叠加（**不进战斗根**——战斗根接管会停 Base MoveBlend，
+                // 脚定住而世界位移照旧即滑步；叠加层只盖上半身，腿继续由 MoveBlend 走）。
+                // 放在机 Tick 之后：机不再因换弹迁根，腿的权重维护与叠加层提交互不干扰。
+                s.Ctx.UpdateReloadUpper(s.Ctx.IsReloading, s.Ctx.IsDead);
+
+            }
+
+        }
+
+        /// <summary>帧末提交与约束写回：播放器采样推进 → 持枪/俯仰/枪口对齐（写序见各注释）。</summary>
+        private void ApplyPoseConstraints(int i, GameObject go, SlotAnim s, float dt)
+        {
+            RememberPosition(s, go);
+            s.Player?.Tick(dt);                        // 唯一驱动入口（§7）
+
+            // 持枪约束：**必须在播放器 Tick 之后**——Graph.Evaluate 刚把本帧动画姿态写完，
+            // 此刻读到的武器骨局部变换就是"动画本该给的值"，约束按幅度缩放覆写它
+            // （单一写者契约：换弹期这根骨归约束；退出即停写，动画下帧自然接管）。
+            s.Grip?.Update(s.Ctx?.ReloadSubmitted ?? false);
+
+            // 俯仰姿态（TPS）：**只给本地玩家**——相机 pitch 是本地事实，套到远端会让别人的
+            // 上半身跟着本机镜头仰俯。射击语境（瞄准 ∨ 开火驻留窗——与激光同谓词族）内写，
+            // 写序同持枪约束（Evaluate 后）；语境外不写（动画值原样）。
+            if (s.Posture != null && _cameraPitchOf != null && _view.IsLocalSlot(i))
+                s.Posture.Update(
+                    (s.Ctx?.IsAiming ?? false) || (s.Ctx?.IsFireStance ?? false),
+                    _cameraPitchOf());
+
+            // 枪口对齐（ADS + 腰射）：只给本地玩家；把枪口前向掰向准心世界点。
+            // 写序在俯仰姿态之后（枪骨位姿已由动画/姿态定稿），退出射击语境即停写。
+            bool aiming = s.Ctx?.IsAiming ?? false;
+            bool firing = s.Ctx?.IsFireStance ?? false;
+            if (s.WeaponAim != null && _aimPointOf != null && _view.IsLocalSlot(i)
+                && (aiming || firing) && _aimPointOf() is Vector3 aimPoint)
+                s.WeaponAim.Update(aiming, firing, aimPoint);
         }
 
         public void Dispose()

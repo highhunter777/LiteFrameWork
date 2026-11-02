@@ -42,8 +42,8 @@ namespace LiteCodeGen.EditorTools
     {
         private static readonly string[] ForbiddenPrefixes =
         {
-            "Assets/LiteSim/",
-            "Assets/LiteNet/",
+            "Packages/com.litegame.sim/",
+            "Packages/com.litegame.net/",
             "Assets/RoomServer/",
             "Assets/GameData/Generated/",
         };

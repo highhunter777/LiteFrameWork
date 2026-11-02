@@ -2,9 +2,9 @@
     "name": "LiteGame.Modules.Session",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "LiteGame.Core",
-        "LiteGame.Modules.Battle",
         "LiteGame.Modules.Config",
         "LiteGame.Modules.Dev",
         "LiteGame.Modules.Map",
@@ -14,7 +14,8 @@
         "LiteSim",
         "Luban.Runtime",
         "Luban.Tables",
-        "UniTask"
+        "UniTask",
+        "LiteGame.Battle.Abstractions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

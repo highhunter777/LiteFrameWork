@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">  <!--
+﻿<Project Sdk="Microsoft.NET.Sdk">  <!--
     RoomServer（《状态同步实施方案》§4.5：.NET 8 控制台，单进程多房间，权威 Sim——MVP 不拆 Gate/Sim）。
     协议单源红线（§4.6）：直接引用 LiteNet 工程（其中 Protocol/ 纯函数与 Transport/ 分层），
     服务器侧另写消息结构在物理上不可能。
@@ -14,15 +14,18 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <!--
+    共享库按 NuGet 包消费，不再跨目录 ProjectReference 进 Assets/：
+    包由 python scripts/build/pack-shared.py 产出到 LocalPackages/（不入库）。
+    版本写**精确字面量**（L0 依赖扫描禁属性/浮动版本），与 SharedPackages.props 的单源一致性
+    由 SharedPackageVersionPinTests 守卫。
+  -->
   <ItemGroup>
-    <ProjectReference Include="..\..\Assets\LiteNet\LiteNet.csproj" />
-    <ProjectReference Include="..\..\Assets\LiteSync\LiteSync.csproj" />
-    <ProjectReference Include="..\..\Assets\LiteSim\LiteSim.csproj" />
-    <!-- 房间内核已按《服务端总设计》§7 目标结构独立成项目：
-         纯运行时、无 Socket/无文件/无时钟，现由服务端宿主与 Unity 客户端**共编同一份源码**。 -->
-    <ProjectReference Include="..\..\Assets\RoomServer\Core\RoomServer.Runtime.csproj" />
-    <!-- Application 的无 IO 子集（快照管线/会话/账本/票据）同理——本地开发形态在客户端内复用它。 -->
-    <ProjectReference Include="..\..\Assets\RoomServer\Modules\RoomServer.Application.Runtime.csproj" />
+    <PackageReference Include="LiteGame.Sim" Version="0.1.0" />
+    <PackageReference Include="LiteGame.Net" Version="0.1.0" />
+    <PackageReference Include="LiteGame.Sync" Version="0.1.0" />
+    <PackageReference Include="LiteGame.Room.Core" Version="0.1.0" />
+    <PackageReference Include="LiteGame.Room.Application" Version="0.1.0" />
   </ItemGroup>
 
   <!-- 服务端配置装载（与客户端同一份 .bytes 二进制）：Luban 运行时与生成表代码

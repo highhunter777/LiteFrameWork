@@ -119,9 +119,9 @@ namespace Tools.DisciplineScan
         /// + 三个读口定义文件（定义面自含 Publish/Loaded 声明，非消费）。</summary>
         public static readonly string[] ConfigPortExcludes =
         {
-            "Assets/LiteSim/Scripts/Config/CombatConfig.cs",
-            "Assets/LiteSim/Scripts/Config/MovementConfig.cs",
-            "Assets/LiteSim/Scripts/Config/WeaponConfig.cs",
+            "Packages/com.litegame.sim/Scripts/Config/CombatConfig.cs",
+            "Packages/com.litegame.sim/Scripts/Config/MovementConfig.cs",
+            "Packages/com.litegame.sim/Scripts/Config/WeaponConfig.cs",
         };
 
         /// <summary>MetaServer：R11 同类把守（《Meta 服务专项设计》§3.2/§4.2）——
@@ -187,8 +187,8 @@ namespace Tools.DisciplineScan
         /// <summary>默认扫描目标集合。</summary>
         public static readonly ScanTarget[] Default =
         {
-            new ScanTarget("Assets/LiteSim", SimRules, SimLayerExcludes),
-            new ScanTarget("Assets/LiteNet", NetRules),
+            new ScanTarget("Packages/com.litegame.sim", SimRules, SimLayerExcludes),
+            new ScanTarget("Packages/com.litegame.net", NetRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Core", CoreRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Unity", UnityRules),
             // R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
@@ -202,7 +202,7 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteFramework/Runtime/Modules/UI", UiLayerRules),                                // R10 UI 层不发业务包
             // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
             new ScanTarget("Assets/RoomServer/Core", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
-            new ScanTarget("Assets/LiteSim", ConfigPortRules, ConfigPortExcludes),             // R13 数值读口禁读（机制面；表现层与读口定义文件除外）
+            new ScanTarget("Packages/com.litegame.sim", ConfigPortRules, ConfigPortExcludes),             // R13 数值读口禁读（机制面；表现层与读口定义文件除外）
             new ScanTarget("Assets/RoomServer/Modules", ConfigPortRules),                  // R13（Application 无 IO 子集同守）
             new ScanTarget("Server/RoomServer", ConfigPortRules),                              // R13（宿主链——装载产物显式传递，不读读口）
             new ScanTarget("Server/MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
@@ -283,7 +283,7 @@ namespace Tools.DisciplineScan
             // S1 机制共享：两端都要跑这套机制，但结果不需逐位一致
             "Assets/RoomServer/Core/RoomServer.Runtime.asmdef",
             "Assets/RoomServer/Modules/RoomServer.Application.Runtime.asmdef",
-            "Assets/LiteNet/LiteNet.asmdef",
+            "Packages/com.litegame.net/LiteNet.asmdef",
         };
 
         /// <summary>
@@ -460,8 +460,8 @@ namespace Tools.DisciplineScan
             "Assets/LiteFramework/Runtime/Modules",
             "Assets/LiteGame",
             "Assets/LiteFramework",
-            "Assets/LiteSim",
-            "Assets/LiteNet",
+            "Packages/com.litegame.sim",
+            "Packages/com.litegame.net",
             "Assets/LiteTesting",
             "Assets/Tools",
             "Assets/Tests",

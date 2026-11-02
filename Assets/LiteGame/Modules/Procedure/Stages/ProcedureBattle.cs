@@ -120,7 +120,7 @@ namespace LiteGame
                 _account = accountSession.Scope;
 
                 // 视图域：工厂建视图组（表现层装配点：自有 BattleView 作用域 + 视图根 + 资源取件；缺角色资源＝无角色视图）
-                rig = _views.Create(_account, DevHooks.Current?.CreateBattleOverlay(), DispatchTeleport);
+                rig = _views.Create(_account, DispatchTeleport);
                 await rig.LoadAsync(ct);
 
                 // 对局运行端口（Battle 域构造 Match/Battle 会话；流程不认战斗域内部件）

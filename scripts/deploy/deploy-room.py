@@ -44,6 +44,12 @@ def main(argv=None):
     try:
         ssh_host = args.ssh_host.strip() or resolve_ssh_host()
         if not args.skip_publish:
+            # 共享包（LiteGame.Sim/Net/Sync/Room.*）走本地 NuGet feed：发布前确保 feed 与源单源一致
+            info("deploy/room", "确保共享包 feed（LocalPackages/）...")
+            run_checked(
+                [sys.executable, str(repo / "scripts/build/pack-shared.py"), "--ensure"],
+                "pack shared packages",
+            )
             info("deploy/room", "dotnet publish（win-x64 自包含）...")
             run_checked(
                 [

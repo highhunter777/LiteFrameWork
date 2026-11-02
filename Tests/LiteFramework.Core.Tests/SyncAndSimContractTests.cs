@@ -23,13 +23,13 @@ namespace LiteFramework.Core.Tests
         [Fact]
         public void UT01_SharedDirsAndAsmdefExist()
         {
-            string dir = RepoPath("Assets/LiteSync");
-            Assert.True(Directory.Exists(dir), "缺少 Assets/LiteSync/（LiteSync 同步协议层程序集，B1）");
+            string dir = RepoPath("Packages/com.litegame.sync");
+            Assert.True(Directory.Exists(dir), "缺少 Packages/com.litegame.sync/（LiteSync 同步协议层程序集，B1）");
 
             string asmdef = Path.Combine(dir, "LiteSync.asmdef");
-            Assert.True(File.Exists(asmdef), "缺少 Assets/LiteSync/LiteSync.asmdef（B1）");
+            Assert.True(File.Exists(asmdef), "缺少 Packages/com.litegame.sync/LiteSync.asmdef（B1）");
             Assert.True(File.Exists(Path.Combine(dir, "LiteSync.csproj")),
-                "缺少 Assets/LiteSync/LiteSync.csproj（双轨 csproj，B1）");
+                "缺少 Packages/com.litegame.sync/LiteSync.csproj（双轨 csproj，B1）");
 
             using var doc = JsonDocument.Parse(File.ReadAllText(asmdef));
             var references = new List<string>();
@@ -67,8 +67,8 @@ namespace LiteFramework.Core.Tests
 
             foreach (string required in new[]
                      {
-                         "Assets/LiteSync/Shared", "Assets/LiteSync/Snapshot",
-                         "Assets/LiteSync/Input", "Assets/LiteSync/Events",
+                         "Packages/com.litegame.sync/Shared", "Packages/com.litegame.sync/Snapshot",
+                         "Packages/com.litegame.sync/Input", "Packages/com.litegame.sync/Events",
                      })
             {
                 Assert.True(entries.Contains(required),
@@ -77,7 +77,7 @@ namespace LiteFramework.Core.Tests
 
             var offenders = new List<string>();
             foreach (string entry in entries)
-                if (entry.StartsWith("Assets/LiteSync/Client", StringComparison.Ordinal))
+                if (entry.StartsWith("Packages/com.litegame.sync/Client", StringComparison.Ordinal))
                     offenders.Add(entry);
             Assert.True(offenders.Count == 0,
                 "SHARED_TARGETS 不得包含 LiteSync/Client（客户端专属改动不应迫使服务端重建，B4）："
@@ -92,13 +92,13 @@ namespace LiteFramework.Core.Tests
             const string allowlist = "Tests/LiteFramework.Core.Tests/ClientAsmdefAllowlistTests.cs";
             string text = ReadRepoText(allowlist);
 
-            Assert.Contains("\"Assets/LiteSync/LiteSync.asmdef\"", text);
-            Assert.Contains("\"Assets/LiteSync\"", text);
+            Assert.Contains("\"Packages/com.litegame.sync/LiteSync.asmdef\"", text);
+            Assert.Contains("\"Packages/com.litegame.sync\"", text);
 
             Match liteNetRow = Regex.Match(text,
-                @"\[""Assets/LiteNet/LiteNet\.asmdef""\]\s*=\s*(?:new\[\]\s*\{[^}]*\}|Array\.Empty<string>\(\))",
+                @"\[""Packages/com.litegame.net/LiteNet\.asmdef""\]\s*=\s*(?:new\[\]\s*\{[^}]*\}|Array\.Empty<string>\(\))",
                 RegexOptions.CultureInvariant);
-            Assert.True(liteNetRow.Success, "客户端允许表缺少 Assets/LiteNet/LiteNet.asmdef 行");
+            Assert.True(liteNetRow.Success, "客户端允许表缺少 Packages/com.litegame.net/LiteNet.asmdef 行");
             Assert.DoesNotContain("\"LiteSim\"", liteNetRow.Value);
         }
 
@@ -200,7 +200,7 @@ namespace LiteFramework.Core.Tests
         [Fact]
         public void UT18_AoiSettings_InLiteSyncShared()
         {
-            const string relative = "Assets/LiteSync/Shared/AoiSettings.cs";
+            const string relative = "Packages/com.litegame.sync/Shared/AoiSettings.cs";
             string path = RepoPath(relative);
             Assert.True(File.Exists(path), "缺少 " + relative + "（B15）");
 
@@ -289,12 +289,23 @@ namespace LiteFramework.Core.Tests
 
         private static List<string> FindFilesNamed(string fileName)
         {
-            string assets = RepoPath("Assets");
-            Assert.True(Directory.Exists(assets), "缺少 Assets 目录");
+            // 共享源（LiteSim/LiteNet/LiteSync）已搬进 Packages/com.litegame.*——守卫面必须跟着走，
+            // 否则扫描落空会让"已删除的符号/缓存"类断言变成假绿。
+            string[] roots =
+            {
+                RepoPath("Assets"),
+                RepoPath("Packages/com.litegame.sim"),
+                RepoPath("Packages/com.litegame.net"),
+                RepoPath("Packages/com.litegame.sync"),
+            };
             var result = new List<string>();
-            foreach (string file in Directory.GetFiles(assets, fileName, SearchOption.AllDirectories))
-                if (!IsBuildArtifact(file))
-                    result.Add(file);
+            foreach (string root in roots)
+            {
+                if (!Directory.Exists(root)) continue;
+                foreach (string file in Directory.GetFiles(root, fileName, SearchOption.AllDirectories))
+                    if (!IsBuildArtifact(file))
+                        result.Add(file);
+            }
             return result;
         }
 

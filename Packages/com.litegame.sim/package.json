@@ -1,0 +1,8 @@
+{
+  "name": "com.litegame.sim",
+  "version": "0.1.0",
+  "displayName": "LiteGame Sim",
+  "description": "确定性判定内核（零引擎、零第三方）：双轨共编件，服务端以 NuGet 包消费同一份源码。",
+  "unity": "2022.3",
+  "dependencies": {}
+}

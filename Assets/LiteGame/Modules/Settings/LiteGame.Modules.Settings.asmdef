@@ -3,6 +3,7 @@
     "rootNamespace": "LiteGame",
     "references": [
         "UniTask",
+        "LiteFramework.Core",
         "LiteFramework.Runtime"
     ],
     "includePlatforms": [],

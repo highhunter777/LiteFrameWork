@@ -270,7 +270,7 @@
 
 ### 边界与挂账（如实）
 
-- **真名字面缺失**：`JoinAck.members` 只有席位 id（[battle.proto](../../Assets/LiteNet/Proto/battle.proto)）、实体无名字字段、
+- **真名字面缺失**：`JoinAck.members` 只有席位 id（[battle.proto](../../Packages/com.litegame.net/Proto/battle.proto)）、实体无名字字段、
   游客登录只回 `accountId`（无昵称）→ 本批占位 `玩家{k}`；**真名字归 G3 Profile**（[客户端审计](../审计/代码质量审计-客户端.md) 功能缺口节已登记）。
 - **`Txt_Score` 为预置未启用面**（`Team==0` 恒隐藏——不显示恒 0 假数据）；待 Team 模式（《游戏业务系统总设计》§137"首版先做死亡竞赛"）。
 - **上限 8 格**（= `eight` 模板上限）——> 8 人裁剪（登记）。

@@ -118,16 +118,16 @@ namespace LiteFramework.Core.Tests
         public void 硬边_LiteNet不得引用LiteSim或LiteSync()
         {
             string root = RepoRoot();
-            AssertNoReference(root, "Assets/LiteNet/LiteNet.asmdef", "LiteSim");
-            AssertNoReference(root, "Assets/LiteNet/LiteNet.asmdef", "LiteSync");
+            AssertNoReference(root, "Packages/com.litegame.net/LiteNet.asmdef", "LiteSim");
+            AssertNoReference(root, "Packages/com.litegame.net/LiteNet.asmdef", "LiteSync");
         }
 
         [Fact]
         public void 硬边_LiteSync不得引用LiteGame或UnityEngine()
         {
             string root = RepoRoot();
-            AssertNoReferencePrefix(root, "Assets/LiteSync/LiteSync.asmdef", "LiteGame.");
-            AssertNoReference(root, "Assets/LiteSync/LiteSync.asmdef", "UnityEngine");
+            AssertNoReferencePrefix(root, "Packages/com.litegame.sync/LiteSync.asmdef", "LiteGame.");
+            AssertNoReference(root, "Packages/com.litegame.sync/LiteSync.asmdef", "UnityEngine");
         }
 
         [Fact]

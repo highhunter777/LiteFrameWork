@@ -33,7 +33,6 @@ namespace LiteFramework.Core.Tests
             "IMatchIdentity.cs",
             "IBattleViewGroup.cs",
             "IBattleViewGroupFactory.cs",
-            "IBattleDevDiagnostics.cs",
         };
 
         [Fact]

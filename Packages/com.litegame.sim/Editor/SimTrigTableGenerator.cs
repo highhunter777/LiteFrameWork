@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -11,7 +11,7 @@ namespace LiteSim.Editor
     /// SimTrig 查表生成器（《M7 实施指导》§2.2）。
     /// 入口：菜单「LiteSim/生成 SimTrig 查表」、工具链 Hub（codegen.sim-trig）与
     /// <c>python scripts/codegen/toolbox.py trig</c>（写盘经 ToolWriteScope）→ 产出并入库
-    /// <c>Assets/LiteSim/Scripts/Map/SimTrigTables.cs</c>。
+    /// <c>Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs</c>。
     ///
     /// 纪律（§2.1 硬规则）：生成期允许 <c>System.Math</c>（double）填表；运行期严禁超越函数（纪律扫描 R1 执行）。
     /// 幂等：固定格式 + 固定顺序 → 重复执行产出逐字节一致（验收项）。
@@ -21,7 +21,7 @@ namespace LiteSim.Editor
         /// <summary>查表长度：引用运行期常量 SimTrig.TableSize（同一单源，生成器不另存一份）。</summary>
         private const int TableSize = SimTrig.TableSize;
         private const int PerLine = 8;
-        public const string OutputPath = "Assets/LiteSim/Scripts/Map/SimTrigTables.cs";
+        public const string OutputPath = "Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs";
 
         public static void Generate()
         {

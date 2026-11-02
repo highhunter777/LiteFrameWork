@@ -2,6 +2,7 @@
     "name": "LiteGame.Adapters.Luban",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteFramework.Core",
         "LiteFramework.Runtime",
         "LiteGame.Modules.Config",
         "LiteSim",

@@ -1,0 +1,14 @@
+<Project>
+
+  <!--
+    共享包版本单源：LiteSim / LiteNet / LiteSync / RoomServer.Runtime / RoomServer.Application.Runtime
+    打成 NuGet 包供服务端消费；客户端仍按 Unity asmdef 编同一份源码（双轨不变）。
+
+    - 打包：python scripts/build/pack-shared.py（读本文件取版本，产物落 LocalPackages/）
+    - 消费：Server/RoomServer.csproj 的 PackageReference 用 $(LiteGameSharedVersion)
+  -->
+  <PropertyGroup>
+    <LiteGameSharedVersion>0.1.0</LiteGameSharedVersion>
+  </PropertyGroup>
+
+</Project>

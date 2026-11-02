@@ -4,9 +4,9 @@
 Pinned by this file (tests-first, implementation task T1):
 
 - both consumers read the BuildHash constant through the CURRENT path
-  ``Assets/LiteNet/Core/Protocol/BuildHash.g.cs`` (single source:
+  ``Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs`` (single source:
   ``gen-build-hash.shared_out_file(root)``); the pre-Core
-  ``Assets/LiteNet/Protocol/...`` path is rot (see codegen-rot-paths.json);
+  ``Packages/com.litegame.net/Protocol/...`` path is rot (see codegen-rot-paths.json);
 - ``refresh_hash.main()`` still reconciles both ends with the documented
   exit-code contract (unreadable server hash fails unless explicitly
   downgraded, mismatch fails, match passes);
@@ -24,8 +24,8 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "codegen"))
 
-BUILD_HASH_REL = "Assets/LiteNet/Core/Protocol/BuildHash.g.cs"
-STALE_BUILD_HASH_REL = "Assets/LiteNet/Protocol/BuildHash.g.cs"
+BUILD_HASH_REL = "Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs"
+STALE_BUILD_HASH_REL = "Packages/com.litegame.net/Protocol/BuildHash.g.cs"
 
 
 def load(name, relative):
