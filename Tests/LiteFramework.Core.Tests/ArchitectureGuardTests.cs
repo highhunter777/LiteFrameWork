@@ -65,7 +65,7 @@ namespace LiteFramework.Core.Tests
         {
             // I4 / §4.11 10：除 IUIOperationQueue 的实现外，UI 运行时代码不得声明 Queue<...> 作为调度器。
             string root = RepoRoot();
-            string uiRoot = Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Modules", "UI");
+            string uiRoot = Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Services", "UI");
             var offenders = new List<string>();
             var pattern = new Regex(@"\bQueue\s*<", RegexOptions.Compiled);
 
@@ -83,7 +83,7 @@ namespace LiteFramework.Core.Tests
             }
 
             Assert.True(offenders.Count == 0,
-                "UI 队列必须走 IUiOperationQueue（唯一实现 UiOperationQueue<T>）："
+                "UI 队列必须走 IUIOperationQueue（唯一实现 UIOperationQueue<T>）："
                 + string.Join(" | ", offenders));
         }
 

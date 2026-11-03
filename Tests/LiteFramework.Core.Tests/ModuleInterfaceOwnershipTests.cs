@@ -39,7 +39,8 @@ namespace LiteFramework.Core.Tests
             string[] scanRoots =
             {
                 Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Core"),
-                Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Modules"),
+                Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Services"),
+                Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Framework"),
                 Path.Combine(root, "Assets", "LiteGame", "Modules"),
             };
 

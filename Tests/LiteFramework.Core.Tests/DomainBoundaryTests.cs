@@ -157,7 +157,7 @@ namespace LiteFramework.Core.Tests
         /// <summary>
         /// 战斗包图守卫：叶子子模块不得依赖装配包 `Setup/`——那会形成包级回边。
         /// 历史：`Combat/BattleFeedbackAssembler` 持 `Setup/BattleViewAssets`，与 `Setup → Combat` 构成 2 环；
-        /// 2026-11-03 把 `BattleViewAssets` 下移域根破环，本条守卫防再生。
+        /// `BattleViewAssets` 下移域根破环，本条守卫防再生。
         /// </summary>
         [Fact]
         public void 战斗叶子子模块不得引用装配包()
