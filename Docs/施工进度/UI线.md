@@ -1092,3 +1092,45 @@ U1 交付段预告"per-form 缓存策略列随 U2 表扩展"——本批把 §5.
 
 - 页面清单读 xlsx 需要 Python + openpyxl（与新建页同一依赖）；读取失败时下拉为空并提示，不伪造条目。
 - 回写窗口已删除；若后续出现“必须逐属性挑选、原生 Overrides 不够”的真实消费者，再按 `ToolInteractionSession` 契约恢复，不以菜单存在维持。
+
+
+---
+
+## 第10章 UI 命名统一批-1（UI 域）
+
+<a id="ch10-UI命名统一批"></a>
+
+> **批次**：UI 命名统一批-1（UI 域，2026-11-03，随提交 `6351f281` 入库）
+> **规范**：[04-术语与用词 §6.9–6.12](../规范/04-术语与用词.md#612-改名迁移)
+> **裁决**：2026-10-29 `UI` 为唯一现行拼法；2026-11-02 域三名一致 / 编辑器命名空间跟程序集落定
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 类型/命名空间 | `LiteGame.Modules.Ui` → `LiteGame.Modules.UI`；`LiteGame.Editor.UiTools.*` → `LiteGame.Editor.UITools.*`；218 个生产类型 + 测试类名，259 个 `.cs` 约 4,328 处 |
+| 目录/文件 | `Modules/Ui`→`UI`、`Editor/UiTools`→`UITools`、`UiApi`→`UIApi`；161 个 `.cs` 文件改名（含 `IUi*`/`LuaUiBinding`）；2 个 asmdef 改名 |
+| 序列化类 | 9 个（`UIThemeAsset`/`UIStyleRef`/`UITextStyleRef`/`UISelectableTheme`/`UIPreviewDriver`/4 个 EditorWindow），GUID 全保留 |
+| 资产/数据 | `UITheme.asset`、`Tmp_UITestPage.prefab`、`UITestPage.lua`、7 个 manifest/JSON、6 个 schema 文档改名；manifest 内容路径同步 |
+| 生成物 | `UIPageCatalog.g.cs`、`UIApiManifest.g.cs`、`UIApiShim.g.cs`、`LuaBehaviourAdapter.Dispatch.g.cs` 重生成；`toolbox ui-page/ui-api --check` OK |
+| 同步面 | asmdef references、`InternalsVisibleTo`、`ToolchainManifest`、`ScanTargets`、测试 allowlist、62 篇现行文档；历史施工章不回改 |
+
+### 验证
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | 0 错 |
+| UI EditMode 目标套件 | `UIValidationEditModeTests` 14/14、`UIValidationRulesEditModeTests` 10/10、`UIPageManifest` 16/16、`UIWorkbench` 24/24、`UIContract` 24/24、`UIPreview` 25/25、`UITheme` 36/36、`UIThemeTokens` 18/18、`UIStyleRetirement` 8/8、`UIBinding` 12/12、`UIApiSpec` 4/4、`UIWidgetManifest` 11/11、`UINavModal` 9/9、`UIStaticText` 6/6、`UIStyleRefRule` 9/9、`UILayoutPerformance` 6/6、`UIDeviceProfiles` 9/9 |
+| L1（PullRequest） | **PASS 1976** |
+| Doc | `doc-lint` / 工具索引 PASS |
+| 生成物一致性 | `toolbox ui-page --check` / `ui-api --check` OK |
+
+### 遗留（如实）
+
+| 项 | 内容 |
+|---|---|
+| 批 2：Hud/Vfx/GM | `DevHUD`/`DevHUDBoot` → `DevHud`/`DevHudBoot`；`IVFXService` → `IVfxService`；21 个 `Gm*` → `GM*`；`HpBar` 类与 prefab 同名，随 UI 资产批（04 §6.9 表注） |
+| 编辑器命名空间批 | `LiteGame/Editor/{Baking,Resource,Core}` 15 文件 `LiteGame.EditorTools[.UI]` → `LiteGame.Editor`/`.Core`/`.UITools`；`LiteFramework/Editor/EditorTools` 与 `LiteCodeGen` 半改名另条登记 |
+| UI 工具链 Lane→Role | `UILanePolicy`/`UIWorkbenchLane` → `UIRolePolicy`/`UIWorkbenchRole`（04 §5.1；登记在 [不统一路径](../审计/客户端/登记/不统一路径.md)） |
+| 验证缺口 | 全量 EditMode 未一口跑完（pipeline 30 s 上限；`UIPageScaffoldRegister`/`UIThemeAssetGenerator`/`UIContractReconciliation`/`UIBindingTools` 各抽 1 个代表方法通过）；L2 夜间门禁未跑 |
+| 禁区保留 | Lua 键 `Bridge.ui`、Luban 表键 `tbuiform`/`tbltext`、外部 `"UiPreviewMatrix"`、数据内部名 `"UiTheme"`、prefab 序列化字段名、`.meta` GUID 未改 |
