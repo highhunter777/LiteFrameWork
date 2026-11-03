@@ -473,7 +473,7 @@ namespace LiteGame
                 return;
             }
 
-            DevHUD hud = Object.FindAnyObjectByType<DevHUD>();
+            DevHud hud = Object.FindAnyObjectByType<DevHud>();
             if (hud == null) { AppendError("DevHUD 不在场（F1 打开后重试）"); return; }
 
             if (args.Length == 1)

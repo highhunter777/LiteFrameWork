@@ -213,8 +213,8 @@ namespace LiteGame
 
         private void Start()
         {
-            // DevHUD 是运行期自建覆盖件；布局预览只需要页面本体。
-            var hud = FindAnyObjectByType<DevHUD>();
+            // DevHud 是运行期自建覆盖件；布局预览只需要页面本体。
+            var hud = FindAnyObjectByType<DevHud>();
             if (hud != null) hud.gameObject.SetActive(false);
         }
 

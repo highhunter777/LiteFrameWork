@@ -100,7 +100,7 @@ namespace LiteGame
             ? View.RenderFrame
             : (LastSnapshotFrame >= 0 ? LastSnapshotFrame : 0);
 
-        /// <summary>和解次数（本地预测被权威覆盖的次数；诊断/DevHUD）。</summary>
+        /// <summary>和解次数（本地预测被权威覆盖的次数；诊断/DevHud）。</summary>
         public long ReconcileCount => _reconcileCount;
 
         /// <summary>公共战斗事件面（命中/击杀/开火的统一入口；独立事件批 <c>PacketType.CombatEvents</c>）。

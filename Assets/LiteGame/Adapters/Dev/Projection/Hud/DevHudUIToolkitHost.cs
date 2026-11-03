@@ -8,11 +8,11 @@ using UnityEngine.UIElements;
 namespace LiteGame
 {
     /// <summary>
-    /// DevHUD 的 UI Toolkit 渲染后端（无资产：运行时创建 `PanelSettings`，内联样式）。
+    /// DevHud 的 UI Toolkit 渲染后端（无资产：运行时创建 `PanelSettings`，内联样式）。
     /// 字体走 TextCore 系统字体文件（微软雅黑/黑体/宋体/PingFang/Noto 候选链），
-    /// 无可用 SDF 字体时抛异常，由 <see cref="DevHUD"/> 回退 IMGUI。
+    /// 无可用 SDF 字体时抛异常，由 <see cref="DevHud"/> 回退 IMGUI。
     /// 渲染模型：顶部状态行（可拖动面板）+ 可折叠段 + 每行一个 Label（按 <see cref="HudTone"/> 着色）+ 滚轮滚动。
-    /// 折叠态由宿主（DevHUD）持有并持久化，本类只做显示与点击上报。
+    /// 折叠态由宿主（DevHud）持有并持久化，本类只做显示与点击上报。
     /// 已知边界：UI Toolkit 面板渲染在 uGUI Screen Space Overlay 之下，`sortingOrder=10000` 高于产品现有最高 6000；
     /// 无 `ThemeStyleSheet` 时标准控件无样式，故折叠/拖拽/滚动都用 Label + PointerEvent 自实现。
     /// </summary>
@@ -127,7 +127,7 @@ namespace LiteGame
             }
         }
 
-        /// <summary>一轮采样结果；折叠态/位置由宿主传入（持久化在 DevHUD）。</summary>
+        /// <summary>一轮采样结果；折叠态/位置由宿主传入（持久化在 DevHud）。</summary>
         public void Render(string status, IReadOnlyList<DevHudSectionData> sections,
             int width, int fontSize, int left, int top, float scale,
             ISet<string> collapsed, Action<string> onToggle, Action<int, int> onMoved)

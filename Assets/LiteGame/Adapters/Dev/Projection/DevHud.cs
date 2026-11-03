@@ -34,7 +34,7 @@ namespace LiteGame
     /// 热键：F1 总开关 / F4 复制文本 / F5 日志级别过滤 / F6 仅本局 / F7 落现场包 / F8 导出 JSON / F9 过滤模式
     /// （F2 = 开发面板、F3 = 开发控制台）。
     /// 日志行带关联上下文（会话/对局/帧/席位，见 <see cref="LogEntry"/>）；只读，不写运行态。</summary>
-    public sealed class DevHUD : MonoBehaviour
+    public sealed class DevHud : MonoBehaviour
     {
         /// <summary>单模块 stats 段开关（按 StatsName 一段一 bool，Inspector 直改；未列出的模块默认隐藏＝白名单）。</summary>
         [Serializable]
@@ -558,15 +558,15 @@ namespace LiteGame
     }
 
     /// <summary>HUD 自创建入口（场景加载后；幂等）。release 构建随外层 #if 整体剥离。</summary>
-    internal static class DevHUDBoot
+    internal static class DevHudBoot
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Boot()
         {
-            if (UnityEngine.Object.FindAnyObjectByType<DevHUD>() != null) return;
+            if (UnityEngine.Object.FindAnyObjectByType<DevHud>() != null) return;
             var go = new GameObject("[DevHUD]");
             UnityEngine.Object.DontDestroyOnLoad(go);
-            go.AddComponent<DevHUD>();
+            go.AddComponent<DevHud>();
         }
     }
 }

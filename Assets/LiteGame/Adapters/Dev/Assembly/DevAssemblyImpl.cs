@@ -61,7 +61,7 @@ namespace LiteGame
             _decoration?.Dispose();
 
             // GM 场景命令（带参+异步，GmOnly）：注册即进发现面——加载/卸载进审计环。
-            IDisposable gmSceneCommands = GmSceneCommands.RegisterAll(services.Commands, services.Scenes);
+            IDisposable gmSceneCommands = GMSceneCommands.RegisterAll(services.Commands, services.Scenes);
 
             _weakNet = new WeakNetRuntime();
             services.Context.Put(_weakNet);
@@ -137,7 +137,7 @@ namespace LiteGame
     /// <summary>开发侧运行期读口（投影件取调试内核/弱网实例；随装配装饰句柄收口）。</summary>
     public static class DevRuntime
     {
-        /// <summary>调试内核（DevHUD/GM 页/控制台的数据面；未装配 = null）。</summary>
+        /// <summary>调试内核（DevHud/GM 页/控制台的数据面；未装配 = null）。</summary>
         public static DebugKernel Kernel { get; private set; }
 
         public static void SetKernel(DebugKernel kernel) => Kernel = kernel;

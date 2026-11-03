@@ -19,7 +19,7 @@ namespace LiteGame.Tests.EditMode
     public sealed class BattleRemoteFireEditModeTests : UnityTestBase
     {
         /// <summary>录制型 VFX 替身（只记调用，不建实例——零素材验证接线面）。</summary>
-        private sealed class RecordingVfx : IVFXService
+        private sealed class RecordingVfx : IVfxService
         {
             public readonly struct Call
             {

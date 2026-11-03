@@ -21,7 +21,7 @@ namespace LiteFramework.Tests
 
         private readonly ReferencePoolService _pool = new ReferencePoolService();        private sealed class Ping : ICommand { }
         private sealed class Plain : ICommand { }
-        private sealed class GmPing : ICommand { }
+        private sealed class GMPing : ICommand { }
         private sealed class PooledPing : ICommand, IReference { public void Clear() { } }
 
         private sealed class EchoHandler : ICommandHandler<Ping>
@@ -37,10 +37,10 @@ namespace LiteFramework.Tests
             }
         }
 
-        private sealed class GmEcho : ICommandHandler<GmPing>
+        private sealed class GMEcho : ICommandHandler<GMPing>
         {
             public int Calls;
-            public CommandResult Execute(GmPing command) { Calls++; return CommandResult.Success("gm"); }
+            public CommandResult Execute(GMPing command) { Calls++; return CommandResult.Success("gm"); }
         }
 
         private sealed class PooledEcho : ICommandHandler<PooledPing>
@@ -103,10 +103,10 @@ namespace LiteFramework.Tests
         public void SendQueued_执行时过权限门_入队时不拦()
         {
             var commands = new CommandCenter(_pool, gmEnabled: false);   // release 语义
-            var gm = new GmEcho();
+            var gm = new GMEcho();
             commands.Register(gm, new CommandOptions(gmOnly: true));
 
-            commands.SendQueued(new GmPing());              // 入队成功（无处理器才抛；门在执行时）
+            commands.SendQueued(new GMPing());              // 入队成功（无处理器才抛；门在执行时）
             commands.Tick(0.016f);                          // 执行 → 权限门拦截
 
             Assert.Equal(0, gm.Calls);                      // 物理不执行

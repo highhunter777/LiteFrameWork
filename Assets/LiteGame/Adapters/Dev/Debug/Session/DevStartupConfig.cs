@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace LiteGame
 {
-    /// <summary>DevHUD 内建段的身份位（启动布局选择用；每段一位，段定义侧逐一登记）。</summary>
+    /// <summary>DevHud 内建段的身份位（启动布局选择用；每段一位，段定义侧逐一登记）。</summary>
     [Flags]
     public enum DevHudSectionFlags
     {
@@ -28,7 +28,7 @@ namespace LiteGame
         [Tooltip("直入训练场：启动即进本地测试模式对局（本地服 Room-Test），不加载登录页；退出按 UI（ESC→设置页→退出）回大厅页。")]
         public bool DirectToTraining;
 
-        /// <summary>DevHUD 出厂默认展开集（精简四段：错误/联机诊断/性能/模块 Stats）。</summary>
+        /// <summary>DevHud 出厂默认展开集（精简四段：错误/联机诊断/性能/模块 Stats）。</summary>
         public const DevHudSectionFlags DefaultDevHudExpanded =
             DevHudSectionFlags.Errors | DevHudSectionFlags.NetDiag |
             DevHudSectionFlags.Perf | DevHudSectionFlags.Stats;
@@ -60,7 +60,7 @@ namespace LiteGame
         /// <summary>直入训练场开关的全局读点（流程层不认识本组件）。</summary>
         public static bool DirectToTrainingEnabled;
 
-        /// <summary>DevHUD 初始展开集（场景无本组件时套出厂默认）。</summary>
+        /// <summary>DevHud 初始展开集（场景无本组件时套出厂默认）。</summary>
         public static DevHudSectionFlags ResolveDevHudDefaultExpanded()
         {
             var config = UnityEngine.Object.FindAnyObjectByType<DevStartupConfig>(FindObjectsInactive.Include);

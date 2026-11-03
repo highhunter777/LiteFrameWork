@@ -15,7 +15,7 @@ namespace LiteFramework
     {
         private static StructuredLogSink _sink;
 
-        /// <summary>当前已安装的 sink（未安装为 null；只读，供 DevHUD 状态段）。</summary>
+        /// <summary>当前已安装的 sink（未安装为 null；只读，供 DevHud 状态段）。</summary>
         public static StructuredLogSink Current => _sink;
 
         /// <summary>安装（幂等）；返回当前 sink（已安装则原样返回）。</summary>

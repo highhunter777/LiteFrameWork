@@ -30,7 +30,7 @@ namespace LiteGame.Toolchain
         }
     }
 
-    /// <summary>运行内载体（DevHUD）说明页：Hub 不执行、不打开，只交代启用方式与前置。</summary>
+    /// <summary>运行内载体（DevHud）说明页：Hub 不执行、不打开，只交代启用方式与前置。</summary>
     public sealed class HudToolPage : EditorToolPageBase
     {
         private readonly EditorToolDescriptor _descriptor;

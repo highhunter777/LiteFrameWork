@@ -73,7 +73,7 @@ namespace LiteFramework
             });
         }
 
-        /// <summary>现场包日志行带关联上下文（与 DevHUD 同口径；未开局日志不附加）。</summary>
+        /// <summary>现场包日志行带关联上下文（与 DevHud 同口径；未开局日志不附加）。</summary>
         private static string FormatLogLine(in LogEntry e)
             => e.MatchId.Length == 0 && e.Frame == 0 && e.PlayerId < 0
                 ? $"{e.Level} [{e.Tag}] {e.Message}"

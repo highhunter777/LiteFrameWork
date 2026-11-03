@@ -18,9 +18,9 @@ namespace LiteGame.Tests.UI.PlayMode
     /// 覆盖三段（EditMode 测不到的部分）：
     /// 1. **钩子在位**：`BeforeSceneLoad` 的 `DevHooks.Bind` 在 PlayMode 真跑过——`DevHooks.Current`
     ///    非空、会话实现是开发版（`IsDevelopmentBuild`）、诊断端口有实现；
-    /// 2. **自创建面齐全**：`AfterSceneLoad` 的 DevHUD / DebugConsole / DebugPanel 自建入口
+    /// 2. **自创建面齐全**：`AfterSceneLoad` 的 DevHud / DebugConsole / DebugPanel 自建入口
     ///    （搬迁后仍在 Dev 程序集）在无 `GameEntry` 的空场景也会出现——证明装配与引导解耦；
-    /// 3. **真实按键**：F1 经 InputSystem 真事件驱动 `DevHUD.Visible` 往返——证明热键链
+    /// 3. **真实按键**：F1 经 InputSystem 真事件驱动 `DevHud.Visible` 往返——证明热键链
     ///    （DevHotkey → PlatformKeyInput 无宏能力）在 Play 帧循环里成立，不是只有 EditMode 直调可过。
     ///
     /// **不做**：不启动 `GameEntry` 全链（配置/内容/Lua 装配属端到端批次，冒烟只钉开发面本身）；
@@ -46,7 +46,7 @@ namespace LiteGame.Tests.UI.PlayMode
         {
             yield return null;
 
-            Assert.IsNotNull(Object.FindAnyObjectByType<DevHUD>(), "DevHUD 未自创建");
+            Assert.IsNotNull(Object.FindAnyObjectByType<DevHud>(), "DevHUD 未自创建");
             Assert.IsNotNull(GameObject.Find("[DevHUD]"), "[DevHUD] 宿主缺失");
             Assert.IsNotNull(GameObject.Find("[DebugConsole]"), "[DebugConsole] 宿主缺失");
             Assert.IsNotNull(GameObject.Find("[DebugPanel]"), "[DebugPanel] 宿主缺失");
@@ -56,7 +56,7 @@ namespace LiteGame.Tests.UI.PlayMode
         public IEnumerator F1_真实按键_开发HUD开关往返()
         {
             yield return null;
-            DevHUD hud = Object.FindAnyObjectByType<DevHUD>();
+            DevHud hud = Object.FindAnyObjectByType<DevHud>();
             Assert.IsNotNull(hud, "DevHUD 未自创建——热键链无可验对象");
 
             bool before = hud.Visible;

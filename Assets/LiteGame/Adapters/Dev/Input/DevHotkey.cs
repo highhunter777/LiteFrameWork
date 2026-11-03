@@ -2,7 +2,7 @@ using LiteFramework;
 
 namespace LiteGame
 {
-    /// <summary>DevHUD 用到的功能键（不暴露 KeyCode，便于输入后端切换）。</summary>
+    /// <summary>DevHud 用到的功能键（不暴露 KeyCode，便于输入后端切换）。</summary>
     public enum DevKey
     {
         F1, F2, F3, F4, F5, F6, F7, F8, F9,

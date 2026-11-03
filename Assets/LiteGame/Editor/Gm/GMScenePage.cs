@@ -14,7 +14,7 @@ namespace LiteGame.Editor
     /// 场景命令的专面板——权限门/拦截器/审计环全覆盖；忙碌守卫保留），异常不外泄到编辑器、结果落面板。
     /// 位置记忆走 EditorPrefs（统一前缀 LiteGame.Gm.*）。
     /// </summary>
-    internal sealed class GmScenePage : IGmPage
+    internal sealed class GMScenePage : IGMPage
     {
         private const string PrefScene = "LiteGame.Gm.Scene.Location";
 
@@ -54,10 +54,10 @@ namespace LiteGame.Editor
             using (new EditorGUI.DisabledScope(!ready))
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("单场景加载")) RunSceneOp(new GmLoadSingleSceneCommand { Location = _sceneLocation }, "单场景加载").ForgetLogged("GmScenePage");
-                if (GUILayout.Button("叠加加载")) RunSceneOp(new GmLoadAdditiveSceneCommand { Location = _sceneLocation }, "叠加加载").ForgetLogged("GmScenePage");
-                if (GUILayout.Button("卸载单场景")) RunSceneOp(new GmUnloadSingleSceneCommand(), "卸载单场景").ForgetLogged("GmScenePage");
-                if (GUILayout.Button("卸载叠加")) RunSceneOp(new GmUnloadAdditiveSceneCommand { Location = _sceneLocation }, "卸载叠加").ForgetLogged("GmScenePage");
+                if (GUILayout.Button("单场景加载")) RunSceneOp(new GMLoadSingleSceneCommand { Location = _sceneLocation }, "单场景加载").ForgetLogged("GMScenePage");
+                if (GUILayout.Button("叠加加载")) RunSceneOp(new GMLoadAdditiveSceneCommand { Location = _sceneLocation }, "叠加加载").ForgetLogged("GMScenePage");
+                if (GUILayout.Button("卸载单场景")) RunSceneOp(new GMUnloadSingleSceneCommand(), "卸载单场景").ForgetLogged("GMScenePage");
+                if (GUILayout.Button("卸载叠加")) RunSceneOp(new GMUnloadAdditiveSceneCommand { Location = _sceneLocation }, "卸载叠加").ForgetLogged("GMScenePage");
             }
 
             if (!Application.isPlaying) EditorGUILayout.HelpBox("场景操作需 Play（AssetService 初始化后才可加载）", MessageType.Info);
@@ -140,8 +140,8 @@ namespace LiteGame.Editor
             return sb.ToString();
         }
 
-        private ISceneService GetSceneService() => GmEditorResolve.ResolveFromContainer<ISceneService>();
+        private ISceneService GetSceneService() => GMEditorResolve.ResolveFromContainer<ISceneService>();
 
-        private static CommandCenter GetCommandCenter() => GmEditorResolve.ResolveFromContainer<ICommandCenter>() as CommandCenter;   // lint-allow R14 场景页＝带参命令专面板（§2.2）：带参/异步形态直用命令总线派发（全量审计），非旁路
+        private static CommandCenter GetCommandCenter() => GMEditorResolve.ResolveFromContainer<ICommandCenter>() as CommandCenter;   // lint-allow R14 场景页＝带参命令专面板（§2.2）：带参/异步形态直用命令总线派发（全量审计），非旁路
     }
 }

@@ -25,7 +25,7 @@ namespace LiteGame.Modules.Dev
         /// 这样开发端口不认识会话域类型，两边程序集可以互不引用。</summary>
         Func<bool, IClientTransport, IClientTransport> WrapTransport { get; }
 
-        /// <summary>对局诊断登记端口（DevHUD/GM 页读口）。</summary>
+        /// <summary>对局诊断登记端口（DevHud/GM 页读口）。</summary>
         IBattleDevDiagnostics BattleDiagnostics { get; }
 
         /// <summary>建对局开发叠加层（爆头诊断绘制/自瞄验证；每次进局一件）。</summary>

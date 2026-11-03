@@ -8,16 +8,16 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>GM 场景命令·单场景加载（带参：location = 场景名/路径）。</summary>
-    public sealed class GmLoadSingleSceneCommand : ICommand { public string Location; }
+    public sealed class GMLoadSingleSceneCommand : ICommand { public string Location; }
 
     /// <summary>GM 场景命令·叠加加载（带参：location）。</summary>
-    public sealed class GmLoadAdditiveSceneCommand : ICommand { public string Location; }
+    public sealed class GMLoadAdditiveSceneCommand : ICommand { public string Location; }
 
     /// <summary>GM 场景命令·卸载当前单场景（无参——发现面可直接执行）。</summary>
-    public sealed class GmUnloadSingleSceneCommand : ICommand { }
+    public sealed class GMUnloadSingleSceneCommand : ICommand { }
 
     /// <summary>GM 场景命令·卸载指定叠加场景（带参：location）。</summary>
-    public sealed class GmUnloadAdditiveSceneCommand : ICommand { public string Location; }
+    public sealed class GMUnloadAdditiveSceneCommand : ICommand { public string Location; }
 
     /// <summary>
     /// GM 场景命令处理器（带参+异步形态——《GM 与调试工具分层设计》§2 场景操作命令化批）：
@@ -25,19 +25,19 @@ namespace LiteGame
     /// （"刚才动了哪个场景"可查）。处理器异常由 SendAsync 隔离为 HandlerFault（本处理器不自裹 try——
     /// 与处理器作者代码缺陷的框架契约一致）；<see cref="OperationCanceledException"/> 透传归调用方。
     /// </summary>
-    public sealed class GmSceneCommandHandler :
-        IAsyncCommandHandler<GmLoadSingleSceneCommand>,
-        IAsyncCommandHandler<GmLoadAdditiveSceneCommand>,
-        IAsyncCommandHandler<GmUnloadSingleSceneCommand>,
-        IAsyncCommandHandler<GmUnloadAdditiveSceneCommand>
+    public sealed class GMSceneCommandHandler :
+        IAsyncCommandHandler<GMLoadSingleSceneCommand>,
+        IAsyncCommandHandler<GMLoadAdditiveSceneCommand>,
+        IAsyncCommandHandler<GMUnloadSingleSceneCommand>,
+        IAsyncCommandHandler<GMUnloadAdditiveSceneCommand>
     {
         private readonly ISceneService _scenes;
 
-        public GmSceneCommandHandler(ISceneService scenes)
+        public GMSceneCommandHandler(ISceneService scenes)
             => _scenes = scenes ?? throw new ArgumentNullException(nameof(scenes));
 
-        async ValueTask<CommandResult> IAsyncCommandHandler<GmLoadSingleSceneCommand>.ExecuteAsync(
-            GmLoadSingleSceneCommand command, CancellationToken ct)
+        async ValueTask<CommandResult> IAsyncCommandHandler<GMLoadSingleSceneCommand>.ExecuteAsync(
+            GMLoadSingleSceneCommand command, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(command.Location))
                 return CommandResult.Fail(CommandReject.HandlerRejected, "location 为空（场景名/路径必填）");
@@ -45,8 +45,8 @@ namespace LiteGame
             return CommandResult.Success($"单场景已加载：{_scenes.SingleSceneName ?? command.Location}");
         }
 
-        async ValueTask<CommandResult> IAsyncCommandHandler<GmLoadAdditiveSceneCommand>.ExecuteAsync(
-            GmLoadAdditiveSceneCommand command, CancellationToken ct)
+        async ValueTask<CommandResult> IAsyncCommandHandler<GMLoadAdditiveSceneCommand>.ExecuteAsync(
+            GMLoadAdditiveSceneCommand command, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(command.Location))
                 return CommandResult.Fail(CommandReject.HandlerRejected, "location 为空（场景名/路径必填）");
@@ -54,15 +54,15 @@ namespace LiteGame
             return CommandResult.Success($"叠加已加载：{command.Location}（共 {_scenes.AdditiveCount}）");
         }
 
-        async ValueTask<CommandResult> IAsyncCommandHandler<GmUnloadSingleSceneCommand>.ExecuteAsync(
-            GmUnloadSingleSceneCommand command, CancellationToken ct)
+        async ValueTask<CommandResult> IAsyncCommandHandler<GMUnloadSingleSceneCommand>.ExecuteAsync(
+            GMUnloadSingleSceneCommand command, CancellationToken ct)
         {
             await _scenes.UnloadSingleAsync(ct);
             return CommandResult.Success($"单场景已卸载（现单场景={_scenes.SingleSceneName ?? "无"}）");
         }
 
-        async ValueTask<CommandResult> IAsyncCommandHandler<GmUnloadAdditiveSceneCommand>.ExecuteAsync(
-            GmUnloadAdditiveSceneCommand command, CancellationToken ct)
+        async ValueTask<CommandResult> IAsyncCommandHandler<GMUnloadAdditiveSceneCommand>.ExecuteAsync(
+            GMUnloadAdditiveSceneCommand command, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(command.Location))
                 return CommandResult.Fail(CommandReject.HandlerRejected, "location 为空（场景名/路径必填）");
@@ -75,20 +75,20 @@ namespace LiteGame
     /// GM 场景命令注册面（装配点唯一入口）：四命令 GmOnly 注册进命令中心——发现面自动列出
     /// （带参命令由场景页专面板执行）、加载/卸载进审计环；返回合并注销器（调用方持有，随装配生命周期释放）。
     /// </summary>
-    public static class GmSceneCommands
+    public static class GMSceneCommands
     {
         public static IDisposable RegisterAll(CommandCenter center, ISceneService scenes)
         {
             if (center == null) throw new ArgumentNullException(nameof(center));
-            var handler = new GmSceneCommandHandler(scenes);
+            var handler = new GMSceneCommandHandler(scenes);
             var bag = new SubscriptionBag();
-            bag.Add(center.RegisterAsync<GmLoadSingleSceneCommand>(handler,
+            bag.Add(center.RegisterAsync<GMLoadSingleSceneCommand>(handler,
                 new CommandOptions(gmOnly: true, description: "单场景加载（卸旧加载新）")).Dispose);
-            bag.Add(center.RegisterAsync<GmLoadAdditiveSceneCommand>(handler,
+            bag.Add(center.RegisterAsync<GMLoadAdditiveSceneCommand>(handler,
                 new CommandOptions(gmOnly: true, description: "叠加加载场景")).Dispose);
-            bag.Add(center.RegisterAsync<GmUnloadSingleSceneCommand>(handler,
+            bag.Add(center.RegisterAsync<GMUnloadSingleSceneCommand>(handler,
                 new CommandOptions(gmOnly: true, description: "卸载当前单场景")).Dispose);
-            bag.Add(center.RegisterAsync<GmUnloadAdditiveSceneCommand>(handler,
+            bag.Add(center.RegisterAsync<GMUnloadAdditiveSceneCommand>(handler,
                 new CommandOptions(gmOnly: true, description: "卸载指定叠加场景")).Dispose);
             return bag;
         }

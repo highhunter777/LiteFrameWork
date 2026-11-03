@@ -7,7 +7,7 @@ namespace LiteGame
 {
     /// <summary>
     /// HUD 过滤词（`@tag` OR + 文本子串 AND）。解析/匹配/裁剪都在这里，
-    /// DevHUD 只负责输入态与持久化；空词 = 不过滤。
+    /// DevHud 只负责输入态与持久化；空词 = 不过滤。
     /// </summary>
     internal sealed class DevHudFilter
     {

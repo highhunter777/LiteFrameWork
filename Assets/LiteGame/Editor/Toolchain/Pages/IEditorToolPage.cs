@@ -4,7 +4,7 @@ namespace LiteGame.Toolchain
 {
     /// <summary>
     /// 开发工具页件契约：一页一职责，生命周期由 Hub 壳驱动。
-    /// 原 IGmPage 继承本接口，GM 六页无需改业务即可被 Hub 宿主。
+    /// 原 IGMPage 继承本接口，GM 六页无需改业务即可被 Hub 宿主。
     /// </summary>
     public interface IEditorToolPage
     {

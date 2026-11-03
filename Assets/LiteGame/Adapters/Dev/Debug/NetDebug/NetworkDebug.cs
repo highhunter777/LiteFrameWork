@@ -11,7 +11,7 @@ namespace LiteGame
 {
     /// <summary>
     /// 网络调试组件（调试内核 <see cref="DebugKernel.Network"/> 持有）：把**读数**（会话相位 / RTT / 丢包 /
-    /// 弱网注入）与**动作**（强制断线 / 无状态重连 / 抑制自动重连）收在一处，投影（DevHUD / F2 面板 / F3 控制台 / GM 页）
+    /// 弱网注入）与**动作**（强制断线 / 无状态重连 / 抑制自动重连）收在一处，投影（DevHud / F2 面板 / F3 控制台 / GM 页）
     /// 只经内核消费——不各自拼读数、不直调会话客户端。
     ///
     /// **相位语义**：<see cref="BattleContext"/> 在进入
@@ -98,7 +98,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 追加"会话 + 弱网注入"诊断行（DevHUD 联机诊断段 / F2 面板 / F3 控制台 / GM 页同一文案单源）：
+        /// 追加"会话 + 弱网注入"诊断行（DevHud 联机诊断段 / F2 面板 / F3 控制台 / GM 页同一文案单源）：
         /// 会话两行 + 扩展行由 <see cref="BattleDiagnostics.AppendExtendedCurrent"/> 产出，
         /// 弱网启用时再追加注入行。返回 false = 无对局（已写入空态占位）。
         /// </summary>

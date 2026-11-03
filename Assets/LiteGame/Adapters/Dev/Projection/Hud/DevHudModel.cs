@@ -41,7 +41,7 @@ namespace LiteGame
         void Line(string text, HudTone tone = HudTone.Normal, string tag = null);
     }
 
-    /// <summary>DevHUD 段件：只读一个面，输出若干行；可见性由宿主/段自身决定。</summary>
+    /// <summary>DevHud 段件：只读一个面，输出若干行；可见性由宿主/段自身决定。</summary>
     internal interface IDevHudSection
     {
         string Title { get; }

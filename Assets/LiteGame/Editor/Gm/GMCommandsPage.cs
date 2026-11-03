@@ -11,7 +11,7 @@ namespace LiteGame.Editor
     /// 页内不再持有 CommandCenter 或反射执行逻辑；权限门/拦截器/审计链全在内核之后。
     /// 审计环自动刷新 1s（仅本页在场时轮询——壳只调活动页）。
     /// </summary>
-    internal sealed class GmCommandsPage : IGmPage
+    internal sealed class GMCommandsPage : IGMPage
     {
         private readonly List<CommandInfo> _cmds = new List<CommandInfo>();
         private readonly List<CommandAuditEntry> _audit = new List<CommandAuditEntry>();
@@ -96,6 +96,6 @@ namespace LiteGame.Editor
             RefreshCommands();
         }
 
-        private static DebugKernel GetKernel() => GmEditorResolve.ResolveFromContainer<DebugKernel>();
+        private static DebugKernel GetKernel() => GMEditorResolve.ResolveFromContainer<DebugKernel>();
     }
 }

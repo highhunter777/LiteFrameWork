@@ -2,7 +2,7 @@ using LiteFramework;
 
 namespace LiteGame
 {
-    /// <summary>对局诊断登记的开发实现：转发静态读口 <see cref="BattleDiagnostics"/>（DevHUD/GM 页只读）。</summary>
+    /// <summary>对局诊断登记的开发实现：转发静态读口 <see cref="BattleDiagnostics"/>（DevHud/GM 页只读）。</summary>
     public sealed class DevBattleDiagnostics : IBattleDevDiagnostics
     {
         public void Attach(BattleContext context) => BattleDiagnostics.Attach(context);

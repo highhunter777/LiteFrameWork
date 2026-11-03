@@ -36,7 +36,7 @@ namespace LiteGame
         private readonly StrategyLuaRegistry _strategyRegistry = new StrategyLuaRegistry();
 
         /// <summary>判定参数覆写实例（判定几何 13 列的调参面）：装配期创建一次，调参面板与编辑器导出器
-        /// 共用同一实例（容器登记；编辑器 GM 经 <c>GmEditorResolve</c> 取件）。
+        /// 共用同一实例（容器登记；编辑器 GM 经 <c>GMEditorResolve</c> 取件）。
         /// **这里只登记不判定**——"本局是否合并"由进房单点每局求值一次（<c>SimParamsActivation</c>：
         /// 装配期测试模式尚未开启，在这里求门恒假）。</summary>
         private readonly SimParamsOverrides _simParamsOverrides = new SimParamsOverrides();
@@ -209,7 +209,7 @@ namespace LiteGame
                 typeof(IMainThreadDispatcher), typeof(IWorldClock), typeof(IUIClock),
                 typeof(DotweenUIClockDriver), typeof(UIService),   // EventBus 无队列、不再实现 ITickable（M3-7 7b）
                 typeof(ILogicScheduler), typeof(IUIScheduler), typeof(ITimelineRunner),
-                typeof(IVFXService), typeof(DialogService), typeof(ToastTicker),
+                typeof(IVfxService), typeof(DialogService), typeof(ToastTicker),
                 typeof(ICommandCenter),
                 typeof(StageMachine<ProcedureId, ProcedureArgs>));
         }

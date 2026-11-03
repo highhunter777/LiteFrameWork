@@ -209,7 +209,7 @@ namespace Tools.DisciplineScan
             new ScanTarget("Server/MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
             // R14 投影纪律（《GM 与调试工具分层专项设计》§7）：两个投影根的读数/动作/发现面经内核门面。
             // Editor/Gm 受守根显式含 Editor 子树（IncludeEditorDirs——默认排除面不覆盖它）。
-            new ScanTarget("Assets/LiteGame/Adapters/Dev/Projection", ProjectionRules),                 // 运行期投影件（DevHUD/DebugConsole/DebugPanel）
+            new ScanTarget("Assets/LiteGame/Adapters/Dev/Projection", ProjectionRules),                 // 运行期投影件（DevHud/DebugConsole/DebugPanel）
             new ScanTarget("Assets/LiteGame/Editor/Gm", ProjectionRules, null, true),          // 编辑器 GM 页（Hub 七页）
         };
 

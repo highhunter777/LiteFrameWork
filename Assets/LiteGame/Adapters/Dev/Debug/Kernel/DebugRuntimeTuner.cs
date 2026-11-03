@@ -112,13 +112,13 @@ namespace LiteGame
             // GM 示范命令（§6/批2 消费端闭环）：发现面据此列命令，不硬编码清单；重注入先注销
             _gmCommandRegistration?.Dispose();
             if (_commands != null)
-                _gmCommandRegistration = _commands.Register(new GmResetClockHandler(this),
+                _gmCommandRegistration = _commands.Register(new GMResetClockHandler(this),
                     new CommandOptions(gmOnly: true, description: "重置时钟（Scale=1、不暂停）"));
         }
 
         /// <summary>GM 面板执行入口（Inspector 右键菜单 = 离散动作的编辑器原生入口——经 Send 全链：权限门→处理器→审计）。</summary>
         [ContextMenu("GM 命令：重置时钟")]
-        private void GmResetClock() => _commands?.Send(new GmResetClockCommand());
+        private void GmResetClock() => _commands?.Send(new GMResetClockCommand());
 
         /// <summary>把连续旋钮落回默认（Scale=1、不暂停）。</summary>
         public void ResetClock()

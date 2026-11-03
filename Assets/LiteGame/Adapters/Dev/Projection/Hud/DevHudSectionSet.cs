@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace LiteGame
 {
-    /// <summary>段构建所需的开关/过滤参数（DevHUD 每次采样前刷新，避免段件反向读宿主 public 字段）。</summary>
+    /// <summary>段构建所需的开关/过滤参数（DevHud 每次采样前刷新，避免段件反向读宿主 public 字段）。</summary>
     internal sealed class DevHudSectionOptions
     {
         public bool ShowErrors;

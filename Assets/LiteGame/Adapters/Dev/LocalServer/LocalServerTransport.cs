@@ -14,7 +14,7 @@ using LiteGame;
 using LiteGame.Modules.Map;
 
 using LiteSync.Client;
-// 开发面剥离：与 DevHUD/DevStartupConfig 同款三宏 #if（release Player 中本件整体不编译；
+// 开发面剥离：与 DevHud/DevStartupConfig 同款三宏 #if（release Player 中本件整体不编译；
 // asmdef 层不设约束）。
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 namespace LiteGame

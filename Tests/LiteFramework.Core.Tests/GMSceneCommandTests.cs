@@ -15,7 +15,7 @@ namespace LiteFramework.Tests
     /// 拒绝且不派发、GmOnly 注册过权限门（release 语义零派发）、发现面/注销器对称、审计进环。
     /// SceneService 真实现（YooAsset 适配器）归 L2——本测试用替身只记调用。
     /// </summary>
-    public sealed class GmSceneCommandTests
+    public sealed class GMSceneCommandTests
     {
 
         private readonly ReferencePoolService _pool = new ReferencePoolService();        /// <summary>场景服务替身：记录四操作调用与实参（验证派发协议，不实现加载）。</summary>
@@ -48,12 +48,12 @@ namespace LiteFramework.Tests
         {
             var commands = new CommandCenter(_pool, gmEnabled: true);          // 三宏内语义（L1 带 LITEFRAMEWORK_DEBUG）
             var scenes = new FakeSceneService();
-            using (GmSceneCommands.RegisterAll(commands, scenes))
+            using (GMSceneCommands.RegisterAll(commands, scenes))
             {
-                Assert.True((await commands.SendAsync(new GmLoadSingleSceneCommand { Location = "LevelA" })).Ok);
-                Assert.True((await commands.SendAsync(new GmLoadAdditiveSceneCommand { Location = "LevelB" })).Ok);
-                Assert.True((await commands.SendAsync(new GmUnloadSingleSceneCommand())).Ok);
-                Assert.True((await commands.SendAsync(new GmUnloadAdditiveSceneCommand { Location = "LevelB" })).Ok);
+                Assert.True((await commands.SendAsync(new GMLoadSingleSceneCommand { Location = "LevelA" })).Ok);
+                Assert.True((await commands.SendAsync(new GMLoadAdditiveSceneCommand { Location = "LevelB" })).Ok);
+                Assert.True((await commands.SendAsync(new GMUnloadSingleSceneCommand())).Ok);
+                Assert.True((await commands.SendAsync(new GMUnloadAdditiveSceneCommand { Location = "LevelB" })).Ok);
 
                 Assert.Equal(1, scenes.SingleLoads);                     // 各操作恰好派发一次
                 Assert.Equal("LevelA", scenes.LastSingleLoad);
@@ -65,8 +65,8 @@ namespace LiteFramework.Tests
 
                 var audit = commands.GetAuditLog();                      // 四次执行全进审计环（旧→新）
                 Assert.Equal(4, audit.Count);
-                Assert.Equal(typeof(GmLoadSingleSceneCommand), audit[0].CommandType);
-                Assert.Equal(typeof(GmUnloadAdditiveSceneCommand), audit[3].CommandType);
+                Assert.Equal(typeof(GMLoadSingleSceneCommand), audit[0].CommandType);
+                Assert.Equal(typeof(GMUnloadAdditiveSceneCommand), audit[3].CommandType);
                 Assert.All(audit, e => Assert.True(e.Ok));
             }
         }
@@ -76,11 +76,11 @@ namespace LiteFramework.Tests
         {
             var commands = new CommandCenter(_pool, gmEnabled: true);
             var scenes = new FakeSceneService();
-            using (GmSceneCommands.RegisterAll(commands, scenes))
+            using (GMSceneCommands.RegisterAll(commands, scenes))
             {
-                CommandResult r1 = await commands.SendAsync(new GmLoadSingleSceneCommand { Location = null });
-                CommandResult r2 = await commands.SendAsync(new GmLoadAdditiveSceneCommand { Location = "  " });
-                CommandResult r3 = await commands.SendAsync(new GmUnloadAdditiveSceneCommand { Location = "" });
+                CommandResult r1 = await commands.SendAsync(new GMLoadSingleSceneCommand { Location = null });
+                CommandResult r2 = await commands.SendAsync(new GMLoadAdditiveSceneCommand { Location = "  " });
+                CommandResult r3 = await commands.SendAsync(new GMUnloadAdditiveSceneCommand { Location = "" });
 
                 Assert.False(r1.Ok);                                     // 参数校验在处理器内拒绝
                 Assert.Equal(CommandReject.HandlerRejected, r1.Reason);
@@ -95,9 +95,9 @@ namespace LiteFramework.Tests
         {
             var commands = new CommandCenter(_pool, gmEnabled: false);          // release 语义（构造注入可测接缝）
             var scenes = new FakeSceneService();
-            using (GmSceneCommands.RegisterAll(commands, scenes))
+            using (GMSceneCommands.RegisterAll(commands, scenes))
             {
-                CommandResult result = await commands.SendAsync(new GmUnloadSingleSceneCommand());
+                CommandResult result = await commands.SendAsync(new GMUnloadSingleSceneCommand());
 
                 Assert.False(result.Ok);                                 // GM 能力三宏外物理隔离
                 Assert.Equal(CommandReject.GmBlocked, result.Reason);
@@ -110,14 +110,14 @@ namespace LiteFramework.Tests
         {
             var commands = new CommandCenter(_pool, gmEnabled: true);
             var scenes = new FakeSceneService();
-            IDisposable un = GmSceneCommands.RegisterAll(commands, scenes);
+            IDisposable un = GMSceneCommands.RegisterAll(commands, scenes);
 
             Assert.Equal(4, commands.GetRegisteredInfos().Count);        // 发现面自动列出（GM 面板据此渲染）
             Assert.All(commands.GetRegisteredInfos(), i => Assert.True(i.GmOnly));
 
             un.Dispose();
             Assert.Empty(commands.GetRegisteredInfos());                  // 注销对称——重复注册不撞唯一处理器契约
-            GmSceneCommands.RegisterAll(commands, scenes);               // 注销后方可重新注册
+            GMSceneCommands.RegisterAll(commands, scenes);               // 注销后方可重新注册
         }
     }
 }

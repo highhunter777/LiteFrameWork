@@ -15,7 +15,7 @@ namespace LiteNet.Tests
     /// 端点本身的 HTTP/密钥面在云上实测（本机绑端口受权限影响，不进 L1）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
-    public sealed class CloudGmChannelTests
+    public sealed class CloudGMChannelTests
     {
         private const string RoomId = "GmRoom";
 

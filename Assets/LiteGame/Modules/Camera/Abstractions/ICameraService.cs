@@ -7,7 +7,7 @@ namespace LiteGame.Modules.Camera
     /// 《联机战斗演示专项设计》§3"相机跟本地预测位置；和解期间跟衰减后的表现位置"）。
     ///
     /// **为什么是端口而不是直接用 Cinemachine**：表现层（<see cref="SimView"/>）只该知道
-    /// "有个相机在跟这个表现位置"，不该认识 Cinemachine 这个包——同 <see cref="IVFXService"/> 的处置
+    /// "有个相机在跟这个表现位置"，不该认识 Cinemachine 这个包——同 <see cref="IVfxService"/> 的处置
     /// （表现层定端口、适配器实现、消费者只认端口）。换掉相机后端只换适配器，SimView 与流程零改动。
     ///
     /// **为什么住 `LiteView` 而不是 `LiteFramework.Core`**：本接口带 <c>UnityEngine.Vector3</c>，

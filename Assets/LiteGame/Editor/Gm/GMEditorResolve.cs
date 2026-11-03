@@ -7,7 +7,7 @@ namespace LiteGame.Editor
     /// （DevReload / LuaDevRefill 同口径——编辑器工具豁免形态，业务侧禁此形态）。
     /// 未装配（引导未完成）/未注册返回 null，调用方按空态显示（各页已有空态文案）。
     /// </summary>
-    internal static class GmEditorResolve
+    internal static class GMEditorResolve
     {
         internal static T ResolveFromContainer<T>() where T : class
         {

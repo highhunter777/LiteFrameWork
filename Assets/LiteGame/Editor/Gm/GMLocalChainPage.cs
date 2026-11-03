@@ -27,7 +27,7 @@ namespace LiteGame.Editor
     /// **单一来源 = deploy/.env**（与 scripts/local/local-chain.ps1 同一份键文件；本页只读它，
     /// 不另设第二处配置）。
     /// </summary>
-    internal sealed class GmLocalChainPage : IGmPage
+    internal sealed class GMLocalChainPage : IGMPage
     {
         private const string EnvFileRelative = "deploy\\.env";
         private const string DeployArgsRelative = "Assets/StreamingAssets/deploy.args";

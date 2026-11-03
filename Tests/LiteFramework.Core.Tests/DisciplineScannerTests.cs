@@ -728,8 +728,8 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_R14_Editor子树覆盖只放行显式受守根()
         {
-            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteGame/Editor/Gm/GmScenePage.cs"));
-            Assert.False(DisciplineScanner.IsExcluded("Assets/LiteGame/Editor/Gm/GmScenePage.cs", true));
+            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteGame/Editor/Gm/GMScenePage.cs"));
+            Assert.False(DisciplineScanner.IsExcluded("Assets/LiteGame/Editor/Gm/GMScenePage.cs", true));
             // 自引排除不随 includeEditorDirs 放行
             Assert.True(DisciplineScanner.IsExcluded("Assets/Tools/DisciplineScanner/Scripts/DisciplineScanner.cs", true));
         }

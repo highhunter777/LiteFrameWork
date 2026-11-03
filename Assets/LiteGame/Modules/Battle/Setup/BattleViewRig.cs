@@ -67,7 +67,7 @@ namespace LiteGame
         /// <param name="account">Account 作用域（本件在其下建 `BattleView` 子作用域——离场即整体回收）。</param>
         /// <param name="worldClock">世界钟（伤害数字寿命/合并窗；null = 飘字降级）。</param>
         internal BattleViewRig(IContentService content, IInputService input, ICameraService camera,
-            ClientScope account, IVFXService vfx = null, LiteFramework.IWorldClock worldClock = null,
+            ClientScope account, IVfxService vfx = null, LiteFramework.IWorldClock worldClock = null,
             AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null,
             Func<UIThemeAsset> themeProvider = null, LiteGame.IDevSession dev = null,
             IBattleDevOverlay devOverlay = null, Action<SimVector3> teleportDispatch = null,

@@ -96,7 +96,7 @@ namespace LiteGame
             return report;
         }
 
-        // ---- IModuleStats（DevHUD：注册即发现）----
+        // ---- IModuleStats（DevHud：注册即发现）----
 
         string IModuleStats.StatsName => "LuaRefill";
 

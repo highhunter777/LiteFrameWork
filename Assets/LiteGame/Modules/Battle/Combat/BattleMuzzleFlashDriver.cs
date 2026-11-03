@@ -29,13 +29,13 @@ namespace LiteGame
         public const float EffectScale = 1f;
 
         private readonly SimView _view;
-        private readonly IVFXService _vfx;
+        private readonly IVfxService _vfx;
 
         private GameObject _mountView;      // 挂载点缓存键：所属视图实例（视图回收/重建 → 重解析）
         private Transform _mount;
         private bool _disposed;
 
-        public BattleMuzzleFlashDriver(SimView view, IVFXService vfx)
+        public BattleMuzzleFlashDriver(SimView view, IVfxService vfx)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _vfx = vfx ?? throw new ArgumentNullException(nameof(vfx));

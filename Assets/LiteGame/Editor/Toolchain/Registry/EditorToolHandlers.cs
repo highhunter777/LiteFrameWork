@@ -51,13 +51,13 @@ namespace LiteGame.Toolchain
 
         private static void RegisterGm(EditorToolRegistry registry)
         {
-            registry.RegisterPage("debug.test-mode", () => new GmTestModePage());
-            registry.RegisterPage("debug.tunables", () => new GmDebugTunablesPage());
-            registry.RegisterPage("debug.commands", () => new GmCommandsPage());
-            registry.RegisterPage("debug.scene", () => new GmScenePage());
-            registry.RegisterPage("debug.config-diagnostics", () => new GmConfigDiagnosticsPage());
-            registry.RegisterPage("debug.local-chain", () => new GmLocalChainPage());
-            registry.RegisterPage("debug.net-diag", () => new GmNetDiagPage());
+            registry.RegisterPage("debug.test-mode", () => new GMTestModePage());
+            registry.RegisterPage("debug.tunables", () => new GMDebugTunablesPage());
+            registry.RegisterPage("debug.commands", () => new GMCommandsPage());
+            registry.RegisterPage("debug.scene", () => new GMScenePage());
+            registry.RegisterPage("debug.config-diagnostics", () => new GMConfigDiagnosticsPage());
+            registry.RegisterPage("debug.local-chain", () => new GMLocalChainPage());
+            registry.RegisterPage("debug.net-diag", () => new GMNetDiagPage());
         }
 
         private static void RegisterUI(EditorToolRegistry registry)

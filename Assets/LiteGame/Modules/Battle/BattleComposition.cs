@@ -64,7 +64,7 @@ namespace LiteGame
             context.Put(_entities);
             context.Put(_audio);
             context.Put(_vfxService);
-            context.Put<IVFXService>(_vfxService);               // 接口键（HUD/消费方只经端口取；与具体键同实例）
+            context.Put<IVfxService>(_vfxService);               // 接口键（HUD/消费方只经端口取；与具体键同实例）
             context.Put<IBattleCommands>(new BattleCommands(context.Require<CommandCenter>()));   // 流程→战斗的命令端口
             // 根位移摘要登记口：装配期单实例；对局装载 rootmotion.bin 成功时写入摘要（身份面经端口读）
             var rootMotionDigest = new RootMotionDigestHolder();

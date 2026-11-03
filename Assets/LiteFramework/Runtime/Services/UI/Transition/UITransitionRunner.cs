@@ -52,7 +52,7 @@ namespace LiteFramework.UI
             _machine.Start(TransitionId.Idle);
         }
 
-        // ---- 诊断读数（DevHUD / 验收）----
+        // ---- 诊断读数（DevHud / 验收）----
 
         /// <summary>当前转场阶段。</summary>
         public TransitionId Phase => _machine.Current;

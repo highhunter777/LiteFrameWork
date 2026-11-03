@@ -24,7 +24,7 @@ namespace LiteGame
         private readonly IContentService _content;
         private readonly IInputService _input;
         private readonly ICameraService _camera;
-        private readonly IVFXService _vfx;
+        private readonly IVfxService _vfx;
         private readonly IWorldClock _worldClock;
         private readonly AudioService _audio;
         private readonly CommandCenter _commands;
@@ -37,7 +37,7 @@ namespace LiteGame
         private BattleViewRig _last;                     // 真 rig（诊断读口；Dispose 即置空）
 
         public BattleViewGroupFactory(IContentService content, IInputService input, ICameraService camera,
-            IVFXService vfx, IWorldClock worldClock, AudioService audio, CommandCenter commands,
+            IVfxService vfx, IWorldClock worldClock, AudioService audio, CommandCenter commands,
             CrosshairFeelProfile crosshairFeel, Func<UIThemeAsset> themeProvider, IDevSession dev,
             ILookPreferences lookPreferences, RootMotionDigestHolder rootMotionDigest,
             Func<IBattleDevOverlay> devOverlayOf = null)

@@ -7,7 +7,7 @@ using UnityEditor;
 namespace LiteGame
 {
     /// <summary>
-    /// DevHUD 的会话间记忆（宽度/字号/位置/缩放/折叠段/过滤词）。
+    /// DevHud 的会话间记忆（宽度/字号/位置/缩放/折叠段/过滤词）。
     /// Editor 用 EditorPrefs、Player 用 PlayerPrefs；键统一前缀，避免与产品设置混。
     /// </summary>
     internal static class DevHudPrefs

@@ -21,12 +21,12 @@ namespace LiteGame
     {
         private readonly SimView _view;
         private readonly PublicCombatFeed _feed;
-        private readonly IVFXService _vfx;
+        private readonly IVfxService _vfx;
         private readonly Transform[] _mountCache;        // 按槽的挂点缓存（视图回收/重建 → 重解析）
         private readonly GameObject[] _mountOwner;       // 挂点缓存键：所属视图实例
         private bool _disposed;
 
-        public BattleRemoteMuzzleFlashDriver(SimView view, PublicCombatFeed feed, IVFXService vfx)
+        public BattleRemoteMuzzleFlashDriver(SimView view, PublicCombatFeed feed, IVfxService vfx)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _feed = feed;                                 // null = 空转（静默降级）

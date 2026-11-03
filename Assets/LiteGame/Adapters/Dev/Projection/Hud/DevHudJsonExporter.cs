@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace LiteGame
 {
-    /// <summary>F6 导出的入参（DevHUD 采样结果 + 过滤态），导出器不反向读宿主。</summary>
+    /// <summary>F6 导出的入参（DevHud 采样结果 + 过滤态），导出器不反向读宿主。</summary>
     internal sealed class DevHudExportContext
     {
         public string Session = "";
@@ -27,7 +27,7 @@ namespace LiteGame
         public IReadOnlyList<DevHudSectionData> Sections;
     }
 
-    /// <summary>DevHUD 读数 JSON 导出（schema devhud/1）；手写转义，避免 JsonUtility 的字段限制。</summary>
+    /// <summary>DevHud 读数 JSON 导出（schema devhud/1）；手写转义，避免 JsonUtility 的字段限制。</summary>
     internal static class DevHudJsonExporter
     {
         public static string Export(DevHudExportContext ctx)

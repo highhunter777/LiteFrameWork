@@ -160,7 +160,7 @@ namespace LiteGame.EditorTools
         private static string ExportSimParams(bool confirm)
         {
             LiteGame.Modules.Config.SimParamsOverrides overrides =
-                LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteGame.Modules.Config.SimParamsOverrides>();
+                LiteGame.Editor.GMEditorResolve.ResolveFromContainer<LiteGame.Modules.Config.SimParamsOverrides>();
             return SimParamsExporter.TryExport(overrides, confirm, out string report, out string error)
                 ? report
                 : "ABORT " + error;

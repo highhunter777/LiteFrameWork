@@ -15,7 +15,7 @@ namespace LiteGame
     /// </summary>
     internal sealed class BattleFeedbackAssembler
     {
-        private readonly IVFXService _vfx;
+        private readonly IVfxService _vfx;
         private readonly AudioService _audio;
         private readonly IWorldClock _worldClock;
         private readonly ICameraService _camera;
@@ -35,7 +35,7 @@ namespace LiteGame
         private BattleRemoteMuzzleFlashDriver _remoteFire;
         private BattleAudioDriver _battleAudio;
 
-        public BattleFeedbackAssembler(IVFXService vfx, AudioService audio, IWorldClock worldClock,
+        public BattleFeedbackAssembler(IVfxService vfx, AudioService audio, IWorldClock worldClock,
             ICameraService camera, BattleViewAssets assets, Transform viewRoot, IDevSession dev = null)
         {
             _vfx = vfx;

@@ -20,7 +20,7 @@ namespace LiteGame.Editor
     /// 爆头带覆写写通道 = <see cref="MatchTestRules"/> 活动局实例 + TestModeRuntime 待用值双落
     /// （判定路径读注入实例——确定性判定不读静态，含 dev 宏内）。
     /// </summary>
-    internal sealed class GmTestModePage : IGmPage
+    internal sealed class GMTestModePage : IGMPage
     {
         public GUIContent Title => new GUIContent("本地测试模式");
 
@@ -72,7 +72,7 @@ namespace LiteGame.Editor
                 _gmInit = true;
             }
 
-            MetaEntryService meta = GmEditorResolve.ResolveFromContainer<MetaEntryService>();
+            MetaEntryService meta = GMEditorResolve.ResolveFromContainer<MetaEntryService>();
             bool configured = meta != null && meta.IsConfigured;
             bool loggedIn = configured && !string.IsNullOrEmpty(meta.AccountId);
             bool roomKeyReady = !string.IsNullOrEmpty(deploy.RoomGmKey);
@@ -104,7 +104,7 @@ namespace LiteGame.Editor
             using (new EditorGUI.DisabledScope(!loggedIn || !roomKeyReady || _testRoomMaps.Count == 0 || _testRoomBusy))
             {
                 if (GUILayout.Button(_testRoomBusy ? "创建中……" : "创建并进入云端测试房"))
-                    CreateTestRoomAsync().ForgetLogged("GmTestModePage");
+                    CreateTestRoomAsync().ForgetLogged("GMTestModePage");
             }
             EditorGUILayout.LabelField("测试房状态：" + _testRoomStatus, EditorStyles.wordWrappedLabel);
 
@@ -145,7 +145,7 @@ namespace LiteGame.Editor
         private void RefreshTestRoomMaps()
         {
             _testRoomMaps.Clear();
-            IConfigService config = GmEditorResolve.ResolveFromContainer<IConfigService>();
+            IConfigService config = GMEditorResolve.ResolveFromContainer<IConfigService>();
             if (config == null || !config.Loaded || config.Tables?.Tbmap == null)
             {
                 _testRoomMapIndex = 0;
@@ -162,7 +162,7 @@ namespace LiteGame.Editor
         /// 成功后服务端票据即达、流程机进房，房号回填到 GM 规则区。</summary>
         private async UniTask CreateTestRoomAsync()
         {
-            MetaEntryService meta = GmEditorResolve.ResolveFromContainer<MetaEntryService>();
+            MetaEntryService meta = GMEditorResolve.ResolveFromContainer<MetaEntryService>();
             if (meta == null || !meta.IsConfigured) { _testRoomStatus = "Meta 未装配/未配置"; return; }
             if (string.IsNullOrEmpty(meta.AccountId)) { _testRoomStatus = "未登录"; return; }
             if (_testRoomMaps.Count == 0) { _testRoomStatus = "地图表未装载"; return; }
@@ -235,7 +235,7 @@ namespace LiteGame.Editor
         private void DrawTestModeSection()
         {
             EditorGUILayout.LabelField("本地测试模式（Room-Test）", EditorStyles.boldLabel);
-            DebugKernel kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            DebugKernel kernel = GMEditorResolve.ResolveFromContainer<DebugKernel>();
             if (kernel == null)
             {
                 EditorGUILayout.HelpBox("DebugKernel 未装配——先进入 Play。", MessageType.Warning);
@@ -299,7 +299,7 @@ namespace LiteGame.Editor
         {
             EditorGUILayout.Space(6);
             EditorGUILayout.LabelField("bot 操作", EditorStyles.boldLabel);
-            DebugKernel kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            DebugKernel kernel = GMEditorResolve.ResolveFromContainer<DebugKernel>();
             using (new EditorGUI.DisabledScope(kernel == null))
             {
                 if (GUILayout.Button("重置假人（满血回出生点）") && kernel != null) kernel.RequestBotReset();
@@ -323,7 +323,7 @@ namespace LiteGame.Editor
         {
             EditorGUILayout.Space(6);
             EditorGUILayout.LabelField("爆头区导出（滑杆在「调试参数」页）", EditorStyles.boldLabel);
-            DebugKernel kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            DebugKernel kernel = GMEditorResolve.ResolveFromContainer<DebugKernel>();
             if (kernel == null)
             {
                 EditorGUILayout.HelpBox("DebugKernel 未装配——先进入 Play（当前值读数经内核调参发现面）。", MessageType.Warning);

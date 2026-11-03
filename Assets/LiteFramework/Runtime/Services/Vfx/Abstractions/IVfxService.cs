@@ -19,7 +19,7 @@ namespace LiteFramework
     /// 只管**世界空间**粒子/prefab（加载/池化/挂点跟随/预算降级）；UI 动效走 <c>UIFx</c>+DOTween（不并入）。
     /// 接缝在 View 观察层（SimView）：命中/暴击/死亡与开火即时反馈；实体视图回收 → <see cref="StopAll"/>（谁挂谁清）。
     /// </summary>
-    public interface IVFXService : IModuleStats
+    public interface IVfxService : IModuleStats
     {
         /// <summary>播放：名 → 资源（"命名即引用"）。返回无效句柄 = 被降级跳过/超预算拒绝/名为空。
         /// <paramref name="owner"/> 非空 = 登记归属人（<see cref="StopAll(object)"/> 按归属人一次清空）。</summary>

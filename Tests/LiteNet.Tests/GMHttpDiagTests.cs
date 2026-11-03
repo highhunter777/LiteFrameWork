@@ -17,7 +17,7 @@ namespace LiteNet.Tests
     /// T0-2e：GM 诊断下载端点——/gm/diag-list 清单与 /gm/diag-fetch 原样回传；
     /// 密钥门、路径安全（分隔符/穿越拒绝）、未命中 404。
     /// </summary>
-    public sealed class GmHttpDiagTests
+    public sealed class GMHttpDiagTests
     {
         private static int FreePort()
         {

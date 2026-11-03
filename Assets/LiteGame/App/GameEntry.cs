@@ -64,7 +64,7 @@ namespace LiteGame
             return _container;
         }
 
-        /// <summary>只读统计列表（DevHUD 跨程序集拉取用）：**不是解析入口**，不含容器语义。</summary>
+        /// <summary>只读统计列表（DevHud 跨程序集拉取用）：**不是解析入口**，不含容器语义。</summary>
         public IReadOnlyList<IModuleStats> Stats => _container != null
             ? _container.Stats
             : Array.Empty<IModuleStats>();

@@ -5,13 +5,13 @@ using UnityEngine;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// GM 工具箱·联机诊断页：DevHUD 联机诊断面的编辑器投影（《GM 与调试工具分层设计》§5 双入口形态）——
-    /// ①HUD 控制：总开关/段开关/模块 Stats 白名单（编辑器工具豁免形态直改 DevHUD 实例 public 面——与 F1 等效）；
+    /// GM 工具箱·联机诊断页：DevHud 联机诊断面的编辑器投影（《GM 与调试工具分层设计》§5 双入口形态）——
+    /// ①HUD 控制：总开关/段开关/模块 Stats 白名单（编辑器工具豁免形态直改 DevHud 实例 public 面——与 F1 等效）；
     /// ②读数投影：<see cref="DebugKernel.Network"/> 单源文本（与 HUD/控制台同一网络调试组件——本页零拼装）；
     /// ③会话动作：强制断线 / 强制重连（经 <see cref="DebugKernel"/> 走命令中心审计）。
     /// 形态边界：GM 面板是编辑器投影（EditorWindow 不进包）；开发包 Player 里 HUD 由 F1 开、面板由 F2 开、控制台由 F3 开。
     /// </summary>
-    internal sealed class GmNetDiagPage : IGmPage
+    internal sealed class GMNetDiagPage : IGMPage
     {
         private string _lastAction = string.Empty;
 
@@ -27,7 +27,7 @@ namespace LiteGame.Editor
             EditorGUILayout.LabelField("联机诊断（DevHUD 投影）", EditorStyles.boldLabel);
 
             EditorGUILayout.LabelField("HUD 开关", EditorStyles.miniBoldLabel);
-            DevHUD hud = UnityEngine.Object.FindAnyObjectByType<DevHUD>();
+            DevHud hud = UnityEngine.Object.FindAnyObjectByType<DevHud>();
             if (hud == null)
             {
                 EditorGUILayout.HelpBox(
@@ -64,7 +64,7 @@ namespace LiteGame.Editor
 
             EditorGUILayout.Space(4);
             EditorGUILayout.LabelField("读数（DebugKernel 单源）", EditorStyles.miniBoldLabel);
-            DebugKernel kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            DebugKernel kernel = GMEditorResolve.ResolveFromContainer<DebugKernel>();
             if (kernel == null)
             {
                 EditorGUILayout.LabelField("(调试内核未装配——需 Play 且容器就绪)", EditorStyles.miniLabel);
@@ -122,7 +122,7 @@ namespace LiteGame.Editor
 
                 EditorGUILayout.Space(4);
                 EditorGUILayout.LabelField("DevHUD 模块 Stats（白名单：未勾选不显示）", EditorStyles.miniBoldLabel);
-                DevHUD devHud = UnityEngine.Object.FindAnyObjectByType<DevHUD>();
+                DevHud devHud = UnityEngine.Object.FindAnyObjectByType<DevHud>();
                 if (devHud == null)
                 {
                     EditorGUILayout.LabelField("(DevHUD 未在场——Play 后自创建)", EditorStyles.miniLabel);

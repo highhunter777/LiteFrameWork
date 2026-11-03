@@ -30,10 +30,10 @@ namespace LiteGame
         /// <summary>爆头档放大（观感区分；普通档 = 1）。</summary>
         private const float CritScale = 1.35f;
 
-        private readonly IVFXService _vfx;
+        private readonly IVfxService _vfx;
         private bool _disposed;
 
-        public BattleImpactFxDriver(IVFXService vfx)
+        public BattleImpactFxDriver(IVfxService vfx)
         {
             _vfx = vfx ?? throw new ArgumentNullException(nameof(vfx));
         }

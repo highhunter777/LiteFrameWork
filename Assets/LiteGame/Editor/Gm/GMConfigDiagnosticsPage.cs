@@ -16,7 +16,7 @@ namespace LiteGame.Editor
     /// 产物核对路径走 <see cref="TableLayout.TableDataPath"/> 单源（领域分类布局——禁第二份拼接）；
     /// 正式断言权威在测试项目（Luban.Runtime 带引擎依赖进不了 xUnit 双轨），本页为文件级预检。
     /// </summary>
-    internal sealed class GmConfigDiagnosticsPage : IGmPage
+    internal sealed class GMConfigDiagnosticsPage : IGMPage
     {
         private const string PrefTable = "LiteGame.Gm.Query.Table";
         private const string PrefKey = "LiteGame.Gm.Query.Key";
@@ -91,7 +91,7 @@ namespace LiteGame.Editor
             var config = GetConfigService();
             string configText = config == null ? "未装配" : config.Loaded ? "已加载" : "未加载";
 
-            DebugKernel kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            DebugKernel kernel = GMEditorResolve.ResolveFromContainer<DebugKernel>();
             string errorText = kernel != null ? kernel.ErrorCount.ToString() : "—";
 
             _status = $"Play={(Application.isPlaying ? "是" : "否")}｜AssetService={(AssetService.Initialized ? "就绪" : "未初始化")}"
@@ -150,7 +150,7 @@ namespace LiteGame.Editor
                 {
                     row = InvokeGet(table, _keyText);
                 }
-                catch (Exception getEx) when (GmEditorResolve.Unwrap(getEx) is KeyNotFoundException)
+                catch (Exception getEx) when (GMEditorResolve.Unwrap(getEx) is KeyNotFoundException)
                 {
                     // Luban 表未命中是抛 KeyNotFoundException——归"未命中"语义，不是异常
                     SetQueryResult($"{tableName} 共 {rowCount} 行\r\n未命中：key=\"{_keyText}\" 不存在（表内主键见列表）");
@@ -167,7 +167,7 @@ namespace LiteGame.Editor
             }
             catch (Exception ex)
             {
-                SetQueryResult($"{tableName} 查询异常：{GmEditorResolve.Unwrap(ex).Message}");
+                SetQueryResult($"{tableName} 查询异常：{GMEditorResolve.Unwrap(ex).Message}");
             }
         }
 
@@ -188,7 +188,7 @@ namespace LiteGame.Editor
                 }
                 catch (Exception ex)
                 {
-                    lines.Add($"{name,-24} 异常：{GmEditorResolve.Unwrap(ex).Message}");
+                    lines.Add($"{name,-24} 异常：{GMEditorResolve.Unwrap(ex).Message}");
                 }
             }
             SetQueryResult(string.Join("\r\n", lines));
@@ -285,9 +285,9 @@ namespace LiteGame.Editor
             catch (Exception) { return null; }
         }
 
-        private static IConfigService GetConfigService() => GmEditorResolve.ResolveFromContainer<IConfigService>();
+        private static IConfigService GetConfigService() => GMEditorResolve.ResolveFromContainer<IConfigService>();
 
         private static StageMachine<ProcedureId, ProcedureArgs> GetFsm()
-            => GmEditorResolve.ResolveFromContainer<StageMachine<ProcedureId, ProcedureArgs>>();
+            => GMEditorResolve.ResolveFromContainer<StageMachine<ProcedureId, ProcedureArgs>>();
     }
 }

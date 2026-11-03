@@ -221,7 +221,7 @@ namespace LiteFramework.UI
             entry.Dialog?.SettleExternally();
         }
 
-        /// <summary>诊断：组内当前展示的对话框实例（测试/DevHUD；无展示返回 false）。</summary>
+        /// <summary>诊断：组内当前展示的对话框实例（测试/DevHud；无展示返回 false）。</summary>
         public bool TryGetActiveDialog(string group, out UIDialog dialog)
         {
             dialog = _activeByGroup.TryGetValue(group ?? "(default)", out Entry e) ? e.Dialog : null;

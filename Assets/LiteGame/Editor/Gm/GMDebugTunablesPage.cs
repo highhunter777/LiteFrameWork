@@ -9,7 +9,7 @@ namespace LiteGame.Editor
     /// 不按功能写专用面板；默认值/范围来自功能 provider（烘焙/表/机制常量）。
     /// 改动只落本机运行时覆写，不落盘、不进摘要；release 面随三宏剥离。
     /// </summary>
-    internal sealed class GmDebugTunablesPage : IGmPage
+    internal sealed class GMDebugTunablesPage : IGMPage
     {
         private DebugKernel _kernel;
         private string _filter = "";
@@ -19,7 +19,7 @@ namespace LiteGame.Editor
 
         public void OnShow()
         {
-            _kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            _kernel = GMEditorResolve.ResolveFromContainer<DebugKernel>();
             _kernel?.RebuildTunables();
         }
 
@@ -27,7 +27,7 @@ namespace LiteGame.Editor
 
         public void Poll()
         {
-            if (_kernel == null) _kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            if (_kernel == null) _kernel = GMEditorResolve.ResolveFromContainer<DebugKernel>();
             if (_kernel == null) return;
             if (_kernel.Tunables.Count == 0) _kernel.RebuildTunables();
             else _kernel.PruneTunables();
@@ -46,7 +46,7 @@ namespace LiteGame.Editor
                 _filter = EditorGUILayout.TextField("过滤", _filter ?? "");
                 if (GUILayout.Button("刷新", GUILayout.Width(52)))
                 {
-                    _kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+                    _kernel = GMEditorResolve.ResolveFromContainer<DebugKernel>();
                     _kernel?.RebuildTunables();
                 }
             }

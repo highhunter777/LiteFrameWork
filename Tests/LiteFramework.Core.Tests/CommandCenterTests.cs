@@ -17,7 +17,7 @@ namespace LiteFramework.Tests
     {
 
         private readonly ReferencePoolService _pool = new ReferencePoolService();        private sealed class Ping : ICommand { }
-        private sealed class GmPing : ICommand { }
+        private sealed class GMPing : ICommand { }
         private sealed class Nobody : ICommand { }
 
         private sealed class ProbeHandler : ICommandHandler<Ping>
@@ -118,10 +118,10 @@ namespace LiteFramework.Tests
         public void 权限门_GmOnly三宏内放行()
         {
             var commands = new CommandCenter(_pool, gmEnabled: true);   // 三宏内语义（L1 构建带 LITEFRAMEWORK_DEBUG）
-            var handler = new GmProbeHandler();
+            var handler = new GMProbeHandler();
             commands.Register(handler, new CommandOptions(gmOnly: true, description: "GM 示例"));
 
-            var result = commands.Send(new GmPing());
+            var result = commands.Send(new GMPing());
 
             Assert.True(result.Ok);                          // 三宏内：GM 能力放行
             Assert.Equal(1, handler.Calls);
@@ -131,10 +131,10 @@ namespace LiteFramework.Tests
         public void 权限门_GmOnly三宏外拒绝_不执行不抛且计数()
         {
             var commands = new CommandCenter(_pool, gmEnabled: false);  // release 语义（构造注入可测接缝）
-            var handler = new GmProbeHandler();
+            var handler = new GMProbeHandler();
             commands.Register(handler, new CommandOptions(gmOnly: true));
 
-            var result = commands.Send(new GmPing());       // 运行态拒绝：失败结果不抛
+            var result = commands.Send(new GMPing());       // 运行态拒绝：失败结果不抛
 
             Assert.False(result.Ok);
             Assert.Equal(CommandReject.GmBlocked, result.Reason);
@@ -189,12 +189,12 @@ namespace LiteFramework.Tests
         {
             var commands = new CommandCenter(_pool);
             commands.Register(new ProbeHandler(), new CommandOptions(gmOnly: false, description: "常规命令"));
-            commands.Register(new ThrowlessGmHandler(), new CommandOptions(gmOnly: true, description: "GM 命令"));
+            commands.Register(new ThrowlessGMHandler(), new CommandOptions(gmOnly: true, description: "GM 命令"));
 
             var infos = commands.GetRegisteredInfos();
             Assert.Equal(2, infos.Count);
             var ping = infos.First(i => i.CommandType == typeof(Ping));
-            var gm = infos.First(i => i.CommandType == typeof(GmPing));
+            var gm = infos.First(i => i.CommandType == typeof(GMPing));
             Assert.False(ping.GmOnly);
             Assert.Equal("常规命令", ping.Description);
             Assert.True(gm.GmOnly);
@@ -212,19 +212,19 @@ namespace LiteFramework.Tests
             Assert.Empty(commands.GetRegisteredInfos());
         }
 
-        private sealed class GmProbeHandler : ICommandHandler<GmPing>
+        private sealed class GMProbeHandler : ICommandHandler<GMPing>
         {
             public int Calls;
-            public CommandResult Execute(GmPing command)
+            public CommandResult Execute(GMPing command)
             {
                 Calls++;
                 return CommandResult.Success("GM 执行成功");
             }
         }
 
-        private sealed class ThrowlessGmHandler : ICommandHandler<GmPing>
+        private sealed class ThrowlessGMHandler : ICommandHandler<GMPing>
         {
-            public CommandResult Execute(GmPing command) => CommandResult.Success();
+            public CommandResult Execute(GMPing command) => CommandResult.Success();
         }
     }
 }

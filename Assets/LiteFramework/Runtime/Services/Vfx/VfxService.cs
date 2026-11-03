@@ -18,7 +18,7 @@ namespace LiteFramework
     /// 到期回收**不依赖粒子回调**——按世界时钟推算，`Tick` 扫描；宿主关闭走 <see cref="Shutdown"/>
     /// （真取消在途 + 回收活体 + 排空池）。
     /// </summary>
-    public sealed class VfxService : IVFXService, ITickable
+    public sealed class VfxService : IVfxService, ITickable
     {
         private const LogTag Tag = LogTag.Vfx;
 
@@ -86,7 +86,7 @@ namespace LiteFramework
             Log.Info($"VFX 服务就绪（同屏上限 {_budget.MaxActive} / {_budget.Overflow}）", Tag);
         }
 
-        // ---- IVFXService ----
+        // ---- IVfxService ----
 
         /// <summary>
         /// 世界位播放（"打哪留哪"）。**位置必须在实例登记前落定**：<see cref="Play"/> 命中
