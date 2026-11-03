@@ -8,7 +8,7 @@
 
 ## 1. 现行基线
 
-- 宿主 `DevHUD`（约 455 行）只持生命周期/输入/持久化/编排；七段由 `DevHudSectionSet` 构建（错误 / 联机诊断 / 性能 / 模块 Stats / Log Recent / DiagTrace / 日志 sink），Stats 发现/过滤/性能采样/网络历史/JSON 导出各自独立件。0.25s 节流、F1 总开关、F4 复制、F5 级别、F6 本局、F7 现场包、F8 JSON、F9 过滤。
+- 宿主 `DevHud`（约 455 行）只持生命周期/输入/持久化/编排；七段由 `DevHudSectionSet` 构建（错误 / 联机诊断 / 性能 / 模块 Stats / Log Recent / DiagTrace / 日志 sink），Stats 发现/过滤/性能采样/网络历史/JSON 导出各自独立件。0.25s 节流、F1 总开关、F4 复制、F5 级别、F6 本局、F7 现场包、F8 JSON、F9 过滤。
 - 性能段：240 帧环 → `FPS / p50 / p95 / p99 / 最差 / 长帧`；`ProfilerRecorder` 读 `GC Allocated In Frame`、`Draw Calls Count`、`Batches Count`（marker 缺失显示 `n/a`）；`HUD: x ms` 自报聚合耗时（指数平滑）。
 - 联机段：相位/RTT/丢包/和解 + `回滚/延后/输入领先/快照年龄`；RTT/丢包 60s sparkline（240 采样 @4Hz，换局 Reset）。
 - 生命周期：`[RuntimeInitializeOnLoadMethod]` 自创建 + `DontDestroyOnLoad`；程序集 `LiteGame.Adapters.Dev`（`Dev/Projection`）+ 三宏约束；不得移入 `Editor/`。
@@ -132,7 +132,7 @@ section.Append(sink, ctx);        // IMGUI: ImguiHudSink(StringBuilder)
                                   // UITK : UIToolkitHudSink(VisualElement/Label)
 ```
 
-- 过渡：`DevHUD.renderWithUiToolkit`（默认 true）+ 构造失败自动回退 IMGUI；稳定后删 IMGUI 分支。
+- 过渡：`DevHud.renderWithUiToolkit`（默认 true）+ 构造失败自动回退 IMGUI；稳定后删 IMGUI 分支。
 - 剥离：`DevHudUIToolkitHost` 与 DevHUD 同程序集、同三宏；无资产，release 零残留。
 - 输入：F1、F4–F9 仍在 DevHUD；滚动走 `WheelEvent`；过滤框待自定义输入（避免与 WASD 冲突）。
 

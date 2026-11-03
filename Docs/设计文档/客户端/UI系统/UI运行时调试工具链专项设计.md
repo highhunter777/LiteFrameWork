@@ -47,7 +47,7 @@
       LiteGame.Editor            LiteGame.Adapters.Dev          LiteGame.Adapters.Dev
       （UITK，Hub 入口）          （UITK Overlay）       （解析 → 内核命令）
                     ▲
-            DevHUD 状态行（只读）
+            DevHud 状态行（只读）
 
 写回（仅编辑器）：
   实例属性 diff → UiPatch（预览/属性选择/冲突检查）→ 标准 prefab（Undo/审计/归档）

@@ -15,7 +15,7 @@
 | **启动配置** | 场景 `DevStartupConfig`（Inspector） | 随场景保存 | 进房初值（免死/bot 数/冻结/传送/表现开关）；进房前快照（`ApplySnapshotOrDefaults`）；入口初值随 `CombatValues` 进联机身份摘要；**DevHUD 初始展开集**（`DevHudDefaultExpanded`，仅本机无折叠记忆时生效） | 不承载局内可调项 |
 | **运行态规则** | `MatchTestRules` 每局持有件（LiteSim） | 进房新建（`ProcedureMatch` 按入口初值）、离场丢弃 | 免死/无限子弹/爆头带试验覆写的**运行态单源**；经 `SimStep` 脊柱注入确定性系统；实例随会话显式传递（无全局“当前局”）；开发宿主钩子见 `ILocalTestHooks` | **判定路径不读任何静态**（修改指南 §1.3，含 dev 宏内） |
 | **开关写口** | `TestModeOptions` 单表 + `TestModeRuntime` 快照（LiteGame，开发三宏） | 三宏内 | **唯一开关写口**（Startup/Live 分组，新增开关零面板改动）；请求桥（进/退/传送一次性标志）；爆头覆写跨局待用值 | 不落盘、不进摘要 |
-| **投影面** | 编辑器 `LiteGame/工具链` Hub（页件宿主）/ `DevHUD`（只读）/ `DebugPanel`（F2，常用动作/即时开关）/ `DebugConsole`（F3，运行期操控） | — | 只读读数 + 调用写口/请求桥/命令 | **零业务逻辑**——投影不持规则、不写运行态（写只能经上述两个写口或命令） |
+| **投影面** | 编辑器 `LiteGame/工具链` Hub（页件宿主）/ `DevHud`（只读）/ `DebugPanel`（F2，常用动作/即时开关）/ `DebugConsole`（F3，运行期操控） | — | 只读读数 + 调用写口/请求桥/命令 | **零业务逻辑**——投影不持规则、不写运行态（写只能经上述两个写口或命令） |
 
 > 组件拆分：`DevStartupConfig` 只保留启动开关与本地测试模式初值；时钟/事件连续旋钮在 `DebugRuntimeTuner`；运行期开发入口为 `DebugConsole`（F3，UI Toolkit），不设独立开发页覆盖件。三者同挂 `GameEntry`，均随开发三宏剥离。
 
@@ -25,7 +25,7 @@
 
 | 类别 | 信任边界 | 所有者/落点 | 发布面 | 鉴权/审计 | 失败语义 |
 |---|---|---|---|---|---|
-| **DevCheat**（开发作弊） | 本机开发/编辑器 | `LiteGame.Adapters.Dev`：`TestModeRuntime`、`DebugKernel`、`DevHUD`、`DebugConsole`、`DebugPanel`；编辑器 GM 页只做投影 | `defineConstraints` 三宏，release 不编译 | 无（本机）；产品只经 `IDevSession` 读 | 端口缺失 = 发布形态空实现；不静默造开发副作用 |
+| **DevCheat**（开发作弊） | 本机开发/编辑器 | `LiteGame.Adapters.Dev`：`TestModeRuntime`、`DebugKernel`、`DevHud`、`DebugConsole`、`DebugPanel`；编辑器 GM 页只做投影 | `defineConstraints` 三宏，release 不编译 | 无（本机）；产品只经 `IDevSession` 读 | 端口缺失 = 发布形态空实现；不静默造开发副作用 |
 | **MatchSandbox**（测试沙盒） | 本地测试房/单局 | `MatchTestRules`（LiteSim，每局实例）、`ILocalTestHooks`（LiteGame.Core，开发端口）、`LocalServerTransport`（LiteGame.Adapters.Dev） | 只在本地测试房生效；不进正式匹配 | 测试房由入口/GM 显式创建；钩子只由本地服消费 | 规则缺失 = 本地服构造失败；发布端口恒空 |
 | **OpsGm**（运维 GM） | 云端运维面 | `Server/RoomServer` 的 `/gm/*`（`start`/`abort`/`kick`/`settle-flush`/`rules`/`diag-*`）；`CommandCenter` GM 命令；编辑器 `Gm*Page` 只是投影 | 服务端常驻；客户端 GM 页仅 Editor | `X-GM-Key` + 隧道绑定；命令进审计环 | 缺密钥/隧道 = 拒绝；不降级为开发作弊 |
 | **AntiCheat**（反作弊） | 服务端判定/校验面 | `RoomServer.Runtime` 的 `InputGate`/`LagCompensator`/快照 checksum；`LiteNet` 协议校验；BuildHash/ConfigHash/CombatConfigDigest 身份 | 服务端与客户端校验链；不是可开关模块 | 服务器权威；客户端只报事实/被拒 | 超界即夹取/拒绝；不得由客户端自证 |
@@ -42,7 +42,7 @@
 ## 2. 动作三分口径（命令化边界）
 
 1. **pre-Play 请求桥**：进入/退出本地测试模式、传送请求——容器尚不存在，直发一次性请求（写侧 `TestModeRuntime.RequestEnter/RequestExit/RequestTeleport`，消费侧 `TakeEnterRequest/TakeExitRequest/TakeTeleportRequest` **读即清——一次性语义编译期保证**）；传送在对局内的实际派发经 `ProcedureBattle` → `SendQueued(TeleportToAimCommand)` **进审计环且可撤销**。
-2. **Play 中低频动作**：命令中心派发（审计全覆盖）——样例 `GmResetClockCommand`（时钟复位）、`TeleportToAimCommand`（传送，IUndoable）、**场景命令四件**（`GmLoadSingleScene/GmLoadAdditiveScene/GmUnloadSingleScene/GmUnloadAdditiveScene`——带参+异步形态首个落地：`IAsyncCommandHandler` 经 `ISceneService` 执行，注册点 `ContainerModule` 装配期〔dev 三宏，不依赖 DevStartupConfig 是否挂〕，场景页即带参命令的专面板）。新增 GM 动作默认走此形态：命令类型 + 处理器 + `CommandOptions(gmOnly: true, description)`，发现面自动列出。
+2. **Play 中低频动作**：命令中心派发（审计全覆盖）——样例 `GMResetClockCommand`（时钟复位）、`TeleportToAimCommand`（传送，IUndoable）、**场景命令四件**（`GMLoadSingleScene/GMLoadAdditiveScene/GMUnloadSingleScene/GMUnloadAdditiveScene`——带参+异步形态首个落地：`IAsyncCommandHandler` 经 `ISceneService` 执行，注册点 `ContainerModule` 装配期〔dev 三宏，不依赖 DevStartupConfig 是否挂〕，场景页即带参命令的专面板）。新增 GM 动作默认走此形态：命令类型 + 处理器 + `CommandOptions(gmOnly: true, description)`，发现面自动列出。
 3. **只读诊断与高频旋钮不命令化**：现场开关（`TestModeOptions.Set`）、爆头/持枪滑杆——审计环 32 条会被滑杆刷屏；连续旋钮不强行命令化（`GmResetClock` 与 `DebugRuntimeTuner` 连续旋钮并存的既有先例同口径）。**只读投影同口径**（2026-10-12 裁决）：配置诊断页的运行状态/表查询/产物核对为零状态突变的只读面——命令化只刷审计噪音，维持直调。
 
 ## 3. 覆写面治理（沙箱件统一口径）
@@ -54,11 +54,11 @@
 
 ## 4. 编辑器投影：页件契约与宿主
 
-- 契约 `IGmPage : IEditorToolPage`（`Editor/Gm/`）：`OnShow` / `OnHide` / `Draw` / `Poll`——宿主在翻页/开窗时调生命周期，`Poll` **仅活动页**在 Play 中按 0.5s 节拍被调（非活动页不轮询）。
+- 契约 `IGMPage : IEditorToolPage`（`Editor/Gm/`）：`OnShow` / `OnHide` / `Draw` / `Poll`——宿主在翻页/开窗时调生命周期，`Poll` **仅活动页**在 Play 中按 0.5s 节拍被调（非活动页不轮询）。
 - 宿主 `LiteGame/工具链` Hub（`Editor/Toolchain/`）职责仅三件：页签生命周期、轮询调度、页签记忆（EditorPrefs **统一前缀 `LiteGame.Toolchain.*`**）；GM 七页作为 `page` 工具登记在 `scripts/gate/toolchain.json`。
 - 七页：本地测试模式（请求桥+开关+**bot 操作**+**云端测试房创建/选图与 GM 规则**+爆头导出/FOV 试调）、调试参数（`IDebugTunableProvider` 描述自动渲染，见 §7）、命令与审计（发现面/无参执行/审计环）、场景操作（SceneService 加载机制验证——经场景命令 `SendAsync` 派发，忙碌守卫）、配置诊断（运行状态+表查询+产物核对）、本地联测（联测环境页件——`deploy/.env` 单源驱动的两端起停/探针/日志尾随；**自管 `EditorApplication.update` 心跳**，编辑态即刷新——不受宿主 `Poll` 的 Play 门禁约束；被投影物是本地部署环境，不是游戏运行态）、联机诊断（DevHUD 的编辑器投影：HUD 总开关/段开关 + 按启动配置重排段 + `BattleDiagnostics` 单源读数——读口与包形态启用口径见 §5）。
 - **bot 操作（本地测试模式页）**：补位假人两项——**bot 无限生命**（`TestModeOptions` 现场开关，Live；权威侧宿主钩子 `ILocalTestHooks.BotInfiniteHp` 每帧回满 ⇒ 假人永不死、命中/飘字反馈照常）与**重置假人**（一次性宿主钩子 `ILocalTestHooks.BotResetRequested`：补位席位满血回出生点 + `LifeStartFrame` 生命更替 ⇒ 动画按"新生命"退出死亡叶；进房清残留同 TeleportDispatch 口径）。假人=补位席位（本地玩家不受两项管辖）。**未做（挂账）**：房内**追加**新假人——需放开"固定 2 座"世界规模（客户端定容重建/预测口径），归 G2 8 人基线面另立批。
-- 诊断取件单源：`GmEditorResolve.ResolveFromContainer<T>`（`GameEntry.TakeContainer()` 口径——编辑器工具豁免形态，业务侧禁）；未装配按空态显示。
+- 诊断取件单源：`GMEditorResolve.ResolveFromContainer<T>`（`GameEntry.TakeContainer()` 口径——编辑器工具豁免形态，业务侧禁）；未装配按空态显示。
 - 产物核对路径 = `TableLayout.TableDataPath` **单源**（领域分类布局——装载/服务端直读/编辑器预检三面共用，禁第二份拼接）。
 - 页件范式承自烘焙工具箱：一页一职责、说明→操作→报告自包含；寄宿件（如 `HeadHitLineTuner`）被页与窗口共享。
 
@@ -66,7 +66,7 @@
 
 只读统计 HUD（自创建、F1 总开关、0.25s 节流、经 `DevRuntime.Kernel`（开发装配装饰期登记）读内核读模型）——**保持只读**。将来真机/开发包若需 GM 动作，加命令通道（§2.2 形态复用），不给 HUD 加直写口。目录 `Assets/LiteGame/Adapters/Dev/Projection/`、程序集 `LiteGame.Adapters.Dev`（开发装配层）+ 三宏约束；**禁移入 `Editor/` 特殊目录**（代码自创建形态，`MonoBehaviour` 须可 AddComponent——详见其类注释）。
 
-- **段构成**：模块 stats 段（容器注册件 + 场景组件型合并发现）＋联机诊断段（读口 `BattleDiagnostics`——对局上下文的 dev-only 单点登记，对局视图装配/拆视图两处接线；无对局整段不显示，不显示陈旧值）＋性能段（内核性能读模型：FPS/p50/p95/p99/最差帧/长帧 + GC/Draw/Batches recorder——投影只喂时钟差并读 `DebugKernel` 读口）＋日志尾巴/错误行。各段渲染开关 = DevHUD public 字段；**模块 stats 段按白名单显示**（`statToggles` 未登记默认隐藏，勾选态持久化 `LiteGame.Adapters.DevHUD.statsOn`；GM 页勾选清单与 F3 `hud stats` 按需开关）。联机诊断段的「会话 + 弱网注入」文案单源＝`DebugKernel.Network.AppendLines`。**初始展开集**由 `DevStartupConfig.DevHudDefaultExpanded`（段掩码）提供，仅在本机无折叠记忆时套用；此后折叠态持久化优先。
+- **段构成**：模块 stats 段（容器注册件 + 场景组件型合并发现）＋联机诊断段（读口 `BattleDiagnostics`——对局上下文的 dev-only 单点登记，对局视图装配/拆视图两处接线；无对局整段不显示，不显示陈旧值）＋性能段（内核性能读模型：FPS/p50/p95/p99/最差帧/长帧 + GC/Draw/Batches recorder——投影只喂时钟差并读 `DebugKernel` 读口）＋日志尾巴/错误行。各段渲染开关 = DevHUD public 字段；**模块 stats 段按白名单显示**（`statToggles` 未登记默认隐藏，勾选态持久化 `LiteGame.Adapters.DevHud.statsOn`；GM 页勾选清单与 F3 `hud stats` 按需开关）。联机诊断段的「会话 + 弱网注入」文案单源＝`DebugKernel.Network.AppendLines`。**初始展开集**由 `DevStartupConfig.DevHudDefaultExpanded`（段掩码）提供，仅在本机无折叠记忆时套用；此后折叠态持久化优先。
 - **对局诊断读口**（`Dev/Debug/Diagnostics/BattleDiagnostics`，开发装配层）：对局上下文是流程私有件——不进容器、非场景组件，HUD 与 GM 页经同一登记口读数（`Attach/Detach` + 快照/描述单源——两处消费不各拼一套文案）；RTT/丢包口径与 `BattleNetworkHudDriver` 同源（千分比 → 一位小数百分比）。
 - **编辑器投影**：`LiteGame/工具链` →「联机诊断」页＝DevHUD 开关投影（总开关/段开关，F1 等效）＋初始展开集重排（按 `DevStartupConfig.DevHudDefaultExpanded` 覆盖当前折叠记忆）＋读数投影（同一描述单源）。包形态无 Hub，HUD 由 F1 开。
 - **开发包启用**：出包脚本消费 BuildProfile `channel`——`development` 通道传 `BuildOptions.Development`（三宏的 `DEVELOPMENT_BUILD` 在包内成立，dev 面随包编译：DevHUD/DebugConsole/DebugPanel/DevStartupConfig/DebugRuntimeTuner/GM 命令层）；其余通道维持原样（缺省仅 DetailedBuildReport）。**分发边界**：development 通道产物＝开发侧测试客户端专用，**不进测试者分发包**——测试者出包走 release 通道档（`BuildProfiles/windows-x64-release.json`），各通道产物目录独立（`profile.output` 透传 build 命令），Dist 打包测试者包指向 `Builds/StandaloneWindows64-release`。开发控制台随 `DebugConsole` 自创建（`RuntimeInitializeOnLoadMethod`），不需要 dev 预制体；运行期开发入口不随包通道分叉。
@@ -116,7 +116,7 @@
 | 投影 | 载体 | 职责 | 约束 |
 | --- | --- | --- | --- |
 | 编辑器投影 | Hub 内 `IEditorToolPage` | 富交互：表格/滑杆/多页；承载编辑器独占动作（起停本地服、静态检查、导出 `.g.cs`） | 可引用 `UnityEditor`；不进包 |
-| 运行期只读投影 | `DevHUD`（F1） | 展示读模型；不写运行态 | 保持只读；不加直写口 |
+| 运行期只读投影 | `DevHud`（F1） | 展示读模型；不写运行态 | 保持只读；不加直写口 |
 | 运行期操控投影 | `DebugConsole`（F3，UI Toolkit 文本控制台）/ `DebugPanel`（F2，常用动作/即时开关）/ 专用调试面板（如 UI 调试面） | 解析调用名/按钮 → 内核命令或选项表；渲染读模型；会话断线/重连与模块 Stats 白名单同样经内核口 | 只经内核写；不直调业务服务 |
 
 专用调试面板不是第四套逻辑：它是运行期操控投影的一个模块，同一命令集既可被文本控制台调用，也可被面板按钮调用。UI 专用投影见[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)。
@@ -130,7 +130,7 @@
 ```
 
 - 内核在装配期由容器注入（与产品服务同一装配根）；**不反射私有字段**，不把编辑器的 `TakeContainer` 豁免形态搬进运行期；
-- 编辑器投影的取件仍走 `GmEditorResolve`（编辑器工具豁免）；运行期投影只引用运行时可链接件；
+- 编辑器投影的取件仍走 `GMEditorResolve`（编辑器工具豁免）；运行期投影只引用运行时可链接件；
 - 内核不得引用投影程序集；投影不得反向依赖另一个投影。
 
 ### 7.5 失败语义

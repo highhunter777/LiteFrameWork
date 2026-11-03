@@ -1129,8 +1129,45 @@ U1 交付段预告"per-form 缓存策略列随 U2 表扩展"——本批把 §5.
 
 | 项 | 内容 |
 |---|---|
-| 批 2：Hud/Vfx/GM | `DevHUD`/`DevHUDBoot` → `DevHud`/`DevHudBoot`；`IVFXService` → `IVfxService`；21 个 `Gm*` → `GM*`；`HpBar` 类与 prefab 同名，随 UI 资产批（04 §6.9 表注） |
+| 批 2：Hud/Vfx/GM | 已执行（2026-11-03，见第 11 章）：`DevHUD`/`DevHUDBoot` → `DevHud`/`DevHudBoot`；`IVFXService` → `IVfxService`；客户端 GM 工具类型 → `GM*`；协议/服务端 `Gm*` 成员另条登记。`HpBar` 类与 prefab 同名，随 UI 资产批（04 §6.9 表注） |
 | 编辑器命名空间批 | `LiteGame/Editor/{Baking,Resource,Core}` 15 文件 `LiteGame.EditorTools[.UI]` → `LiteGame.Editor`/`.Core`/`.UITools`；`LiteFramework/Editor/EditorTools` 与 `LiteCodeGen` 半改名另条登记 |
 | UI 工具链 Lane→Role | `UILanePolicy`/`UIWorkbenchLane` → `UIRolePolicy`/`UIWorkbenchRole`（04 §5.1；登记在 [不统一路径](../审计/客户端/登记/不统一路径.md)） |
 | 验证缺口 | 全量 EditMode 未一口跑完（pipeline 30 s 上限；`UIPageScaffoldRegister`/`UIThemeAssetGenerator`/`UIContractReconciliation`/`UIBindingTools` 各抽 1 个代表方法通过）；L2 夜间门禁未跑 |
 | 禁区保留 | Lua 键 `Bridge.ui`、Luban 表键 `tbuiform`/`tbltext`、外部 `"UiPreviewMatrix"`、数据内部名 `"UiTheme"`、prefab 序列化字段名、`.meta` GUID 未改 |
+
+---
+
+## 第11章 UI 命名统一批-2（Hud/Vfx/GM）
+
+<a id="ch11-UI命名统一批2"></a>
+
+> **批次**：UI 命名统一批-2（Hud/Vfx/GM 域，2026-11-03）
+> **规范**：[04-术语与用词 §6.1/§6.9/§6.12](../规范/04-术语与用词.md#612-改名迁移)
+> **裁决**：2026-10-29 `UI`/`GM` 为唯一现行拼法；`Hud`/`Vfx` 按三字母 Pascal
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 类型/文件 | `DevHUD`/`DevHUDBoot` → `DevHud`/`DevHudBoot`；`IVFXService` → `IVfxService`；客户端 GM 工具 17 类型（7 个 `Gm*Page`、`GmEditorResolve`、`GmSceneCommands` 族 6 类型、`GmResetClock` 两类型、`IGmPage`）+ 测试类（`GmSceneCommandTests`/`CloudGmChannelTests`/`GmHttpDiagTests` 与 4 个测试内私有类型）→ `GM*` |
+| 文件改名 | 13 个 Assets 文件（含 `.meta`）经 unity-pipeline 两步法保 GUID；3 个 Tests 文件 `git mv`；`Tests/LiteFramework.Core.Tests.csproj` 源链接与注释同步 |
+| 代码面 | 69 个 `.cs` 196 处标识符；`GMScenePage`/`GMTestModePage` 日志标签、`DisciplineScannerTests` 路径字符串同步 |
+| 文档 | 22 篇现行文档 54 处代码标识符；04 §6.1/§6.9 存量现状更新；审计登记/归档回写 |
+| 保留（行为/持久化契约） | GameObject 名 `[DevHUD]`/`[DevHUD-UI]`、PlayerPrefs 前缀 `LiteGame.DevHUD.` 不随类名改；协议/框架/服务端 `Gm*` 成员（`GmFlags`/`GmKey`/`GmOnly`/`GmBlocked`、`Server/RoomServer/GmAction*`）不随批 |
+
+### 验证
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | 0 错（`recompile_status` completed / failed=false） |
+| EditMode | `DebugKernelEditModeTests` 26/26、`BundleDevIsolationEditModeTests` 2/2 |
+| L1（PullRequest） | **PASS 1976** |
+| Doc | `--suite Doc` 见批次收尾记录（本批文档校验同批执行） |
+| BuildHash | 未触共享源集（`com.litegame.sim`/`com.litegame.net` 标识符未改），无需重跑 |
+
+### 边界（如实）
+
+- 协议/服务端 `Gm*` 成员未改：`GmFlags` 是 proto 字段（生成物/线格式）、`GmKey` 是部署 JSON 键、`GmOnly`/`GmBlocked` 是公共 API/诊断键；改名会改 BuildHash 或破坏配置兼容，已登记到 [不统一路径](../审计/客户端/登记/不统一路径.md)。
+- 目录 `Assets/LiteGame/Editor/Gm/` 大小写未改（结构面，另批裁决）；`HpBar`→`HPBar` 随 UI 资产批；编辑器命名空间 `LiteGame.EditorTools.*` 另条。
+- 全量 EditMode 未一口跑完；`DevSurfacePlayModeTests` 为 PlayMode，未跑（GameObject 名保留，断言未受影响）。
+- 提交状态：已提交 `1c4f8985`。
