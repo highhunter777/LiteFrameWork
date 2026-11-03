@@ -1162,7 +1162,7 @@ U1 交付段预告"per-form 缓存策略列随 U2 表扩展"——本批把 §5.
 | Unity 编译 | 0 错（`recompile_status` completed / failed=false） |
 | EditMode | `DebugKernelEditModeTests` 26/26、`BundleDevIsolationEditModeTests` 2/2 |
 | L1（PullRequest） | **PASS 1976** |
-| Doc | `--suite Doc` 见批次收尾记录（本批文档校验同批执行） |
+| Doc | `--suite Doc` PASS（doc-lint 0 违规 0 警告；工具索引 current） |
 | BuildHash | 未触共享源集（`com.litegame.sim`/`com.litegame.net` 标识符未改），无需重跑 |
 
 ### 边界（如实）
