@@ -60,9 +60,9 @@
     <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaContracts.cs" Link="Meta\MetaContracts.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaJson.cs" Link="Meta\MetaJson.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaWireValidator.cs" Link="Meta\MetaWireValidator.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireContracts.cs" Link="Meta\Wire\MetaWireContracts.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireEndpoints.cs" Link="Meta\Wire\MetaWireEndpoints.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireLimits.cs" Link="Meta\Wire\MetaWireLimits.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireContracts.cs" Link="Meta\Wire\MetaWireContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireEndpoints.cs" Link="Meta\Wire\MetaWireEndpoints.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireLimits.cs" Link="Meta\Wire\MetaWireLimits.cs" />
   </ItemGroup>
 
 </Project>

@@ -53,7 +53,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             string battle = StripCommentsAndStrings(File.ReadAllText(Path.Combine(root,
-                "Assets/LiteGame/Modules/Procedure/Stages/ProcedureBattle.cs")));
+                "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureBattle.cs")));
 
             Assert.Contains("IBattleRunFactory", battle);
             Assert.Contains("_run.Tick(", battle);
