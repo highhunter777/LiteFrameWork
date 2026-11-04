@@ -14,7 +14,12 @@ namespace cfg
 public partial class Tables
 {
     public Tbmap Tbmap {get; }
+    /// <summary>
+    /// B3 战斗策略键值表（规则四值/排行/伤害数字参数）
+    /// </summary>
+    public BattleStrategyTable BattleStrategyTable {get; }
     public Tbanimationprofile Tbanimationprofile {get; }
+    public Tbbattlestrategy Tbbattlestrategy {get; }
     public Tbcombatgeom Tbcombatgeom {get; }
     public Tbcombatnum Tbcombatnum {get; }
     public Tbcontententry Tbcontententry {get; }
@@ -30,7 +35,9 @@ public partial class Tables
     public Tables(System.Func<string, ByteBuf> loader)
     {
         Tbmap = new Tbmap(loader("tbmap"));
+        BattleStrategyTable = new BattleStrategyTable(loader("battlestrategy"));
         Tbanimationprofile = new Tbanimationprofile(loader("tbanimationprofile"));
+        Tbbattlestrategy = new Tbbattlestrategy(loader("tbbattlestrategy"));
         Tbcombatgeom = new Tbcombatgeom(loader("tbcombatgeom"));
         Tbcombatnum = new Tbcombatnum(loader("tbcombatnum"));
         Tbcontententry = new Tbcontententry(loader("tbcontententry"));
@@ -48,7 +55,9 @@ public partial class Tables
     private void ResolveRef()
     {
         Tbmap.ResolveRef(this);
+        BattleStrategyTable.ResolveRef(this);
         Tbanimationprofile.ResolveRef(this);
+        Tbbattlestrategy.ResolveRef(this);
         Tbcombatgeom.ResolveRef(this);
         Tbcombatnum.ResolveRef(this);
         Tbcontententry.ResolveRef(this);

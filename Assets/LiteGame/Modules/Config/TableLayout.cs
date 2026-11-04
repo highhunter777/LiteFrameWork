@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace LiteGame.Modules.Config
@@ -30,6 +30,8 @@ namespace LiteGame.Modules.Config
                                        // 不进判定面摘要；消费＝App 装配层投影 CrosshairFeelCatalog）
             "Content/tbcontententry",
             "Strategy/tbstrategy",
+            "Strategy/tbbattlestrategy", // B3 战斗策略键值表（规则四值/排行/伤害数字参数；缺行回落 C# 默认）
+            "Strategy/battlestrategy",  // 同上（生成器按 full_name 另出的表名；两文件同一份源）
             "Combat/tbcombatnum",      // 玩法数值（单行表；装载后产出 CombatValues 实例并发布读口——两端同源）
             "Combat/tbcombatgeom",     // 判定几何（单行表；13 列——身位/命中/枪口/规则，进 CombatValues.Geometry）
             "Combat/tbweapon",         // 武器表（多行；装载后回填 WeaponConfig——Sim 武器系统消费）

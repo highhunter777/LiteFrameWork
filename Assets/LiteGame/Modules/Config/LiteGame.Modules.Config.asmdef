@@ -3,6 +3,7 @@
     "rootNamespace": "LiteGame",
     "references": [
         "UniTask",
+        "LiteGame.Core",
         "LiteFramework.Core",
         "LiteFramework.Services",
         "LiteFramework.Hosting",
