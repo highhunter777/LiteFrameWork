@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace LiteGame.Modules.Config
@@ -45,7 +45,7 @@ namespace LiteGame.Modules.Config
         /// 靠反射扫描自动生成会让"新增一个公开类型 = 自动对 Lua 开放"，与白名单纪律相悖。
         ///
         /// 当前包含 <c>Bridge.BindGlobals</c> 与产品装订面（<c>ProductBridges.BindGlobals</c>）实际绑定的
-        /// **七个门面**（data/ui/content/text/meta/settings/room）。**新增 Bridge 绑定时必须同步在此登记**——
+        /// **八个门面**（data/ui/content/text/battle/meta/settings/room）。**新增 Bridge 绑定时必须同步在此登记**——
         /// 漏登记会让 Lua 在运行时才发现能力缺失（正是 §10 要避免的）。
         /// ApiVersion 2（批C-⑥）：ui 门面改按 lua_path 寻址并增 Replace；新增输入控件族（G15～G17）、
         /// 列表（G6）与 settings 门面——Lua 侧可见面变更，候选清单据此下限比较。
@@ -55,6 +55,8 @@ namespace LiteGame.Modules.Config
         /// 恢复完成重发；委托形同为 Action&lt;LuaFunction&gt;，零新增生成形）。
         /// ApiVersion 5（房间等待人数批）：room 门面增 ExpectedPlayers（本房房规模拉取——房间页
         /// "等待玩家 N/M" 的分母；委托形 Func&lt;int&gt; 与 settings.Quality 同形，零新增生成形）。
+        /// ApiVersion 6（M3-4）：UI 受控 API 单源（UIApiSpec）落地，版本值由 manifest 生成。
+        /// ApiVersion 7（B3）：新增 battle 只读门面（本局规则事实/排行口径；无写操作）。
         /// 版本值自 M3-4 起由 <see cref="LiteFramework.UI.UIApiManifest.ApiVersion"/> 生成（UIApiSpec 单源）；
         /// 上面的历史条目记录的是该值到达 5 的由来，不改写。
         /// </summary>
@@ -69,6 +71,7 @@ namespace LiteGame.Modules.Config
                 "bridge.meta",      // Bridge.meta 门面（联机入口链路——批C-③）
                 "bridge.settings",  // Bridge.settings 门面（音量/音效/画质——批C-⑥）
                 "bridge.room",      // Bridge.room 门面（房间会话：房主事实/提前开局/席位名单/房规模）
+                "bridge.battle",    // Bridge.battle 门面（B3 只读事实：规则四值/排行口径/结算名前缀）
             });
     }
 }

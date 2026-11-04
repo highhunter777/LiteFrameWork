@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -29,6 +29,9 @@ namespace LiteGame.Tests.EditMode
                 Assert.IsTrue(luaSet.Contains(manual), "手工处理器不在 Lua 清单里：" + manual);
             Assert.AreEqual(UIApiManifest.ApiVersion, BridgeCapabilitySet.Default().ApiVersion,
                 "BridgeApiVersion 必须来自 UIApiManifest（UIApiSpec 单源）");
+            Assert.IsTrue(BridgeCapabilitySet.Default().Has("bridge.battle"),
+                "B3 起 Bridge.battle 必须在能力集合登记（新 Lua 引用旧包缺失能力须执行前拒绝）");
+            Assert.GreaterOrEqual(UIApiManifest.ApiVersion, 7, "B3 新增 battle 门面，ApiVersion 不得低于 7");
         }
 
         [Test]

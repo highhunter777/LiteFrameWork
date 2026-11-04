@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "tiers": [
+    "base",
+    "script",
+    "data"
+  ],
+  "modules": [
+    {
+      "id": "LiteGame.Core",
+      "path": "Assets/LiteGame/Core",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "跨模块纯契约/纯计算"
+    },
+    {
+      "id": "LiteGame.Shared",
+      "path": "Assets/LiteGame/Modules/Shared",
+      "tiers": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "Sound"
+      ],
+      "ship": "base",
+      "notes": "共享常量/音频资源归集"
+    },
+    {
+      "id": "LiteGame.Bootstrap",
+      "path": "Assets/LiteGame/Bootstrap",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "AOT 进程壳"
+    },
+    {
+      "id": "LiteGame.App",
+      "path": "Assets/LiteGame/App",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "产品组合根"
+    },
+    {
+      "id": "LiteGame.Modules.Battle",
+      "path": "Assets/LiteGame/Modules/Battle",
+      "tiers": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "Characters",
+        "FX",
+        "UIHud"
+      ],
+      "ship": "base",
+      "notes": "战斗玩法/表现；角色与特效随内容包"
+    },
+    {
+      "id": "LiteGame.Modules.Camera",
+      "path": "Assets/LiteGame/Modules/Camera",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "相机服务"
+    },
+    {
+      "id": "LiteGame.Modules.Composition",
+      "path": "Assets/LiteGame/Modules/Composition",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "装配段"
+    },
+    {
+      "id": "LiteGame.Modules.Config",
+      "path": "Assets/LiteGame/Modules/Config",
+      "tiers": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "Config"
+      ],
+      "ship": "base",
+      "notes": "配置装载；表数据随内容包"
+    },
+    {
+      "id": "LiteGame.Modules.Dev",
+      "path": "Assets/LiteGame/Modules/Dev",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "开发面（发布剥离）"
+    },
+    {
+      "id": "LiteGame.Modules.Input",
+      "path": "Assets/LiteGame/Modules/Input",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "输入实现"
+    },
+    {
+      "id": "LiteGame.Modules.Map",
+      "path": "Assets/LiteGame/Modules/Map",
+      "tiers": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "Scenes"
+      ],
+      "ship": "base",
+      "notes": "地图域；场景随内容包"
+    },
+    {
+      "id": "LiteGame.Modules.Meta",
+      "path": "Assets/LiteGame/Modules/Meta",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "联机入口"
+    },
+    {
+      "id": "LiteGame.Modules.Procedure",
+      "path": "Assets/LiteGame/Modules/Procedure",
+      "tiers": [
+        "base",
+        "script"
+      ],
+      "collectGroups": [
+        "Lua"
+      ],
+      "ship": "base",
+      "notes": "流程；Lua 脚本随内容包"
+    },
+    {
+      "id": "LiteGame.Modules.Session",
+      "path": "Assets/LiteGame/Modules/Session",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "会话/传输"
+    },
+    {
+      "id": "LiteGame.Modules.Settings",
+      "path": "Assets/LiteGame/Modules/Settings",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "设置"
+    },
+    {
+      "id": "LiteGame.Modules.UI",
+      "path": "Assets/LiteGame/Modules/UI",
+      "tiers": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "UIScreens",
+        "UIWidgets",
+        "Fonts"
+      ],
+      "ship": "base",
+      "notes": "UI 域；页面/控件/字体随内容包"
+    }
+  ],
+  "changeMatrix": [
+    {
+      "change": "C# 代码/程序集",
+      "paths": [
+        "Assets/LiteGame/**/*.cs"
+      ],
+      "ship": [
+        "base"
+      ],
+      "notes": "改 AOT 代码 = 应用发布；不走内容包"
+    },
+    {
+      "change": "Lua 脚本",
+      "paths": [
+        "Assets/LiteGame/Lua/**"
+      ],
+      "ship": [
+        "script"
+      ],
+      "notes": "Lua 收集组，热更脚本候选"
+    },
+    {
+      "change": "配置表/表源",
+      "paths": [
+        "Assets/GameData/Config/**",
+        "Luban/Data/**"
+      ],
+      "ship": [
+        "data"
+      ],
+      "notes": "Config 收集组；表值可热更，但需重跑生成/摘要链"
+    },
+    {
+      "change": "UI/角色/特效/场景资源",
+      "paths": [
+        "Assets/ShareResource/**",
+        "Assets/Scenes/**"
+      ],
+      "ship": [
+        "data"
+      ],
+      "notes": "按收集组（UIScreens/UIWidgets/Fonts/Characters/FX/UIHud/Scenes）发内容包"
+    }
+  ]
+}

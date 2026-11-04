@@ -1,7 +1,7 @@
 {
   "$schema": "./UIApiSpec.schema.json",
   "version": 1,
-  "apiVersion": 6,
+  "apiVersion": 7,
   "note": "UI 受控 API 唯一源：生成 UIBindIndex 声明 / UIBindBase 转发 / Lua shim / dispatch / 参考表 / 清单。新增 API = 改本文件 + 重生成。",
   "categories": [
     {

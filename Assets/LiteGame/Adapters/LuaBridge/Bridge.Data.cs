@@ -12,8 +12,8 @@ using LiteGame.Modules.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 服务桥根类型：Lua 全局表四件（data/ui/content/text）的宿主。启动时绑定成 Lua 全局表，
-    /// **白名单只此四件**——ILuaRegistry/玩法系统一律不导出（设计方案 §4.3 服务桥纪律）。
+    /// 服务桥根类型：Lua 全局表五件（data/ui/content/text/battle）的宿主。启动时绑定成 Lua 全局表，
+    /// **白名单只此五件**——ILuaRegistry/玩法系统一律不导出（设计方案 §4.3 服务桥纪律）。
     /// 产品侧另有联机门面（meta）经 <c>ProductBridges</c> 装订（批C-③——装订面住本适配器，
     /// 实现模块自持端口 <c>ILuaProductBridge</c>）；两路 env 重建（Preload/DevReload）
     /// 共用同一装订面单源。
@@ -29,6 +29,7 @@ namespace LiteGame
         private static UIService s_uiService;
         private static UINavigationController s_nav;           // Lua 侧打开的单写者后端（三通道收口）
         private static Func<ILocalizationService> s_localeProvider;   // LText 门面后端（懒建工厂——表装载在 Preload）
+        private static Func<BattleLuaFacts> s_battleFacts;     // battle 只读门面后端（B3；未绑定 = Default）
 
         /// <summary>绑定查表入口（经 IConfigService.Tables；未加载时其 Tables 访问器会抛）。</summary>
         public static void Bind(Func<Tables> tables)
@@ -60,10 +61,19 @@ namespace LiteGame
             s_localeProvider = localeProvider ?? throw new ArgumentNullException(nameof(localeProvider));
         }
 
+        /// <summary>装配期绑定 battle 只读事实（B3）；未绑定即用 <see cref="BattleLuaFacts.Default"/>。</summary>
+        public static void BindBattle(Func<BattleLuaFacts> facts)
+            => s_battleFacts = facts ?? throw new ArgumentNullException(nameof(facts));
+
+        /// <summary>解除 battle 事实绑定（对局离场；回到默认事实，不保留上一局）。</summary>
+        public static void UnbindBattle() => s_battleFacts = null;
+
+        private static BattleLuaFacts BattleFacts() => s_battleFacts?.Invoke() ?? BattleLuaFacts.Default;
+
         /// <summary>
-        /// 绑定 Bridge 四门面为 Lua 全局表：
+        /// 绑定 Bridge 五门面为 Lua 全局表：
         /// 由装配点/编辑器工具经 <c>LuaComponent.Init</c> 注入——宿主（LiteFramework.Scripting.XLua）不认识 Bridge，
-        /// 依赖方向 = 产品 → 框架。门面方法全走白名单委托；只导出四门面（data/ui/content/text），
+        /// 依赖方向 = 产品 → 框架。门面方法全走白名单委托；只导出五门面（data/ui/content/text/battle）——battle 是只读事实，不接受写操作，
         /// ILuaRegistry/玩法系统一律不导出；禁止 CS. 直引业务类型。
         /// 产品侧扩展门面（meta）经 <c>ProductBridges.BindGlobals</c> 同 env 装订（见类头注释）。
         /// </summary>
@@ -85,11 +95,20 @@ namespace LiteGame
             text.Set("Format", new Func<string, object, object, object, object, string>(Text.Format));
             text.Set("SetLocale", new Action<string>(Text.SetLocale));
             text.Set("Locale", new Func<string>(() => Text.Locale));
+            var battle = env.NewTable();
+            battle.Set("IsBound", new Func<bool>(() => s_battleFacts != null));
+            battle.Set("DurationFrames", new Func<int>(() => BattleFacts().DurationFrames));
+            battle.Set("KillLimit", new Func<int>(() => BattleFacts().KillLimit));
+            battle.Set("RespawnDelayFrames", new Func<int>(() => BattleFacts().RespawnDelayFrames));
+            battle.Set("SpawnProtectionFrames", new Func<int>(() => BattleFacts().SpawnProtectionFrames));
+            battle.Set("RankOrder", new Func<string>(() => BattleFacts().RankOrder));
+            battle.Set("ResultNamePrefix", new Func<string>(() => BattleFacts().ResultNamePrefix));
             var bridge = env.NewTable();
             bridge.Set("data", data);
             bridge.Set("ui", ui);
             bridge.Set("content", content);
             bridge.Set("text", text);
+            bridge.Set("battle", battle);
             env.Global.Set("Bridge", bridge);
         }
 

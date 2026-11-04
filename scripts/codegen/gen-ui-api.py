@@ -25,9 +25,9 @@ from _codegen import signature as artifact_signature  # noqa: E402
 ROOT = Path(repo_root())
 TOOL = "ui-api"
 SPEC_PATH = ROOT / "Assets" / "LiteGame" / "Editor" / "UITools" / "UIApi" / "UIApiSpec.json"
-OUT_INDEX = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Bind" / "Generated" / "UIBindIndex.Api.g.cs"
-OUT_BASE = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Bind" / "Generated" / "UIBindBase.Api.g.cs"
-OUT_MANIFEST = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Bind" / "Generated" / "UIApiManifest.g.cs"
+OUT_INDEX = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Services" / "UI" / "Bind" / "Generated" / "UIBindIndex.Api.g.cs"
+OUT_BASE = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Services" / "UI" / "Bind" / "Generated" / "UIBindBase.Api.g.cs"
+OUT_MANIFEST = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Services" / "UI" / "Bind" / "Generated" / "UIApiManifest.g.cs"
 OUT_SHIM = ROOT / "Assets" / "LiteGame" / "Adapters" / "LuaBridge" / "Generated" / "UIApiShim.g.cs"
 OUT_DISPATCH = ROOT / "Assets" / "LiteGame" / "Adapters" / "LuaBridge" / "Generated" / "LuaBehaviourAdapter.Dispatch.g.cs"
 DOC = ROOT / "Docs" / "设计文档" / "客户端" / "UI系统" / "UI逻辑API参考.md"

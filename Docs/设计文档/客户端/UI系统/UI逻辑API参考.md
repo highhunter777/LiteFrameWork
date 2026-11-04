@@ -80,7 +80,7 @@ protected virtual void OnHide();
 | 方法 | 参数 | 说明 |
 | --- | --- | --- |
 | `SetVisible(name, visible)` | bool | 直接 `SetActive` |
-| `SetInteractable(name, on)` | bool | `Selectable` 优先，回退 `UIWidget.Interactable`，再回退 `IUIInteractable`（控件库封装件透传 inner 控件的可交互性） |
+| `SetInteractable(name, on)` | bool | `Selectable` 优先，回退 `UIWidget.Interactable` |
 | `SetProgress(name, value)` | 0~1 | 进度条 |
 | `SetProgressRange(name, cur, max)` | 当前/上限 | 进度条 |
 | `SetHp(name, cur, max)` | 当前/上限 | 血条（前条瞬时 + 后条滑落） |

@@ -123,6 +123,7 @@ namespace LiteGame
             Bridge.BindRegistries(_uiRegistry, _contentRegistry);
             Bridge.BindUIService(context.Require<UIService>());
             Bridge.BindNavigation(context.Require<UINavigationController>());
+            Bridge.BindBattle(() => BattleLuaFacts.Default);   // B3 battle 只读事实（未按局绑定 = 默认规则）
             // 注册表接口键（Lua 门面/回填/工具只经端口取；与具体键同实例）
             context.Services.RegisterInstance<IUILuaRegistry>(_uiRegistry);
             context.Services.RegisterInstance<IContentLuaRegistry>(_contentRegistry);
