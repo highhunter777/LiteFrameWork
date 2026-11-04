@@ -158,7 +158,8 @@ namespace Tools.DisciplineScan
         public static readonly string[] LiteGameTopLevelDirs =
         {
             "Adapters",              // 产品侧适配层（Unity/框架引擎后端实现）
-            "App",                   // §5 顶层第一层 Game.App
+            "App",                   // §5 顶层第一层 Game.App（组合根实现）
+            "Bootstrap",             // 进程壳（场景入口 + 入口装载 + 致命错误面；不引 Modules/App）
             "Core",                  // 产品侧纯契约/纯计算（对局端口、视图数学；零引擎）
             "Editor",                // 编辑器工具程序集（不在 §5 层内，登记为例外）
             "Lua",                   // 脚本资产（非程序集目录；Luban lua pass 的产物 + 业务脚本）

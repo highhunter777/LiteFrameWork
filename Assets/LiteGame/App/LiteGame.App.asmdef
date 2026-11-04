@@ -29,7 +29,8 @@
         "LiteGame.Modules.Map",
         "LiteGame.Modules.Dev",
         "LiteGame.Modules.Composition",
-        "LiteGame.Battle.Abstractions"
+        "LiteGame.Battle.Abstractions",
+        "LiteGame.Bootstrap"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

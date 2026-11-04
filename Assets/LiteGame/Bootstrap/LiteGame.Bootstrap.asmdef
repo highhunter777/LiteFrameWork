@@ -1,0 +1,19 @@
+{
+    "name": "LiteGame.Bootstrap",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Hosting",
+        "LiteFramework.Services",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

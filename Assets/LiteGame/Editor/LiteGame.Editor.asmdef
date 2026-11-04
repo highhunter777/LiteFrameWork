@@ -17,6 +17,7 @@
         "LiteFramework.Editor",
         "LiteCodeGen.Runtime",
         "LiteGame.App",
+        "LiteGame.Bootstrap",
         "LiteGame.Adapters.Dev",
         "LiteGame.Editor.Core",
         "LiteGame.Editor.UITools",

@@ -5,6 +5,8 @@
     - LiteFramework.{Core,Services,Adapters,Hosting}：框架四件保留面——DI 按类型注册路径
       （ServiceContainer.PrepareConstructor 反射取公共构造函数）与裁剪档位提升时的防线；
       生产装配当前全 RegisterInstance（实例直造、静态引用不依赖本表），此四件为档位防御。
+    - LiteGame.App：AOT 壳经 `ClientEntryLoader` 的 Type.GetType 字符串反射装载 `LiteGame.ClientEntry`，
+      程序集必须整档保留（裁剪删类型 = 冷启动即“入口类型无法解析”）。
     实现类新增时同步核对本表；表内 fullname 必须是真实存在的 asmdef 程序集名
     ——陈旧名＝静默失锚，由 L1 守卫用例（LinkXmlGuardTests）钉住。
   -->
@@ -14,4 +16,5 @@
   <assembly fullname="LiteFramework.Services" preserve="all" />
   <assembly fullname="LiteFramework.Adapters" preserve="all" />
   <assembly fullname="LiteFramework.Hosting" preserve="all" />
+  <assembly fullname="LiteGame.App" preserve="all" />
 </linker>

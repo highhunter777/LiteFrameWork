@@ -15,6 +15,7 @@
         "LiteFramework.Adapters",
         "LiteFramework.Hosting",
         "LiteGame.App",
+        "LiteGame.Bootstrap",
         "LiteGame.Adapters.Dev",
         "LiteGame.Adapters.LuaBridge",
         "LiteSim",

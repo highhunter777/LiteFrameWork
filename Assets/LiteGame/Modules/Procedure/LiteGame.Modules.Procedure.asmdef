@@ -21,7 +21,8 @@
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask",
-        "LiteGame.Battle.Abstractions"
+        "LiteGame.Battle.Abstractions",
+        "LiteGame.Bootstrap"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

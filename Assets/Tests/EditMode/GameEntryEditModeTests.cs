@@ -1,7 +1,10 @@
+using System;
 using System.Reflection;
+using LiteFramework;
 using LiteGame;
 using LiteTesting.Unity;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -33,6 +36,35 @@ namespace LiteGame.Tests.EditMode
         {
             GameEntry.ResetForEditorReload();                    // 任何时候调用都安全（幂等清理）
             Assert.False((bool)BootedField().GetValue(null));
+        }
+
+        [Test]
+        public void 入口类型名可解析且实现IClientEntry()
+        {
+            // B1.5 守卫：AOT 壳按程序集限定名反射装载；名字漂移 = 冷启动即“入口类型无法解析”。
+            Type type = Type.GetType(ClientEntryLoader.EntryTypeName, throwOnError: false);
+            Assert.NotNull(type, "入口类型无法解析：" + ClientEntryLoader.EntryTypeName);
+            Assert.IsTrue(typeof(IClientEntry).IsAssignableFrom(type), "入口类型未实现 IClientEntry：" + type.FullName);
+        }
+
+        [Test]
+        public void 冷启动错误面_固定标记与根件幂等()
+        {
+            Assert.AreEqual("[BootstrapError]", BootstrapErrorPresenter.SmokeMarker);
+            try
+            {
+                BootstrapErrorPresenter.Show("guard smoke", ErrorKind.Fatal);
+                Assert.NotNull(GameObject.Find(BootstrapErrorPresenter.ErrorUIRootName),
+                    "冷启动错误面未创建最小错误 UI");
+
+                BootstrapErrorPresenter.Show("guard smoke again", ErrorKind.Fatal);   // 幂等：Error 可重入
+                Assert.NotNull(GameObject.Find(BootstrapErrorPresenter.ErrorUIRootName));
+            }
+            finally
+            {
+                var root = GameObject.Find(BootstrapErrorPresenter.ErrorUIRootName);
+                if (root != null) UnityEngine.Object.DestroyImmediate(root);
+            }
         }
     }
 }
