@@ -77,11 +77,11 @@ namespace LiteGame
 
         // ---- 本地视角状态（第三人称自由视角：AddLookDelta 累进；纯视图侧，不进意图三件/不上行）----
 
-        /// <summary>视角 pitch 限位（弧度，正 = 上仰）——机制初档常量单源：下俯 -80°/上仰 +80°
-        /// 覆盖 PUBG 量级的抬头看天/低头看脚；再往外越肩构图收益归零、穿头/贴地/穿天风险陡增
-        /// （收臂与渐隐兜不住的极端位）。上半身姿态区间另由 <c>AimPitchPosture</c> 钳制，
-        /// 不把相机限位直接当骨骼限位。</summary>
-        public const float PitchClampMinRad = -80f * Mathf.Deg2Rad;
+        /// <summary>视角 pitch 限位（弧度，正 = 上仰）——机制初档常量单源：**下俯 −65°**、
+        /// 上仰 +80°（不对称：下俯再深时越肩构图收益归零，收臂与渐隐也兜不住贴地/穿腿的极端位，
+        /// 用户裁决：下俯从 −80° 收到 −65°；上仰保留 80° 覆盖抬头看天）。
+        /// 上半身姿态区间另由 <c>AimPitchPosture</c> 钳制，不把相机限位直接当骨骼限位。</summary>
+        public const float PitchClampMinRad = -65f * Mathf.Deg2Rad;
         public const float PitchClampMaxRad = 80f * Mathf.Deg2Rad;
 
         private float _lookYaw;     // 累计视角 yaw（弧度，环绕）
@@ -333,6 +333,15 @@ namespace LiteGame
         {
             if (_shutdown) return;
             _shoulderLeft = !_shoulderLeft;
+            ApplyRigDerived();
+        }
+
+        /// <summary>绝对视角角写入（<see cref="ICameraService.SetLookAngles"/> 契约）：自由观察回正落位用。</summary>
+        public void SetLookAngles(float yawRad, float pitchRad)
+        {
+            if (_shutdown) return;
+            _lookYaw = Mathf.Repeat(yawRad, Mathf.PI * 2f);
+            _lookPitch = Mathf.Clamp(pitchRad, PitchClampMinRad, PitchClampMaxRad);
             ApplyRigDerived();
         }
 

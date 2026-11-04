@@ -44,7 +44,7 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 - **队列满在创建/入栈/OnShow 之前拒绝**（`UIOpenException(Rejected)`，不留半成品）；**排队期取消**＝标记放弃、出队跳过；**执行期取消**贯穿 `ShowAsync`，半成品由其回滚。
 - `UIOpenFailure`：`Canceled / LoadFailed / InitFailed / Busy / Rejected / Timeout`（同界面在途且数据不同＝`Busy`，不静默覆盖）。读数：`Executed`/`RejectedByCapacity`/`TimedOut`/`CancelledWhileQueued`。
-- `GoAsync` 保留旧页（新页覆盖其上），`ReplaceAsync` 显式关闭当前记录（旧页收 `Replace`）。Back 链：**最顶模态优先**，其次最高非空层栈顶（原因 `Back`，可被出栈拦截）；`BackInterceptor` 返回 true＝本次 Back 已消费（如 Loading 阻断）。平台返回统一口径：`Focus.PlatformBack` 挂 `nav.BackAsync`（`UIComposition`）。
+- `GoAsync` 保留旧页（新页覆盖其上），`ReplaceAsync` 显式关闭当前记录（旧页收 `Replace`）。Back 链：**最顶模态优先**，其次最高非空层栈顶（原因 `Back`，可被出栈拦截）；`BackInterceptor` 返回 true＝本次 Back 已消费（如 Loading 阻断）。平台返回统一口径：`Focus.PlatformBack` 挂 `nav.BackAsync`（`UISegment`）。
 
 ## 5. 绑定：一条运行期索引
 
@@ -131,7 +131,7 @@ Lua 只能经白名单门面访问 C#：`Bridge` 只导出 `data / ui / content 
 
 - `Tmp_UITestPage`（原样例页改名）与 `Tests/UITestPage.lua` 是 UI 栈夹具：**不登记** `tbuiform`、不产出 `LuaKeys` 常量。
 - 控件模板 `Assets/ShareResource/UI/Widgets` 30 个 prefab；HUD 为 `Assets/ShareResource/UI/Hud/Hud_Battle.prefab`（`UIHud` 收集组单件打包）。生产接线集中在 `ProgressBar`/`HpBar`/`Countdown`/`Toast`/`UIBubble`/`FlyTextPool`/`VirtualList`/`UIDialog`/`LoadingMask`；`AvatarFrame`/`GuideHighlight`/`StarRating`/`Stepper`/`BottomNav`/`TabGroup`/`SafeAreaReceiver`/`SimpleListView` 等只有模板与测试，不能宣称接入业务。
-- **红点未生效**：`RedDotRegistry` 在 `UIComposition` 建实例并 `Put` 进上下文，但 C# 侧没有 `Register` 规则也没有 `Evaluate` 调用点，Lua 侧零引用；`RedDot`/`RedDotTree` 未接入 `UIBindIndex`。
+- **红点未生效**：`RedDotRegistry` 在 `UISegment` 建实例并 `Put` 进上下文，但 C# 侧没有 `Register` 规则也没有 `Evaluate` 调用点，Lua 侧零引用；`RedDot`/`RedDotTree` 未接入 `UIBindIndex`。
 - **Lua 调试器未接线**：`Assets/LiteGame/Lua/LuaPanda.lua` 存在但无 `require` 消费者；`Core/` 只有 `class.lua`。
 
 **边界**：预览场景/预览驱动/脚手架模板/深检面/调试面板不得进收集组或构建，`UITools` 与工作台只在编辑器程序集；契约、清单、`UIPageCatalog.g.cs`、`UIApiShim.g.cs`、`LuaKeys.g.cs` 由工具生成，禁手改；"能点/能操作"的结论必须走真实操作路径（可点性自检 → 模拟指针/按键 → 副作用断言），不以直调 API 冒充。

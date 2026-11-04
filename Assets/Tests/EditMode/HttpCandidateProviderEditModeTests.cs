@@ -107,7 +107,7 @@ namespace LiteGame.Tests.EditMode
             yield return Provider().TryGetCandidateAsync().ToCoroutine(x => offer = x);
             Assert.IsFalse(offer.IsEmpty);
 
-            // 与 ContentModule 生产装配同一套信任面：内置锚表 → keyId 解析验签器（fail-closed）
+            // 与 ContentSegment 生产装配同一套信任面：内置锚表 → keyId 解析验签器（fail-closed）
             var trustedKeys = new TrustedKeyStore();
             ContentTrustAnchors.ApplyTo(trustedKeys);
             ISignatureVerifier verifier = trustedKeys.Resolve(offer.Manifest.KeyId);
@@ -120,7 +120,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(verdict.Accepted, $"带签信封必须被接受（拒因：{verdict.Reason}）");
         }
 
-        /// <summary>最小 Player 能力声明（与本形态 <c>ContentModule</c> 装配同口径：全 0/空 = 不限）。</summary>
+        /// <summary>最小 Player 能力声明（与本形态 <c>ContentSegment</c> 装配同口径：全 0/空 = 不限）。</summary>
         private static PlayerCapabilities MinimalPlayerCapabilities() => new PlayerCapabilities
         {
             AppVersion = "",

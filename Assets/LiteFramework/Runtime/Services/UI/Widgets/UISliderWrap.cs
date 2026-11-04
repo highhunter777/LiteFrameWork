@@ -9,7 +9,7 @@ using UnityEngine.UI;
 namespace LiteFramework.UI
 {
     /// <summary>滑条封装：Set（免回调）与 onChanged 分离。</summary>
-    public class UISliderWrap : MonoBehaviour
+    public class UISliderWrap : MonoBehaviour, IUIInteractable
     {
         public Slider Slider;
         public event Action<float> OnChanged;
@@ -22,6 +22,13 @@ namespace LiteFramework.UI
 
         public void Set(float value) { if (Slider != null) Slider.SetValueWithoutNotify(value); }
         public float Value => Slider != null ? Slider.value : 0f;
+
+        /// <summary>可交互透传 inner Slider（<see cref="IUIInteractable"/>——受控 API SetInteractable 的解析面）。</summary>
+        public bool Interactable
+        {
+            get => Slider != null && Slider.interactable;
+            set { if (Slider != null) Slider.interactable = value; }
+        }
     }
 
 }

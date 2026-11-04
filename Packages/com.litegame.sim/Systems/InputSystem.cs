@@ -6,17 +6,18 @@ namespace LiteSim
     /// 开火位由 ShootingSystem 直接读输入。
     /// 输入数组已由 SimStep 按 EntityId 升序排列（§3.3 同帧多请求的确定性来源）。
     ///
-    /// **瞄准态口径（见《角色状态与动作专项设计》§7）**：
-    /// - **限速**：**瞄准中 ∨ 开火帧 ∨ 窗内**（窗 = <see cref="EntitySlot.FireStanceFrames"/> &gt; 0；
-    ///   扣扳机当帧即置窗 ⇒ 当帧限速；成功开火在 <see cref="ShootingSystem"/> 判定点重置同值）
-    ///   → 移动上限 <see cref="CombatConfig.AimMoveSpeed"/>（= 走路档；移动腰射按 aimwalk 移动）；
-    /// - **朝向派生（债 #4 根治；AimPoint 单口径——《固定斜视角射击方案专项设计》§3）**：
-    ///   **射击语境（瞄准 ∨ 开火帧 ∨ 窗内）且 AimPoint 有效**（非零值、水平距本体 &gt; ε）
-    ///   → `Yaw = Atan2(P − 本体XZ)` 朝准星（即时跟枪——点射间隙帧不回摆，
-    ///   视图侧由此得到稳定的 AimWalk 四向权重）并**武装离场转向**；
-    ///   否则移动 → 朝移动方向——武装态按 <see cref="CombatConfig.FaceTurnRadPerSec"/> 逐帧过渡
-    ///   （窗尽回转不瞬切），到位解除恢复即时跟向；都没有 → **保持上一帧 Yaw**（不拿零值退化，
-    ///   且回放/重放可重建）；
+    /// **瞄准态口径（见《角色状态与动作专项设计》§7 / TPS 越肩口径）**：
+    /// - **按语境分两态（PUBG 式）**：
+    ///   **射击语境**（瞄准中 ∨ 开火帧 ∨ 窗内，窗 = <see cref="EntitySlot.FireStanceFrames"/> &gt; 0；
+    ///   扣扳机当帧即置窗 ⇒ 当帧进语境；成功开火在 <see cref="ShootingSystem"/> 判定点重置同值）
+    ///   → **身体锁朝准星**（`Yaw = Atan2(P − 本体XZ)`）＋移动限速走路档
+    ///   （<see cref="CombatConfig.AimMoveSpeed"/>；视图侧走四向 strafe）；
+    ///   **非射击语境** → **身体朝移动方向**（转身跑，按 <see cref="CombatConfig.FaceTurnRadPerSec"/>
+    ///   逐帧过渡）＋全速——视图用正向 Run/Walk 即可，腿与位移方向天然一致，不需要侧移资产；
+    /// - **朝向派生**：射击语境且 **AimPoint 有效**（非零值、水平距本体 &gt; 0.1m）→ 朝准星；
+    ///   否则回退移动方向（按转向速率过渡）；都没有则保持上一帧 Yaw（不拿零值退化，且回放/重放可重建）。
+    ///   **自由观察（Alt）**由客户端冻结 AimPoint 实现——Sim 看到的仍是冻结点，Yaw 不动；
+    ///   Sim 不感知 Alt/相机状态，协议面零新增。
     /// - **开火驻留窗递减**：Run 顶部对**全槽位**统一推进——缺席/空输入帧与死亡实体照常衰减
     ///   （整数计数 ⇒ 确定性）；窗的写入者两处——本系统（瞄准 ∨ 开火帧，扣扳机即进语境）与
     ///   <see cref="ShootingSystem"/> 判定点（成功开火重置同值），置满不累加。
@@ -25,6 +26,13 @@ namespace LiteSim
     {
         /// <summary>移动/瞄准点判定阈值（平方口径；低于此视为"没有移动意图/瞄准点退化"，不更新朝向）。</summary>
         private const float MoveEpsilonSquared = 1e-6f;
+
+        /// <summary>瞄准点**最小水平距离平方**（0.1 m）：低于它视为退化瞄准点、不派生朝向。
+        /// 典型退化＝正俯视时屏心射线垂直打在自己脚下（点离本体几厘米，`Atan2(极小,极小)`
+        /// 方向随机 ⇒ 朝向每帧乱跳）。客户端另有"正俯视不解析 AimPoint"的采集侧防线
+        /// （<c>NewInputIntentSource</c>），本处是 Sim 侧的兜底。
+        /// 取 0.1 m 而非更大值：近身缠斗时瞄准点可能就在身前几十厘米，阈值过大会误挡。</summary>
+        private const float AimPointMinDistanceSquared = 0.01f;
 
         public static void Run(SimWorldState s, SimInputFrame[] inputs, in CombatValues values)
         {
@@ -56,21 +64,25 @@ namespace LiteSim
                 // （朝准星+限速随窗——视图 AimWalk 四向稳定的前提），窗尽离场转向。
                 if (aiming || fireFrame) e.FireStanceFrames = (byte)values.FireStanceFrames;
 
-                // 移动：瞄准 ∨ 开火态 → 限速走路档（瞄准倍率 0.5 = 乘 2 的幂，位级精确；
-                // 开火态限速改写 Vel ⇒ 窗计数是**判定输入**——已进全量 checksum，见 EntitySlot.FireStanceFrames）
-                float speed = aiming || e.FireStanceFrames > 0
-                    ? values.AimMoveSpeed
-                    : values.MoveSpeed;
-                e.Vel.X = inputs[i].MoveX * speed;
-                e.Vel.Z = inputs[i].MoveZ * speed;
+                // 射击语境单源（瞄准 ∨ 开火驻留窗）——朝向派生与限速共用同一条判据。
+                bool combatContext = aiming || e.FireStanceFrames > 0;
 
-                // 朝向派生（规则见类注释）：射击语境 → 朝准星——**AimPoint 必须有效**（非零值且
-                // 水平距本体 > ε；Atan2(0,0) 无意义，退化点不派生、落入保持）；窗内间隙帧不回移动向
-                // （点射"逐拍回摆"的根治面）
+                // 朝向派生（规则见类注释）：
+                // - **射击语境 → 朝准星**（AimPoint 必须有效：非零值且水平距本体 > 0.1m；退化点不派生、
+                //   落入保持）——ADS/腰射时身体锁朝准星，视图走四向 strafe；
+                // - **非射击语境 → 朝移动方向**（PUBG 式转身跑）：这是"停止射击后身体转回移动方向"的
+                //   常规形态，视图用正向 Run/Walk 片段即可，腿与位移方向天然一致（不需要侧移资产）。
+                //   转身按 `FaceTurnRadPerSec` 逐帧过渡——即时跟向会让按下 A/D 的那一帧"啪"地扭头。
                 float pdx = inputs[i].AimPointX - e.Pos.X;
                 float pdz = inputs[i].AimPointZ - e.Pos.Z;
-                bool aimValid = SimMath.MulAdd2(pdx, pdx, pdz, pdz) > MoveEpsilonSquared;
-                if ((aiming || fireFrame || e.FireStanceFrames > 0) && aimValid)
+                // 协议约定**全零 = 无瞄准点**（"非零值"判定的落地）：缺它就等于把世界原点当成
+                // 有效瞄准点——任何不在原点的实体会朝原点转身。
+                bool aimPointSet = (inputs[i].AimPointX != 0f)
+                                   | (inputs[i].AimPointY != 0f)
+                                   | (inputs[i].AimPointZ != 0f);            // lint-allow R3（与常量 0 的明确比较）
+                bool aimValid = aimPointSet
+                                && SimMath.MulAdd2(pdx, pdx, pdz, pdz) > AimPointMinDistanceSquared;
+                if (aimValid && combatContext)
                 {
                     e.Yaw = SimTrig.Atan2(pdz, pdx);
                     e.FaceExitTurning = 1;   // 武装离场转向：语境解除后的首个移动帧起按速率平滑转回
@@ -78,28 +90,43 @@ namespace LiteSim
                 else if (SimMath.MulAdd2(inputs[i].MoveX, inputs[i].MoveX, inputs[i].MoveZ, inputs[i].MoveZ)
                          > MoveEpsilonSquared)
                 {
-                    // 朝移动方向：武装态（离场转向中）按转向速率逐帧过渡（窗尽回转不瞬切），
+                    // 朝移动方向：**始终按转向速率**过渡（射击语境解除后回转不瞬切，常态移动同理——
+                    // PUBG 式转身跑需要可见的转身过程，即时跟向会让 A/D 起步瞬间扭脖子）。
                     // 步长内到位＝精确落位并解除武装（分支即语义——**禁浮点等值比较**，R3）；
-                    // 非武装态即时跟向（常态移动，既有手感不变）。差值/结果归约到 (-π, π]。
+                    // 差值/结果归约到 (-π, π]。
                     float target = SimTrig.Atan2(inputs[i].MoveZ, inputs[i].MoveX);
                     float maxStep = values.Geometry.FaceTurnRadPerSec * SimConfig.Dt;
                     float d = target - e.Yaw;
                     while (d > SimTrig.Pi) d -= SimTrig.TwoPi;
                     while (d < -SimTrig.Pi) d += SimTrig.TwoPi;
 
-                    if (e.FaceExitTurning != 0 && (d > maxStep || d < -maxStep))
+                    if (d > maxStep)
                     {
-                        e.Yaw += d > 0f ? maxStep : -maxStep;      // 一步过渡
+                        e.Yaw += maxStep;                          // 一步过渡
                         while (e.Yaw > SimTrig.Pi) e.Yaw -= SimTrig.TwoPi;      // 结果归约——值域与 Atan2 一致
+                        while (e.Yaw <= -SimTrig.Pi) e.Yaw += SimTrig.TwoPi;
+                    }
+                    else if (d < -maxStep)
+                    {
+                        e.Yaw -= maxStep;
+                        while (e.Yaw > SimTrig.Pi) e.Yaw -= SimTrig.TwoPi;
                         while (e.Yaw <= -SimTrig.Pi) e.Yaw += SimTrig.TwoPi;
                     }
                     else
                     {
-                        e.Yaw = target;                            // 步长内到位（解除武装）/ 常态即时跟向
+                        e.Yaw = target;                            // 步长内到位（解除武装）
                         e.FaceExitTurning = 0;
                     }
                 }
                 // else：静止且无语境 → 保持上一帧（不更新）
+
+                // 移动：射击语境（瞄准 ∨ 开火窗）→ 限速走路档；否则全速。
+                // **不再按方向分档**：非射击语境身体朝移动方向，腿与位移一致 ⇒ 没有"横移/后退要减速"
+                // 的动机（那是"身体锁朝准星 + 侧移"形态才需要的补偿）。
+                // 开火态限速改写 Vel ⇒ 窗计数是**判定输入**——已进全量 checksum，见 EntitySlot.FireStanceFrames
+                float speed = combatContext ? values.AimMoveSpeed : values.MoveSpeed;
+                e.Vel.X = inputs[i].MoveX * speed;
+                e.Vel.Z = inputs[i].MoveZ * speed;
 
                 // 瞄准态标志：**每帧从输入位覆写**（位定义见 EntityFlags——输入位与实体标志位是两个位空间）
                 e.Flags = (e.Flags & ~EntityFlags.Aiming) | (aiming ? EntityFlags.Aiming : 0u);

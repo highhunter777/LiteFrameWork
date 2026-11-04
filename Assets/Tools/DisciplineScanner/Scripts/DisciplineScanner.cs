@@ -72,7 +72,7 @@ namespace Tools.DisciplineScan
 
         /// <summary>R15 平台特判收敛（《商业级通用客户端框架总设计》平台适配：平台差异走 profile/装配点，
         /// 不堆 `#if`）：第一方代码不得用 `#if UNITY_ANDROID` 分叉。允许面＝四个收敛点
-        /// （构建 profile 是数据不在此列；`DeployBake` 读流、`InputModule` 意图源装配、
+        /// （构建 profile 是数据不在此列；`DeployBake` 读流、`InputSegment` 意图源装配、
         /// `BattleViewRig.LookDeltaOf` 喂源选择——见 <see cref="PlatformForkAllowedFiles"/>）。
         /// 新增收敛点须改登记表并说明它替代了哪条平台假设，而不是就地加 `#if`。</summary>
         R15PlatformFork = 15,
@@ -214,15 +214,15 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// R15 允许面＝平台差异的收敛点（构建 profile 是数据文件，不在代码扫描面）：
-        /// ①`DeployBake` 读流平台化；②`InputModule` 意图源按设备/平台选源；
+        /// ①`DeployBake` 读流平台化；②`InputSegment` 意图源按设备/平台选源；
         /// ③`BattleViewRig.LookDeltaOf` 镜头喂源选择。
         /// **这是唯一登记点**——新增一处须说明它替代了哪条平台假设，而不是就地加 `#if`。
         /// </summary>
         public static readonly string[] PlatformForkAllowedFiles =
         {
             "Assets/LiteGame/Modules/Config/Deploy/DeployBake.cs",
-            "Assets/LiteGame/Modules/Input/InputComposition.cs",
-            "Assets/LiteGame/Modules/Battle/Setup/BattleViewRig.cs",
+            "Assets/LiteGame/Modules/Input/InputSegment.cs",
+            "Assets/LiteGame/Modules/Battle/SubModules/SetupSubModule/BattleViewRig.cs",
         };
 
         /// <summary>

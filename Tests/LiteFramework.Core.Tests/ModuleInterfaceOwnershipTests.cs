@@ -28,8 +28,8 @@ namespace LiteFramework.Core.Tests
         {
             // 签名取 BattleContext（Battle 域实现类型）→ 契约包若收它会反向依赖实现件
             "Assets/LiteGame/Modules/Battle/IBattleDevDiagnostics.cs",
-            // 返回 MatchSession（Battle/Session 实现类型）→ 同上；消费方经 IBattleRunFactory 端口
-            "Assets/LiteGame/Modules/Battle/Session/IMatchSessionFactory.cs",
+            // 返回 MatchSession（Battle/SessionSubModule 实现类型）→ 同上；消费方经 IBattleRunFactory 端口
+            "Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/IMatchSessionFactory.cs",
         };
 
         [Fact]

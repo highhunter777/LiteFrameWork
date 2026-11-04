@@ -11,7 +11,7 @@ namespace LiteGame.Modules.Dev
     /// <summary>装配期交给开发层的服务面（只读范围：容器/命令/场景/输入/会话）。</summary>
     public sealed class DevServices
     {
-        public ModuleContext Context;
+        public SegmentContext Context;
         public CommandCenter Commands;
         public ServiceContainer Services;
         public IDevSession Session;

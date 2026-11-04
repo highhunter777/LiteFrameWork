@@ -59,6 +59,13 @@
       "required": false
     },
     {
+      "bindName": "Cot_AudioPanel",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_AudioPanel",
+      "type": "UnityEngine.RectTransform",
+      "kind": "None",
+      "required": false
+    },
+    {
       "bindName": "Slider_Volume",
       "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_AudioPanel/Slider_Volume",
       "type": "UnityEngine.UI.Slider",
@@ -83,6 +90,13 @@
       "bindName": "Txt_Volume",
       "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_AudioPanel/Txt_Volume",
       "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Cot_ControlPanel",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel",
+      "type": "UnityEngine.RectTransform",
       "kind": "None",
       "required": false
     },
@@ -143,6 +157,13 @@
       "required": false
     },
     {
+      "bindName": "Cot_DisplayPanel",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel",
+      "type": "UnityEngine.RectTransform",
+      "kind": "None",
+      "required": false
+    },
+    {
       "bindName": "Dropdown_DisplayMode",
       "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Dropdown_DisplayMode",
       "type": "LiteFramework.UI.UIDropdownWrap",
@@ -199,6 +220,13 @@
       "required": false
     },
     {
+      "bindName": "Cot_GeneralPanel",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GeneralPanel",
+      "type": "UnityEngine.RectTransform",
+      "kind": "None",
+      "required": false
+    },
+    {
       "bindName": "Button_ResetDefaults",
       "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GeneralPanel/Button_ResetDefaults",
       "type": "UnityEngine.UI.Button",
@@ -230,6 +258,13 @@
       "bindName": "Txt_Language",
       "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GeneralPanel/Txt_Language",
       "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Cot_GraphicsPanel",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GraphicsPanel",
+      "type": "UnityEngine.RectTransform",
       "kind": "None",
       "required": false
     },
@@ -388,5 +423,5 @@
       "handler": "anonymous"
     }
   ],
-  "sourceHash": "sha256:a1145264e89fa1b70d92664ede1e49c26081329b28ebd7f537f37cc4b71a69e7"
+  "sourceHash": "sha256:7266ce8aff1dcab1ec5d00780d2d1b29f37ff307733a2bf460f898e4f6c0fc6f"
 }

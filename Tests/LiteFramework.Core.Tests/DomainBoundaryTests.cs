@@ -164,7 +164,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             string battle = Path.Combine(root, "Assets", "LiteGame", "Modules", "Battle");
-            string setup = Path.Combine(battle, "Setup");
+            string setup = Path.Combine(battle, "SubModules", "SetupSubModule");
             if (!Directory.Exists(setup)) return;
 
             HashSet<string> setupTypes = TopLevelTypeNames(setup);
@@ -173,7 +173,7 @@ namespace LiteFramework.Core.Tests
             var offenders = new List<string>();
             foreach (string leaf in leaves)
             {
-                string dir = Path.Combine(battle, leaf);
+                string dir = Path.Combine(battle, "SubModules", leaf + "SubModule");
                 if (!Directory.Exists(dir)) continue;
 
                 foreach (string file in Directory.GetFiles(dir, "*.cs", SearchOption.AllDirectories))
@@ -200,14 +200,14 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             string battle = Path.Combine(root, "Assets", "LiteGame", "Modules", "Battle");
-            string shared = Path.Combine(battle, "Arena");
+            string shared = Path.Combine(battle, "SubModules", "ArenaSubModule");
             if (!Directory.Exists(shared)) return;
 
             string[] leaves = { "Aim", "Characters", "Combat", "Commands", "Hud", "Session", "Settlement", "Setup" };
             var leafTypes = new HashSet<string>(StringComparer.Ordinal);
             foreach (string leaf in leaves)
             {
-                string dir = Path.Combine(battle, leaf);
+                string dir = Path.Combine(battle, "SubModules", leaf + "SubModule");
                 if (Directory.Exists(dir)) foreach (string t in TopLevelTypeNames(dir)) leafTypes.Add(t);
             }
 

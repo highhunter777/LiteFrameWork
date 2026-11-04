@@ -22,7 +22,8 @@ local TAB_TEXT_KEYS = {
     "UI.Settings.Tab.Audio", "UI.Settings.Tab.Graphics", "UI.Settings.Tab.Display",
     "UI.Settings.Tab.Control", "UI.Settings.Tab.General",
 }
-local TAB_TEXT_NODES = { "Txt_Tab_Audio", "Txt_Tab_Graphics", "Txt_Tab_Display", "Txt_Tab_Control", "Txt_Tab_General" }
+-- 页签文案节点名＝prefab 的 BindName（§9.2 文法：`_` 只做段分隔，语义段内不再加下划线——`Txt_TabAudio` 而非 `Txt_Tab_Audio`）
+local TAB_TEXT_NODES = { "Txt_TabAudio", "Txt_TabGraphics", "Txt_TabDisplay", "Txt_TabControl", "Txt_TabGeneral" }
 
 -- 下拉索引 ↔ 值（与 C# 侧允许值集对齐：Set* 会做值域校验，这里只负责"索引到值"的翻译）
 local DISPLAY_MODE_VALUES = { 0, 1, 2 }                       -- 独占全屏 / 无边框 / 窗口

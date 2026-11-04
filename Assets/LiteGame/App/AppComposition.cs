@@ -24,7 +24,7 @@ namespace LiteGame
     /// Adapters.Luban → Modules.Config），段一旦自己 new 就成环；跨域连线放进任何一段都会让"段式装配"
     /// 退化成大段。**本类是装配点不是业务段**——段内仍不许跨域连线。
     ///
-    /// 方法体预算：类 ≤400 行、方法 ≤80 行（CompositionBudgetTests）——装订按域拆成小方法。
+    /// 方法体预算：类 ≤400 行、方法 ≤80 行（SegmentBudgetTests）——装订按域拆成小方法。
     /// </summary>
     internal sealed class AppComposition
     {
@@ -82,7 +82,7 @@ namespace LiteGame
 
         /// <summary>跨域装订：模块全部成功后执行一次；登记资源进本窗口作用域（关闭时先于模块释放）。
         /// 末步是装配面密封——此后运行期不再接受新增登记。</summary>
-        internal async UniTask ComposeAfter(ModuleContext context)
+        internal async UniTask ComposeAfter(SegmentContext context)
         {
             if (context == null) throw new ArgumentNullException(nameof(context));
             context.Scope.Register(new DelegatedDisposable(DisposeComposition));
@@ -103,7 +103,7 @@ namespace LiteGame
         }
 
         /// <summary>Lua 门面后端（Bridge.*）：表源/注册表/UI 服务/导航——页面与脚本消费的唯一绑定面。</summary>
-        private void BindLuaFacades(ModuleContext context)
+        private void BindLuaFacades(SegmentContext context)
         {
             IConfigService config = context.Require<IConfigService>();
             Bridge.Bind(() => config.Tables);
@@ -118,7 +118,7 @@ namespace LiteGame
 
         /// <summary>设置门面装订：构造即全量应用持久化值（启动生效点），Lua 门面后端 + 容器取件面。
         /// 视角偏好用设置段的**同一实例**（<c>LookPreferences</c>）——改灵敏度后对局即时生效。</summary>
-        private static void BindProductSettings(ModuleContext context)
+        private static void BindProductSettings(SegmentContext context)
         {
             var settings = new ProductSettings(
                 context.Require<GameSettings>(), context.Require<SettingService>(),
@@ -130,7 +130,7 @@ namespace LiteGame
         /// <summary>内容身份绑定（只此一次）：内容/配置装配完成后，身份上下文用同一份 Activation/Config 事实回答。
         /// 根位移摘要经战斗侧端口 <see cref="IRootMotionContentDigest"/> 取（首个对局装载前为空字符串——
         /// 此时没有对局在跑，不参与准入；身份面不引战斗域类型）。</summary>
-        private static void BindIdentity(ModuleContext context)
+        private static void BindIdentity(SegmentContext context)
         {
             IdentityContext identity = context.Require<IdentityContext>();
             ActivationTransactionStore activation = context.Require<ActivationTransactionStore>();
@@ -146,7 +146,7 @@ namespace LiteGame
 
         /// <summary>模态登记（生产装配——与测试同口径）：错误/确认两个弹窗。设置页（表单 15）不在此登记：
         /// 它须经生成页面目录反查（单源），而本装订点早于 ProcedurePreload 的表装载——登记随放行闸口就位。</summary>
-        private static void BindModals(ModuleContext context)
+        private static void BindModals(SegmentContext context)
         {
             UIService ui = context.Require<UIService>();
             FeedbackService feedback = context.Require<FeedbackService>();
@@ -155,7 +155,7 @@ namespace LiteGame
         }
 
         /// <summary>输入拦截源（ui.modal）：模态 UI 打开时拦游戏意图。拦截键登记一次、跨对局常驻。</summary>
-        private static void BindInputGate(ModuleContext context)
+        private static void BindInputGate(SegmentContext context)
         {
             UIService ui = context.Require<UIService>();
             context.Require<IInputService>().RegisterBlocker(
@@ -163,7 +163,7 @@ namespace LiteGame
         }
 
         /// <summary>注册表回填服务（env 重建后按表补注册）：页面/内容/策略三张表 + Lua 宿主。</summary>
-        private void BindRegistryRefill(ModuleContext context)
+        private void BindRegistryRefill(SegmentContext context)
         {
             context.Services.RegisterInstance(new LuaRegistryRefillService(
                 context.Require<LuaComponent>(), context.Require<UIService>(), context.Require<IConfigService>(),
@@ -172,7 +172,7 @@ namespace LiteGame
 
         /// <summary>联机入口接流程机与 Lua 门面：进房 = Request(Match, MetaJoin)——走既有 Join 管道（不另开路径）；
         /// 重新登录唯一调用方 = Bridge.meta（凭证失效分支）。</summary>
-        private static void BindMetaEntry(ModuleContext context)
+        private static void BindMetaEntry(SegmentContext context)
         {
             MetaEntryService meta = context.Require<MetaEntryService>();
             meta.BindFlow(context.Require<IAppFlow>());
@@ -184,11 +184,11 @@ namespace LiteGame
         /// <summary>判定参数覆写面装订：实例登记进容器（调参面板/编辑器导出器共用），**此处不求门**——
         /// 装配完成时本地测试模式还没开启（门恒假），求值点是进房单点（每局创建传输前一次，
         /// 见 <c>ProductTransportFactory</c>）；运行期取件一律经容器。</summary>
-        private void BindSimParams(ModuleContext context) => context.Put(_simParamsOverrides);
+        private void BindSimParams(SegmentContext context) => context.Put(_simParamsOverrides);
 
         /// <summary>开发装配（GM 命令/弱网/调试内核）整段归 LiteGame.Dev，经钩子装饰；发布形态无 Dev 程序集 = 不装饰。
         /// 句柄登记进组合根作用域——关闭时先于模块释放（命令注销 + Dev 静态读口收口）。</summary>
-        private void BindDevDecoration(ModuleContext context)
+        private void BindDevDecoration(SegmentContext context)
         {
             _devDecoration = DevHooks.Current?.Decorate(new DevServices
             {

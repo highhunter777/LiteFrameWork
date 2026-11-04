@@ -14,7 +14,7 @@ namespace LiteGame.Modules.Settings
     ///
     /// 生效纪律（《设置系统专项设计》§4.1）：构造即全量应用（启动生效点 = 装配根）、改值即应用、
     /// 顺序固定（画质档 → 图形覆盖 → 垂直同步 → 分辨率/模式 → 帧率）、幂等、失败降级。
-    /// 落盘时机归 SettingService 三处纪律（设置页 OnHide 调 Save；退出经 SettingsModule.ShutdownAsync）。
+    /// 落盘时机归 SettingService 三处纪律（设置页 OnHide 调 Save；退出经 SettingsSegment.ShutdownAsync）。
     /// </summary>
     public sealed class ProductSettings
     {

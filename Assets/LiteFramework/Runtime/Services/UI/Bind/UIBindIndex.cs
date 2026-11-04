@@ -172,14 +172,16 @@ namespace LiteFramework.UI
             Get<Component>(name).gameObject.SetActive(visible);
         }
 
-        /// <summary>可交互开关：`Selectable` 优先，回退 `UIWidget.Interactable`
-        /// ——`StateButton`/`RedDot` 等自持交互语义的控件不是 Selectable。</summary>
+        /// <summary>可交互开关：`Selectable` 优先，回退 `UIWidget.Interactable`，再回退 <see cref="IUIInteractable"/>
+        /// ——`StateButton`/`RedDot` 等自持交互语义的控件不是 Selectable；控件库封装件（下拉/滑条/开关/输入框）
+        /// 把 inner Selectable 的可交互性透传出来（页面不必知道封装形态）。</summary>
         public partial void SetInteractable(string name, bool on)
         {
             MarkDriver(name, ControlDriver.Command);
             if (TryGet<Selectable>(name, out var sel)) { sel.interactable = on; return; }
             if (TryGet<UIWidget>(name, out var widget)) { widget.Interactable = on; return; }
-            throw new InvalidOperationException($"绑定索引[{name}] 无 Selectable / UIWidget 组件（无法设置可交互）");
+            if (_controls.TryGetValue(name, out var control) && control is IUIInteractable custom) { custom.Interactable = on; return; }
+            throw new InvalidOperationException($"绑定索引[{name}] 无 Selectable / UIWidget / IUIInteractable 组件（无法设置可交互）");
         }
 
         // ---- 受控 API 扩展（《UI控件Lua用法表》G3/G7/G10）----

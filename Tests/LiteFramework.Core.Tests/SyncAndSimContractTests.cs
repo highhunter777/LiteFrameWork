@@ -163,7 +163,7 @@ namespace LiteFramework.Core.Tests
         [Fact]
         public void UT16_SimView_SnapshotIntervalIsInstance()
         {
-            string text = ReadRepoText("Assets/LiteGame/Modules/Battle/Arena/SimView.cs");
+            string text = ReadRepoText("Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/SimView.cs");
             Match declaration = Regex.Match(text,
                 @"(?m)^[ \t]*(?<decl>(?:public|internal|private|protected)[^\r\n;=]*\bSnapshotInterval\b)",
                 RegexOptions.CultureInvariant);

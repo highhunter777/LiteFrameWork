@@ -37,9 +37,9 @@
     ProjectReference 它），按源链接纳入 L1——同一份 .cs 两侧编译，字节格式与校验语义不可能漂移。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Arena\RootMotionEntry.cs" Link="Battle\Arena\RootMotionEntry.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Arena\RootMotionCatalog.cs" Link="Battle\Arena\RootMotionCatalog.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Arena\RootMotionDigest.cs" Link="Battle\Arena\RootMotionDigest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\SubModules\ArenaSubModule\RootMotionEntry.cs" Link="Battle\SubModules\ArenaSubModule\RootMotionEntry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\SubModules\ArenaSubModule\RootMotionCatalog.cs" Link="Battle\SubModules\ArenaSubModule\RootMotionCatalog.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\SubModules\ArenaSubModule\RootMotionDigest.cs" Link="Battle\SubModules\ArenaSubModule\RootMotionDigest.cs" />
   </ItemGroup>
 
   <!--

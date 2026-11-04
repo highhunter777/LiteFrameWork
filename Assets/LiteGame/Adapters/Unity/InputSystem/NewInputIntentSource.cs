@@ -54,6 +54,21 @@ namespace LiteGame
 
         private Vector3 _aimPointWorld; // 本帧解算的**目标点**（三维；无解算帧 = false）
         private bool _hasAimPoint;
+
+        // 自由观察冻结（Alt；由 BattleLookController 控制）：冻结期写缓存点/缓存移动基准 yaw。
+        private bool _aimFrozen;
+        private float _frozenAimX;
+        private float _frozenAimY;
+        private float _frozenAimZ;
+        private float _frozenBasisYawRad;
+
+        /// <summary>最近一次**可用**的移动基准 yaw（弧度）。正俯视（pitch≈−90°）时相机 forward
+        /// 水平分量趋零、`eulerAngles.y` 进入万向锁——该形态用它保持方向，不猜（见 Sample 的退化判定）。</summary>
+        private float _lastBasisYawRad;
+
+        /// <summary>移动基准 / 瞄准点"平面可用"的最小水平分量平方：cos(5°)² ≈ 0.992 → 垂直分量的
+        /// 水平投影 = 1−0.992 = 0.008。低于它即判为正俯视退化（pitch 距 −90° 不足 5°）。</summary>
+        private const float PlanarYawMinSqr = 0.008f;
         /// <summary>
         /// 最近一次采样解算出的**瞄准目标点**（世界坐标）。
         ///
@@ -215,6 +230,31 @@ namespace LiteGame
         public bool ShoulderSwapPressed => Keyboard.current != null
             && Keyboard.current.qKey.wasPressedThisFrame;
 
+        /// <summary>自由观察按住（新 Input System 的 FreeLook action，Alt）。</summary>
+        public bool FreeLookHeld => _actions.GamePlay.FreeLook.IsPressed();
+
+        /// <summary>冻结/解冻瞄准点：冻结时缓存当前 AimPoint 与相机平面 yaw（WASD 基准）。</summary>
+        public void SetAimFrozen(bool frozen)
+        {
+            if (frozen)
+            {
+                if (!_aimFrozen)
+                {
+                    _frozenAimX = _aimPointX;
+                    _frozenAimY = _aimPointY;
+                    _frozenAimZ = _aimPointZ;
+                    _frozenBasisYawRad = _camera != null
+                        ? _camera.transform.eulerAngles.y * Mathf.Deg2Rad
+                        : 0f;
+                }
+                _aimFrozen = true;
+            }
+            else
+            {
+                _aimFrozen = false;
+            }
+        }
+
         public IntentSample Sample(in SimVector3 localPos)
         {
             _hasAimPoint = false;
@@ -227,13 +267,45 @@ namespace LiteGame
             var frame = default(SimInputFrame);
             float moveX = move.x;
             float moveZ = move.y;                     // 2D 向量的 y 轴先按屏幕"上"理解，再旋进世界（见下）
+
+            // 自由观察冻结：开火/ADS 当帧自动解除冻结（按相机准心走），其余时间保持冻结点。
+            bool fireOrAim = _actions.GamePlay.Fire.IsPressed() || _actions.GamePlay.Aim.IsPressed();
+            bool useFrozen = _aimFrozen && !fireOrAim;
+
+            // **俯视退化判定**（移动基准与瞄准点共用同一判据）：pitch 逼近 −90° 时相机 forward
+            // 的水平分量趋零——`eulerAngles.y` 同时进入万向锁（值退化/跳变），屏心射线又垂直打在
+            // 自己脚下（AimPoint 距本体几厘米，`Atan2(极小,极小)` 方向随机）。两处都必须走
+            // "保持上一次有效值"而不是照单全收，否则角色会原地抽搐（Sim 侧 Yaw 每帧随机）。
+            bool planarUsable = true;
+            if (aimCamera != null)
+            {
+                Vector3 camFwd = aimCamera.transform.forward;
+                planarUsable = camFwd.x * camFwd.x + camFwd.z * camFwd.z > PlanarYawMinSqr;
+            }
+
             if (aimCamera != null)
             {
                 // **相机相对移动**：W = 屏幕上 = 相机平面 forward 投影，D = 屏幕右 = 相机 right——
                 // 肩后/自由相机一旦有 yaw，世界轴直映射的 WASD 会横着走。
                 // 只在**采集侧**旋转：Sim 输入契约仍是世界空间向量，服务器/预测/协议零改动。
-                // 边界：正俯视（pitch≈-90°）时平面 yaw 不可良定义——该形态应保持俯视相机的固定 yaw。
-                float yawRad = aimCamera.transform.eulerAngles.y * Mathf.Deg2Rad;
+                // **基准 yaw**：非退化时仍用 `eulerAngles.y`（与原行为逐位一致——改算法没有收益，
+                // 反而要承担 Cinemachine forward 带 roll 时的约定风险）；只在**正俯视退化**
+                // （`planarUsable` 为假，万向锁）时保持上一次有效基准，不猜。
+                // 自由观察冻结期用冻结时的相机 yaw：WASD 仍按进入自由观察前的屏幕方向。
+                float yawRad;
+                if (useFrozen)
+                {
+                    yawRad = _frozenBasisYawRad;
+                }
+                else if (planarUsable)
+                {
+                    yawRad = aimCamera.transform.eulerAngles.y * Mathf.Deg2Rad;
+                    _lastBasisYawRad = yawRad;
+                }
+                else
+                {
+                    yawRad = _lastBasisYawRad;            // 正俯视：保持上一次可用基准（不猜）
+                }
                 float sin = Mathf.Sin(yawRad);
                 float cos = Mathf.Cos(yawRad);
                 float wx = moveX * cos + moveZ * sin;  // 屏幕右×(cos,-sin) + 屏幕上×(sin,cos)
@@ -266,10 +338,20 @@ namespace LiteGame
             // 自由视角下射线可能无地面交/交在极远——由**射程截断**兜底（TryResolveAimPoint 第三档）；
             // 唯一无点路径仍是相机未就绪，沿用上次点。
             // 场景切换后缓存会失效——ResolveCamera 已回落到当前 Camera.main
-            if (aimCamera != null)
+            if (useFrozen)
+            {
+                _aimPointX = _frozenAimX;
+                _aimPointY = _frozenAimY;
+                _aimPointZ = _frozenAimZ;
+                _aimPointWorld = new Vector3(_frozenAimX, _frozenAimY, _frozenAimZ);
+                _hasAimPoint = _frozenAimX != 0f || _frozenAimY != 0f || _frozenAimZ != 0f;
+            }
+            else if (aimCamera != null && planarUsable)
             {
                 // TPS 屏心射线（viewport 中心——分辨率无关）：指针锁定形态下鼠标只驱动相机视角，
                 // 瞄准点恒自相机中心解算——不再依赖鼠标屏幕位（Mouse.current 缺席也可解算）。
+                // **正俯视退化时不解析**：射线垂直打在自己脚下，点离本体几厘米，`Atan2(极小,极小)`
+                // 方向随机 ⇒ 保持上一次点（下面的 `_aimPointX/Y/Z` 不动即"沿用上次"）。
                 var ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
                 if (TryResolveAimPoint(ray, in localPos, out Vector3 p))
                 {

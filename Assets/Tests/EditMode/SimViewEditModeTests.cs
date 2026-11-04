@@ -461,6 +461,8 @@ namespace LiteGame.Tests.EditMode
 
             public void ToggleShoulder() { ToggleShoulderCount++; }
 
+            public void SetLookAngles(float yawRad, float pitchRad) { }
+
             public void AddLookDelta(float yawDelta, float pitchDelta) { }
 
             public float LookYaw => 0f;

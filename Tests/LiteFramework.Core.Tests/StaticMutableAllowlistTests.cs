@@ -17,16 +17,16 @@ namespace LiteFramework.Core.Tests
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
             "Assets/LiteGame/Adapters/Dev/Debug/Session/DevStartupConfig.cs :: DirectToTrainingEnabled",
-            "Assets/LiteGame/Modules/Battle/Aim/LookTuning.cs :: AdsScaleDevOverride",
-            "Assets/LiteGame/Modules/Battle/Aim/LookTuning.cs :: SensitivityDevOverride",
-            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: BurstCapDevOverride",
-            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: BurstGrowthDevOverride",
-            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: BurstRecoverDevOverride",
-            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: KickDevOverride",
-            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: KickRecoverDevOverride",
-            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: StaticMaxDevOverride",
+            "Assets/LiteGame/Modules/Battle/SubModules/AimSubModule/LookTuning.cs :: AdsScaleDevOverride",
+            "Assets/LiteGame/Modules/Battle/SubModules/AimSubModule/LookTuning.cs :: SensitivityDevOverride",
+            "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/CrosshairFeel.cs :: BurstCapDevOverride",
+            "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/CrosshairFeel.cs :: BurstGrowthDevOverride",
+            "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/CrosshairFeel.cs :: BurstRecoverDevOverride",
+            "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/CrosshairFeel.cs :: KickDevOverride",
+            "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/CrosshairFeel.cs :: KickRecoverDevOverride",
+            "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/CrosshairFeel.cs :: StaticMaxDevOverride",
             "Assets/LiteGame/Editor/GenConfig/GenConfig.cs :: CSharpCallLua",
-            "Assets/LiteGame/Modules/Battle/Characters/Drivers/GripTuning.cs :: TorsoWeightDevOverride",
+            "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule/Drivers/GripTuning.cs :: TorsoWeightDevOverride",
         };
 
         [Fact]

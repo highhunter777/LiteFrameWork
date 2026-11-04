@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace LiteFramework.UI
 {
     /// <summary>下拉选择封装：SetOptions 重建选项；onIndexChanged 出索引。</summary>
-    public class UIDropdownWrap : MonoBehaviour
+    public class UIDropdownWrap : MonoBehaviour, IUIInteractable
     {
         public TMP_Dropdown Dropdown;
         public event Action<int> OnIndexChanged;
@@ -38,6 +38,13 @@ namespace LiteFramework.UI
         }
 
         public int Selected => Dropdown != null ? Dropdown.value : 0;
+
+        /// <summary>可交互透传 inner TMP 下拉（<see cref="IUIInteractable"/>——受控 API SetInteractable 的解析面）。</summary>
+        public bool Interactable
+        {
+            get => Dropdown != null && Dropdown.interactable;
+            set { if (Dropdown != null) Dropdown.interactable = value; }
+        }
     }
 
 }

@@ -15,7 +15,7 @@ namespace LiteFramework.Tests
     public sealed class ClientHostTests
     {
         /// <summary>记录调用轨迹的 fake 模块：init/shutdown 顺序与失败注入点可控。</summary>
-        private sealed class FakeModule : IClientModule
+        private sealed class FakeModule : IClientSegment
         {
             private readonly List<string> _trace;
             private readonly Exception _initFailure;
@@ -36,7 +36,7 @@ namespace LiteFramework.Tests
                 _delayFrames = delayFrames;
             }
 
-            public async UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public async UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 for (int i = 0; i < _delayFrames; i++)
@@ -69,10 +69,10 @@ namespace LiteFramework.Tests
             awaiter.GetResult();
         }
 
-        private static ClientHost Host(params IClientModule[] modules)
+        private static ClientHost Host(params IClientSegment[] modules)
         {
             var host = new ClientHost();
-            foreach (var m in modules) host.AddModule(m);
+            foreach (var m in modules) host.AddSegment(m);
             return host;
         }
 
@@ -150,7 +150,7 @@ namespace LiteFramework.Tests
             Assert.Equal(new[] { "init:A", "init:B", "shutdown:A" }, trace.ToArray());
         }
 
-        private sealed class CancellingModule : IClientModule
+        private sealed class CancellingModule : IClientSegment
         {
             private readonly List<string> _trace;
             private readonly CancellationTokenSource _cts;
@@ -158,7 +158,7 @@ namespace LiteFramework.Tests
 
             public CancellingModule(List<string> trace, CancellationTokenSource cts) { _trace = trace; _cts = cts; }
 
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 _cts.Cancel();                                 // 模拟上游取消（父级令牌失效）
@@ -280,7 +280,7 @@ namespace LiteFramework.Tests
             var host = Host(new FakeModule("A", new List<string>()));
             Pump(host.InitializeAsync());
 
-            Assert.Throws<InvalidOperationException>(() => host.AddModule(new FakeModule("B", new List<string>())));
+            Assert.Throws<InvalidOperationException>(() => host.AddSegment(new FakeModule("B", new List<string>())));
         }
 
         [Fact]
@@ -307,7 +307,7 @@ namespace LiteFramework.Tests
         // ---- M1：模块依赖图（重复/缺失/环）与关闭链全路径释放 ----
 
         /// <summary>带依赖声明的 fake 模块（M1 DAG 校验用）。</summary>
-        private sealed class GraphModule : IClientModule, IClientModuleGraph
+        private sealed class GraphModule : IClientSegment, IClientSegmentGraph
         {
             public string Name { get; }
             public IReadOnlyList<string> DependsOn { get; }
@@ -319,7 +319,7 @@ namespace LiteFramework.Tests
                 DependsOn = deps ?? Array.Empty<string>();
             }
 
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 CapturedRoot = context.RootScope;
                 return UniTask.CompletedTask;
@@ -348,8 +348,8 @@ namespace LiteFramework.Tests
         {
             // 环只能在**不同类型**之间形成；用两个不同 fake 类型互相依赖。
             var host = new ClientHost();
-            host.AddModule(new CycleA());
-            host.AddModule(new CycleB());
+            host.AddSegment(new CycleA());
+            host.AddSegment(new CycleB());
             Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
         }
 
@@ -372,10 +372,10 @@ namespace LiteFramework.Tests
                 "关闭被取消也必须释放根 Scope（路线图 §4.3：令牌只约束等待上限）");
         }
 
-        private sealed class GraphModule2NotRegistered : IClientModule
+        private sealed class GraphModule2NotRegistered : IClientSegment
         {
             public string Name => "not-registered";
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
         }
 
@@ -384,12 +384,12 @@ namespace LiteFramework.Tests
         private sealed class SealedProbe { }
 
         /// <summary>捕获本模块装配窗口的模块（用于验证窗口关闭/跨模块拒绝）。</summary>
-        private sealed class CaptureModule : IClientModule
+        private sealed class CaptureModule : IClientSegment
         {
-            private readonly Action<ModuleContext> _capture;
-            public CaptureModule(Action<ModuleContext> capture) => _capture = capture;
+            private readonly Action<SegmentContext> _capture;
+            public CaptureModule(Action<SegmentContext> capture) => _capture = capture;
             public string Name => "capture";
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 _capture(context);
                 return UniTask.CompletedTask;
@@ -398,13 +398,13 @@ namespace LiteFramework.Tests
         }
 
         /// <summary>在初始化中执行外部动作的模块（跨模块登记用例）。</summary>
-        private sealed class ActionModule : IClientModule
+        private sealed class ActionModule : IClientSegment
         {
             private readonly Action _action;
             private readonly string _name;
             public ActionModule(string name, Action action) { _name = name; _action = action; }
             public string Name => _name;
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 _action();
                 return UniTask.CompletedTask;
@@ -412,10 +412,10 @@ namespace LiteFramework.Tests
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
         }
 
-        private sealed class FailingModule : IClientModule
+        private sealed class FailingModule : IClientSegment
         {
             public string Name => "failing";
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
                 => throw new InvalidOperationException("init failed");
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
         }
@@ -423,7 +423,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 装配窗口_模块初始化返回后关闭_迟到登记拒绝()
         {
-            ModuleContext captured = null;
+            SegmentContext captured = null;
             var host = Host(new CaptureModule(context => captured = context));
 
             Pump(host.InitializeAsync());
@@ -437,7 +437,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 装配窗口_不得跨模块登记()
         {
-            ModuleContext firstWindow = null;
+            SegmentContext firstWindow = null;
             var host = Host(
                 new CaptureModule(context => firstWindow = context),
                 new ActionModule("late-put", () => firstWindow.Put(new SealedProbe())));
@@ -449,7 +449,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 装配失败回滚_装配面同样密封_迟到登记拒绝()
         {
-            ModuleContext captured = null;
+            SegmentContext captured = null;
             var host = Host(new CaptureModule(context => captured = context), new FailingModule());
 
             Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
@@ -463,7 +463,7 @@ namespace LiteFramework.Tests
         public void 组合根_全部模块成功后执行_窗口内可登记_密封后迟到登记拒绝()
         {
             var trace = new List<string>();
-            ModuleContext composeWindow = null;
+            SegmentContext composeWindow = null;
             var host = Host(new FakeModule("A", trace), new FakeModule("B", trace));
             host.ComposeRoot(context =>
             {
@@ -545,7 +545,7 @@ namespace LiteFramework.Tests
         // ---- M2：逐模块资源作用域（路线图 §4.3） ----
 
         /// <summary>把资源登记进本模块作用域的模块：验证释放时机与顺序。</summary>
-        private sealed class ScopedModule : IClientModule
+        private sealed class ScopedModule : IClientSegment
         {
             private readonly List<string> _trace;
             private readonly string _name;
@@ -560,7 +560,7 @@ namespace LiteFramework.Tests
 
             public string Name => _name;
 
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + _name);
                 context.Scope.Register(new Tracer(_trace, "scope:" + _name));
@@ -651,28 +651,28 @@ namespace LiteFramework.Tests
             Assert.Equal(4, host.State);
         }
 
-        private sealed class GatedModule : IClientModule
+        private sealed class GatedModule : IClientSegment
         {
             private readonly UniTaskCompletionSource _gate;
             public GatedModule(UniTaskCompletionSource gate) => _gate = gate;
             public string Name => "gated";
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask ShutdownAsync(CancellationToken ct) => _gate.Task;
         }
 
-        private sealed class CycleA : IClientModule, IClientModuleGraph
+        private sealed class CycleA : IClientSegment, IClientSegmentGraph
         {
             public string Name => "CycleA";
             public IReadOnlyList<string> DependsOn => new[] { "CycleB" };
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
         }
 
-        private sealed class CycleB : IClientModule, IClientModuleGraph
+        private sealed class CycleB : IClientSegment, IClientSegmentGraph
         {
             public string Name => "CycleB";
             public IReadOnlyList<string> DependsOn => new[] { "CycleA" };
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
         }
     }

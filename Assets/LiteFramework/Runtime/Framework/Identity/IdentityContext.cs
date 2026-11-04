@@ -4,7 +4,7 @@ namespace LiteFramework
 {
     /// <summary>
     /// 统一身份上下文（路线图 §4.9）：Build/Content/Schema 三层的唯一构造点。
-    /// 由 <c>IdentityModule</c> 生成；内容身份在内容/配置装配后绑定一次。
+    /// 由 <c>IdentitySegment</c> 生成；内容身份在内容/配置装配后绑定一次。
     /// 业务代码只读本上下文，不各自拼 buildHash/configHash/sourceHash。
     /// </summary>
     public sealed class IdentityContext

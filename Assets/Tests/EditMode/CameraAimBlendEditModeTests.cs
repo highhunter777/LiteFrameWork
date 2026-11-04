@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using LiteGame;
 using NUnit.Framework;
 using UnityEngine;
@@ -28,6 +28,7 @@ namespace LiteGame.Tests.EditMode
             public void SetAiming(bool aiming) => Aiming.Add(aiming);
             public void SetAimPoint(in Vector3 point, bool hasPoint) { }
             public void ToggleShoulder() { }
+            public void SetLookAngles(float yawRad, float pitchRad) { }
             public void AddLookDelta(float yawDelta, float pitchDelta) { }
             public void Reset() { }
             public bool EnsureReady() => true;

@@ -139,12 +139,12 @@ namespace LiteFramework.Tests
 
         // ---- ClientHost 关闭序列 ----
 
-        private sealed class TracerModule : IClientModule
+        private sealed class TracerModule : IClientSegment
         {
             private readonly List<string> _trace;
             public string Name { get; }
             public TracerModule(string name, List<string> trace) { Name = name; _trace = trace; }
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 return UniTask.CompletedTask;
@@ -164,7 +164,7 @@ namespace LiteFramework.Tests
             var probe = new ProbeModule("A", trace, () =>
                 trace.Add("rootCancelled:" + host.RootScope.Token.IsCancellationRequested));
             host = new ClientHost();
-            host.AddModule(probe);
+            host.AddSegment(probe);
 
             Pump(host.InitializeAsync());
             Assert.False(host.RootScope.Token.IsCancellationRequested);   // 运行期根令牌健康
@@ -177,7 +177,7 @@ namespace LiteFramework.Tests
         }
 
         /// <summary>关闭期探针模块：ShutdownAsync 时回读根令牌状态（验证关闭序列的取消先于模块关闭）。</summary>
-        private sealed class ProbeModule : IClientModule
+        private sealed class ProbeModule : IClientSegment
         {
             private readonly List<string> _trace;
             private readonly Action _probe;
@@ -186,7 +186,7 @@ namespace LiteFramework.Tests
             {
                 Name = name; _trace = trace; _probe = probe;
             }
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 return UniTask.CompletedTask;
@@ -205,9 +205,9 @@ namespace LiteFramework.Tests
             var trace = new List<string>();
             var pending = new UniTaskCompletionSource();          // B 的初始化由测试定向续延
             var host = new ClientHost();
-            host.AddModule(new TracerModule("A", trace));
-            host.AddModule(new PendingModule("B", trace, pending));
-            host.AddModule(new TracerModule("C", trace));         // 竞态守卫的目标：C 必须不再初始化
+            host.AddSegment(new TracerModule("A", trace));
+            host.AddSegment(new PendingModule("B", trace, pending));
+            host.AddSegment(new TracerModule("C", trace));         // 竞态守卫的目标：C 必须不再初始化
 
             var initTask = host.InitializeAsync();                // A 完成、B 挂起
             Assert.Equal(new[] { "init:A", "init:B" }, trace.ToArray());
@@ -223,7 +223,7 @@ namespace LiteFramework.Tests
         }
 
         /// <summary>初始化挂起在 UniTaskCompletionSource 上的模块（定向续延——不依赖真实时钟/线程调度）。</summary>
-        private sealed class PendingModule : IClientModule
+        private sealed class PendingModule : IClientSegment
         {
             private readonly List<string> _trace;
             private readonly UniTaskCompletionSource _pending;
@@ -232,7 +232,7 @@ namespace LiteFramework.Tests
             {
                 Name = name; _trace = trace; _pending = pending;
             }
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 return _pending.Task;

@@ -22,19 +22,19 @@ namespace LiteFramework.Tests
             public void Dispose() => throw new InvalidOperationException("service dispose failed");
         }
 
-        private sealed class Module : IClientModule
+        private sealed class Module : IClientSegment
         {
             private static int s_sequence;
-            private readonly Action<ModuleContext> _initialize;
+            private readonly Action<SegmentContext> _initialize;
             private readonly Action _shutdown;
             public string Name { get; }
-            public Module(Action<ModuleContext> initialize, Action shutdown = null)
+            public Module(Action<SegmentContext> initialize, Action shutdown = null)
             {
                 Name = "Composition#" + (++s_sequence);   // 模块名必须唯一（M1 图校验）
                 _initialize = initialize;
                 _shutdown = shutdown;
             }
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 _initialize(context);
                 return UniTask.CompletedTask;
@@ -105,9 +105,9 @@ namespace LiteFramework.Tests
         {
             var product = new Product();
             var host = new ClientHost();
-            ModuleContext assembly = null;
-            host.AddModule(new Module(context => { assembly = context; context.Put(product); }, product.Dispose));
-            host.AddModule(new Module(context => context.Put<IProduct>(context.Require<Product>())));
+            SegmentContext assembly = null;
+            host.AddSegment(new Module(context => { assembly = context; context.Put(product); }, product.Dispose));
+            host.AddSegment(new Module(context => context.Put<IProduct>(context.Require<Product>())));
             await host.InitializeAsync();
             Assert.Same(product, host.Product<IProduct>());
             Assert.Same(assembly.Services, host.Product<ServiceContainer>());
@@ -123,7 +123,7 @@ namespace LiteFramework.Tests
             var trace = new List<string>();
             var product = new Product();
             var host = new ClientHost();
-            host.AddModule(new Module(context =>
+            host.AddSegment(new Module(context =>
             {
                 context.Services.RegisterInstance(product, ServiceOwnership.ContainerOwned);
                 context.Services.Register<MissingConsumer, MissingConsumer>();
@@ -140,7 +140,7 @@ namespace LiteFramework.Tests
         {
             var product = new Product();
             var host = new ClientHost();
-            host.AddModule(new Module(context =>
+            host.AddSegment(new Module(context =>
             {
                 context.Services.RegisterInstance(product, ServiceOwnership.ContainerOwned);
                 throw new InvalidOperationException("init failed");
@@ -154,7 +154,7 @@ namespace LiteFramework.Tests
         {
             var product = new Product();
             var host = new ClientHost();
-            host.AddModule(new Module(context =>
+            host.AddSegment(new Module(context =>
             {
                 context.Services.RegisterInstance(product, ServiceOwnership.ContainerOwned);
                 context.Services.RegisterInstance(new ThrowingDisposer(), ServiceOwnership.ContainerOwned);
@@ -173,8 +173,8 @@ namespace LiteFramework.Tests
             var trace = new List<string>();
             var host = new ClientHost();
             ServiceContainer container = null;
-            host.AddModule(new Module(context => container = context.Services, () => trace.Add("facility shutdown")));
-            host.AddModule(new Module(context =>
+            host.AddSegment(new Module(context => container = context.Services, () => trace.Add("facility shutdown")));
+            host.AddSegment(new Module(context =>
                 context.Services.RegisterFactory<Product>(_ => new Product()), () =>
             {
                 container.Dispose();

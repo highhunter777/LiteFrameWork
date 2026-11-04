@@ -24,6 +24,7 @@
 | 12 | UI 系统 P2-3 B3：设备档与预览矩阵（UiDeviceProfiles · 驱动升级 · ui.preview-matrix） | — |
 | 13 | UI 系统 P2-3 B4：存量样式收敛与收口（44 精确令牌 · UiSelectableTheme · 文字档迁移 · UiThemeBinder） | — |
 | 14 | 设置系统分批：生成器落点校正 · 数据层/生效器/门面 · 设置页五页签骨架 | — |
+| 15 | 设置页名字面修复：页签绑定 · 面板 BindNode · 可交互解析面（局内 ESC 报错） | — |
 
 ---
 
@@ -699,3 +700,51 @@
 - **既有 4 行未迁 `LTextKeyRef`**：与新控件写法并存；本批优先保结构重构不叠文案链路改造。
 - **实机/Play 验收未跑**：页签切换手感、分辨率/模式切换、对局中置灰、多分辨率布局归手测（设计 §9.3 清单）。
 - **页面预览截图工具失效**：`BuildUiPages.CaptureAll` 本次产出两张全黑同 hash 图（旧工具与新页面结构无关；已登记工具链债），故本批视觉核对改为几何/校验数值面。
+
+---
+
+## 第15章 设置页名字面修复：页签绑定 · 面板 BindNode · 可交互解析面（局内 ESC 报错）
+
+<a id="ch15-settings-binding-fix"></a>
+
+> **触发**：局内按 ESC（对局菜单）控制台报错（用户报障 2026-11-03）——`[SafeCall:UIForm[15].OnShow] LuaException`，页面被回滚（`PageFlow.Go[UI.Page_Settings]:UIForm[15] 初始化失败`）。
+> 设计：[设置系统专项设计 §7](../设计文档/客户端/UI系统/设置系统专项设计.md) · [UI 逻辑 API 参考 §3.2](../设计文档/客户端/UI系统/UI逻辑API参考.md) · [UI 命名与控件词表参考](../设计文档/客户端/UI系统/UI命名与控件词表参考.md)
+
+### 根因（三处同型：Lua 寻址面与运行期绑定索引不一致，且都落在「动态名字」盲区）
+
+| # | 现象（控制台首错） | 根因 | 后果 |
+|---|---|---|---|
+| 1 | `绑定索引[Txt_Tab_Audio] 无 Text/TMP_Text 组件` | `Page_Settings.lua` 的 `TAB_TEXT_NODES` 写 `Txt_Tab_Audio`（**两个下划线**，不合 §9.2「`_` 只做段分隔」），prefab/契约的 `BindName` 是 `Txt_TabAudio` | `OnShow` 的页签文案循环抛异常 → 后段（初值/回调/置灰）全部没接 |
+| 2 | （修 1 后）`绑定索引[Cot_AudioPanel] …`/`KeyNotFoundException` | 5 个 `Cot_*Panel` 只有层级节点、**没挂 `BindNode`** | `_ApplyTab` 的 `SetVisible` 取不到索引项 |
+| 3 | （修 2 后）`绑定索引[Dropdown_Resolution] 无 Selectable / UIWidget 组件` | `SetInteractable` 只有 Selectable / UIWidget 两个解析面，而 6 个下拉的目标是 `UIDropdownWrap`（`MonoBehaviour` 封装，**不是** Selectable） | 对局中「显示类三行置灰」一跑就抛，整页 OnShow 中断 |
+
+**为什么既有校验全绿**：`ContractReferenceRule` 只扫 `self.ui:Api("名字", …)` 的**字面量第一参**——这三处名字都经表（`TAB_TEXT_NODES[i]` / `PANELS[i]`）传入，规则看不见；`BindingNamingRule` 只判节点名（不判 Lua 里的字符串）；`ui.contract-drift` 判的是"契约与 prefab 一致"，不判 Lua 引用面。第14章挂账的「实机/Play 验收未跑」正是这三处得以潜伏到用户手上的直接原因。
+
+### 修法
+
+| 面 | 落地 |
+|---|---|
+| Lua 名字对齐 | `TAB_TEXT_NODES` → `Txt_TabAudio / Txt_TabGraphics / Txt_TabDisplay / Txt_TabControl / Txt_TabGeneral`，并就地注明「节点名＝`BindName`，语义段内不再加下划线」 |
+| prefab | 5 个 `Cot_*Panel` 补 `BindNode`（`BindName`＝节点名，`CustomTypeName` 留空＝自动解析到容器 `RectTransform`）；`AgentScripts/FixSettingsTabPanelBinds.cs` 幂等可复跑（同批核对 5 个页签文案节点 `BindName` 仍＝节点名） |
+| 契约重生成 | 走工具链单页全链：`UIContractBatch.Regenerate` + `UIContractStore.Save`（`AgentScripts/RegenerateSettingsContract.cs`）→ `controls` 40 → **45**、`text` 0、`sourceHash` 刷新；不手改 JSON |
+| 可交互解析面 | 新增 `IUIInteractable`（`Abstractions/IUIInteractable.cs`——接口自持守卫要求 public interface 住 `Abstractions/`）：`UIDropdownWrap` / `UISliderWrap` / `UIToggleWrap` / `UIInputFieldWrap` 透传 inner Selectable 的可交互性；`UIBindIndex.SetInteractable` 增第三分支（Selectable → UIWidget → IUIInteractable），既不是控件也没实现接口时仍 fail-fast 抛 |
+| 守卫用例 | ① `UIPageNameFaceEditModeTests`：页面 Lua 的**名字形状字面量**必须落在契约面（`controls[].bindName` ∪ `text[]` 节点名 ∪ 页面名）——与调用形态无关，表驱动同样覆盖；② `UIBindIndexInteractableEditModeTests`：4 个封装件的透传 + 非控件目标仍抛 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| `UIPageNameFaceEditModeTests`（新） | 修前**红**：`Page_Settings` 10 条（5 面板 + 5 页签名）；修后**绿** |
+| `UIBindIndexInteractableEditModeTests`（新） | **2/2 通过**（封装件透传、非控件 fail-fast） |
+| `UIContract*` / `UIPageManifest*` / `UIBindingTools*` | **24/24 · 16/16 · 12/12 通过**（含「契约与 prefab 一致零误报」漂移对账） |
+| Play 实测（Editor Play：真 Lua + 真 prefab + YooAsset 内容包，对局中） | 用 InputSystem 状态事件注入真实 ESC → `[Nav] Back` → `Go id=15` → **`UIForm[15] 打开`（Window@200）**，全段**无 LuaException / 无 SafeCall 报错**；`Button_Exit` `activeSelf=True`（`battleExit` 生效）；**再按一次 ESC** → 页面关闭（`Button_Exit` 不在活跃层级） |
+| Play 实测（页面读数） | 页签文案：音频 / 图形 / 显示 / 控制 / 常规；可见面板 **1/5**（音频）；`TabGroup.Select(1)` → 图形面板可见、音频隐藏——页签互斥与切换链路通 |
+| 契约 | `controls=45`（+5 面板，类型 `UnityEngine.RectTransform`）、`text=0`、`sourceHash=sha256:7266ce8a…` |
+| L1（工程质量基线） | **1976 通过 / 0 失败**（`python scripts/gate/test.py --suite L1 --profile PullRequest`）。本批首轮红两条并已按规则修：`模块接口必须住Abstractions`（`IUIInteractable` 原放 `Widgets/`→移 `Abstractions/`）、`纪律_代码注释不含施工痕迹`（新用例注释带日期→去日期），复跑绿 |
+
+### 挂账（如实）
+
+- **动态名字盲区仍在规则侧**：`ContractReferenceRule` 只认字面量第一参，表驱动传名不进对账；本批用「全文名字形状字面量」用例兜住，规则本身未改（登记见 [工具链登记](../审计/客户端/登记/工具链.md)）。
+- **静态文案的静/动分面未落地**：设计 §7.4 目标为「静态文案全部走 `LTextKeyRef`，Lua 只写动态文案」；当前页仍由 Lua `SetTextKey` 写全部静态文案（契约 `text[]`＝0）。因此 `ui.contract.text-double-write` 无冲突，但迁移未做，随文案链路批次收口。
+- **图形三项与按键重绑仍未接线**（沿用第14章挂账）：渲染缩放/抗锯齿/阴影留阶段 B；`Button_Bindings` 为 P2。
+- **`Cot_*Panel` 的契约类型是容器**（`UnityEngine.RectTransform`）：受控 API 现阶段只用 `SetVisible`；若将来要动容器其它属性，按需给 `BindNode.CustomTypeName`。

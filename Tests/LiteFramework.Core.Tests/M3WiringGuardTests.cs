@@ -46,9 +46,9 @@ namespace LiteFramework.Core.Tests
             string actions = File.ReadAllText(Path.Combine(root,
                 "Assets/LiteGame/Modules/Procedure/Recovery/AppRecoveryActions.cs"));
             string content = File.ReadAllText(Path.Combine(root,
-                "Assets/LiteGame/Modules/Composition/ContentComposition.cs"));
+                "Assets/LiteGame/Modules/Composition/ContentSegment.cs"));
             string procedure = File.ReadAllText(Path.Combine(root,
-                "Assets/LiteGame/Modules/Procedure/ProcedureComposition.cs"));
+                "Assets/LiteGame/Modules/Procedure/ProcedureSegment.cs"));
 
             Assert.Contains("ClearContentCacheAsync", service);          // 执行器 Recoverable 升级路径
             Assert.Contains("ClearContentCacheAsync", actions);          // 生产动作实现
@@ -61,7 +61,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             string bridge = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Meta/MetaBridge.cs"));
-            string procedure = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Procedure/ProcedureComposition.cs"));
+            string procedure = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Procedure/ProcedureSegment.cs"));
             string composition = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/AppComposition.cs"));
             string pageFlow = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Procedure/PageFlow.cs"));
             string meta = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Meta/MetaEntryService.cs"));

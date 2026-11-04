@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace LiteGame.Modules.Camera
 {
@@ -58,6 +58,10 @@ namespace LiteGame.Modules.Camera
         /// <summary>左/右肩切换（本地视角构图语义口）：实现按场景肩偏的镜像表达，不改
         /// 距离/俯仰/FOV；无肩偏配置时如实 no-op。左/右的具体宽度归场景配置单源。</summary>
         void ToggleShoulder();
+
+        /// <summary>绝对视角角（弧度；yaw 环绕、pitch 按实现限位钳制）——自由观察回正/强制退出落位用；
+        /// 避免用 AddLookDelta 反复逼近留下残差。</summary>
+        void SetLookAngles(float yawRad, float pitchRad);
 
         /// <summary>
         /// 本地视角增量（第三人称自由视角）：把本帧输入源的视角增量（弧度）累进服务自持的相机

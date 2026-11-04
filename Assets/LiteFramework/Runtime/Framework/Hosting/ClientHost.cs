@@ -23,7 +23,7 @@ namespace LiteFramework
     public sealed class ClientHost
     {
         private readonly object _gate = new object();
-        private readonly List<IClientModule> _modules = new List<IClientModule>();     // 注册顺序 = 初始化顺序 = 关闭逆序
+        private readonly List<IClientSegment> _modules = new List<IClientSegment>();     // 注册顺序 = 初始化顺序 = 关闭逆序
         private readonly List<(string name, Func<CancellationToken, UniTask> flush)> _flushHooks = new List<(string, Func<CancellationToken, UniTask>)>();
         private readonly List<Action<bool>> _pauseHandlers = new List<Action<bool>>();
         private readonly List<Action<bool>> _focusHandlers = new List<Action<bool>>();
@@ -38,14 +38,14 @@ namespace LiteFramework
         private bool _shutdownRequested;
         private UniTaskCompletionSource _shutdownSignal;   // 并发关闭的完成信号：第二调用等待首次收尾，而不是立即返回
         private bool _scopeFailuresReported;
-        private readonly List<(IClientModuleHandle handle, ModuleScope scope)> _handles = new List<(IClientModuleHandle, ModuleScope)>();   // 已成功模块的关闭句柄 + 资源作用域（逆序关闭/释放）
+        private readonly List<(IClientSegmentHandle handle, SegmentScope scope)> _handles = new List<(IClientSegmentHandle, SegmentScope)>();   // 已成功模块的关闭句柄 + 资源作用域（逆序关闭/释放）
 
         /// <summary>模块初始化/关闭事件（诊断：模块名 + 阶段）。
         /// 字段而非 event：引导适配器整钩替换（= 赋值）+ Host 内部 invoke，订阅语义由使用方自理。</summary>
-        public Action<string, string> ModuleTrace;
+        public Action<string, string> SegmentTrace;
 
         public int State => _state;
-        public int ModuleCount { get { lock (_gate) { return _modules.Count; } } }
+        public int SegmentCount { get { lock (_gate) { return _modules.Count; } } }
 
         /// <summary>运行期根作用域（初始化成功后可用；未初始化时为 null）。</summary>
         public ClientScope RootScope => _rootScope;
@@ -63,7 +63,7 @@ namespace LiteFramework
 
         /// <summary>注册模块（必须在 InitializeAsync 之前；启动后拒绝——运行期动态增删模块是生命周期错误）。
         /// **注册顺序即初始化顺序、关闭逆序**——装配方用调用序表达依赖图。</summary>
-        public ClientHost AddModule(IClientModule module)
+        public ClientHost AddSegment(IClientSegment module)
         {
             if (module == null) throw new ArgumentNullException(nameof(module));
             lock (_gate)
@@ -77,8 +77,8 @@ namespace LiteFramework
         /// <summary>注册组合根回调（<c>AppComposition.ComposeAfter</c>）：**全部模块初始化成功后、装配面密封前**
         /// 调用一次。回调拿到**打开的装配窗口**（<c>Put</c> 合法；返回/抛出/取消后立即关闭）与自己的资源作用域
         /// （关闭时先于模块释放；失败与模块失败同路径回滚）。跨域装订只能落这里——段内不许跨域连线。
-        /// **必须早于启动登记**（与 <see cref="AddModule"/> 同口径）。</summary>
-        public ClientHost ComposeRoot(Func<ModuleContext, UniTask> compose)
+        /// **必须早于启动登记**（与 <see cref="AddSegment"/> 同口径）。</summary>
+        public ClientHost ComposeRoot(Func<SegmentContext, UniTask> compose)
         {
             if (compose == null) throw new ArgumentNullException(nameof(compose));
             lock (_gate)
@@ -122,19 +122,19 @@ namespace LiteFramework
         /// </summary>
         public async UniTask InitializeAsync(CancellationToken ct = default)
         {
-            List<IClientModule> modules;
+            List<IClientSegment> modules;
             lock (_gate)
             {
                 if (_state != 0) throw new InvalidOperationException($"Host 状态 {_state} 不允许初始化（重复启动/已关闭）");
                 _state = 1;
-                modules = new List<IClientModule>(_modules);
+                modules = new List<IClientSegment>(_modules);
             }
 
             // 启动前图校验（路线图 M1）：重复名/缺失依赖/依赖环一律 fail-fast——早于任何副作用。
             // 校验失败 = 启动终止：进入终态（4），否则 Host 会停在"初始化中"且无法重试。
             try
             {
-                ModuleGraphValidator.Validate(modules);
+                SegmentGraphValidator.Validate(modules);
             }
             catch
             {
@@ -151,9 +151,9 @@ namespace LiteFramework
 
             try
             {
-                await InitializeModulesAsync(modules, ct);
+                await InitializeSegmentsAsync(modules, ct);
                 if (_composeRoot != null)                      // 组合根：全部模块成功后、密封前的跨域装订
-                    await _composeRoot.RunAsync(_context, _rootScope, ModuleTrace, ct);
+                    await _composeRoot.RunAsync(_context, _rootScope, SegmentTrace, ct);
 
                 _context.SealAssembly();                       // 装配完成：运行期不再新增注册
                 if (!_context.Services.IsSealed) _context.Services.Seal();
@@ -162,7 +162,7 @@ namespace LiteFramework
             catch (Exception)
             {
                 // 回滚：只关闭已成功模块（逆序），再重新抛原异常。回滚自身的失败不向上叠加（聚合丢弃——
-                // 原因优先，回滚细节走 ModuleTrace）。
+                // 原因优先，回滚细节走 SegmentTrace）。
                 _context?.SealAssembly();                      // 失败/取消后同样是"装配已结束"，迟到的 Put 一律拒绝
                 await RollbackInitializedAsync();
                 lock (_gate) 
@@ -215,8 +215,8 @@ namespace LiteFramework
             ReleaseComposeScope();
 
             // ④ 逆序关闭已初始化模块（未初始化者跳过——启动失败回滚后再次关闭不应触碰未初始化模块）
-            List<(IClientModuleHandle handle, ModuleScope scope)> handles;
-            lock (_gate) handles = new List<(IClientModuleHandle, ModuleScope)>(_handles);
+            List<(IClientSegmentHandle handle, SegmentScope scope)> handles;
+            lock (_gate) handles = new List<(IClientSegmentHandle, SegmentScope)>(_handles);
             try
             {
                 for (int i = handles.Count - 1; i >= 0; i--)
@@ -304,7 +304,7 @@ namespace LiteFramework
 
         /// <summary>按注册序初始化全部模块；任一失败抛出（调用方走回滚）。失败模块的作用域就地释放，
         /// 成功模块产出关闭句柄（"初始化成功"与"可关闭"绑定）。</summary>
-        private async UniTask InitializeModulesAsync(List<IClientModule> modules, CancellationToken ct)
+        private async UniTask InitializeSegmentsAsync(List<IClientSegment> modules, CancellationToken ct)
         {
             for (int i = 0; i < modules.Count; i++)
             {
@@ -316,12 +316,12 @@ namespace LiteFramework
                     if (_shutdownRequested)
                         throw new OperationCanceledException("引导被宿主关闭打断（ShutdownAsync 与 InitializeAsync 并发）");
                 }
-                IClientModule module = modules[i];
-                ModuleTrace?.Invoke(module.Name, "init:start");
+                IClientSegment module = modules[i];
+                SegmentTrace?.Invoke(module.Name, "init:start");
                 // 每个模块独立资源作用域（路线图 §4.3）：失败时本模块 scope 就地释放，不留给根作用域。
-                var moduleScope = new ModuleScope(_rootScope, module.Name);
+                var moduleScope = new SegmentScope(_rootScope, module.Name);
                 // 装配窗口只覆盖本模块初始化：返回/抛出/取消/异步泄漏都在 finally 关窗。
-                var moduleContext = new ModuleContext(_context, module.Name, moduleScope);
+                var moduleContext = new SegmentContext(_context, module.Name, moduleScope);
                 try
                 {
                     await module.InitializeAsync(moduleContext, ct);
@@ -335,10 +335,10 @@ namespace LiteFramework
                 {
                     moduleContext.Close();
                 }
-                ModuleTrace?.Invoke(module.Name, "init:done");
+                SegmentTrace?.Invoke(module.Name, "init:done");
                 lock (_gate)
                 {
-                    _handles.Add((new ModuleHandle(module), moduleScope));   // 成功即产出关闭句柄（M1：初始化成功与可关闭绑定）
+                    _handles.Add((new SegmentHandle(module), moduleScope));   // 成功即产出关闭句柄（M1：初始化成功与可关闭绑定）
                     _initializedCount = i + 1;
                 }
             }
@@ -351,9 +351,9 @@ namespace LiteFramework
             {
                 try
                 {
-                    ModuleTrace?.Invoke(flushes[i].name, "flush:start");
+                    SegmentTrace?.Invoke(flushes[i].name, "flush:start");
                     await flushes[i].flush(ct);
-                    ModuleTrace?.Invoke(flushes[i].name, "flush:done");
+                    SegmentTrace?.Invoke(flushes[i].name, "flush:done");
                 }
                 catch (Exception ex)
                 {
@@ -388,7 +388,7 @@ namespace LiteFramework
         }
 
         /// <summary>释放一个模块的资源作用域（幂等；只在该 scope 首次释放时聚合其失败，避免兜底路径重复记账）。</summary>
-        private void ReleaseModuleScope((IClientModuleHandle handle, ModuleScope scope) entry)
+        private void ReleaseModuleScope((IClientSegmentHandle handle, SegmentScope scope) entry)
         {
             if (entry.scope.IsDisposed) return;
             entry.scope.Dispose();
@@ -400,19 +400,19 @@ namespace LiteFramework
         {
             ReleaseComposeScope();                             // 组合根最后装配 → 逆序最先回滚
 
-            List<(IClientModuleHandle handle, ModuleScope scope)> handles;
-            lock (_gate) handles = new List<(IClientModuleHandle, ModuleScope)>(_handles);
+            List<(IClientSegmentHandle handle, SegmentScope scope)> handles;
+            lock (_gate) handles = new List<(IClientSegmentHandle, SegmentScope)>(_handles);
 
             for (int i = handles.Count - 1; i >= 0; i--)
             {
                 try
                 {
-                    ModuleTrace?.Invoke(handles[i].handle.GetType().Name, "rollback:shutdown");
+                    SegmentTrace?.Invoke(handles[i].handle.GetType().Name, "rollback:shutdown");
                     await handles[i].handle.ShutdownAsync(CancellationToken.None);
                 }
                 catch (Exception ex)
                 {
-                    ModuleTrace?.Invoke(handles[i].handle.GetType().Name, "rollback:failed:" + ex.GetType().Name);
+                    SegmentTrace?.Invoke(handles[i].handle.GetType().Name, "rollback:failed:" + ex.GetType().Name);
                 }
                 finally
                 {
@@ -424,10 +424,10 @@ namespace LiteFramework
         }
 
         /// <summary>模块关闭句柄（初始化成功后创建；把"成功"与"可关闭"绑成一个对象）。</summary>
-        private sealed class ModuleHandle : IClientModuleHandle
+        private sealed class SegmentHandle : IClientSegmentHandle
         {
-            private readonly IClientModule _module;
-            public ModuleHandle(IClientModule module) => _module = module;
+            private readonly IClientSegment _module;
+            public SegmentHandle(IClientSegment module) => _module = module;
 
             public UniTask ShutdownAsync(CancellationToken ct)
             {
@@ -435,7 +435,7 @@ namespace LiteFramework
                 return _module.ShutdownAsync(ct);
             }
 
-            public override string ToString() => "ModuleHandle(" + _module.Name + ")";
+            public override string ToString() => "SegmentHandle(" + _module.Name + ")";
         }
 
         /// <summary>资源域与服务域的同步释放异常统一进入宿主诊断；重复关闭不重复上报。</summary>

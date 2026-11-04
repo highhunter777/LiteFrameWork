@@ -239,7 +239,7 @@ MonoBehaviour:
   SyncEnabled: 1
   WorldTimeScale: 1
   WorldPaused: 0
-  UiPaused: 0
+  UIPaused: 0
   StrictMode: 1
 --- !u!1 &1312961410
 GameObject:
@@ -333,7 +333,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 75
+  field of view: 90
   orthographic: 0
   orthographic size: 7.4
   m_Depth: -1

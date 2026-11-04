@@ -1,0 +1,89 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using LiteGame.Editor.UITools.Contracts;
+using LiteGame.Editor.UITools.Page;
+using LiteGame.Editor.UITools.Reference;
+using LiteTesting;
+using NUnit.Framework;
+
+namespace LiteGame.Tests.EditMode
+{
+    /// <summary>
+    /// 页面 Lua "名字面"守卫（契约族）：Lua 里出现的名字形状字面量必须落在该页契约面
+    /// （<c>controls[].bindName</c> ∪ <c>text[]</c> 节点名 ∪ 页面自身名）。
+    ///
+    /// 为什么需要：<see cref="LiteGame.Editor.UITools.Validation.Rules.ContractReferenceRule"/> 只认
+    /// <c>self.ui:Api("名字", …)</c> 的**字面量第一参**——经表驱动传名字（<c>TAB_TEXT_NODES[i]</c> /
+    /// <c>PANELS[i]</c>）时它看不见，拼错或改名漂移就一路静默到运行期：<c>SetText</c>/<c>Get</c> 在
+    /// SafeCall 里抛异常，页面 OnShow 中段停摆，控制台只剩一行 LuaException。本用例按**全文名字形状
+    /// 字面量**对账（与调用形态无关），补上那条盲区。
+    ///
+    /// 实锤：局内 ESC 开设置页时控制台报错——Page_Settings.lua 写 <c>Txt_Tab_Audio</c>（两个下划线，
+    /// 不合 §9.2 文法）而 prefab 绑定名是 <c>Txt_TabAudio</c>；五个 <c>Cot_*Panel</c> 页签面板压根没挂
+    /// BindNode，<c>SetVisible</c> 取不到——两处都落在动态名字盲区，既有规则全绿。
+    /// </summary>
+    [Category(TestCategory.Contract)]
+    public sealed class UIPageNameFaceEditModeTests
+    {
+        /// <summary>名字形状：&lt;前缀段&gt;_&lt;语义段&gt;（允许历史多下划线写法——它就是本用例要抓的形态）。</summary>
+        private static readonly Regex NameLiteral =
+            new Regex("\"([A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+)\"", RegexOptions.Compiled);
+
+        /// <summary>行注释先摘除：注释里提到的名字不该算引用（避免注释笔误变成用例失败）。</summary>
+        private static readonly Regex LineComment = new Regex("--[^\n]*", RegexOptions.Compiled);
+
+        [Test]
+        public void 页面Lua的名字字面量必须落在契约面()
+        {
+            UIPageManifest manifest = UIPageManifestStore.Load();
+            var pageNames = new HashSet<string>(manifest.Pages.Where(p => p != null && !string.IsNullOrEmpty(p.Name))
+                .Select(p => p.Name));
+
+            var violations = new List<string>();
+            foreach (UIPageManifestEntry entry in manifest.Pages)
+            {
+                if (entry == null || !entry.ContractPresent || string.IsNullOrEmpty(entry.ContractPath)
+                    || string.IsNullOrEmpty(entry.LuaPath)) continue;
+
+                string source = UILuaReferenceScanner.ReadSource(UILuaReferenceScanner.TryResolveLuaFile(entry.LuaPath));
+                if (source == null) continue;                        // 源缺失归引用对账规则告警
+
+                HashSet<string> face = ContractFace(entry);
+                foreach (string literal in NameLiterals(source))
+                {
+                    if (face.Contains(literal) || pageNames.Contains(literal)) continue;
+                    violations.Add($"{entry.Name}: \"{literal}\"");
+                }
+            }
+
+            Assert.IsEmpty(violations,
+                "页面 Lua 出现契约面外的名字字面量（运行期 self.ui 按名寻址会 KeyNotFoundException/"
+                + "InvalidOperationException——改名或拼错后必须同步契约/prefab）:\n"
+                + string.Join("\n", violations));
+        }
+
+        /// <summary>契约面：控件绑定名 ∪ 静态文案节点名（与 ContractReferenceRule 同口径）。</summary>
+        private static HashSet<string> ContractFace(UIPageManifestEntry entry)
+        {
+            UIPageContract contract = UIContractStore.Load(entry.ContractPath);
+            var face = new HashSet<string>();
+            foreach (UIContractControl control in contract.Controls)
+                if (!string.IsNullOrEmpty(control.BindName)) face.Add(control.BindName);
+            foreach (UIContractTextBinding text in contract.Text)
+            {
+                string nodePath = text.NodePath;
+                if (string.IsNullOrEmpty(nodePath)) continue;
+                int slash = nodePath.LastIndexOf('/');
+                face.Add(slash < 0 ? nodePath : nodePath.Substring(slash + 1));
+            }
+            return face;
+        }
+
+        private static IEnumerable<string> NameLiterals(string source)
+        {
+            string code = LineComment.Replace(source, string.Empty);
+            return NameLiteral.Matches(code).Select(m => m.Groups[1].Value).Distinct();
+        }
+    }
+}

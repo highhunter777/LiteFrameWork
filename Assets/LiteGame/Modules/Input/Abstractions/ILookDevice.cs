@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace LiteGame.Modules.Input
 {
@@ -28,5 +28,11 @@ namespace LiteGame.Modules.Input
 
         /// <summary>肩位切换沿（本帧按下）。</summary>
         bool ShoulderSwapPressed { get; }
+
+        /// <summary>自由观察按住（Alt；新 Input System 的 FreeLook action）。</summary>
+        bool FreeLookHeld { get; }
+
+        /// <summary>冻结/解冻瞄准点（自由观察期间由视角控制器控制；冻结期设备源写缓存点）。</summary>
+        void SetAimFrozen(bool frozen);
     }
 }

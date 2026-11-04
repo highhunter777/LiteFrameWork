@@ -9,7 +9,7 @@ using UnityEngine.UI;
 namespace LiteFramework.UI
 {
     /// <summary>输入框封装（控件库）：UGUI InputField + 校验 hook（返回 false = 拒绝本次提交）。</summary>
-    public class UIInputFieldWrap : MonoBehaviour
+    public class UIInputFieldWrap : MonoBehaviour, IUIInteractable
     {
         public TMP_InputField Field;
         [Tooltip("提交校验 hook；false = 拒绝并还原")]
@@ -44,6 +44,13 @@ namespace LiteFramework.UI
             _lastValid = value;
             if (notify) Field.text = value;
             else { Field.text = value; OnValueChanged?.Invoke(value); }
+        }
+
+        /// <summary>可交互透传 inner TMP 输入框（<see cref="IUIInteractable"/>——受控 API SetInteractable 的解析面）。</summary>
+        public bool Interactable
+        {
+            get => Field != null && Field.interactable;
+            set { if (Field != null) Field.interactable = value; }
         }
     }
 

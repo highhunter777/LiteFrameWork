@@ -14,10 +14,10 @@ namespace LiteFramework
     /// </summary>
     internal sealed class ComposeRootRunner
     {
-        private readonly Func<ModuleContext, UniTask> _compose;
-        private ModuleScope _scope;
+        private readonly Func<SegmentContext, UniTask> _compose;
+        private SegmentScope _scope;
 
-        internal ComposeRootRunner(Func<ModuleContext, UniTask> compose)
+        internal ComposeRootRunner(Func<SegmentContext, UniTask> compose)
             => _compose = compose ?? throw new ArgumentNullException(nameof(compose));
 
         /// <summary>执行组合根：回调拿到打开的窗口与自己的作用域。失败时**先释放自身作用域**再抛出
@@ -26,8 +26,8 @@ namespace LiteFramework
             Action<string, string> trace, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
-            var scope = new ModuleScope(rootScope, "AppComposition");
-            var window = new ModuleContext(context, "AppComposition", scope);
+            var scope = new SegmentScope(rootScope, "AppComposition");
+            var window = new SegmentContext(context, "AppComposition", scope);
             try
             {
                 trace?.Invoke("AppComposition", "compose:start");
@@ -49,7 +49,7 @@ namespace LiteFramework
         /// <summary>释放组合根作用域（幂等）：返回释放失败列表（由 Host 聚合上报，不抛出）。</summary>
         internal IReadOnlyList<Exception> Release()
         {
-            ModuleScope scope = _scope;
+            SegmentScope scope = _scope;
             _scope = null;
             if (scope == null || scope.IsDisposed) return Array.Empty<Exception>();
             scope.Dispose();

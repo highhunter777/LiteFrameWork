@@ -303,3 +303,10 @@
 - 用户要求加左右肩切换；`ICameraService.ToggleShoulder()` + `CinemachineCameraService` 镜像场景 `FollowOffset.x`；ADS 随主偏移同步；`Reset` 回右肩。
 - 输入 Q（`NewInputIntentSource.ShoulderSwapPressed`）→ `BattleLookController` 仅 pointerLocked 消费。
 - Play 端口脚本：`before=0.750 left=-0.750 right=0.750`；Unity 编译 0 错。
+
+### 追加（2026-11-03）：PUBG 默认 + Alt 自由观察
+
+- `Player.inputactions` 加 `FreeLook`（左/右 Alt）并重生成 wrapper；`ILookDevice.FreeLookHeld/SetAimFrozen`；输入源冻结 AimPoint/移动基准，开火/ADS 当帧绕过冻结。
+- `BattleLookController`：Alt 开始/结束、0.15s 回正、开火/ADS 立即退出、死亡/复活解冻；`ICameraService.SetLookAngles` 落位。
+- 共享 Sim `InputSystem`：Yaw 改为 AimPoint 有效即派生（TPS 默认），无效才回退移动；BuildHash `2d7986aecf17f1e9`。
+- L1 1976/1976；Play 冻结/解冻验证（相机 0→0.5 rad，视图 0.4→29.1°）。实机键盘 Alt 验收待做。

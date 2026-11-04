@@ -19,12 +19,12 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class AppLifetimeEditModeTests : UnityTestBase
     {
-        private sealed class FakeModule : IClientModule
+        private sealed class FakeModule : IClientSegment
         {
             private readonly List<string> _trace;
             public string Name { get; }
             public FakeModule(string name, List<string> trace) { Name = name; _trace = trace; }
-            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 return UniTask.CompletedTask;
@@ -46,8 +46,8 @@ namespace LiteGame.Tests.EditMode
         {
             _trace = new List<string>();
             _host = new ClientHost();
-            _host.AddModule(new FakeModule("A", _trace));
-            _host.AddModule(new FakeModule("B", _trace));
+            _host.AddSegment(new FakeModule("A", _trace));
+            _host.AddSegment(new FakeModule("B", _trace));
             _go = new GameObject("AppLifetimeTest");
             _lifetime = _go.AddComponent<AppLifetime>();
             _lifetime.Bind(_host);

@@ -93,29 +93,34 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// **移动混合的相位/步幅对齐净速率**（槽位序 {Idle, Walk, Run}；<paramref name="durations"/>
-        /// = 各片段时长（秒）、<paramref name="speeds"/> = 输出净播放速率——逐槽原位写、零分配）。
+        /// **移动混合的相位/步幅对齐净速率**（<paramref name="durations"/> = 各片段时长（秒）、
+        /// <paramref name="speeds"/> = 输出净播放速率——逐槽原位写、零分配）。
+        ///
+        /// 槽位约定：**槽 0 = Idle（无步态，豁免恒 1×）；最后一槽 = Run（跑档脚程）；
+        /// 其余非零槽 = 走档**（3 槽形态 <c>{Idle,Walk,Run}</c> 与任意前缀兼容）。
         ///
         /// 口径（步幅对齐——"速率＋相位"）：步态片段**相位锁定 + 脚程匹配**——设公共相位速率
         /// Φ（圈/秒），步态槽净速率 = Φ × 时长（同 Φ ⇒ 各片段归一化相位同步，混合不打滑、不踩乱拍）；
         /// Φ 由"加权脚程 = 实际速度"反解：<c>Φ = speed / Σ(wᵢ·时长ᵢ·脚程ᵢ)</c>
-        /// （脚程：Walk = <see cref="WalkNaturalMps"/>、Run = <see cref="RunNaturalMps"/>）。
-        /// **Idle 豁免**：无步态——净速率恒 1（随 Φ 缩放会按权重放大"呼吸"频率）。
+        /// （脚程：走档 = <see cref="WalkNaturalMps"/>、Run = <see cref="RunNaturalMps"/>）。
         /// **退化**：有效加权脚程趋零（全静止/全零权重）→ 全槽 1×。
-        /// Φ 钳制 [<see cref="PhaseRateMin"/>, <see cref="PhaseRateMax"/>]——**钳在 Φ 上**：
+        /// Φ 钳制 [<see cref="PhaseRateMin"/>, <see cref="PhaseRateMax"/>]——钳在 Φ 上：
         /// 各步态槽同乘时长，相位锁定不被逐槽钳制破坏。
         /// </summary>
         public static void BuildMoveSpeeds(float speed, float[] weights, float[] durations, float[] speeds)
         {
+            int last = weights.Length - 1;
             speeds[0] = 1f;                                              // Idle 豁免：无步态，恒 1×
             float weighted = 0f;                                         // Σ(wᵢ·Dᵢ·脚程ᵢ)——Idle 脚程 0 不入和
-            if (weights[1] > 0f) weighted += weights[1] * durations[1] * WalkNaturalMps;
-            if (weights[2] > 0f) weighted += weights[2] * durations[2] * RunNaturalMps;
+            for (int i = 1; i < weights.Length; i++)
+            {
+                if (weights[i] <= 0f) continue;
+                weighted += weights[i] * durations[i] * (i == last ? RunNaturalMps : WalkNaturalMps);
+            }
 
             if (weighted <= 1e-6f)                                       // 全静止/零权重：无步态可对——全 1×
             {
-                speeds[1] = 1f;
-                speeds[2] = 1f;
+                for (int i = 1; i < speeds.Length; i++) speeds[i] = 1f;
                 return;
             }
 
@@ -123,8 +128,8 @@ namespace LiteFramework.Animation
             if (phi < PhaseRateMin) phi = PhaseRateMin;
             else if (phi > PhaseRateMax) phi = PhaseRateMax;
 
-            speeds[1] = phi * durations[1];                              // 相位锁定：净速率 ∝ 时长（同 Φ）
-            speeds[2] = phi * durations[2];
+            for (int i = 1; i < speeds.Length; i++)                       // 相位锁定：净速率 ∝ 时长（同 Φ）
+                speeds[i] = phi * durations[i];
         }
 
         /// <summary>

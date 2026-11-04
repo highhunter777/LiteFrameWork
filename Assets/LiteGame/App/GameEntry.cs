@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -18,12 +18,12 @@ namespace LiteGame
 {
     /// <summary>
     /// Unity 引导适配器（真正的启动与关闭由 ClientHost 持有）：
-    /// - Awake：建 ClientHost + AppLifetime 桥，按依赖序注册 IClientModule（装配步骤见
-    ///   <see cref="RegisterModules"/>，各模块一件，住 `App/Bootstrap/`），
+    /// - Awake：建 ClientHost + AppLifetime 桥，按依赖序注册 IClientSegment（装配步骤见
+    ///   <see cref="RegisterSegments"/>，各段一件，住 `Modules/<单位>/`），
     ///   启动初始化（失败 → ProcedureError.ShowBootstrapError 进入确定错误态）。
-    /// - Start：流程机启动（Launch）——依赖宿主初始化同步完成（首批模块全同步）。
+    /// - Start：流程机启动（Launch）——依赖宿主初始化同步完成（首批段全同步）。
     /// - Update：驱动容器 Tickables（变速由 IGameClock 内部缩放，勿用 Time.deltaTime 二次乘）。
-    /// - 退出/宿主销毁：AppLifetime 桥接优雅关闭（刷新钩子 + 逆序模块关闭 + 根 Scope 释放）。
+    /// - 退出/宿主销毁：AppLifetime 桥接优雅关闭（刷新钩子 + 逆序段关闭 + 根 Scope 释放）。
     ///
     /// 静态状态仅 `s_booted` 幂等标记（重复引导守卫；不持真实生命周期）。
     /// 容器/流程机为实例字段，随引导件销毁；AppLifetime.OnDestroy 执行完整关闭（无遗留）。
@@ -89,7 +89,7 @@ namespace LiteGame
             // 装配（§6.1：注册顺序 = 初始化顺序 = 关闭逆序——依赖图由调用序表达）
             _appComposition = new AppComposition();
             _deployBake = new DeployBake();
-            RegisterModules(_host);
+            RegisterSegments(_host);
             // 组合根：全部模块成功后、装配面密封前做跨域装订（桥/模态/身份/输入拦截/开发装饰/帧驱动序/密封）
             _host.ComposeRoot(_appComposition.ComposeAfter);
 
@@ -161,30 +161,30 @@ namespace LiteGame
         /// 模块装配序列（《客户端总设计》§6.1"按依赖顺序初始化，失败时只关闭已经成功初始化的模块"）。
         ///
         /// **注册顺序 = 初始化顺序 = 关闭逆序**：模块间依赖只能引用更早模块的产物（经
-        /// <see cref="ModuleContext"/> 的 Put/Require 传递，与根容器共享实例来源）。
+        /// <see cref="SegmentContext"/> 的 Put/Require 传递，与根容器共享实例来源）。
         /// 模块序表达异步初始化/关闭依赖；服务声明图由容器预检，帧驱动序由装配根显式声明。
         /// </summary>
-        private void RegisterModules(ClientHost host)
+        private void RegisterSegments(ClientHost host)
         {
-            host.AddModule(new PlatformInfrastructureModule())   // ① 本地持久化 + 日志（先于一切 IO）
-                .AddModule(new CameraComposition(_appComposition.CameraServiceFactory()))    // ② 主相机 + 相机服务（薄段）
-                .AddModule(new IdentityModule())                 // ③ 身份上下文（Build/Schema 唯一构造点）
-                .AddModule(new DevSessionModule())               // ④ 开发会话端口（设备源构造即消费——必须早于 ⑭）
-                .AddModule(new ContentModule(_deployBake))       // ⑤ 内容/场景/缓存租约（配置/Lua 字节通道来源）
-                .AddModule(new SettingsModule())                 // ⑥ 玩家偏好 + 视角偏好单实例（先于 UI/音频）
-                .AddModule(new EventsModule())                   // ⑦ 事件总线（唯一产出方；只需 ① 的池）
-                .AddModule(new ClocksModule())                   // ⑧ 双轨时钟（事件域已独立，时钟只负责时间）
-                .AddModule(new SchedulersModule())               // ⑨ 时序执行 + 时间轴（依赖 ⑧）
-                .AddModule(new LuaHostModule(gameObject))        // ⑩ 脚本宿主（同 GameObject 组件）
-                .AddModule(new ConfigModule(_appComposition.ConfigServiceFactory()))          // ⑪ 表投影数据源
-                .AddModule(new MapComposition())                 // ⑫ 地图提供者（依赖 ⑪ 的表链）
-                .AddModule(new UIComposition(_appComposition.LuaUIBindingFactory()))         // ⑬ UI 能力：服务/导航/反馈面（Lua 桥经端口装订）
-                .AddModule(new InputModule(_appComposition.IntentSourceFactory()))            // ⑭ 输入服务（设备源由组合根注入）
-                .AddModule(new MetaComposition(_deployBake))     // ⑮ 联机入口（部署快照 + 客户端 + 入口编排件）
-                .AddModule(new BattleComposition(() => DevHooks.Diagnostics,
+            host.AddSegment(new PlatformInfrastructureSegment())   // ① 本地持久化 + 日志（先于一切 IO）
+                .AddSegment(new CameraSegment(_appComposition.CameraServiceFactory()))    // ② 主相机 + 相机服务（薄段）
+                .AddSegment(new IdentitySegment())                 // ③ 身份上下文（Build/Schema 唯一构造点）
+                .AddSegment(new DevSessionSegment())               // ④ 开发会话端口（设备源构造即消费——必须早于 ⑭）
+                .AddSegment(new ContentSegment(_deployBake))       // ⑤ 内容/场景/缓存租约（配置/Lua 字节通道来源）
+                .AddSegment(new SettingsSegment())                 // ⑥ 玩家偏好 + 视角偏好单实例（先于 UI/音频）
+                .AddSegment(new EventsSegment())                   // ⑦ 事件总线（唯一产出方；只需 ① 的池）
+                .AddSegment(new ClocksSegment())                   // ⑧ 双轨时钟（事件域已独立，时钟只负责时间）
+                .AddSegment(new SchedulersSegment())               // ⑨ 时序执行 + 时间轴（依赖 ⑧）
+                .AddSegment(new LuaHostSegment(gameObject))        // ⑩ 脚本宿主（同 GameObject 组件）
+                .AddSegment(new ConfigSegment(_appComposition.ConfigServiceFactory()))          // ⑪ 表投影数据源
+                .AddSegment(new MapSegment())                 // ⑫ 地图提供者（依赖 ⑪ 的表链）
+                .AddSegment(new UISegment(_appComposition.LuaUIBindingFactory()))         // ⑬ UI 能力：服务/导航/反馈面（Lua 桥经端口装订）
+                .AddSegment(new InputSegment(_appComposition.IntentSourceFactory()))            // ⑭ 输入服务（设备源由组合根注入）
+                .AddSegment(new MetaSegment(_deployBake))     // ⑮ 联机入口（部署快照 + 客户端 + 入口编排件）
+                .AddSegment(new BattleSegment(() => DevHooks.Diagnostics,
                     () => DevHooks.Current?.CreateBattleOverlay()))  // ⑯ 战斗域（表现内核 + 会话/对局工厂；诊断由 App 注入）
-                .AddModule(new SessionComposition())             // ⑰ 会话（账号会话 + 传输端口；对局运行归 ⑯）
-                .AddModule(new ProcedureComposition(_appComposition.LuaBridgesFactory(),        // ⑱ 应用壳（流程机 + 页面流 + 恢复）
+                .AddSegment(new SessionSegment())             // ⑰ 会话（账号会话 + 传输端口；对局运行归 ⑯）
+                .AddSegment(new ProcedureSegment(_appComposition.LuaBridgesFactory(),        // ⑱ 应用壳（流程机 + 页面流 + 恢复）
                     _appComposition.LuaRegistryFillerFactory()));
         }
 

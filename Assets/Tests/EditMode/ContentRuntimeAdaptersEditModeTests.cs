@@ -244,7 +244,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 空间探测_写探针回退_桌面给可用下界()
         {
-            // 生产装配（ContentModule）用的是"DriveInfo → 写探针回退"链：桌面必须给出可用值
+            // 生产装配（ContentSegment）用的是"DriveInfo → 写探针回退"链：桌面必须给出可用值
             // （精确值或写探针下界），绝不能是 -1——否则空间预检 fail-closed 会让热更链在 Player 上整体不可用
             // （实测 IL2CPP Player 的 DriveInfo 拿不到卷余量）。小上限避免测试期大额写入。
             var probe = new WriteProbeDiskSpaceProbe(ReleaseLayout.CandidateRootRelative,

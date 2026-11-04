@@ -5,9 +5,9 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// 瞄准态口径验收（《角色状态与动作专项设计》§7 的 **Sim 侧半边**）：
-    /// **限速**（ADS 期间移动上限 = 走路档）、**朝向派生**（瞄准/开火朝准星；否则朝移动方向；两者都没有则保持）、
-    /// **标志位**（<see cref="EntityFlags"/> 每帧从输入位覆写）、**预测保留**（连续意图位在预测帧存活——
-    /// "本地举枪不闪断"的 Sim 侧保证）。纯规则、零引擎。
+    /// **限速**（ADS 期间移动上限 = 走路档）、**朝向派生**（TPS 默认：AimPoint 有效即朝准星；
+    /// 无效才回退移动方向；两者都没有则保持）、**标志位**（<see cref="EntityFlags"/> 每帧从输入位覆写）、
+    /// **预测保留**（连续意图位在预测帧存活——"本地举枪不闪断"的 Sim 侧保证）。纯规则、零引擎。
     /// </summary>
     public sealed class AimStateTests
     {
@@ -49,42 +49,31 @@ namespace LiteSim.Tests
         // ---- 瞄准点按共用驻留窗——间隙帧不回摆/限速随窗/窗尽离场转向 ----
 
         [Fact]
-        public void 朝向_点按瞄准_间隙帧不回移动向_窗尽速率回转()
+        public void 朝向_点按瞄准_窗内保持准星向_窗尽回转移动方向()
         {
             long id = Spawn(out var world, out int slot);
 
-            // 点按瞄准 + 反方向移动（与点射同款场景，共用一个窗口）：
-            // 移动 +Z、准星 -X；按下瞄准→朝准星并置满共用窗；松开间隙帧窗内不回移动向
+            // PUBG 式两态：射击语境（瞄准 ∨ 开火驻留窗）朝准星；窗尽后身体按转向速率转回移动方向。
+            // 移动 +Z、准星 -X。
             var aimFrame = Inputs(id, 0f, 1f, -1f, 0f, SimInputFrame.ButtonAim);
             var gapFrame = Inputs(id, 0f, 1f, -1f, 0f);
             float crosshairYaw = SimTrig.Atan2(0f, -1f);
             float moveYaw = SimTrig.Atan2(1f, 0f);
 
             InputSystem.Run(world, aimFrame, CombatValues.Default);
-            // 瞄准帧朝准星 + 置满共用窗
             Assert.Equal(crosshairYaw, world.Entities[slot].Yaw, 5);
             Assert.Equal((byte)CombatConfig.FireStanceFrames, world.Entities[slot].FireStanceFrames);
 
             InputSystem.Run(world, gapFrame, CombatValues.Default);
-            // 点按间隙帧窗内保持准星向（不回移动向——与点射同一共用窗语义）
             Assert.Equal(crosshairYaw, world.Entities[slot].Yaw, 5);
 
-            // 窗尽 → 离场转向（武装生效：按速率过渡回移动方向，不瞬切）
             for (int i = 0; i < CombatConfig.FireStanceFrames; i++)
                 InputSystem.Run(world, gapFrame, CombatValues.Default);
             Assert.Equal(0, world.Entities[slot].FireStanceFrames);
-            float before = world.Entities[slot].Yaw;
-            float step = CombatValues.Default.Geometry.FaceTurnRadPerSec * SimConfig.Dt;
-            InputSystem.Run(world, gapFrame, CombatValues.Default);
-            float after = world.Entities[slot].Yaw;
-            Assert.True(after != before, "窗尽回转开始（不保持准星向）");
-            Assert.True(System.Math.Abs(after - before) <= step + 1e-5f, "一帧一步过渡（不错切）");
 
-            int guard = 0;
-            while (world.Entities[slot].Yaw != moveYaw && guard++ < 300)
-                InputSystem.Run(world, gapFrame, CombatValues.Default);
-            Assert.Equal(moveYaw, world.Entities[slot].Yaw, 6);   // 最终精确落位移动方向
-            Assert.Equal((byte)0, world.Entities[slot].FaceExitTurning);   // 到位解除武装
+            // 窗尽后回转：FaceTurnRadPerSec 逐帧过渡（24 帧足够转 90°）
+            for (int i = 0; i < 24; i++) InputSystem.Run(world, gapFrame, CombatValues.Default);
+            Assert.Equal(moveYaw, world.Entities[slot].Yaw, 5);
         }
 
         [Fact]
@@ -176,50 +165,32 @@ namespace LiteSim.Tests
         // ---- 朝向组合：窗内朝准星不回摆 ＋ 窗尽按转向速率平滑回转 ----
 
         [Fact]
-        public void 朝向_开火窗内朝准星_点射间隙不回移动向()
+        public void 朝向_开火窗内保持准星_窗尽回转移动方向()
         {
             long id = Spawn(out var world, out int slot);
 
-            // 用户报告场景：移动 +Z、点射 -X（射击方向与移动方向相反）——期望窗内稳定面朝射击方向
-            // （视图侧四向权重由"移动 vs 朝向"取角 ⇒ 稳定 AimWalk_B 的权威面）
+            // 移动 +Z、准星 -X：窗内（含点射间隙帧）朝准星不回摆；窗尽后回转移动方向。
             var fire = Inputs(id, 0f, 1f, -1f, 0f, SimInputFrame.ButtonFire);
-            var gap = Inputs(id, 0f, 1f, -1f, 0f);                              // 间隙帧：同样移动/同样准星、不带开火位
+            var gap = Inputs(id, 0f, 1f, -1f, 0f);
 
             InputSystem.Run(world, fire, CombatValues.Default);
-            ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);                                    // 判定点置满窗 + 武装离场转向
+            ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
             float crosshairYaw = SimTrig.Atan2(0f, -1f);
             Assert.True(world.Entities[slot].Yaw == crosshairYaw, "开火帧朝准星");
 
-            // 窗内间隙帧：**不回移动方向**（否则视图四向权重 F/B 互顶——后退动画被淹没）
             for (int i = 0; i < CombatConfig.FireStanceFrames - 2; i++)
                 InputSystem.Run(world, gap, CombatValues.Default);
             Assert.True(world.Entities[slot].Yaw == crosshairYaw,
-                "窗内间隙帧保持朝准星——点射不逐拍回摆（AimWalk_B 的稳定前提）");
+                "窗内间隙帧保持朝准星——点射不逐拍回摆");
             Assert.True(world.Entities[slot].FireStanceFrames > 0, "断言前窗仍在");
 
-            // 窗尽（自然结束）：武装的离场转向生效——首个移动帧不瞬切，按速率过渡
             for (int i = 0; i < 2; i++) InputSystem.Run(world, gap, CombatValues.Default);
             Assert.True(world.Entities[slot].FireStanceFrames == 0, "窗尽归零");
-            float before = world.Entities[slot].Yaw;
-            float step = CombatValues.Default.Geometry.FaceTurnRadPerSec * SimConfig.Dt;
-            InputSystem.Run(world, gap, CombatValues.Default);
-            float after = world.Entities[slot].Yaw;
-            Assert.True(after != before, "窗尽后回转开始（不保持准星向）");
-            Assert.True(System.Math.Abs(after - before) <= step + 1e-5f,
-                "窗尽回转按转向速率过渡（一帧一步，不瞬切）");
 
-            // 过渡完成：精确落位移动方向，武装解除——后续移动恢复即时跟向（无速率过渡）
-            float moveYaw = SimTrig.Atan2(1f, 0f);
-            int guard = 0;
-            while (world.Entities[slot].Yaw != moveYaw && guard++ < 300)
-                InputSystem.Run(world, gap, CombatValues.Default);
-            Assert.True(world.Entities[slot].Yaw == moveYaw, "转向速率最终精确落位移动方向");
-            Assert.True(world.Entities[slot].FaceExitTurning == 0, "到位即解除武装");
-
-            var east = Inputs(id, 1f, 0f, -1f, 0f);                            // 改向 +X（准星仍 -X 但无语境）
-            InputSystem.Run(world, east, CombatValues.Default);
-            Assert.True(world.Entities[slot].Yaw == SimTrig.Atan2(0f, 1f),
-                "解除后恢复即时跟向（常态移动不受速率限制——既有手感不变）");
+            // 窗尽：按转向速率回转移动方向（+Z）
+            for (int i = 0; i < 24; i++) InputSystem.Run(world, gap, CombatValues.Default);
+            Assert.True(world.Entities[slot].Yaw == SimTrig.Atan2(1f, 0f),
+                "窗尽后身体转回移动方向（PUBG 式转身跑）");
         }
 
         [Fact]
@@ -246,24 +217,33 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 朝向_未瞄准朝移动方向_瞄准或开火朝准星_都没有则保持()
+        public void 朝向_非射击语境朝移动方向_射击语境朝准星()
         {
             long id = Spawn(out var world, out int slot);
             ref EntitySlot e = ref world.Entities[slot];
 
-            // 未瞄准 + 移动 → 朝移动方向（+Z 移动 → Yaw = atan2(1,0)）
-            InputSystem.Run(world, Inputs(id, 0f, 1f, 1f, 0f), CombatValues.Default);
-            Assert.Equal(SimTrig.Atan2(1f, 0f), e.Yaw, 5);
+            // **PUBG 式两态**：未按右键/未开火 → 身体朝移动方向（转身跑）；射击语境 → 朝准星。
+            float moveYaw = SimTrig.Atan2(1f, 0f);        // 移动 +Z
 
-            // 瞄准 → 朝准星（准星 +X → Yaw = 0；与移动方向无关，strafe 由此成立）
+            // 非射击语境：AimPoint 在 +X、移动 +Z → 朝移动方向（+Z），**不朝准星**。
+            for (int i = 0; i < 24; i++)
+                InputSystem.Run(world, Inputs(id, 0f, 1f, 1f, 0f), CombatValues.Default);
+            Assert.Equal(moveYaw, e.Yaw, 5);
+
+            // 瞄准：朝准星（+X → 0 rad），即时（射击语境锁准星）
             InputSystem.Run(world, Inputs(id, 0f, 1f, 1f, 0f, SimInputFrame.ButtonAim), CombatValues.Default);
             Assert.Equal(0f, e.Yaw, 5);
 
-            // 腰射（未瞄准但开火）→ 也朝准星：射击方向来自 Aim，身位必须跟枪口一致，否则子弹像从侧面飞出
+            // 腰射（开火帧）：朝准星（-X → π）
             InputSystem.Run(world, Inputs(id, 0f, 1f, -1f, 0f, SimInputFrame.ButtonFire), CombatValues.Default);
             Assert.Equal(SimTrig.Atan2(0f, -1f), e.Yaw, 5);
 
-            // 静止且未开火 → 保持上一帧（不拿零向量退化，且回放/重放可重建）
+            // 窗尽 + AimPoint 无效（全零）+ 移动 → 回转移动方向（+Z，按速率过渡）
+            for (int i = 0; i < 40; i++)
+                InputSystem.Run(world, Inputs(id, 0f, 1f, 0f, 0f), CombatValues.Default);
+            Assert.Equal(moveYaw, e.Yaw, 5);
+
+            // 静止且无移动目标 → 保持上一帧（不拿零向量退化，且回放/重放可重建）。
             float kept = e.Yaw;
             InputSystem.Run(world, Inputs(id, 0f, 0f, 0f, 0f), CombatValues.Default);
             Assert.Equal(kept, e.Yaw, 6);
