@@ -87,7 +87,9 @@ namespace LiteGame
             {
                 Log.Error($"GameEntry 入口装载失败：{ex.Message}", LogTag.GameEntry);
                 BootstrapErrorPresenter.Show(ex);
+                _bootCts.Cancel();
                 _active = false;
+                s_booted = false;          // 装载失败也必须允许下一场重新引导（否则错误态跨 Play 死锁）
                 return;
             }
 
