@@ -8,6 +8,7 @@
         "LiteGame.Modules.UI",
         "LiteGame.Modules.Config",
         "LiteGame.Modules.Settings",
+        "LiteGame.Core",
         "LiteFramework.Core",
         "LiteFramework.Services",
         "LiteFramework.Adapters",

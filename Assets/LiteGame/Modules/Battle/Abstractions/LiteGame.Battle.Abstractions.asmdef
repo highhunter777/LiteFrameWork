@@ -2,6 +2,7 @@
     "name": "LiteGame.Battle.Abstractions",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteGame.Core",
         "LiteFramework.Core",
         "LiteGame.Modules.Input",
         "LiteNet",

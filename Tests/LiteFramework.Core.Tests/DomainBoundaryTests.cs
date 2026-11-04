@@ -53,7 +53,7 @@ namespace LiteFramework.Core.Tests
         }
 
         [Fact]
-        public void 业务端口不得留在Core()
+        public void 战斗业务端口不得留在Core()
         {
             string root = RepoRoot();
             string coreBattle = Path.Combine(root, "Assets", "LiteGame", "Core", "Battle");
@@ -131,11 +131,11 @@ namespace LiteFramework.Core.Tests
         }
 
         /// <summary>
-        /// `LiteGame.Core` 准入章程：**只放跨域契约 + 纯计算**，按类别分目录。
+        /// `LiteGame.Core` 准入章程：**只放跨域共享契约 + 纯计算**（域自持业务端口仍住 `Modules/<域>/Abstractions/`），按类别分目录。
         /// 常量/资源标识归共享常量面 `LiteGame.Shared`（那里只有生成物与路径常量），不放这里——
         /// Core 一旦"什么都收"，就会退化成杂物抽屉，而它是 fan-in 最高的产品程序集。
         /// </summary>
-        private static readonly string[] CoreDirectories = { "Dev", "Feedback", "Spatial" };
+        private static readonly string[] CoreDirectories = { "Dev", "Feedback", "Flow", "Input", "Lua", "Spatial", "UI" };
 
         [Fact]
         public void Core目录必须落在准入章程内()

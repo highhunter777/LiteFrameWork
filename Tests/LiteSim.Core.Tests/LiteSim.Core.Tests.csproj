@@ -64,9 +64,9 @@
   -->
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteGame\Modules\Input\InputService.cs" Link="Input\InputService.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Input\IntentGate.cs" Link="Input\IntentGate.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Input\Abstractions\IIntentSource.cs" Link="Input\IIntentSource.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Input\Abstractions\IInputService.cs" Link="Input\IInputService.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Input\IntentGate.cs" Link="Input\IntentGate.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Input\IIntentSource.cs" Link="Input\IIntentSource.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Input\IInputService.cs" Link="Input\IInputService.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Input\IntentVectorLimit.cs" Link="Input\IntentVectorLimit.cs" />
     <!--
       **平台实现不在 L1**：`NewInputIntentSource` / `CinemachineCameraService`（`Adapters/UnityPlatform/`）
