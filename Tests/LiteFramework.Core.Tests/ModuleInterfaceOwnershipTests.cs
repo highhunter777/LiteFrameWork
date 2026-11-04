@@ -40,7 +40,7 @@ namespace LiteFramework.Core.Tests
             {
                 Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Core"),
                 Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Services"),
-                Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Framework"),
+                Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Hosting"),
                 Path.Combine(root, "Assets", "LiteGame", "Modules"),
             };
 

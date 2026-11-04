@@ -1,4 +1,4 @@
-﻿{
+{
     "name": "LiteGame.Editor",
     "rootNamespace": "LiteGame",
     "references": [
@@ -11,7 +11,9 @@
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
         "LiteFramework.Core",
-        "LiteFramework.Runtime",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
         "LiteFramework.Editor",
         "LiteCodeGen.Runtime",
         "LiteGame.App",

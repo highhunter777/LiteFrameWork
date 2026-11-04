@@ -149,7 +149,7 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// `Assets/LiteGame/` 下**允许存在的顶层目录**（《客户端总设计》§5 顶层分层）；
-        /// 框架侧 `LiteFramework.*` 住 `Assets/LiteFramework/Runtime/{Services,Framework}/`（见 <see cref="Default"/> 扫描目标）。
+        /// 框架侧 `LiteFramework.*` 住 `Assets/LiteFramework/Runtime/{Core,Services,Adapters,Hosting}/`（见 <see cref="Default"/> 扫描目标）。
         ///
         /// 新增顶层目录必须在此登记，并说明它属于 §5 的哪一层（或为何是例外）。
         /// 未登记的目录会让本规则报红——**目录一变就红**，与 R12 边界表同一纪律。
@@ -194,7 +194,7 @@ namespace Tools.DisciplineScan
             // R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
             // IEnumerable 迭代器的 `yield return` 会被误报。
             new ScanTarget("Assets/LiteFramework/Runtime/Services", GameRules),
-            new ScanTarget("Assets/LiteFramework/Runtime/Framework", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Services/Framework）
+            new ScanTarget("Assets/LiteFramework/Runtime/Hosting", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Services/Hosting）
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/YooAsset", GameRules),                          // R8/R12（第三方桥接件）
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/XLua", GameRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/InputSystem", GameRules),
@@ -452,13 +452,15 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] ClientFrameworkPurityAsmdefs =
         {
-            "Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef",
+            "Assets/LiteFramework/Runtime/Services/LiteFramework.Services.asmdef",
+            "Assets/LiteFramework/Runtime/Adapters/LiteFramework.Adapters.asmdef",
+            "Assets/LiteFramework/Runtime/Hosting/LiteFramework.Hosting.asmdef",
         };
 
         /// <summary>第一方代码根（注释卫生扫描范围；第三方与生成物不在内）。</summary>
         public static readonly string[] CommentHygieneRoots =
         {
-            "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Framework",
+            "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Hosting",
             "Assets/LiteGame",
             "Assets/LiteFramework",
             "Packages/com.litegame.sim",

@@ -29,7 +29,7 @@ namespace LiteGame
         /// 也是 `package.loaded` 里可安全清理的前缀集）。</summary>
         private static readonly string[] RegistryRoots = { "UI", "Content", "Strategies" };
 
-        private readonly LuaComponent _lua;
+        private readonly ILuaHost _lua;
         private readonly UIService _ui;
         private readonly IConfigService _config;
         private readonly IReadOnlyList<PageDefinition> _pages;
@@ -37,7 +37,7 @@ namespace LiteGame
         private readonly IContentLuaRegistry _contentRegistry;
         private readonly IStrategyLuaRegistry _strategyRegistry;
 
-        public LuaRegistryRefillService(LuaComponent lua, UIService ui, IConfigService config,
+        public LuaRegistryRefillService(ILuaHost lua, UIService ui, IConfigService config,
             IReadOnlyList<PageDefinition> pages,
             IUILuaRegistry uiRegistry, IContentLuaRegistry contentRegistry, IStrategyLuaRegistry strategyRegistry)
         {

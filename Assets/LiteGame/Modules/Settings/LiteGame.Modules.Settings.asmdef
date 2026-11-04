@@ -4,7 +4,8 @@
     "references": [
         "UniTask",
         "LiteFramework.Core",
-        "LiteFramework.Runtime"
+        "LiteFramework.Services",
+        "LiteFramework.Hosting"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

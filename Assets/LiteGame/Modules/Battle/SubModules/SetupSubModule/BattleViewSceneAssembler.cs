@@ -29,8 +29,8 @@ namespace LiteGame
 
         /// <summary>建视图 + 挂上下文 + 移动动画驱动（须在 StartGame 之后调用）。</summary>
         public void AttachCore(BattleContext context, Transform viewRoot, GameObject prefab,
-            ICameraService camera, AnimationClipManifest manifest, Func<Vector3?> aimPointOf = null,
-            WeaponGripCatalog gripCatalog = null)
+            ICameraService camera, AnimationClipManifest manifest, IAnimationBackendFactory backendFactory = null,
+            Func<Vector3?> aimPointOf = null, WeaponGripCatalog gripCatalog = null)
         {
             _viewRoot = viewRoot;
             _prefab = prefab;
@@ -47,7 +47,7 @@ namespace LiteGame
                 manifest: manifest,                               // 清单在 = 去 AC 主路径供片；缺清单回退控制器便利源
                 cameraPitchOf: camera != null ? (Func<float>)(() => camera.LookPitch) : null,   // TPS 俯仰姿态源
                 aimPointOf: aimPointOf,                           // ADS/腰射枪口对齐源（准心世界点）
-                backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory(),   // 引擎后端由适配层提供
+                backendFactory: backendFactory,                  // 引擎后端由装配根注入（模块不 new 框架适配器）
                 gripCatalog: gripCatalog);                        // grip.bin 装载的持枪数据（null = 降级）
         }
 

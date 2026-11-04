@@ -13,11 +13,25 @@ namespace LiteGame.Modules.Composition
     public sealed class ContentSegment : IClientSegment, IClientSegmentGraph
     {
         private readonly DeployBake _deployBake;   // 包内烙入（命令行 > 烙入 > 默认；实例只读一次）
-        private YooAssetContentService _content;
-        private SceneService _scenes;      // 场景句柄服务（流程/工具体消费；租约面归内容域）
+        private readonly Func<IFileStore, IContentService> _contentFactory;
+        private readonly Func<ISceneService> _sceneFactory;
+        private readonly Func<string, IFileStore, IHealthProbe> _luaHealthProbeFactory;
+        private IContentService _content;
+        private ISceneService _scenes;      // 场景句柄服务（流程/工具体消费；租约面归内容域）
 
-        public ContentSegment(DeployBake deployBake)
-            => _deployBake = deployBake ?? throw new ArgumentNullException(nameof(deployBake));
+        /// <param name="contentFactory">内容服务实现工厂（YooAsset 适配器在组合根构造——本段只认端口）。</param>
+        /// <param name="sceneFactory">场景服务实现工厂（同上）。</param>
+        /// <param name="luaHealthProbeFactory">Lua 候选脚本健康探针工厂（XLua 沙箱归适配器，本段只认 IHealthProbe）。</param>
+        public ContentSegment(DeployBake deployBake,
+            Func<IFileStore, IContentService> contentFactory,
+            Func<ISceneService> sceneFactory,
+            Func<string, IFileStore, IHealthProbe> luaHealthProbeFactory)
+        {
+            _deployBake = deployBake ?? throw new ArgumentNullException(nameof(deployBake));
+            _contentFactory = contentFactory ?? throw new ArgumentNullException(nameof(contentFactory));
+            _sceneFactory = sceneFactory ?? throw new ArgumentNullException(nameof(sceneFactory));
+            _luaHealthProbeFactory = luaHealthProbeFactory ?? throw new ArgumentNullException(nameof(luaHealthProbeFactory));
+        }
 
         public string Name => "Content";
 
@@ -26,9 +40,11 @@ namespace LiteGame.Modules.Composition
         public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
         {
             IFileStore files = context.Require<IFileStore>();
-            _content = new YooAssetContentService(files);
+            _content = _contentFactory(files);
             context.Put<IContentService>(_content);
-            context.Put<IGenerationSink>(_content);                                      // 代次推进（§9：确认后切换，失败回退）
+            if (_content is not IGenerationSink generationSink)
+                throw new InvalidOperationException("内容服务实现必须同时实现 IGenerationSink（代次推进端口）");
+            context.Put<IGenerationSink>(generationSink);                                // 代次推进（§9：确认后切换，失败回退）
             context.Put(new ActivationTransactionStore(new FileActivationRecordIO(files: files)));   // 启动恢复决策（Patch 流程消费）
             RegisterSceneAndCacheServices(context, files);
 
@@ -85,7 +101,7 @@ namespace LiteGame.Modules.Composition
                 fetcher,
                 new CompositeHealthCheck(
                     new CandidateConfigHealthProbe(candidateRoot, ReleaseLayout.ConfigPaths, files),
-                    new LuaScriptsHealthProbe(candidateRoot, ReleaseLayout.LuaScripts, files)),
+                    _luaHealthProbeFactory(candidateRoot, files)),
                 new ContentActivator(_content),
                 context.Require<IGenerationSink>());   // 确认/回退时推进加载代次（同一内容服务实例）
             context.Put(new PatchRunner(
@@ -106,7 +122,7 @@ namespace LiteGame.Modules.Composition
         /// <summary>场景与缓存租约都走内容包：场景服务、清缓存实现面归本段（进程级实例，关闭时归零）。</summary>
         private void RegisterSceneAndCacheServices(SegmentContext context, IFileStore files)
         {
-            _scenes = new SceneService();
+            _scenes = _sceneFactory();
             context.Put<ISceneService>(_scenes);
             context.Put<IContentCacheMaintenance>(
                 new ContentCacheMaintenance(_content, files, context.Require<ActivationTransactionStore>()));

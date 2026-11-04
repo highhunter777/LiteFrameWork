@@ -2,7 +2,9 @@
     "name": "LiteGame.Modules.Map",
     "rootNamespace": "LiteGame",
     "references": [
-        "LiteFramework.Runtime",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
         "LiteGame.Core",
         "LiteGame.Modules.Config",
         "LiteNet",

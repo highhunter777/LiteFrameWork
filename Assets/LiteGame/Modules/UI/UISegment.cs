@@ -18,7 +18,7 @@ namespace LiteGame.Modules.UI
     /// 三件 Lua 桥件（逻辑工厂/数据投射/文本门面）由装配根装订 <see cref="ILuaUIBinding"/> 注入。</summary>
     public sealed class UISegment : IClientSegment, IClientSegmentGraph
     {
-        private readonly Func<LuaComponent, ILuaUIBinding> _createLuaBinding;
+        private readonly Func<ILuaHost, ILuaUIBinding> _createLuaBinding;
 
         private RedDotRegistry _redDotRegistry;
         private ConfirmDialogRouter _confirmRouter;      // 确认缝端口（本段产出，本段内绑定真实现）
@@ -30,7 +30,7 @@ namespace LiteGame.Modules.UI
 
         /// <param name="createLuaBinding">Lua 桥装订面工厂（逻辑工厂/数据投射/文本门面——实现归适配器，
         /// 装配根产出；UI 段不直引 `LiteGame.Adapters.*`）。</param>
-        public UISegment(Func<LuaComponent, ILuaUIBinding> createLuaBinding)
+        public UISegment(Func<ILuaHost, ILuaUIBinding> createLuaBinding)
             => _createLuaBinding = createLuaBinding ?? throw new ArgumentNullException(nameof(createLuaBinding));
 
         public string Name => "UI";
@@ -44,7 +44,7 @@ namespace LiteGame.Modules.UI
             // 由 Host 释放 scope 回收；UIService 的异步关闭仍在 ShutdownAsync（scope 只收 IDisposable）。
             context.Scope.Register(new DelegatedDisposable(DisposeSyncResources));
             var config = context.Require<IConfigService>();
-            var lua = context.Require<LuaComponent>();
+            var lua = context.Require<ILuaHost>();
             var content = context.Require<IContentService>();   // 依赖②内容服务——注册序即依赖序
             var pageDirectory = UIPageDirectory.Instance;      // 页面目录端口（生成物适配，无状态共享实例）
             ILuaUIBinding luaBinding = _createLuaBinding(lua);

@@ -1,4 +1,4 @@
-﻿{
+{
     "name": "LiteGame.Adapters.LuaBridge",
     "rootNamespace": "LiteGame",
     "references": [
@@ -9,7 +9,9 @@
         "LiteGame.Modules.Config",
         "LiteGame.Modules.Settings",
         "LiteFramework.Core",
-        "LiteFramework.Runtime",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
         "LiteNet",
         "LiteSync",
         "Luban.Runtime",

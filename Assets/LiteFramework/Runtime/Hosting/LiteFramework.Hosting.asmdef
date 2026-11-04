@@ -1,0 +1,19 @@
+{
+    "name": "LiteFramework.Hosting",
+    "rootNamespace": "LiteFramework",
+    "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

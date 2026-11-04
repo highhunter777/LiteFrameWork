@@ -22,14 +22,14 @@ namespace LiteGame
     public sealed class ProcedureSegment : IClientSegment, IClientSegmentGraph
     {
         private readonly Func<(IRoomSessionBridge room, ILuaProductBridge product)> _createBridges;
-        private readonly Func<IConfigService, LuaComponent, IPageDirectory, ILuaRegistryFiller> _createRegistryFiller;
+        private readonly Func<IConfigService, ILuaHost, IPageDirectory, ILuaRegistryFiller> _createRegistryFiller;
 
         /// <param name="createBridges">Lua 桥装订口工厂（房间会话门面与产品桥**共用同一实例**：Battle 阶段装订的
         /// 会话须被 env 重建后的门面读到）。</param>
         /// <param name="createRegistryFiller">注册表填充器工厂（读注册表三件套 → 报告；实现归 Lua 桥适配器——
         /// 流程段只认 <see cref="ILuaRegistryFiller"/> 端口，不认注册表与页面的具体类型）。</param>
         public ProcedureSegment(Func<(IRoomSessionBridge room, ILuaProductBridge product)> createBridges,
-            Func<IConfigService, LuaComponent, IPageDirectory, ILuaRegistryFiller> createRegistryFiller)
+            Func<IConfigService, ILuaHost, IPageDirectory, ILuaRegistryFiller> createRegistryFiller)
         {
             _createBridges = createBridges ?? throw new ArgumentNullException(nameof(createBridges));
             _createRegistryFiller = createRegistryFiller ?? throw new ArgumentNullException(nameof(createRegistryFiller));
@@ -48,7 +48,7 @@ namespace LiteGame
         {
             IConfigService config = context.Require<IConfigService>();
             IContentService content = context.Require<IContentService>();
-            LuaComponent lua = context.Require<LuaComponent>();
+            ILuaHost lua = context.Require<ILuaHost>();
             UIService ui = context.Require<UIService>();
             UINavigationController nav = context.Require<UINavigationController>();
             IAccountSessionControl accountControl = context.Require<IAccountSessionControl>();
@@ -88,7 +88,7 @@ namespace LiteGame
         {
             IContentService content = context.Require<IContentService>();
             IConfigService config = context.Require<IConfigService>();
-            LuaComponent lua = context.Require<LuaComponent>();
+            ILuaHost lua = context.Require<ILuaHost>();
             // 注册表填充器经端口注入：三注册表与页面目录的具体形态归适配器/UI 域
             ILuaRegistryFiller filler = _createRegistryFiller(config, lua, pages);
             var rootToken = context.RootScope.Token;

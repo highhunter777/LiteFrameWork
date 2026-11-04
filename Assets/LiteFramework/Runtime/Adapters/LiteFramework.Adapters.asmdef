@@ -1,13 +1,11 @@
 {
-    "name": "LiteFramework.Runtime",
+    "name": "LiteFramework.Adapters",
     "rootNamespace": "LiteFramework",
     "references": [
         "LiteFramework.Core",
-        "LiteCodeGen.Runtime",
-        "DOTween.Modules",
+        "LiteFramework.Services",
         "UniTask",
         "Unity.InputSystem",
-        "Unity.TextMeshPro",
         "YooAsset",
         "xLuaMain"
     ],

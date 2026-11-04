@@ -1,9 +1,10 @@
-﻿{
+{
     "name": "LiteGame.Modules.Composition",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteFramework.Core",
-        "LiteFramework.Runtime",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
         "LiteGame.Core",
         "LiteGame.Modules.Dev",
         "LiteGame.Modules.Input",

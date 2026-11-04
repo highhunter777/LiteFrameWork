@@ -58,6 +58,18 @@ namespace LiteGame
         internal Func<ICameraService> CameraServiceFactory()
             => () => new CinemachineCameraService();
 
+        /// <summary>内容服务（YooAsset 适配器）：创建点只在本文件，ContentSegment 只认 IContentService。</summary>
+        internal Func<IFileStore, IContentService> ContentServiceFactory()
+            => files => new YooAssetContentService(files);
+
+        /// <summary>场景服务（YooAsset 场景句柄适配器）：只经 ISceneService 被流程消费。</summary>
+        internal Func<ISceneService> SceneServiceFactory()
+            => () => new SceneService();
+
+        /// <summary>Lua 候选脚本健康探针（受控 XLua 沙箱）：只经 IHealthProbe 注入内容编排。</summary>
+        internal Func<string, IFileStore, IHealthProbe> LuaHealthProbeFactory()
+            => (candidateRoot, files) => new LuaScriptsHealthProbe(candidateRoot, ReleaseLayout.LuaScripts, files);
+
         /// <summary>Lua 桥装订口工厂（房间会话门面 + 产品桥，**同一实例**）：适配器类型只出现在这里，
         /// 流程段经 <c>IRoomSessionBridge</c>/<c>ILuaProductBridge</c> 端口消费。</summary>
         internal Func<(IRoomSessionBridge room, ILuaProductBridge product)> LuaBridgesFactory()
@@ -69,12 +81,13 @@ namespace LiteGame
 
         /// <summary>Lua 桥装订面工厂（UI 段端口）：逻辑工厂/数据投射/文本门面三件共用同一 Lua 宿主与
         /// UI 注册表；适配器类型只出现在本文件，UI 段经 <c>ILuaUIBinding</c> 消费。</summary>
-        internal Func<LuaComponent, ILuaUIBinding> LuaUIBindingFactory()
-            => lua => new LuaUIBinding(lua, _uiRegistry);
+        internal Func<ILuaHost, ILuaUIBinding> LuaUIBindingFactory()
+            => lua => new LuaUIBinding(lua as LuaComponent ?? throw new ArgumentException(
+                "LuaUIBinding 需要 LuaComponent（装配根是唯一把端口还原为具体宿主的地方）", nameof(lua)), _uiRegistry);
 
         /// <summary>注册表填充器工厂（流程段端口 <c>ILuaRegistryFiller</c>）：三注册表由本文件持有，
         /// 页面目录经 UI 域端口传入（流程段不认注册表与页面的具体类型）。</summary>
-        internal Func<IConfigService, LuaComponent, IPageDirectory, ILuaRegistryFiller> LuaRegistryFillerFactory()
+        internal Func<IConfigService, ILuaHost, IPageDirectory, ILuaRegistryFiller> LuaRegistryFillerFactory()
             => (config, lua, pages) => new RegistryFiller(config, pages.All, lua,
                 _uiRegistry, _contentRegistry, _strategyRegistry);
 
@@ -166,7 +179,7 @@ namespace LiteGame
         private void BindRegistryRefill(SegmentContext context)
         {
             context.Services.RegisterInstance(new LuaRegistryRefillService(
-                context.Require<LuaComponent>(), context.Require<UIService>(), context.Require<IConfigService>(),
+                context.Require<ILuaHost>(), context.Require<UIService>(), context.Require<IConfigService>(),
                 context.Require<IPageDirectory>().All, _uiRegistry, _contentRegistry, _strategyRegistry));
         }
 

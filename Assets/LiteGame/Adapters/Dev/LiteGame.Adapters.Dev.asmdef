@@ -1,4 +1,4 @@
-﻿{
+{
     "name": "LiteGame.Adapters.Dev",
     "rootNamespace": "LiteGame.Adapters.Dev",
     "references": [
@@ -11,7 +11,9 @@
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
         "LiteFramework.Core",
-        "LiteFramework.Runtime",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
         "LiteGame.App",
         "LiteGame.Adapters.LuaBridge",
         "LiteNet",

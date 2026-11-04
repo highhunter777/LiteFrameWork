@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Animation;
 using LiteSim;
 using UnityEngine;
 using LiteFramework.UI;
@@ -62,6 +63,7 @@ namespace LiteGame
         private IBattleDevOverlay _devOverlay;             // 开发叠加层（爆头绘制/自瞄验证；开发装配提供，发布 = null）
         private WeaponGripCatalog _gripCatalog;            // 持枪数据（grip.bin 装载；null = 降级）
         private readonly RootMotionDigestHolder _rootMotionDigest;   // 根位移摘要登记口（容器装配期注册；null = 测试装配）
+        private readonly IAnimationBackendFactory _backendFactory;    // 动画后端工厂（装配根注入；null = 驱动降级）
         private RootMotionCatalog _rootMotionCatalog;                // 根位移数据（rootmotion.bin 装载；对局必备）
 
         /// <param name="account">Account 作用域（本件在其下建 `BattleView` 子作用域——离场即整体回收）。</param>
@@ -71,7 +73,8 @@ namespace LiteGame
             AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null,
             Func<UIThemeAsset> themeProvider = null, LiteGame.IDevSession dev = null,
             IBattleDevOverlay devOverlay = null, Action<SimVector3> teleportDispatch = null,
-            ILookPreferences lookPreferences = null, RootMotionDigestHolder rootMotionDigest = null)
+            ILookPreferences lookPreferences = null, RootMotionDigestHolder rootMotionDigest = null,
+            IAnimationBackendFactory animationBackendFactory = null)
         {
             if (content == null) throw new ArgumentNullException(nameof(content));
             if (account == null) throw new ArgumentNullException(nameof(account));
@@ -83,6 +86,7 @@ namespace LiteGame
             _devOverlay = devOverlay;
             _teleportDispatch = teleportDispatch;
             _rootMotionDigest = rootMotionDigest;
+            _backendFactory = animationBackendFactory;
 
             _viewScope = account.CreateChild("BattleView");
             _viewRootGo = new GameObject("[BattleView]");
@@ -203,7 +207,7 @@ namespace LiteGame
                 openBattleMenu != null ? new UnityEngine.Events.UnityAction(openBattleMenu) : null;
 
             _viewAssembler.AttachCore(_context, _viewRoot, _assets.Prefab, _camera,
-                _assets.ClipManifestLease?.Asset, aimPointOf: () => _lookController.AimPoint,
+                _assets.ClipManifestLease?.Asset, _backendFactory, aimPointOf: () => _lookController.AimPoint,
                 gripCatalog: _gripCatalog);
 
             HitFeedbackDispatcher dispatcher = _feedbackAssembler.CreateDispatcher(_viewAssembler.View);

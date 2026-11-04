@@ -25,12 +25,12 @@ namespace LiteGame
         public const string KnownUIKey = LuaKeys.UI.Page_Login;
         private readonly IConfigService _config;
         private readonly IReadOnlyList<PageDefinition> _pages;
-        private readonly LuaComponent _lua;
+        private readonly ILuaHost _lua;
         private readonly IUILuaRegistry _ui;
         private readonly IContentLuaRegistry _content;
         private readonly IStrategyLuaRegistry _strategies;
 
-        public RegistryFiller(IConfigService config, IReadOnlyList<PageDefinition> pages, LuaComponent lua,
+        public RegistryFiller(IConfigService config, IReadOnlyList<PageDefinition> pages, ILuaHost lua,
             IUILuaRegistry ui, IContentLuaRegistry content, IStrategyLuaRegistry strategies)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));

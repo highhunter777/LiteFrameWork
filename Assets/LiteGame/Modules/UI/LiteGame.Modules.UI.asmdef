@@ -3,7 +3,8 @@
     "rootNamespace": "LiteGame.Modules.UI",
     "references": [
         "LiteFramework.Core",
-        "LiteFramework.Runtime",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
         "LiteGame.Core",
         "LiteGame.Modules.Config",
         "Luban.Runtime",

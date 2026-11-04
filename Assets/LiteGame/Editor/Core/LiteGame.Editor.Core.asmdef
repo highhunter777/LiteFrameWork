@@ -3,7 +3,9 @@
     "rootNamespace": "LiteGame",
     "references": [
         "LiteFramework.Core",
-        "LiteFramework.Runtime",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [

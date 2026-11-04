@@ -406,7 +406,7 @@ namespace LiteFramework.Tests
         /// <summary>D2 守卫（《客户端与服务端共享代码范围专项设计》§3）：客户端 asmdef 引服务端程序集，
         /// 必须落在 <c>DevHostMayReferenceServerAssemblies</c> 登记目录里。
         ///
-        /// 原因：`LiteFramework.Runtime` 若无条件引用两个 RoomServer 程序集，唯一消费者却是一个开发面文件
+        /// 原因：框架件若无条件引用两个 RoomServer 程序集，唯一消费者却是一个开发面文件
         /// （进程内本地服）→ 两个服务端程序集进**所有** Player 构建。`ProcedureMatch` 的 `#if`
         /// 只挡调用点、挡不住 asmdef 引用（引用是程序集级的）。</summary>
         [Fact]

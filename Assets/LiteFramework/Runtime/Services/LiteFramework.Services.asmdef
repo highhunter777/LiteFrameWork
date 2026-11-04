@@ -1,0 +1,21 @@
+{
+    "name": "LiteFramework.Services",
+    "rootNamespace": "LiteFramework",
+    "references": [
+        "LiteCodeGen.Runtime",
+        "LiteFramework.Core",
+        "DOTween.Modules",
+        "UniTask",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

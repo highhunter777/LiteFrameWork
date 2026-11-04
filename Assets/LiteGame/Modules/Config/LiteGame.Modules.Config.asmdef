@@ -3,7 +3,9 @@
     "rootNamespace": "LiteGame",
     "references": [
         "UniTask",
-        "LiteFramework.Runtime",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
         "Luban.Tables",
         "LiteSim",
         "Luban.Runtime"

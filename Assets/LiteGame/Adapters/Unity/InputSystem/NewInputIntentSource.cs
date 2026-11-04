@@ -105,7 +105,7 @@ namespace LiteGame
         /// <summary>
         /// 瞄准解算相机（装配根注入：表现域建好主相机后设一次）。
         /// **为什么不进 <see cref="IIntentSource"/> 接口**：那会让核心接口依赖 <c>UnityEngine.Camera</c>，
-        /// 从而把 `LiteFramework.Runtime` 的输入三件排除出 L1 的源链接覆盖（纯逻辑那部分必须能脱离引擎编译）。
+        /// 从而把 `LiteFramework.Services` 的输入三件排除出 L1 的源链接覆盖（纯逻辑那部分必须能脱离引擎编译）。
         /// 相机只是**本实现**的输入之一，由装配根对具体类型设置即可——接口不必为实现的设备差异扩面。
         ///
         /// 传进来的相机**可能随场景切换被销毁**（主相机是场景对象）：<see cref="ResolveCamera"/> 在采样时

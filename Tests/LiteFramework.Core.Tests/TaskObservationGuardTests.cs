@@ -40,7 +40,7 @@ namespace LiteFramework.Core.Tests
 
         private static readonly string[] ProductRoots =
         {
-            "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Framework", "Assets/LiteGame", "Assets/LiteFramework", "Packages/com.litegame.net",
+            "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Hosting", "Assets/LiteGame", "Assets/LiteFramework", "Packages/com.litegame.net",
         };
 
         /// <summary>产品代码禁裸 <c>.Forget()</c>：无回调 = 异常静默；改用 <c>ForgetLogged(op)</c>。</summary>

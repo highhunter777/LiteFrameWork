@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -21,7 +21,7 @@ namespace LiteGame
     {
         private readonly IContentService _content;
         private readonly IConfigService _config;
-        private readonly LuaComponent _lua;
+        private readonly ILuaHost _lua;
         private readonly ILuaRegistryFiller _filler;
         private readonly IPageDirectory _pages;            // 页面目录端口（模态登记反查单源）
         private readonly ILuaProductBridge _productBridge;
@@ -30,7 +30,7 @@ namespace LiteGame
         private readonly FeedbackService _feedback;        // 启动走廊装载面（窗口③）
         private readonly Func<string[]> _listLuaFiles;     // Lua 清单（装配点绑定——静态门面收口于装配点）
 
-        public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, ILuaRegistryFiller filler,
+        public ProcedurePreload(IContentService content, IConfigService config, ILuaHost lua, ILuaRegistryFiller filler,
             IPageDirectory pages, ILuaProductBridge productBridge, IEventBus events,
             UIService ui, Func<string[]> listLuaFiles = null, CancellationToken rootToken = default, FeedbackService feedback = null)
             : base(rootToken)
@@ -61,14 +61,11 @@ namespace LiteGame
                 // ⓪ 启动走廊开场（窗口③——不定态，Preload 开 / Main 报进度 / 首屏收，§通用加载页 §1）：
                 //    依赖上面已装载的配置（202 表行）与就绪的 UIService。
                 LaunchLoading.Begin(_feedback, "正在预载资源…");
-                // ① 全量预载：同步 loader 的咽喉（§4.2），env 依赖它，先建缓存再 Init
+                // ① 全量预载 → ② env + main.lua + tick 开：适配器实现内部按同一顺序执行
                 //    （字节经 IContentService 租约通道——代次/引用统一，提取即释放；
                 //     清单经装配点注入——不直查静态门面）
-                var preloader = new LuaPreloader(LoadLuaBytesViaContent, _listLuaFiles, LuaLayout.LuaDir);
-                await preloader.PreloadAllAsync(ct);
-                _lua.Init(preloader, _events, _productBridge.BindGlobals);   // env + 事件桥；产品门面经端口装订（单源）
-                _lua.DoMain();                                   // ② 执行 main.lua（require/定义，§4.4）
-                _lua.TickEnabled = true;                         // tick 派发开（宿主心跳；main.lua 无定时器也无害）
+                await _lua.StartAsync(LoadLuaBytesViaContent, _listLuaFiles, LuaLayout.LuaDir, _events,
+                    _productBridge.BindGlobals, ct);
 
                 var report = _filler.FillAll(ct);                // ③ 读三件套逐行 require/校验 → Fill → 报告
                 if (report.HasFailures)                          // ④ 整批统一判定（不遇错即停，一次拿全问题）

@@ -1,4 +1,4 @@
-﻿{
+{
     "name": "LiteGame.Modules.Battle",
     "rootNamespace": "LiteGame",
     "references": [
@@ -8,7 +8,8 @@
         "LiteGame.Modules.Camera",
         "LiteGame.Core",
         "LiteFramework.Core",
-        "LiteFramework.Runtime",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
         "LiteNet",
         "LiteSync",
         "LiteSim",

@@ -19,7 +19,7 @@ namespace LiteFramework
     /// 热路径纪律（§4.3）：tick 走 env.Tick()；Bridge 查表等低频入口允许动态转换。
     /// 生命周期：装配点 AddComponent + Init；Shutdown 幂等。
     /// </summary>
-    public sealed class LuaComponent : MonoBehaviour, IModuleStats
+    public sealed class LuaComponent : MonoBehaviour, ILuaHost, IModuleStats
     {
         private LuaEnv _env;
         private LuaPreloader _preloader;
@@ -66,6 +66,18 @@ namespace LiteFramework
                 DoString("require('LuaPanda').start()", "luaPanda");
 #endif
             Log.Info("LuaEnv 初始化完成（loader=预载缓存，桥已绑定）", LogTag.Lua);
+        }
+
+        /// <inheritdoc />
+        public async UniTask StartAsync(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider,
+            Func<string[]> listLuaFiles, string luaDir, IEventBus eventBus,
+            Action<object> bindGlobals = null, CancellationToken ct = default)
+        {
+            var preloader = new LuaPreloader(bytesProvider, listLuaFiles, luaDir);
+            await preloader.PreloadAllAsync(ct);                 // 同步 loader 的咽喉：先建缓存再建 env
+            Init(preloader, eventBus, bindGlobals == null ? (Action<LuaEnv>)null : env => bindGlobals(env));
+            DoMain();
+            TickEnabled = true;
         }
 
         /// <summary>

@@ -1,9 +1,10 @@
-﻿{
+{
     "name": "LiteGame.Modules.Meta",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteFramework.Core",
-        "LiteFramework.Runtime",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
         "LiteGame.Modules.Config",

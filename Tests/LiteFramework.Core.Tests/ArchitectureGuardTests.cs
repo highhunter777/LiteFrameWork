@@ -17,9 +17,16 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
 
-            // 《路线图》§4.2：LiteFramework.Runtime 不引用产品程序集（表现经 IBattleView 端口进入）。
-            // 旧断言只钉已不存在的 LiteGame.Modules.View＝静默空转；改前缀断言覆盖全部 LiteGame.*。
-            AssertNoReferencePrefix(root, "Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef", "LiteGame.");
+            // 《路线图》§4.2：框架四件都不得引用产品程序集（表现经 IBattleView 端口进入）。
+            // 四件分治后逐件断言——只钉其中一件会让其余三件静默失守。
+            foreach (string asmdef in new[]
+            {
+                "Assets/LiteFramework/Runtime/Core/LiteFramework.Core.asmdef",
+                "Assets/LiteFramework/Runtime/Services/LiteFramework.Services.asmdef",
+                "Assets/LiteFramework/Runtime/Adapters/LiteFramework.Adapters.asmdef",
+                "Assets/LiteFramework/Runtime/Hosting/LiteFramework.Hosting.asmdef",
+            })
+                AssertNoReferencePrefix(root, asmdef, "LiteGame.");
 
             // §4.2/§3.6：LiteGame.App 的 release 依赖图不含开发装配层 / RoomServer.*
             // （本地传输经 ILocalTransportFactory，由 LiteGame.Dev 装配）

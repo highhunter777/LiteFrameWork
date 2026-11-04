@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Animation;
 using LiteFramework.UI;
 using LiteGame.Modules.Battle.Arena;
 using LiteGame.Modules.Camera;
@@ -23,6 +24,7 @@ namespace LiteGame
     {
         private readonly Func<IBattleDevDiagnostics> _devDiagnostics;
         private readonly Func<IBattleDevOverlay> _devOverlay;
+        private readonly IAnimationBackendFactory _animationBackendFactory;   // 动画后端工厂（App 组合根注入）
         private PrefabLeaseCache _prefabs;
         private AudioService _audio;
         private EntityService _entities;
@@ -31,10 +33,11 @@ namespace LiteGame
         /// <param name="devDiagnostics">开发诊断实现提供者（App 注入开发诊断读口；
         /// null = 发布形态不登记诊断）。</param>
         public BattleSegment(Func<IBattleDevDiagnostics> devDiagnostics = null,
-            Func<IBattleDevOverlay> devOverlay = null)
+            Func<IBattleDevOverlay> devOverlay = null, IAnimationBackendFactory animationBackendFactory = null)
         {
             _devDiagnostics = devDiagnostics;
             _devOverlay = devOverlay;
+            _animationBackendFactory = animationBackendFactory;
         }
 
         public string Name => "Battle";
@@ -94,7 +97,8 @@ namespace LiteGame
                 context.Require<IDevSession>(),                        // dev 投影读本局规则（实例端口）
                 context.Require<ILookPreferences>(),                   // 视角手感偏好（设置段单实例）
                 rootMotionDigest,                                      // 根位移摘要登记口（对局装载写入）
-                _devOverlay));                                         // 开发叠加层来源（发布 null）
+                _devOverlay,                                           // 开发叠加层来源（发布 null）
+                _animationBackendFactory));                            // 动画后端工厂（适配器由组合根注入）
             return UniTask.CompletedTask;
         }
 

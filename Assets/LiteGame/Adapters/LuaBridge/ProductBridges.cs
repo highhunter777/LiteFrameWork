@@ -22,12 +22,14 @@ namespace LiteGame
         public ProductBridges(RoomBridge room)
             => _room = room ?? throw new ArgumentNullException(nameof(room));
 
-        public void BindGlobals(LuaEnv env)
+        public void BindGlobals(object env)
         {
-            Bridge.BindGlobals(env);              // 框架四门面（data/ui/content/text）
-            MetaBridge.BindGlobals(env);          // 联机门面（meta——产品模块）
-            BindSettingsGlobals(env);             // 设置门面（settings——产品模块）
-            _room.BindGlobals(env);               // 房间会话门面（room——本适配器）
+            var lua = env as LuaEnv ?? throw new System.ArgumentNullException(nameof(env),
+                "ILuaProductBridge.BindGlobals 需要 LuaEnv（实现侧唯一转换点）");
+            Bridge.BindGlobals(lua);              // 框架四门面（data/ui/content/text）
+            MetaBridge.BindGlobals(lua);          // 联机门面（meta——产品模块）
+            BindSettingsGlobals(lua);             // 设置门面（settings——产品模块）
+            _room.BindGlobals(lua);               // 房间会话门面（room——本适配器）
         }
 
         /// <summary>装订 <c>Bridge.settings</c> 进全局 Bridge 表（在框架门面与 meta 之后）。

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Animation;
 using LiteFramework.UI;
 using LiteSim;
 using LiteGame.Modules.Battle.Arena;
@@ -34,13 +35,14 @@ namespace LiteGame
         private readonly ILookPreferences _lookPreferences;
         private readonly RootMotionDigestHolder _rootMotionDigest;   // 根位移摘要登记口（容器装配期单实例）
         private readonly Func<IBattleDevOverlay> _devOverlayOf;      // 开发叠加层来源（装配期注入；发布 null）
+        private readonly IAnimationBackendFactory _animationBackendFactory;   // 动画后端工厂（装配根注入）
         private BattleViewRig _last;                     // 真 rig（诊断读口；Dispose 即置空）
 
         public BattleViewGroupFactory(IContentService content, IInputService input, ICameraService camera,
             IVfxService vfx, IWorldClock worldClock, AudioService audio, CommandCenter commands,
             CrosshairFeelProfile crosshairFeel, Func<UIThemeAsset> themeProvider, IDevSession dev,
             ILookPreferences lookPreferences, RootMotionDigestHolder rootMotionDigest,
-            Func<IBattleDevOverlay> devOverlayOf = null)
+            Func<IBattleDevOverlay> devOverlayOf = null, IAnimationBackendFactory animationBackendFactory = null)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _input = input;
@@ -55,6 +57,7 @@ namespace LiteGame
             _lookPreferences = lookPreferences;
             _rootMotionDigest = rootMotionDigest;
             _devOverlayOf = devOverlayOf;
+            _animationBackendFactory = animationBackendFactory;
         }
 
         /// <inheritdoc />
@@ -65,7 +68,7 @@ namespace LiteGame
             IBattleDevOverlay devOverlay = _devOverlayOf?.Invoke();   // 每局取一次（开发装配按局建实例）
             var rig = new BattleViewRig(_content, _input, _camera, account, _vfx, _worldClock, _audio, _commands,
                 _crosshairFeel, _themeProvider, _dev, devOverlay, teleportDispatch, _lookPreferences,
-                _rootMotionDigest);
+                _rootMotionDigest, animationBackendFactory: _animationBackendFactory);
             Volatile.Write(ref _last, rig);
             return new LastCreatedDecorator(this, rig);
         }
