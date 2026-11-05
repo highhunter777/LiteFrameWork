@@ -1372,13 +1372,13 @@
     {
       "name": "Odin Inspector",
       "version": "4.0.2.3",
-      "path": "Assets/Plugins/Sirenix",
+      "path": "Assets/ThirdParty/Plugins/Sirenix",
       "license": "按席位付费，不可再分发——克隆后须自行安装",
       "consumer": "LiteGame.Editor（标记工具/编排器）"
     },
     {
       "name": "DOTween",
-      "path": "Assets/Plugins/Demigiant",
+      "path": "Assets/ThirdParty/Plugins/Demigiant",
       "license": "免费，Asset Store 分发（仓库仅跟踪部分文件）——克隆后须补装",
       "consumer": "UiFx/转场（LiteGame.UI asmdef 引用 DOTween.Modules，仅 UI/Anim/）"
     }

@@ -156,7 +156,7 @@ def main(argv=None):
         miss("git missing")
 
     # 4. Paid / restricted plugins
-    sirenix = project / "Assets" / "Plugins" / "Sirenix"
+    sirenix = project / "Assets" / "ThirdParty" / "Plugins" / "Sirenix"
     if sirenix.is_dir():
         odin = [path for path in sirenix.rglob("Sirenix.OdinInspector.Attributes.dll") if path.is_file()]
         if odin:
@@ -165,25 +165,25 @@ def main(argv=None):
             miss("Sirenix dir exists but Odin assemblies missing (reinstall Odin Inspector 4.0.2.3)")
     else:
         miss(
-            "Odin Inspector missing: Assets/Plugins/Sirenix (per-seat paid, non-redistributable; "
+            "Odin Inspector missing: Assets/ThirdParty/Plugins/Sirenix (per-seat paid, non-redistributable; "
             "install it yourself - see scripts/gate/toolchain.json paidOrRestrictedPlugins)"
         )
 
-    if (project / "Assets" / "Plugins" / "Demigiant" / "DOTween").is_dir():
+    if (project / "Assets" / "ThirdParty" / "Plugins" / "Demigiant" / "DOTween").is_dir():
         good("DOTween present (free plugin, installed locally)")
     else:
         miss(
-            "DOTween missing: Assets/Plugins/Demigiant/DOTween "
+            "DOTween missing: Assets/ThirdParty/Plugins/Demigiant/DOTween "
             "(LiteGame.UI references DOTween.Modules; install free version from Asset Store)"
         )
-    if (project / "Assets" / "Plugins" / "UniTask").is_dir():
+    if (project / "Assets" / "ThirdParty" / "Plugins" / "UniTask").is_dir():
         good("UniTask present")
     else:
-        miss("UniTask missing: Assets/Plugins/UniTask (runtime required; should ship with repo)")
-    if (project / "Assets" / "Plugins" / "xlua.bundle").is_dir():
+        miss("UniTask missing: Assets/ThirdParty/Plugins/UniTask (runtime required; should ship with repo)")
+    if (project / "Assets" / "ThirdParty" / "Plugins" / "xlua.bundle").is_dir():
         good("xLua native plugin present")
     else:
-        miss("xlua.bundle missing: Assets/Plugins/xlua.bundle (runtime required; should ship with repo)")
+        miss("xlua.bundle missing: Assets/ThirdParty/Plugins/xlua.bundle (runtime required; should ship with repo)")
 
     # 5. Tracked UI/render assets
     if (project / "Assets" / "ShareResource" / "Fonts" / "NotoSansSC-Regular SDF.asset").is_file():

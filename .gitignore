@@ -147,13 +147,12 @@ Packages/MCPForUnity/
 # **DOTween 已放开入库**（2026-09-26，用户决定）：runner 需要它才能编译 LiteGame.Runtime
 # （引用 DOTween.Modules）。原注释称"不可再分发"，但该包**已随 Asset Store 公开导入分发**，
 # 且包内无 LICENSE 文件（许可在 dotween.demigiant.com/license.php）——L0 许可门禁只覆盖
-# Packages/ 下的 vendored 包，Assets/Plugins 不在其列。
+# Packages/ 下的 vendored 包，Assets/ThirdParty/Plugins 不在其列。
+# 归拢后的具体忽略路径见文末「第三方归拢」段。
+# Odin Visual Designer 的 Saved 路径硬编码在旧位置，运行期会重建该数据目录（非代码、不入库）。
+Assets/Plugins.meta
 Assets/Plugins/Sirenix/
 Assets/Plugins/Sirenix.meta
-Assets/Plugins/UniRx/
-Assets/Plugins/UniRx.meta
-Assets/Plugins/VContainer/
-Assets/Plugins/VContainer.meta
 
 # ===== 本机/非框架项（不入库；如需入库请 git add -f）=====
 # 说明：仓库只保留自研框架代码/预制品/文档与远端既有范围（origin/LiteGame）。
@@ -205,22 +204,18 @@ Assets/InitTestScene*.unity
 Assets/InitTestScene*.unity.meta
 
 # ===== 角色资源包（176MB，用户选择不入 VCS；测试按包可用性分流，缺包走灰盒降级）=====
-Assets/CombatGirlsCharacterPack/
-Assets/CombatGirlsCharacterPack.meta
+# 归拢后路径见文末「第三方归拢」段。
 
 # ===== KriptoFX（第三方付费 VFX 包，138MB、零引用，不入 VCS；同 CombatGirlsCharacterPack 先例）=====
-Assets/KriptoFX/
-Assets/KriptoFX.meta
+# 归拢后路径见文末「第三方归拢」段。
 
 # ===== DamageNumbersPro（第三方付费包，32MB；运行时已裁决弃用、留本地作自研参考——
 # 炼化口径与自研契约见 Docs/设计文档/gameplay/命中反馈与伤害数字专项设计.md；同 KriptoFX 先例）=====
-Assets/DamageNumbersPro/
-Assets/DamageNumbersPro.meta
+# 归拢后路径见文末「第三方归拢」段。
 
 # ===== Synty InterfaceMilitaryCombatHUD（第三方付费 HUD 包，366MB，不入 VCS；同 KriptoFX 先例——
 # 取用范围与裁决见 Docs/设计文档/gameplay/战斗美术资源参考.md）=====
-Assets/Synty/
-Assets/Synty.meta
+# 归拢后路径见文末「第三方归拢」段。
 
 # ===== 资产商店导入残留（本机清理项：Help.pdf / More Assets.url / unity3d.txt 与孤儿 Temp.meta）=====
 Assets/Help.pdf
@@ -239,8 +234,8 @@ Assets/TextMesh Pro/
 Assets/TextMesh Pro.meta
 
 # ===== 第三方资源引用规范（AGENTS.md）：第三方资源复制件照常不入库（随打包机本地还原）=====
-# 产品资产不得直引第三方原始库（Assets/Synty/ 等）；复制进 ShareResource/模块目录再引用，
-# 但复制件是第三方付费资源 → 仍不入版本管理（原始库 `Assets/Synty/` 只作可复制来源）。
+# 产品资产不得直引第三方原始库（Assets/ThirdParty/Synty/ 等）；复制进 ShareResource/模块目录再引用，
+# 但复制件是第三方付费资源 → 仍不入版本管理（原始库 `Assets/ThirdParty/Synty/` 只作可复制来源）。
 # 注：该目录可能同时存在自有可入库件——如未来加自有图标，需用 `git add -f <路径>` 显式入库。
 Assets/ShareResource/UI/Icons/Weapons/
 Assets/ShareResource/UI/Icons/Weapons.meta
@@ -260,8 +255,7 @@ Tests/key_ras.pub
 # ===== MagicaCloth2（第三方付费资产，不入 VCS；同 CombatGirlsCharacterPack 先例——
 # 缺包时按域排除的遮罩手工维护面照常工作，ProjectSettings 的 MAGICACLOTH2 宏与
 # manifest 的 collections/burst 依赖未提交，干净检出不会引用到缺失包）=====
-Assets/MagicaCloth2/
-Assets/MagicaCloth2.meta
+# 归拢后路径见文末「第三方归拢」段。
 # 装配产物（manifest/packages-lock/ProjectSettings 宏）是**已跟踪文件**，.gitignore 管不到——
 # 2026-09-30 起以 skip-worktree 屏蔽本机差异：
 #   git update-index --skip-worktree Packages/manifest.json Packages/packages-lock.json ProjectSettings/ProjectSettings.asset
@@ -291,3 +285,22 @@ LocalPackages/
 
 # DSH 会话产物（不入库）
 .dsh-artifacts/
+
+# ===== 第三方归拢（Assets/ThirdParty；付费/非再分发包不入 VCS）=====
+Assets/ThirdParty/Synty/
+Assets/ThirdParty/Synty.meta
+Assets/ThirdParty/MagicaCloth2/
+Assets/ThirdParty/MagicaCloth2.meta
+Assets/ThirdParty/DamageNumbersPro/
+Assets/ThirdParty/DamageNumbersPro.meta
+Assets/ThirdParty/KriptoFX/
+Assets/ThirdParty/KriptoFX.meta
+Assets/ThirdParty/CombatGirlsCharacterPack/
+Assets/ThirdParty/CombatGirlsCharacterPack.meta
+Assets/ThirdParty/Plugins/Sirenix/
+Assets/ThirdParty/Plugins/Sirenix.meta
+Assets/ThirdParty/Plugins/UniRx/
+Assets/ThirdParty/Plugins/UniRx.meta
+Assets/ThirdParty/Plugins/VContainer/
+Assets/ThirdParty/Plugins/VContainer.meta
+

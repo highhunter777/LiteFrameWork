@@ -100,7 +100,7 @@ def bundles_cs(profile):
 # ---- Android 明文（cleartext）通道策略（纯函数，供 L1 单测） ----
 
 # 自定义主清单（useCustomMainManifest=1 时打包消费的文件）。
-ANDROID_MANIFEST = Path("Assets/Plugins/Android/AndroidManifest.xml")
+ANDROID_MANIFEST = Path("Assets/ThirdParty/Plugins/Android/AndroidManifest.xml")
 
 # 明文放行属性：只有 development 通道（开发/封闭测试）才注入。
 CLEARTEXT_ATTRIBUTE = 'android:usesCleartextTraffic="true"'

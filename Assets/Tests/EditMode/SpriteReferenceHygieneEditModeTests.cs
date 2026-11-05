@@ -11,7 +11,7 @@ namespace LiteGame.Tests.EditMode
     /// <summary>
     /// 收集组 UI prefab 的 sprite 引用卫生守卫（"复制进收集目录再引用"资源规范的机检化）：
     /// **ShareResource/UI 下全部 prefab 的 sprite 引用（Image.sprite ＋ Button 三态）不得指向
-    /// 原始库目录**（`Assets/Art`、`Assets/Synty` 等不入 VCS 的第三方/素材库——干净克隆下这些
+    /// 原始库目录**（`Assets/Art`、`Assets/ThirdParty/Synty` 等不入 VCS 的第三方/素材库——干净克隆下这些
     /// 引用即悬空；且原始目录不在任何收集组内，直引是"收集组外依赖"）。复制件常规位＝
     /// `ShareResource/UI/Icons/<用途>/`（随引用 prefab 依赖入包）；本守卫把"再添直引"变成测试红。
     /// 背景：迁移批实证 8 prefab × 41 处引用悬空（同 sprite 在 Hud 用复制件、页面用原始库并存）。
@@ -21,9 +21,9 @@ namespace LiteGame.Tests.EditMode
         /// <summary>原始库目录（.gitignore 的 Assets 排除段中含美术素材的根——引用侧禁入）。</summary>
         private static readonly string[] RawRoots =
         {
-            "Assets/Art/", "Assets/Synty/", "Assets/Model/", "Assets/Animation/", "Assets/Animator/",
-            "Assets/Map/", "Assets/FX/", "Assets/Sound/", "Assets/CombatGirlsCharacterPack/",
-            "Assets/KriptoFX/", "Assets/DamageNumbersPro/", "Assets/MagicaCloth2/", "Assets/GameFramework/",
+            "Assets/Art/", "Assets/ThirdParty/Synty/", "Assets/Model/", "Assets/Animation/", "Assets/Animator/",
+            "Assets/Map/", "Assets/FX/", "Assets/Sound/", "Assets/ThirdParty/CombatGirlsCharacterPack/",
+            "Assets/ThirdParty/KriptoFX/", "Assets/ThirdParty/DamageNumbersPro/", "Assets/ThirdParty/MagicaCloth2/", "Assets/GameFramework/",
             "Assets/GameMain/", "Assets/TutorialInfo/", "Assets/StateMachine/", "Assets/Resources/",
         };
 

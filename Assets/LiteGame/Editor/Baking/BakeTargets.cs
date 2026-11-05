@@ -27,7 +27,7 @@ namespace LiteGame.EditorTools
         public const string PrefabPath = "Assets/ShareResource/Characters/Player(Rifle).prefab";
 
         /// <summary>参考姿态控制器（采样参考片段用；换包/换控制器后全工具箱重烘）。</summary>
-        public const string ControllerPath = "Assets/CombatGirlsCharacterPack/RifleGirl/Animations/Rifle_Controller.controller";
+        public const string ControllerPath = "Assets/ThirdParty/CombatGirlsCharacterPack/RifleGirl/Animations/Rifle_Controller.controller";
 
         /// <summary>参考姿态片段（t=0 净姿态）：射弹时刻视觉姿态单族——瞄准=AimIdle、腰射开火窗 FireIdle
         /// 亦以 AimIdle 循环填窗（见 CombatGirlsAnimationProfile/CombatAnimMachine），故单套常量取 AimIdle t=0。</summary>

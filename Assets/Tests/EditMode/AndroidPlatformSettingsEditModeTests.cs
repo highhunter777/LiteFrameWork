@@ -22,7 +22,7 @@ namespace LiteGame.Tests.EditMode
         private const string PlayerSettingsAsset = "ProjectSettings/ProjectSettings.asset";
         private const string QualitySettingsAsset = "ProjectSettings/QualitySettings.asset";
         private const string BundleId = "com.litegame.dev";
-        private const string ManifestPath = "Assets/Plugins/Android/AndroidManifest.xml";
+        private const string ManifestPath = "Assets/ThirdParty/Plugins/Android/AndroidManifest.xml";
 
         /// <summary>`m_BuildTargetDefaultTextureCompressionFormat` 段里的 ASTC 取值
         /// （`TextureCompressionFormat.ASTC` 的序列化整数；该枚举在编辑器程序集内不可见，故以常量钉住）。</summary>

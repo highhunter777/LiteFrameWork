@@ -191,7 +191,7 @@ namespace Tools.DisciplineScan
         /// 分层：L1 原始资源（Animation/Animator/Art/FX/Map/Model/Sound）／
         /// 自研代码与测试根（LiteCodeGen/LiteFramework/LiteGame/LiteTesting/RoomServer/Tests/Tools）／
         /// 收集与工程强制定位（GameData/Scenes/Settings/StreamingAssets/ShareResource）／
-        /// 第三方归拢根（ThirdParty）／例外（Resources＝Unity 特殊目录）。
+        /// 第三方归拢根（ThirdParty）／例外（Resources＝Unity 特殊目录；TextMesh Pro＝Unity 官方包导入面）。
         ///
         /// 本表是"当前允许面"，不是永久白名单；目录迁出后同批删旧项。
         /// 新增顶层目录必须在此登记；未登记即红。
@@ -206,16 +206,8 @@ namespace Tools.DisciplineScan
             "Map",
             "Model",
             "Sound",
-            // 第三方（付费/外部包；归拢根见 ThirdParty）
-            "CombatGirlsCharacterPack",
-            "DamageNumbersPro",
-            "KriptoFX",
-            "MagicaCloth2",
-            "Plugins",
-            "Synty",
-            "TextMesh Pro",
-            "XLua",
-            "ThirdParty",            // 第三方归拢根（付费/外部包）
+            // 第三方归拢根（付费/外部包；目录见 Assets/ThirdParty）
+            "ThirdParty",
             // 收集与工程强制定位
             "GameData",              // 表产物（Luban .bytes + 生成读码面）
             "Scenes",                // 流程编排资产（《资源收集目录专项设计》§5 裁决维持顶层）
@@ -232,6 +224,7 @@ namespace Tools.DisciplineScan
             "Tools",                 // DisciplineScanner 等编辑器工具
             // 例外
             "Resources",             // Unity 特殊目录（DOTweenSettings 等第三方运行期配置）
+            "TextMesh Pro",          // Unity 官方包导入面（TMP Essentials；非付费第三方，维持顶层）
         };
 
         /// <summary>
@@ -242,6 +235,7 @@ namespace Tools.DisciplineScan
         {
             "AgentScripts",          // 会话级脚本/留档抽屉（.gitignore）
             "Temp",                  // Unity/工具临时面（.gitignore）
+            "Plugins",               // 第三方工具硬编码生成目录（Odin Visual Designer Saved；真实第三方见 ThirdParty）
         };
 
         /// <summary>

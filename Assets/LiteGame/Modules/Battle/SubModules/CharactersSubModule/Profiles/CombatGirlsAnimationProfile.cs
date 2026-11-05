@@ -18,7 +18,7 @@ namespace LiteGame
         public const string ModelFamily = "CombatGirls";
 
         /// <summary>该包的动画控制器（清单构建器的片段解析源；测试校验用单源路径）。</summary>
-        public const string ControllerPath = "Assets/CombatGirlsCharacterPack/RifleGirl/Animations/Rifle_Controller.controller";
+        public const string ControllerPath = "Assets/ThirdParty/CombatGirlsCharacterPack/RifleGirl/Animations/Rifle_Controller.controller";
 
         /// <summary>对局实体视图 prefab（缺包克隆走 SimView 灰盒兜底降级）。
         /// 位于 `Assets/ShareResource/Characters/`（+MagicaCloth 布料/头发物理；依赖资产在 `CombatGirlsCharacterPack/`
