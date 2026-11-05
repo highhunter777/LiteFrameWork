@@ -26,7 +26,7 @@ namespace CSObjectWrapEditor
 #if XLUA_GENERAL
         public static string common_path = "./Gen/";
 #else
-        public static string common_path = Application.dataPath + "/XLua/Src/Gen/"; // Gen 须位于 xLua.asmdef 覆盖范围内：generated 的 internal partial class InternalGlobals 需与 Src 同程序集合并
+        public static string common_path = Application.dataPath + "/ThirdParty/XLua/Src/Gen/"; // Gen 须位于 xLua.asmdef 覆盖范围内：generated 的 internal partial class InternalGlobals 需与 Src 同程序集合并（B4-5：随 XLua 迁 ThirdParty 同步路径）
 #endif
 
         static GeneratorConfig()

@@ -305,3 +305,10 @@ Assets/ThirdParty/Plugins/UniRx.meta
 Assets/ThirdParty/Plugins/VContainer/
 Assets/ThirdParty/Plugins/VContainer.meta
 
+# xLua 构建期热更注入产物（HOTFIX_ENABLE：Player 构建后 IPostBuildPlayerScriptDLLs 写入
+# GeneratorConfig.common_path；B4-5 已把该路径从已迁走的 Assets/XLua 改指 ThirdParty）
+Assets/ThirdParty/XLua/Src/Gen/hotfix_cfg_in_editor.data
+Assets/ThirdParty/XLua/Src/Gen/hotfix_cfg_in_editor.data.meta
+Assets/ThirdParty/XLua/Src/Gen/Resources/
+Assets/ThirdParty/XLua/Src/Gen/Resources.meta
+
