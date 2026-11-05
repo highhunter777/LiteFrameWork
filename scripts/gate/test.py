@@ -261,6 +261,18 @@ def invoke_doc_lint(project, profile, results, run_id):
     info("quality/test", "PASS: doc-lint + tool index completed.")
 
 
+def invoke_arch_check(project, profile, results, run_id):
+    info("quality/arch", "=== arch-check ===")
+    script = project / "scripts" / "gate" / "arch-check.py"
+    if not script.is_file():
+        raise RuntimeError(f"arch-check script missing: {script}")
+    try:
+        run_or_raise([sys.executable, str(script), "--check"], "arch-check", cwd=project)
+    except RuntimeError as exc:
+        write_summary(results, suite="L1", profile=profile, status="fail", run_id=run_id, error=str(exc))
+        raise
+
+
 def invoke_l2(project, results):
     if os.name != "nt":
         raise RuntimeError("L2 requires Windows, a complete Unity project and a licensed Unity Editor.")
@@ -314,6 +326,8 @@ def main(argv=None):
         os.environ["NUGET_PACKAGES"] = str(nuget)
 
     try:
+        if args.suite in {"L1", "All"}:
+            invoke_arch_check(project, args.profile, results, run_id)
         if args.suite == "L1":
             invoke_dotnet_suite(
                 "L1",

@@ -1,21 +1,12 @@
 {
   "version": 1,
+  "generatedFrom": "arch/units.json",
   "tiers": [
     "base",
     "script",
     "data"
   ],
   "modules": [
-    {
-      "id": "LiteGame.Core",
-      "path": "Assets/LiteGame/Core",
-      "tiers": [
-        "base"
-      ],
-      "collectGroups": [],
-      "ship": "base",
-      "notes": "跨模块纯契约/纯计算"
-    },
     {
       "id": "LiteGame.Shared",
       "path": "Assets/LiteGame/Modules/Shared",
@@ -27,7 +18,17 @@
         "Sound"
       ],
       "ship": "base",
-      "notes": "共享常量/音频资源归集"
+      "notes": "共享常量面与共享音频归集"
+    },
+    {
+      "id": "LiteGame.Core",
+      "path": "Assets/LiteGame/Core",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "产品跨模块纯契约/纯计算（零引擎）"
     },
     {
       "id": "LiteGame.Bootstrap",
@@ -37,32 +38,7 @@
       ],
       "collectGroups": [],
       "ship": "base",
-      "notes": "AOT 进程壳"
-    },
-    {
-      "id": "LiteGame.App",
-      "path": "Assets/LiteGame/App",
-      "tiers": [
-        "base"
-      ],
-      "collectGroups": [],
-      "ship": "base",
-      "notes": "产品组合根"
-    },
-    {
-      "id": "LiteGame.Modules.Battle",
-      "path": "Assets/LiteGame/Modules/Battle",
-      "tiers": [
-        "base",
-        "data"
-      ],
-      "collectGroups": [
-        "Characters",
-        "FX",
-        "UIHud"
-      ],
-      "ship": "base",
-      "notes": "战斗玩法/表现；角色与特效随内容包"
+      "notes": "AOT 进程壳：场景入口/入口装载/致命错误面"
     },
     {
       "id": "LiteGame.Modules.Camera",
@@ -72,17 +48,7 @@
       ],
       "collectGroups": [],
       "ship": "base",
-      "notes": "相机服务"
-    },
-    {
-      "id": "LiteGame.Modules.Composition",
-      "path": "Assets/LiteGame/Modules/Composition",
-      "tiers": [
-        "base"
-      ],
-      "collectGroups": [],
-      "ship": "base",
-      "notes": "装配段"
+      "notes": "相机薄段与服务"
     },
     {
       "id": "LiteGame.Modules.Config",
@@ -95,17 +61,7 @@
         "Config"
       ],
       "ship": "base",
-      "notes": "配置装载；表数据随内容包"
-    },
-    {
-      "id": "LiteGame.Modules.Dev",
-      "path": "Assets/LiteGame/Modules/Dev",
-      "tiers": [
-        "base"
-      ],
-      "collectGroups": [],
-      "ship": "base",
-      "notes": "开发面（发布剥离）"
+      "notes": "配置装载与表投影"
     },
     {
       "id": "LiteGame.Modules.Input",
@@ -115,7 +71,17 @@
       ],
       "collectGroups": [],
       "ship": "base",
-      "notes": "输入实现"
+      "notes": "输入实现与意图端口"
+    },
+    {
+      "id": "LiteGame.Modules.Settings",
+      "path": "Assets/LiteGame/Modules/Settings",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "设置与偏好"
     },
     {
       "id": "LiteGame.Modules.Map",
@@ -128,50 +94,7 @@
         "Scenes"
       ],
       "ship": "base",
-      "notes": "地图域；场景随内容包"
-    },
-    {
-      "id": "LiteGame.Modules.Meta",
-      "path": "Assets/LiteGame/Modules/Meta",
-      "tiers": [
-        "base"
-      ],
-      "collectGroups": [],
-      "ship": "base",
-      "notes": "联机入口"
-    },
-    {
-      "id": "LiteGame.Modules.Procedure",
-      "path": "Assets/LiteGame/Modules/Procedure",
-      "tiers": [
-        "base",
-        "script"
-      ],
-      "collectGroups": [
-        "Lua"
-      ],
-      "ship": "base",
-      "notes": "流程；Lua 脚本随内容包"
-    },
-    {
-      "id": "LiteGame.Modules.Session",
-      "path": "Assets/LiteGame/Modules/Session",
-      "tiers": [
-        "base"
-      ],
-      "collectGroups": [],
-      "ship": "base",
-      "notes": "会话/传输"
-    },
-    {
-      "id": "LiteGame.Modules.Settings",
-      "path": "Assets/LiteGame/Modules/Settings",
-      "tiers": [
-        "base"
-      ],
-      "collectGroups": [],
-      "ship": "base",
-      "notes": "设置"
+      "notes": "地图表/场景域"
     },
     {
       "id": "LiteGame.Modules.UI",
@@ -186,7 +109,85 @@
         "Fonts"
       ],
       "ship": "base",
-      "notes": "UI 域；页面/控件/字体随内容包"
+      "notes": "UI 能力域：页面目录/寻址/绑定"
+    },
+    {
+      "id": "LiteGame.Modules.Battle",
+      "path": "Assets/LiteGame/Modules/Battle",
+      "tiers": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "Characters",
+        "FX",
+        "UIHud"
+      ],
+      "ship": "base",
+      "notes": "战斗玩法与表现（竖向自持）"
+    },
+    {
+      "id": "LiteGame.Modules.Dev",
+      "path": "Assets/LiteGame/Modules/Dev",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "开发面模块（发布剥离）"
+    },
+    {
+      "id": "LiteGame.Modules.Meta",
+      "path": "Assets/LiteGame/Modules/Meta",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "联机入口/大厅域"
+    },
+    {
+      "id": "LiteGame.Modules.Composition",
+      "path": "Assets/LiteGame/Modules/Composition",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "组装件：平台/身份/内容/时钟/时序/Lua 宿主装配"
+    },
+    {
+      "id": "LiteGame.Modules.Session",
+      "path": "Assets/LiteGame/Modules/Session",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "会话/账号/传输域"
+    },
+    {
+      "id": "LiteGame.Modules.Procedure",
+      "path": "Assets/LiteGame/Modules/Procedure",
+      "tiers": [
+        "base",
+        "script"
+      ],
+      "collectGroups": [
+        "Lua"
+      ],
+      "ship": "base",
+      "notes": "应用壳：流程/页面流/恢复"
+    },
+    {
+      "id": "LiteGame.App",
+      "path": "Assets/LiteGame/App",
+      "tiers": [
+        "base"
+      ],
+      "collectGroups": [],
+      "ship": "base",
+      "notes": "产品组合根（ClientEntry/AppComposition/Probes）"
     }
   ],
   "changeMatrix": [

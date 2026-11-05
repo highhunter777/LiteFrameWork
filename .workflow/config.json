@@ -21,6 +21,15 @@
       "timeout": 900
     },
     {
+      "name": "arch",
+      "cmd": [
+        "python",
+        "scripts/gate/arch-check.py",
+        "--check"
+      ],
+      "timeout": 120
+    },
+    {
       "name": "doc",
       "cmd": [
         "python",

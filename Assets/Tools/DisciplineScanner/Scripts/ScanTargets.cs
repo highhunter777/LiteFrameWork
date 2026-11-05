@@ -151,20 +151,11 @@ namespace Tools.DisciplineScan
         /// `Assets/LiteGame/` 下**允许存在的顶层目录**（《客户端总设计》§5 顶层分层）；
         /// 框架侧 `LiteFramework.*` 住 `Packages/com.litegame.framework/Runtime/{Core,Services,Adapters,Hosting}/`（见 <see cref="Default"/> 扫描目标）。
         ///
-        /// 新增顶层目录必须在此登记，并说明它属于 §5 的哪一层（或为何是例外）。
+        /// 新增顶层目录在 arch/units.json 的 topLevel.liteGame 登记（本数组由模型投影）。
         /// 未登记的目录会让本规则报红——**目录一变就红**，与 R12 边界表同一纪律。
         /// 非代码目录（`Lua`/`link.xml` 等）也在列：它们不是"层"，但要有名有姓。
         /// </summary>
-        public static readonly string[] LiteGameTopLevelDirs =
-        {
-            "Adapters",              // 产品侧适配层（Unity/框架引擎后端实现）
-            "App",                   // §5 顶层第一层 Game.App（组合根实现）
-            "Bootstrap",             // 进程壳（场景入口 + 入口装载 + 致命错误面；不引 Modules/App）
-            "Core",                  // 产品侧纯契约/纯计算（对局端口、视图数学；零引擎）
-            "Editor",                // 编辑器工具程序集（不在 §5 层内，登记为例外）
-            "Lua",                   // 脚本资产（非程序集目录；Luban lua pass 的产物 + 业务脚本）
-            "Modules",               // 产品侧功能模块（Battle/View）
-        };
+        public static readonly string[] LiteGameTopLevelDirs = ScanTargetsGenerated.LiteGameTopLevelDirs;
 
         /// <summary>
         /// 校验 `Assets/LiteGame` 顶层目录全部已登记（未登记 = 逃出设计分层，见上）。
@@ -197,47 +188,15 @@ namespace Tools.DisciplineScan
         /// `Modules/Shared/Content/Sound`），L3 共享资源住 `ShareResource/`。
         ///
         /// 本表是"当前允许面"，不是永久白名单；目录迁出后同批删旧项。
-        /// 新增顶层目录必须在此登记；未登记即红。
+        /// 新增顶层目录在 arch/units.json 的 topLevel.assets 登记（本数组由模型投影）。
         /// </summary>
-        public static readonly string[] AssetsTopLevelDirs =
-        {
-            // L1 原始资源层（只被引用、不直接寻址；多为 .gitignore 本地面）
-            "Animation",
-            "Animator",
-            "Art",
-            "FX",
-            "Map",
-            "Model",
-            // 第三方归拢根（付费/外部包；目录见 Assets/ThirdParty）
-            "ThirdParty",
-            // 收集与工程强制定位
-            "GameData",              // 表产物（Luban .bytes + 生成读码面）
-            "Scenes",                // 流程编排资产（《资源收集目录专项设计》§5 裁决维持顶层）
-            "Settings",              // URP 三档管线资产 / 渲染器 / 后处理 profile
-            "StreamingAssets",       // YooAsset 内置包根（Player 分发）
-            "ShareResource",         // L3 共享资源（其下自建顶层子目录）
-            // 自研代码与测试根
-            "LiteCodeGen",           // UI/Lua 绑定生成运行时（BindRoot/BindNode）
-            "LiteGame",              // 产品侧（Core/Modules/Adapters/App/Bootstrap/Editor/Lua）
-            "LiteTesting",           // 测试替身
-            "RoomServer",            // 服务端房间内核（noEngine，双轨共编件）
-            "Tests",                 // Unity EditMode/PlayMode 用例
-            "Tools",                 // DisciplineScanner 等编辑器工具
-            // 例外
-            "Resources",             // Unity 特殊目录（DOTweenSettings 等第三方运行期配置）
-            "TextMesh Pro",          // Unity 官方包导入面（TMP Essentials；非付费第三方，维持顶层）
-        };
+        public static readonly string[] AssetsTopLevelDirs = ScanTargetsGenerated.AssetsTopLevelDirs;
 
         /// <summary>
         /// 不参与 `Assets/` 顶层登记的**非版本化/瞬时面**：Unity 或工具自建、内容不入库
         /// （`.gitignore` 已有对应规则）。它们不是"逃出设计"，但也不构成合法结构位置。
         /// </summary>
-        public static readonly string[] AssetsTopLevelIgnored =
-        {
-            "AgentScripts",          // 会话级脚本/留档抽屉（.gitignore）
-            "Temp",                  // Unity/工具临时面（.gitignore）
-            "Plugins",               // 第三方工具硬编码生成目录（Odin Visual Designer Saved；真实第三方见 ThirdParty）
-        };
+        public static readonly string[] AssetsTopLevelIgnored = ScanTargetsGenerated.AssetsTopLevelIgnored;
 
         /// <summary>
         /// 校验 `Assets/` 顶层目录全部已登记（未登记 = 逃出组织分层，见上）。
@@ -259,34 +218,54 @@ namespace Tools.DisciplineScan
             return unregistered;
         }
 
-        /// <summary>默认扫描目标集合。</summary>
-        public static readonly ScanTarget[] Default =
+        /// <summary>
+        /// 默认扫描目标集合（由 arch/units.json 的 scanTargets 投影；规则集仍在本文件）。
+        /// 口径注意：R6 的 `\byield\s+return\b` 不区分 C# 迭代器与 Unity 协程；
+        /// R13 对 Sim 机制面启用，表现层与读口定义文件经 ConfigPortExcludes 排除；
+        /// R14 的 Editor/Gm 目标显式 IncludeEditorDirs；R8/R12 在框架 Services/Hosting/Adapters 与产品 LiteGame 全域启用。
+        /// </summary>
+        public static readonly ScanTarget[] Default = BuildDefault();
+
+        private static ScanTarget[] BuildDefault()
         {
-            new ScanTarget("Packages/com.litegame.sim", SimRules, SimLayerExcludes),
-            new ScanTarget("Packages/com.litegame.net", NetRules),
-            new ScanTarget("Packages/com.litegame.framework/Runtime/Core", CoreRules),
-            new ScanTarget("Packages/com.litegame.framework/Runtime/Adapters/Unity", UnityRules),
-            // R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
-            // IEnumerable 迭代器的 `yield return` 会被误报。
-            new ScanTarget("Packages/com.litegame.framework/Runtime/Services", GameRules),
-            new ScanTarget("Packages/com.litegame.framework/Runtime/Hosting", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Services/Hosting）
-            new ScanTarget("Packages/com.litegame.framework/Runtime/Adapters/YooAsset", GameRules),                          // R8/R12（第三方桥接件）
-            new ScanTarget("Packages/com.litegame.framework/Runtime/Adapters/XLua", GameRules),
-            new ScanTarget("Packages/com.litegame.framework/Runtime/Adapters/InputSystem", GameRules),
-            new ScanTarget("Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft", GameRules),
-            new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）
-            new ScanTarget("Packages/com.litegame.framework/Runtime/Services/UI", UILayerRules),                                // R10 UI 层不发业务包
-            // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
-            new ScanTarget("Assets/RoomServer/Core", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
-            new ScanTarget("Packages/com.litegame.sim", ConfigPortRules, ConfigPortExcludes),             // R13 数值读口禁读（机制面；表现层与读口定义文件除外）
-            new ScanTarget("Assets/RoomServer/Modules", ConfigPortRules),                  // R13（Application 无 IO 子集同守）
-            new ScanTarget("Server/RoomServer", ConfigPortRules),                              // R13（宿主链——装载产物显式传递，不读读口）
-            new ScanTarget("Server/MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
-            // R14 投影纪律（《GM 与调试工具分层专项设计》§7）：两个投影根的读数/动作/发现面经内核门面。
-            // Editor/Gm 受守根显式含 Editor 子树（IncludeEditorDirs——默认排除面不覆盖它）。
-            new ScanTarget("Assets/LiteGame/Adapters/Dev/Projection", ProjectionRules),                 // 运行期投影件（DevHud/DebugConsole/DebugPanel）
-            new ScanTarget("Assets/LiteGame/Editor/Gm", ProjectionRules, null, true),          // 编辑器 GM 页（Hub 七页）
-        };
+            var result = new ScanTarget[ScanTargetsGenerated.Default.Length];
+            for (int i = 0; i < result.Length; i++)
+            {
+                ScanTargetsGenerated.Entry entry = ScanTargetsGenerated.Default[i];
+                result[i] = new ScanTarget(entry.Root, ResolveRules(entry.Rules), ResolveExcludes(entry.Exclude), entry.IncludeEditor);
+            }
+            return result;
+        }
+
+        private static LintRule[] ResolveRules(string name)
+        {
+            switch (name)
+            {
+                case "SimRules": return SimRules;
+                case "NetRules": return NetRules;
+                case "CoreRules": return CoreRules;
+                case "UnityRules": return UnityRules;
+                case "GameRules": return GameRules;
+                case "UILayerRules": return UILayerRules;
+                case "RuntimePurityRules": return RuntimePurityRules;
+                case "ConfigPortRules": return ConfigPortRules;
+                case "MetaPurityRules": return MetaPurityRules;
+                case "ProjectionRules": return ProjectionRules;
+                default: throw new ArgumentException("未登记的扫描规则集：" + name);
+            }
+        }
+
+        private static string[] ResolveExcludes(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return null;
+            switch (name)
+            {
+                case "SimLayerExcludes": return SimLayerExcludes;
+                case "ConfigPortExcludes": return ConfigPortExcludes;
+                case "MetaHostExcludes": return MetaHostExcludes;
+                default: throw new ArgumentException("未登记的扫描排除集：" + name);
+            }
+        }
 
         /// <summary>
         /// .meta 扫描根（R7 非法 GUID：64 位 base64 guid 会被 Unity 拒收）。

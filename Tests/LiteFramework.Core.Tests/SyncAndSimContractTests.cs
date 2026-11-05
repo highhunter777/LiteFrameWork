@@ -89,17 +89,15 @@ namespace LiteFramework.Core.Tests
         [Fact]
         public void UT03_ClientAsmdefAllowlist_ContainsLiteSync()
         {
-            const string allowlist = "Tests/LiteFramework.Core.Tests/ClientAsmdefAllowlistTests.cs";
-            string text = ReadRepoText(allowlist);
+            ArchModel model = ArchModel.Load(RepoRoot());
 
-            Assert.Contains("\"Packages/com.litegame.sync/LiteSync.asmdef\"", text);
-            Assert.Contains("\"Packages/com.litegame.sync\"", text);
+            UnitEntry sync = model.Unit("LiteSync");
+            Assert.NotNull(sync);
+            Assert.Equal("Packages/com.litegame.sync/LiteSync.asmdef", sync.Asmdef);
 
-            Match liteNetRow = Regex.Match(text,
-                @"\[""Packages/com.litegame.net/LiteNet\.asmdef""\]\s*=\s*(?:new\[\]\s*\{[^}]*\}|Array\.Empty<string>\(\))",
-                RegexOptions.CultureInvariant);
-            Assert.True(liteNetRow.Success, "客户端允许表缺少 Packages/com.litegame.net/LiteNet.asmdef 行");
-            Assert.DoesNotContain("\"LiteSim\"", liteNetRow.Value);
+            UnitEntry net = model.Unit("LiteNet");
+            Assert.NotNull(net);
+            Assert.DoesNotContain("LiteSim", net.References);
         }
 
         // ---- UT-13：五个旧烘焙 .g.cs 全部退役 ----

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Xunit;
 
@@ -8,61 +9,29 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// 客户端程序集引用边（《客户端架构重构演进路线图》§4.2/§4.11 1）：
-    /// 每条边必须在允许表内；未登记的新边、反向边、跨层边一律失败。
+    /// 每条边必须在 arch/units.json 内；未登记的新边、反向边、跨层边一律失败。
     /// 允许表是**架构契约**——新增引用必须先改表并说明理由，不能靠“能编过”默认放行。
     /// 框架侧按角色分四件（Core/Services/Adapters/Hosting，B1 切框架）：边表按件登记；
     /// Services 不得引 Adapters/Hosting，Adapters 不得引 Hosting；产品模块不得引框架 Adapters。
     /// </summary>
     public sealed class ClientAsmdefAllowlistTests
     {
-        private static readonly Dictionary<string, string[]> Allowed = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        private static Dictionary<string, string[]> LoadAllowed(string root)
         {
-            ["Assets/LiteCodeGen/Runtime/LiteCodeGen.Runtime.asmdef"] = Array.Empty<string>(),
-            ["Packages/com.litegame.framework/Editor/LiteFramework.Editor.asmdef"] = new[] { "LiteCodeGen.Runtime" },
-            ["Packages/com.litegame.framework/Runtime/Core/LiteFramework.Core.asmdef"] = Array.Empty<string>(),
-            ["Packages/com.litegame.framework/Runtime/Services/LiteFramework.Services.asmdef"] = new[] { "LiteCodeGen.Runtime", "LiteFramework.Core", "DOTween.Modules", "UniTask", "Unity.InputSystem", "Unity.TextMeshPro" },
-            ["Packages/com.litegame.framework/Runtime/Adapters/LiteFramework.Adapters.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "UniTask", "Unity.InputSystem", "YooAsset", "xLuaMain" },
-            ["Packages/com.litegame.framework/Runtime/Hosting/LiteFramework.Hosting.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "UniTask" },
-            ["Assets/LiteGame/Adapters/Dev/LiteGame.Adapters.Dev.asmdef"] = new[] { "LiteGame.Adapters.Luban", "LiteGame.Modules.Config", "LiteGame.Modules.Settings", "LiteGame.Modules.Input", "LiteGame.Modules.Camera", "LiteGame.Adapters.Unity", "LiteGame.Core", "LiteGame.Modules.Battle", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting", "LiteGame.App", "LiteGame.Bootstrap", "LiteGame.Adapters.LuaBridge", "LiteNet", "LiteSync", "LiteSim", "Luban.Tables", "RoomServer.Application.Runtime", "RoomServer.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "LiteGame.Shared", "LiteGame.Modules.UI", "LiteGame.Modules.Procedure", "LiteGame.Modules.Meta", "LiteGame.Modules.Session", "LiteGame.Modules.Map", "LiteGame.Modules.Dev", "LiteGame.Battle.Abstractions" },
-            ["Assets/LiteGame/Adapters/LuaBridge/LiteGame.Adapters.LuaBridge.asmdef"] = new[] { "LiteGame.Core", "LiteGame.Shared", "LiteGame.Modules.Procedure", "LiteGame.Modules.Session", "LiteGame.Modules.UI", "LiteGame.Modules.Config", "LiteGame.Modules.Settings", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting", "LiteNet", "LiteSync", "Luban.Runtime", "Luban.Tables", "UniTask", "xLuaMain", "LiteGame.Modules.Meta", "LiteGame.Modules.Map", "LiteGame.Modules.Dev", "LiteGame.Battle.Abstractions" },
-            ["Assets/LiteGame/Adapters/Luban/LiteGame.Adapters.Luban.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting", "LiteGame.Modules.Config", "LiteGame.Core", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask" },
-            ["Assets/LiteGame/Adapters/Unity/LiteGame.Adapters.Unity.asmdef"] = new[] { "LiteGame.Core", "Unity.InputSystem", "Cinemachine", "LiteSim", "LiteGame.Modules.Input", "LiteGame.Modules.Camera", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting" },
-            ["Assets/LiteGame/App/LiteGame.App.asmdef"] = new[] { "LiteGame.Bootstrap", "LiteGame.Adapters.Luban", "LiteGame.Modules.Config", "LiteGame.Modules.Settings", "LiteGame.Modules.Input", "LiteGame.Modules.Camera", "LiteGame.Adapters.Unity", "LiteGame.Core", "LiteGame.Modules.Battle", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting", "LiteGame.Adapters.LuaBridge", "LiteNet", "LiteSync", "LiteSim", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "LiteGame.Shared", "LiteGame.Modules.UI", "LiteGame.Modules.Procedure", "LiteGame.Modules.Meta", "LiteGame.Modules.Session", "LiteGame.Modules.Map", "LiteGame.Modules.Dev", "LiteGame.Modules.Composition", "LiteGame.Battle.Abstractions" },
-            ["Assets/LiteGame/Bootstrap/LiteGame.Bootstrap.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Hosting", "LiteFramework.Services", "UniTask" },
-            ["Assets/LiteGame/Core/LiteGame.Core.asmdef"] = new[] { "LiteSim" },
-            ["Assets/LiteGame/Editor/Core/LiteGame.Editor.Core.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting", "Unity.TextMeshPro" },
-            ["Assets/LiteGame/Editor/LiteGame.Editor.asmdef"] = new[] { "LiteGame.Adapters.Luban", "LiteGame.Modules.Config", "LiteGame.Modules.Settings", "LiteGame.Modules.Input", "LiteGame.Modules.Camera", "LiteGame.Adapters.Unity", "LiteGame.Core", "LiteGame.Modules.Battle", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting", "LiteFramework.Editor", "LiteCodeGen.Runtime", "LiteGame.App", "LiteGame.Bootstrap", "LiteGame.Adapters.Dev", "LiteGame.Editor.Core", "LiteGame.Editor.UITools", "LiteGame.Adapters.LuaBridge", "LiteNet", "LiteSync", "LiteSim", "LiteSim.Editor", "DisciplineScanner.Editor", "Luban.Tables", "Luban.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "YooAsset", "YooAsset.Editor", "LiteGame.Shared", "LiteGame.Modules.UI", "LiteGame.Modules.Procedure", "LiteGame.Modules.Meta", "LiteGame.Modules.Session", "LiteGame.Modules.Map", "LiteGame.Modules.Dev" },
-            ["Assets/LiteGame/Editor/UITools/LiteGame.Editor.UITools.asmdef"] = new[] { "LiteGame.Modules.Config", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting", "LiteFramework.Editor", "LiteCodeGen.Runtime", "LiteGame.Adapters.Dev", "LiteGame.Editor.Core", "Luban.Runtime", "Luban.Tables", "Unity.TextMeshPro" },
-            // 战斗域契约包（端口 + 行契约；零状态、零引擎，实现件单向依赖它）。
-            ["Assets/LiteGame/Modules/Battle/Abstractions/LiteGame.Battle.Abstractions.asmdef"] = new[] { "LiteGame.Core", "LiteFramework.Core", "LiteGame.Modules.Input", "LiteNet", "LiteSim", "LiteSync", "UniTask" },
-            // 战斗域唯一程序集（原 Modules.View + LiteGame.Presentation 合并而来）。
-            ["Assets/LiteGame/Modules/Battle/LiteGame.Modules.Battle.asmdef"] = new[] { "LiteGame.Modules.Config", "LiteGame.Modules.Settings", "LiteGame.Modules.Input", "LiteGame.Modules.Camera", "LiteGame.Core", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "LiteNet", "LiteSync", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "LiteGame.Shared", "LiteGame.Battle.Abstractions" },
-            // 相机薄段：主相机保证 + 相机服务只接框架装配入口与注入的工厂委托。
-            ["Assets/LiteGame/Modules/Camera/LiteGame.Modules.Camera.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "UniTask" },
-            ["Assets/LiteGame/Modules/Config/LiteGame.Modules.Config.asmdef"] = new[] { "LiteGame.Core", "UniTask", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "Luban.Tables", "LiteSim", "Luban.Runtime" },
-            ["Assets/LiteGame/Modules/Dev/LiteGame.Modules.Dev.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "LiteGame.Core", "LiteGame.Modules.Battle", "LiteGame.Modules.Input", "LiteNet", "LiteSync", "LiteSim", "UniTask" },
-            ["Assets/LiteGame/Modules/Composition/LiteGame.Modules.Composition.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "LiteGame.Core", "LiteGame.Modules.Dev", "LiteGame.Modules.Input", "LiteNet", "LiteSync", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "LiteGame.Shared", "LiteGame.Modules.Config" },
-            ["Assets/LiteGame/Modules/Input/LiteGame.Modules.Input.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "LiteGame.Core", "LiteSim", "UniTask" },
-            ["Assets/LiteGame/Modules/Map/LiteGame.Modules.Map.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "LiteGame.Core", "LiteGame.Modules.Config", "LiteNet", "LiteSync", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask" },
-            ["Assets/LiteGame/Modules/Meta/LiteGame.Modules.Meta.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "LiteGame.Core", "LiteGame.Modules.Battle", "LiteGame.Modules.Config", "LiteNet", "LiteSync", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "xLuaMain" },
-            ["Assets/LiteGame/Modules/Procedure/LiteGame.Modules.Procedure.asmdef"] = new[] { "LiteGame.Bootstrap", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "LiteGame.Core", "LiteGame.Shared", "LiteGame.Modules.Camera", "LiteGame.Modules.Config", "LiteGame.Modules.Dev", "LiteGame.Modules.Input", "LiteGame.Modules.Map", "LiteGame.Modules.Meta", "LiteGame.Modules.Session", "LiteGame.Modules.UI", "LiteNet", "LiteSync", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "xLuaMain", "LiteGame.Battle.Abstractions" },
-            ["Assets/LiteGame/Modules/Session/LiteGame.Modules.Session.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "LiteGame.Core", "LiteGame.Modules.Config", "LiteGame.Modules.Dev", "LiteGame.Modules.Map", "LiteGame.Modules.Meta", "LiteNet", "LiteSync", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "LiteGame.Battle.Abstractions" },
-            ["Assets/LiteGame/Modules/Settings/LiteGame.Modules.Settings.asmdef"] = new[] { "UniTask", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting" },
-            // 共享常量面（含生成常量 LuaKeys 与共享路径常量）：零引用，谁都可以引它、它不引任何人。
-            ["Assets/LiteGame/Modules/Shared/LiteGame.Shared.asmdef"] = Array.Empty<string>(),
-            ["Assets/LiteGame/Modules/UI/LiteGame.Modules.UI.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Hosting", "LiteGame.Core", "LiteGame.Modules.Config", "Luban.Runtime", "Luban.Tables", "UniTask" },
-            ["Packages/com.litegame.net/LiteNet.asmdef"] = Array.Empty<string>(),
-            ["Packages/com.litegame.sim/Editor/LiteSim.Editor.asmdef"] = new[] { "LiteSim" },
-            ["Packages/com.litegame.sim/LiteSim.asmdef"] = Array.Empty<string>(),
-            ["Packages/com.litegame.sync/LiteSync.asmdef"] = new[] { "LiteNet", "LiteSim" },
-        };
+            ArchModel model = ArchModel.Load(root);
+            var allowed = new Dictionary<string, string[]>(StringComparer.Ordinal);
+            foreach (UnitEntry unit in model.Units)
+                allowed.Add(unit.Asmdef, unit.References ?? Array.Empty<string>());
+            return allowed;
+        }
 
         [Fact]
         public void 客户端程序集引用必须落在允许边表()
         {
             string root = RepoRoot();
+            var allowed = LoadAllowed(root);
             var offenders = new List<string>();
-            foreach (var pair in Allowed)
+            foreach (var pair in allowed)
             {
                 string path = Path.Combine(root, pair.Key.Replace('/', Path.DirectorySeparatorChar));
                 Assert.True(File.Exists(path), "允许表登记的 asmdef 不存在：" + pair.Key);
@@ -95,7 +64,8 @@ namespace LiteFramework.Core.Tests
             // 允许表测试只遍历已登记项——新程序集若未登记会完全逃出依赖治理。
             // 本用例反向枚举客户端根，把“漏登记”本身钉成失败。
             string root = RepoRoot();
-            var known = new HashSet<string>(Allowed.Keys, StringComparer.Ordinal);
+            var allowed = LoadAllowed(root);
+            var known = new HashSet<string>(allowed.Keys, StringComparer.Ordinal);
             var offenders = new List<string>();
             foreach (string clientRoot in ClientRoots)
             {
@@ -116,8 +86,9 @@ namespace LiteFramework.Core.Tests
         public void 硬边_反向与跨层引用一律失败()
         {
             string root = RepoRoot();
+            var allowed = LoadAllowed(root);
             var offenders = new List<string>();
-            foreach (var pair in Allowed)
+            foreach (var pair in allowed)
             {
                 var refs = ReadRefs(root, pair.Key);
                 switch (pair.Key)
@@ -185,6 +156,22 @@ namespace LiteFramework.Core.Tests
             ScanUnityReferences(Path.Combine(root, "Assets", "LiteSim", "Systems"), offenders, root);
             ScanUnityReferences(Path.Combine(root, "Assets", "LiteGame", "Core"), offenders, root);
             Assert.True(offenders.Count == 0, "Core 不得出现 UnityEngine/第三方实现依赖（注释引用不计；Editor 工具面除外）：" + string.Join(" | ", offenders));
+        }
+
+        [Fact]
+        public void 依赖方向必须严格递减()
+        {
+            ArchModel model = ArchModel.Load(RepoRoot());
+            var byId = new Dictionary<string, UnitEntry>(StringComparer.Ordinal);
+            foreach (UnitEntry unit in model.Units) byId[unit.Id] = unit;
+
+            var offenders = new List<string>();
+            foreach (UnitEntry unit in model.Units)
+                foreach (string reference in unit.References)
+                    if (byId.TryGetValue(reference, out UnitEntry target) && target.Rank >= unit.Rank)
+                        offenders.Add(unit.Id + "(" + unit.Rank + ") -> " + reference + "(" + target.Rank + ")");
+
+            Assert.True(offenders.Count == 0, "程序集依赖必须指向更低 rank：" + string.Join(" | ", offenders));
         }
 
         private static readonly string[] ThirdPartyNamespaces =

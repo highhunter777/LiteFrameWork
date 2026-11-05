@@ -1,0 +1,1593 @@
+{
+  "version": 1,
+  "layers": [
+    {
+      "id": "kernel",
+      "name": "零引擎内核与生成物",
+      "rank": 5
+    },
+    {
+      "id": "framework",
+      "name": "框架服务/适配/宿主",
+      "rank": 15
+    },
+    {
+      "id": "shell",
+      "name": "进程壳/编辑器基座",
+      "rank": 25
+    },
+    {
+      "id": "product",
+      "name": "产品域与产品适配",
+      "rank": 30
+    },
+    {
+      "id": "app",
+      "name": "组合根与开发装配",
+      "rank": 65
+    },
+    {
+      "id": "editor",
+      "name": "编辑器工具",
+      "rank": 75
+    }
+  ],
+  "tiers": [
+    "base",
+    "script",
+    "data"
+  ],
+  "testBuckets": {
+    "framework-core": {
+      "kind": "dotnet",
+      "path": "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+      "lane": "L1"
+    },
+    "sim-core": {
+      "kind": "dotnet",
+      "path": "Tests/LiteSim.Core.Tests/LiteSim.Core.Tests.csproj",
+      "lane": "L1"
+    },
+    "net": {
+      "kind": "dotnet",
+      "path": "Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+      "lane": "L1"
+    },
+    "editmode": {
+      "kind": "unity",
+      "path": "Assets/Tests/EditMode/LiteGame.EditModeTests.asmdef",
+      "lane": "L2"
+    },
+    "playmode": {
+      "kind": "unity",
+      "path": "Assets/Tests/UI/PlayMode/LiteGame.UI.PlayModeTests.asmdef",
+      "lane": "L2"
+    }
+  },
+  "externalAssemblies": [
+    {
+      "name": "Cinemachine",
+      "reason": "Cinemachine 相机虚拟相机与混合"
+    },
+    {
+      "name": "DOTween.Modules",
+      "reason": "DOTween 补间动效（框架服务层）"
+    },
+    {
+      "name": "DisciplineScanner.Editor",
+      "reason": "纪律扫描编辑器菜单（仅产品编辑器程序集）"
+    },
+    {
+      "name": "Luban.Runtime",
+      "reason": "Luban 表读取运行时"
+    },
+    {
+      "name": "Luban.Tables",
+      "reason": "Luban 生成读码面（表行类/读取器）"
+    },
+    {
+      "name": "RoomServer.Application.Runtime",
+      "reason": "服务端房间编排（仅开发装配层）"
+    },
+    {
+      "name": "RoomServer.Runtime",
+      "reason": "服务端房间内核（仅开发装配层）"
+    },
+    {
+      "name": "UniTask",
+      "reason": "UniTask 异步/协程编排"
+    },
+    {
+      "name": "Unity.InputSystem",
+      "reason": "New Input System"
+    },
+    {
+      "name": "Unity.TextMeshPro",
+      "reason": "TextMeshPro 文本"
+    },
+    {
+      "name": "xLuaMain",
+      "reason": "xLua 运行时"
+    },
+    {
+      "name": "YooAsset",
+      "reason": "YooAsset 内容系统"
+    },
+    {
+      "name": "YooAsset.Editor",
+      "reason": "YooAsset 编辑器（仅产品编辑器程序集）"
+    }
+  ],
+  "units": [
+    {
+      "id": "LiteCodeGen.Runtime",
+      "assembly": "LiteCodeGen.Runtime",
+      "path": "Assets/LiteCodeGen/Runtime",
+      "asmdef": "Assets/LiteCodeGen/Runtime/LiteCodeGen.Runtime.asmdef",
+      "layer": "kernel",
+      "rank": 5,
+      "owner": "tooling",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [],
+      "notes": "生成物运行期小件（绑定表/注册表）"
+    },
+    {
+      "id": "LiteFramework.Core",
+      "assembly": "LiteFramework.Core",
+      "path": "Packages/com.litegame.framework/Runtime/Core",
+      "asmdef": "Packages/com.litegame.framework/Runtime/Core/LiteFramework.Core.asmdef",
+      "layer": "kernel",
+      "rank": 5,
+      "owner": "framework",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "framework-core"
+      ],
+      "noEngine": true,
+      "defineConstraints": [],
+      "references": [],
+      "notes": "框架内核：零引用、零引擎、零第三方"
+    },
+    {
+      "id": "LiteGame.Shared",
+      "assembly": "LiteGame.Shared",
+      "path": "Assets/LiteGame/Modules/Shared",
+      "asmdef": "Assets/LiteGame/Modules/Shared/LiteGame.Shared.asmdef",
+      "layer": "kernel",
+      "rank": 5,
+      "owner": "product",
+      "tier": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "Sound"
+      ],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": true,
+      "defineConstraints": [],
+      "references": [],
+      "notes": "共享常量面与共享音频归集"
+    },
+    {
+      "id": "LiteNet",
+      "assembly": "LiteNet",
+      "path": "Packages/com.litegame.net",
+      "asmdef": "Packages/com.litegame.net/LiteNet.asmdef",
+      "layer": "kernel",
+      "rank": 5,
+      "owner": "shared",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "net"
+      ],
+      "noEngine": true,
+      "defineConstraints": [],
+      "references": [],
+      "notes": "协议与传输（双轨共享包）"
+    },
+    {
+      "id": "LiteSim",
+      "assembly": "LiteSim",
+      "path": "Packages/com.litegame.sim",
+      "asmdef": "Packages/com.litegame.sim/LiteSim.asmdef",
+      "layer": "kernel",
+      "rank": 5,
+      "owner": "shared",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "sim-core"
+      ],
+      "noEngine": true,
+      "defineConstraints": [],
+      "references": [],
+      "notes": "确定性判定（双轨共享包）"
+    },
+    {
+      "id": "LiteFramework.Editor",
+      "assembly": "LiteFramework.Editor",
+      "path": "Packages/com.litegame.framework/Editor",
+      "asmdef": "Packages/com.litegame.framework/Editor/LiteFramework.Editor.asmdef",
+      "layer": "kernel",
+      "rank": 10,
+      "owner": "framework",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteCodeGen.Runtime"
+      ],
+      "notes": "框架编辑器工具（UI 绑定生成器）"
+    },
+    {
+      "id": "LiteFramework.Services",
+      "assembly": "LiteFramework.Services",
+      "path": "Packages/com.litegame.framework/Runtime/Services",
+      "asmdef": "Packages/com.litegame.framework/Runtime/Services/LiteFramework.Services.asmdef",
+      "layer": "kernel",
+      "rank": 10,
+      "owner": "framework",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteCodeGen.Runtime",
+        "LiteFramework.Core",
+        "DOTween.Modules",
+        "UniTask",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro"
+      ],
+      "notes": "框架引擎服务与自持端口"
+    },
+    {
+      "id": "LiteGame.Core",
+      "assembly": "LiteGame.Core",
+      "path": "Assets/LiteGame/Core",
+      "asmdef": "Assets/LiteGame/Core/LiteGame.Core.asmdef",
+      "layer": "kernel",
+      "rank": 10,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": true,
+      "defineConstraints": [],
+      "references": [
+        "LiteSim"
+      ],
+      "notes": "产品跨模块纯契约/纯计算（零引擎）"
+    },
+    {
+      "id": "LiteSim.Editor",
+      "assembly": "LiteSim.Editor",
+      "path": "Packages/com.litegame.sim/Editor",
+      "asmdef": "Packages/com.litegame.sim/Editor/LiteSim.Editor.asmdef",
+      "layer": "kernel",
+      "rank": 10,
+      "owner": "shared",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteSim"
+      ],
+      "notes": "Sim 编辑器工具"
+    },
+    {
+      "id": "LiteSync",
+      "assembly": "LiteSync",
+      "path": "Packages/com.litegame.sync",
+      "asmdef": "Packages/com.litegame.sync/LiteSync.asmdef",
+      "layer": "kernel",
+      "rank": 10,
+      "owner": "shared",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "net"
+      ],
+      "noEngine": true,
+      "defineConstraints": [],
+      "references": [
+        "LiteNet",
+        "LiteSim"
+      ],
+      "notes": "快照同步（双轨共享包）"
+    },
+    {
+      "id": "LiteFramework.Adapters",
+      "assembly": "LiteFramework.Adapters",
+      "path": "Packages/com.litegame.framework/Runtime/Adapters",
+      "asmdef": "Packages/com.litegame.framework/Runtime/Adapters/LiteFramework.Adapters.asmdef",
+      "layer": "framework",
+      "rank": 15,
+      "owner": "framework",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "UniTask",
+        "Unity.InputSystem",
+        "YooAsset",
+        "xLuaMain"
+      ],
+      "notes": "框架第三方/平台适配"
+    },
+    {
+      "id": "LiteFramework.Hosting",
+      "assembly": "LiteFramework.Hosting",
+      "path": "Packages/com.litegame.framework/Runtime/Hosting",
+      "asmdef": "Packages/com.litegame.framework/Runtime/Hosting/LiteFramework.Hosting.asmdef",
+      "layer": "framework",
+      "rank": 20,
+      "owner": "framework",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "UniTask"
+      ],
+      "notes": "框架宿主：装配/身份/恢复/生命周期"
+    },
+    {
+      "id": "LiteGame.Bootstrap",
+      "assembly": "LiteGame.Bootstrap",
+      "path": "Assets/LiteGame/Bootstrap",
+      "asmdef": "Assets/LiteGame/Bootstrap/LiteGame.Bootstrap.asmdef",
+      "layer": "shell",
+      "rank": 25,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Hosting",
+        "LiteFramework.Services",
+        "UniTask"
+      ],
+      "notes": "AOT 进程壳：场景入口/入口装载/致命错误面"
+    },
+    {
+      "id": "LiteGame.Editor.Core",
+      "assembly": "LiteGame.Editor.Core",
+      "path": "Assets/LiteGame/Editor/Core",
+      "asmdef": "Assets/LiteGame/Editor/Core/LiteGame.Editor.Core.asmdef",
+      "layer": "shell",
+      "rank": 25,
+      "owner": "tooling",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
+        "Unity.TextMeshPro"
+      ],
+      "notes": "产品编辑器工具基座"
+    },
+    {
+      "id": "LiteGame.Modules.Camera",
+      "assembly": "LiteGame.Modules.Camera",
+      "path": "Assets/LiteGame/Modules/Camera",
+      "asmdef": "Assets/LiteGame/Modules/Camera/LiteGame.Modules.Camera.asmdef",
+      "layer": "product",
+      "rank": 30,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "UniTask"
+      ],
+      "notes": "相机薄段与服务"
+    },
+    {
+      "id": "LiteGame.Modules.Config",
+      "assembly": "LiteGame.Modules.Config",
+      "path": "Assets/LiteGame/Modules/Config",
+      "asmdef": "Assets/LiteGame/Modules/Config/LiteGame.Modules.Config.asmdef",
+      "layer": "product",
+      "rank": 30,
+      "owner": "product",
+      "tier": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "Config"
+      ],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "UniTask",
+        "LiteGame.Core",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "Luban.Tables",
+        "LiteSim",
+        "Luban.Runtime"
+      ],
+      "notes": "配置装载与表投影"
+    },
+    {
+      "id": "LiteGame.Modules.Input",
+      "assembly": "LiteGame.Modules.Input",
+      "path": "Assets/LiteGame/Modules/Input",
+      "asmdef": "Assets/LiteGame/Modules/Input/LiteGame.Modules.Input.asmdef",
+      "layer": "product",
+      "rank": 30,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "LiteGame.Core",
+        "LiteSim",
+        "UniTask"
+      ],
+      "notes": "输入实现与意图端口"
+    },
+    {
+      "id": "LiteGame.Modules.Settings",
+      "assembly": "LiteGame.Modules.Settings",
+      "path": "Assets/LiteGame/Modules/Settings",
+      "asmdef": "Assets/LiteGame/Modules/Settings/LiteGame.Modules.Settings.asmdef",
+      "layer": "product",
+      "rank": 30,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "UniTask",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting"
+      ],
+      "notes": "设置与偏好"
+    },
+    {
+      "id": "LiteGame.Battle.Abstractions",
+      "assembly": "LiteGame.Battle.Abstractions",
+      "path": "Assets/LiteGame/Modules/Battle/Abstractions",
+      "asmdef": "Assets/LiteGame/Modules/Battle/Abstractions/LiteGame.Battle.Abstractions.asmdef",
+      "layer": "product",
+      "rank": 35,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": true,
+      "defineConstraints": [],
+      "references": [
+        "LiteGame.Core",
+        "LiteFramework.Core",
+        "LiteGame.Modules.Input",
+        "LiteNet",
+        "LiteSim",
+        "LiteSync",
+        "UniTask"
+      ],
+      "notes": "战斗契约包：端口 + 行契约（零状态、零引擎）"
+    },
+    {
+      "id": "LiteGame.Modules.Map",
+      "assembly": "LiteGame.Modules.Map",
+      "path": "Assets/LiteGame/Modules/Map",
+      "asmdef": "Assets/LiteGame/Modules/Map/LiteGame.Modules.Map.asmdef",
+      "layer": "product",
+      "rank": 35,
+      "owner": "product",
+      "tier": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "Scenes"
+      ],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "LiteGame.Core",
+        "LiteGame.Modules.Config",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask"
+      ],
+      "notes": "地图表/场景域"
+    },
+    {
+      "id": "LiteGame.Modules.UI",
+      "assembly": "LiteGame.Modules.UI",
+      "path": "Assets/LiteGame/Modules/UI",
+      "asmdef": "Assets/LiteGame/Modules/UI/LiteGame.Modules.UI.asmdef",
+      "layer": "product",
+      "rank": 35,
+      "owner": "product",
+      "tier": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "UIScreens",
+        "UIWidgets",
+        "Fonts"
+      ],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "LiteGame.Core",
+        "LiteGame.Modules.Config",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask"
+      ],
+      "notes": "UI 能力域：页面目录/寻址/绑定"
+    },
+    {
+      "id": "LiteGame.Adapters.Luban",
+      "assembly": "LiteGame.Adapters.Luban",
+      "path": "Assets/LiteGame/Adapters/Luban",
+      "asmdef": "Assets/LiteGame/Adapters/Luban/LiteGame.Adapters.Luban.asmdef",
+      "layer": "product",
+      "rank": 40,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
+        "LiteGame.Modules.Config",
+        "LiteGame.Core",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask"
+      ],
+      "notes": "产品 Luban 装载适配"
+    },
+    {
+      "id": "LiteGame.Adapters.Unity",
+      "assembly": "LiteGame.Adapters.Unity",
+      "path": "Assets/LiteGame/Adapters/Unity",
+      "asmdef": "Assets/LiteGame/Adapters/Unity/LiteGame.Adapters.Unity.asmdef",
+      "layer": "product",
+      "rank": 40,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "Unity.InputSystem",
+        "Cinemachine",
+        "LiteSim",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Camera",
+        "LiteGame.Core",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting"
+      ],
+      "notes": "产品 Unity 适配（Cinemachine/输入/设置生效器）"
+    },
+    {
+      "id": "LiteGame.Modules.Battle",
+      "assembly": "LiteGame.Modules.Battle",
+      "path": "Assets/LiteGame/Modules/Battle",
+      "asmdef": "Assets/LiteGame/Modules/Battle/LiteGame.Modules.Battle.asmdef",
+      "layer": "product",
+      "rank": 40,
+      "owner": "product",
+      "tier": [
+        "base",
+        "data"
+      ],
+      "collectGroups": [
+        "Characters",
+        "FX",
+        "UIHud"
+      ],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteGame.Modules.Config",
+        "LiteGame.Modules.Settings",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Camera",
+        "LiteGame.Core",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "Unity.TextMeshPro",
+        "LiteGame.Shared",
+        "LiteGame.Battle.Abstractions"
+      ],
+      "notes": "战斗玩法与表现（竖向自持）"
+    },
+    {
+      "id": "LiteGame.Modules.Dev",
+      "assembly": "LiteGame.Modules.Dev",
+      "path": "Assets/LiteGame/Modules/Dev",
+      "asmdef": "Assets/LiteGame/Modules/Dev/LiteGame.Modules.Dev.asmdef",
+      "layer": "product",
+      "rank": 45,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "LiteGame.Core",
+        "LiteGame.Modules.Battle",
+        "LiteGame.Modules.Input",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "UniTask"
+      ],
+      "notes": "开发面模块（发布剥离）"
+    },
+    {
+      "id": "LiteGame.Modules.Meta",
+      "assembly": "LiteGame.Modules.Meta",
+      "path": "Assets/LiteGame/Modules/Meta",
+      "asmdef": "Assets/LiteGame/Modules/Meta/LiteGame.Modules.Meta.asmdef",
+      "layer": "product",
+      "rank": 45,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "LiteGame.Core",
+        "LiteGame.Modules.Battle",
+        "LiteGame.Modules.Config",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "xLuaMain"
+      ],
+      "notes": "联机入口/大厅域"
+    },
+    {
+      "id": "LiteGame.Modules.Composition",
+      "assembly": "LiteGame.Modules.Composition",
+      "path": "Assets/LiteGame/Modules/Composition",
+      "asmdef": "Assets/LiteGame/Modules/Composition/LiteGame.Modules.Composition.asmdef",
+      "layer": "product",
+      "rank": 50,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "LiteGame.Core",
+        "LiteGame.Modules.Dev",
+        "LiteGame.Modules.Input",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "LiteGame.Shared",
+        "LiteGame.Modules.Config"
+      ],
+      "notes": "组装件：平台/身份/内容/时钟/时序/Lua 宿主装配"
+    },
+    {
+      "id": "LiteGame.Modules.Session",
+      "assembly": "LiteGame.Modules.Session",
+      "path": "Assets/LiteGame/Modules/Session",
+      "asmdef": "Assets/LiteGame/Modules/Session/LiteGame.Modules.Session.asmdef",
+      "layer": "product",
+      "rank": 50,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "LiteGame.Core",
+        "LiteGame.Modules.Config",
+        "LiteGame.Modules.Dev",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Meta",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "LiteGame.Battle.Abstractions"
+      ],
+      "notes": "会话/账号/传输域"
+    },
+    {
+      "id": "LiteGame.Modules.Procedure",
+      "assembly": "LiteGame.Modules.Procedure",
+      "path": "Assets/LiteGame/Modules/Procedure",
+      "asmdef": "Assets/LiteGame/Modules/Procedure/LiteGame.Modules.Procedure.asmdef",
+      "layer": "product",
+      "rank": 55,
+      "owner": "product",
+      "tier": [
+        "base",
+        "script"
+      ],
+      "collectGroups": [
+        "Lua"
+      ],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Hosting",
+        "LiteGame.Core",
+        "LiteGame.Shared",
+        "LiteGame.Modules.Camera",
+        "LiteGame.Modules.Config",
+        "LiteGame.Modules.Dev",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Meta",
+        "LiteGame.Modules.Session",
+        "LiteGame.Modules.UI",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "LiteGame.Battle.Abstractions",
+        "LiteGame.Bootstrap"
+      ],
+      "notes": "应用壳：流程/页面流/恢复"
+    },
+    {
+      "id": "LiteGame.Adapters.LuaBridge",
+      "assembly": "LiteGame.Adapters.LuaBridge",
+      "path": "Assets/LiteGame/Adapters/LuaBridge",
+      "asmdef": "Assets/LiteGame/Adapters/LuaBridge/LiteGame.Adapters.LuaBridge.asmdef",
+      "layer": "product",
+      "rank": 60,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteGame.Shared",
+        "LiteGame.Modules.Procedure",
+        "LiteGame.Modules.Session",
+        "LiteGame.Modules.UI",
+        "LiteGame.Modules.Config",
+        "LiteGame.Modules.Settings",
+        "LiteGame.Core",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
+        "LiteNet",
+        "LiteSync",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "xLuaMain",
+        "LiteGame.Modules.Meta",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Dev",
+        "LiteGame.Battle.Abstractions"
+      ],
+      "notes": "Lua 产品桥接适配"
+    },
+    {
+      "id": "LiteGame.App",
+      "assembly": "LiteGame.App",
+      "path": "Assets/LiteGame/App",
+      "asmdef": "Assets/LiteGame/App/LiteGame.App.asmdef",
+      "layer": "app",
+      "rank": 65,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteGame.Adapters.Luban",
+        "LiteGame.Modules.Config",
+        "LiteGame.Modules.Settings",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Camera",
+        "LiteGame.Adapters.Unity",
+        "LiteGame.Core",
+        "LiteGame.Modules.Battle",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
+        "LiteGame.Adapters.LuaBridge",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Tables",
+        "UniTask",
+        "Unity.TextMeshPro",
+        "LiteGame.Shared",
+        "LiteGame.Modules.UI",
+        "LiteGame.Modules.Procedure",
+        "LiteGame.Modules.Meta",
+        "LiteGame.Modules.Session",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Dev",
+        "LiteGame.Modules.Composition",
+        "LiteGame.Battle.Abstractions",
+        "LiteGame.Bootstrap"
+      ],
+      "notes": "产品组合根（ClientEntry/AppComposition/Probes）"
+    },
+    {
+      "id": "LiteGame.Adapters.Dev",
+      "assembly": "LiteGame.Adapters.Dev",
+      "path": "Assets/LiteGame/Adapters/Dev",
+      "asmdef": "Assets/LiteGame/Adapters/Dev/LiteGame.Adapters.Dev.asmdef",
+      "layer": "app",
+      "rank": 70,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [
+        "UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG"
+      ],
+      "references": [
+        "LiteGame.Adapters.Luban",
+        "LiteGame.Modules.Config",
+        "LiteGame.Modules.Settings",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Camera",
+        "LiteGame.Adapters.Unity",
+        "LiteGame.Core",
+        "LiteGame.Modules.Battle",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
+        "LiteGame.App",
+        "LiteGame.Bootstrap",
+        "LiteGame.Adapters.LuaBridge",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "Luban.Tables",
+        "RoomServer.Application.Runtime",
+        "RoomServer.Runtime",
+        "UniTask",
+        "Unity.TextMeshPro",
+        "xLuaMain",
+        "LiteGame.Shared",
+        "LiteGame.Modules.UI",
+        "LiteGame.Modules.Procedure",
+        "LiteGame.Modules.Meta",
+        "LiteGame.Modules.Session",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Dev",
+        "LiteGame.Battle.Abstractions"
+      ],
+      "notes": "开发装配层（本地服/投影/调试宿主）"
+    },
+    {
+      "id": "LiteGame.Editor.UITools",
+      "assembly": "LiteGame.Editor.UITools",
+      "path": "Assets/LiteGame/Editor/UITools",
+      "asmdef": "Assets/LiteGame/Editor/UITools/LiteGame.Editor.UITools.asmdef",
+      "layer": "editor",
+      "rank": 75,
+      "owner": "tooling",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteGame.Modules.Config",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
+        "LiteFramework.Editor",
+        "LiteCodeGen.Runtime",
+        "LiteGame.Adapters.Dev",
+        "LiteGame.Editor.Core",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "Unity.TextMeshPro"
+      ],
+      "notes": "UI 编辑器工具链（工作台/校验/契约）"
+    },
+    {
+      "id": "LiteGame.Editor",
+      "assembly": "LiteGame.Editor",
+      "path": "Assets/LiteGame/Editor",
+      "asmdef": "Assets/LiteGame/Editor/LiteGame.Editor.asmdef",
+      "layer": "editor",
+      "rank": 80,
+      "owner": "tooling",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode",
+        "playmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteGame.Adapters.Luban",
+        "LiteGame.Modules.Config",
+        "LiteGame.Modules.Settings",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Camera",
+        "LiteGame.Adapters.Unity",
+        "LiteGame.Core",
+        "LiteGame.Modules.Battle",
+        "LiteFramework.Core",
+        "LiteFramework.Services",
+        "LiteFramework.Adapters",
+        "LiteFramework.Hosting",
+        "LiteFramework.Editor",
+        "LiteCodeGen.Runtime",
+        "LiteGame.App",
+        "LiteGame.Bootstrap",
+        "LiteGame.Adapters.Dev",
+        "LiteGame.Editor.Core",
+        "LiteGame.Editor.UITools",
+        "LiteGame.Adapters.LuaBridge",
+        "LiteNet",
+        "LiteSync",
+        "LiteSim",
+        "LiteSim.Editor",
+        "DisciplineScanner.Editor",
+        "Luban.Tables",
+        "Luban.Runtime",
+        "UniTask",
+        "Unity.TextMeshPro",
+        "xLuaMain",
+        "YooAsset",
+        "YooAsset.Editor",
+        "LiteGame.Shared",
+        "LiteGame.Modules.UI",
+        "LiteGame.Modules.Procedure",
+        "LiteGame.Modules.Meta",
+        "LiteGame.Modules.Session",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Dev"
+      ],
+      "notes": "产品编辑器工具程序集"
+    }
+  ],
+  "collectPathExceptions": {
+    "Scenes": {
+      "owner": "LiteGame.Modules.Map",
+      "reason": "2026-10-11 裁决：流程编排资产维持 Assets/Scenes 顶层"
+    },
+    "Config": {
+      "owner": "LiteGame.Modules.Config",
+      "reason": "2026-10-11 裁决：表产物维持 Assets/GameData/Config 顶层"
+    },
+    "Lua": {
+      "owner": "LiteGame.Modules.Procedure",
+      "reason": "资源收集目录专项设计 §5：L2 样板（代码即热更资源，目录即收集组）"
+    }
+  },
+  "changeMatrix": [
+    {
+      "change": "C# 代码/程序集",
+      "paths": [
+        "Assets/LiteGame/**/*.cs"
+      ],
+      "ship": [
+        "base"
+      ],
+      "notes": "改 AOT 代码 = 应用发布；不走内容包"
+    },
+    {
+      "change": "Lua 脚本",
+      "paths": [
+        "Assets/LiteGame/Lua/**"
+      ],
+      "ship": [
+        "script"
+      ],
+      "notes": "Lua 收集组，热更脚本候选"
+    },
+    {
+      "change": "配置表/表源",
+      "paths": [
+        "Assets/GameData/Config/**",
+        "Luban/Data/**"
+      ],
+      "ship": [
+        "data"
+      ],
+      "notes": "Config 收集组；表值可热更，但需重跑生成/摘要链"
+    },
+    {
+      "change": "UI/角色/特效/音效/场景资源",
+      "paths": [
+        "Assets/LiteGame/Modules/*/Content/**",
+        "Assets/ShareResource/**",
+        "Assets/Scenes/**"
+      ],
+      "ship": [
+        "data"
+      ],
+      "notes": "按收集组（UIScreens/UIWidgets/Fonts/Characters/FX/Sound/UIHud/Scenes）发内容包"
+    }
+  ],
+  "domains": [
+    {
+      "id": "Battle",
+      "role": "业务域（竖向自持表现/UI/组合）"
+    },
+    {
+      "id": "Camera",
+      "role": "能力（投影面/相机端口）"
+    },
+    {
+      "id": "Composition",
+      "role": "组装件（框架/内容/身份 8 段装配入口，只被组合根引）"
+    },
+    {
+      "id": "Config",
+      "role": "能力（表/文本/投影）"
+    },
+    {
+      "id": "Dev",
+      "role": "契约包（开发装配缝）"
+    },
+    {
+      "id": "Input",
+      "role": "能力（意图/输入）"
+    },
+    {
+      "id": "Map",
+      "role": "能力（地图表/场景）"
+    },
+    {
+      "id": "Meta",
+      "role": "业务域（联机入口/大厅）"
+    },
+    {
+      "id": "Procedure",
+      "role": "应用壳（流程/页面流/恢复）"
+    },
+    {
+      "id": "Session",
+      "role": "业务域（账号/对局/传输所有权）"
+    },
+    {
+      "id": "Settings",
+      "role": "能力（设置/偏好）"
+    },
+    {
+      "id": "Ui",
+      "role": "能力（页面目录/寻址）"
+    }
+  ],
+  "domainEdges": [
+    {
+      "from": "Battle",
+      "to": "Camera",
+      "reason": "战斗表现消费相机能力端口（ICameraService/IRenderCameraSource）"
+    },
+    {
+      "from": "Battle",
+      "to": "Config",
+      "reason": "战斗消费配置读口（IConfigService/表投影）"
+    },
+    {
+      "from": "Battle",
+      "to": "Input",
+      "reason": "战斗表现消费输入能力端口（IInputService/ILookDevice）"
+    },
+    {
+      "from": "Battle",
+      "to": "Settings",
+      "reason": "战斗只读视角偏好端口（ILookPreferences）"
+    },
+    {
+      "from": "Composition",
+      "to": "Config",
+      "reason": "装配段读构建期事实（DeployBake 烙入 / BridgeCapabilitySet 能力声明）"
+    },
+    {
+      "from": "Composition",
+      "to": "Dev",
+      "reason": "装配入口读开发钩子（DevHooks/IDevAssembly）"
+    },
+    {
+      "from": "Dev",
+      "to": "Battle",
+      "reason": "开发装配实现 IBattleDevOverlay/调试投影读战斗视图"
+    },
+    {
+      "from": "Dev",
+      "to": "Input",
+      "reason": "开发热键/输入替身消费输入端口"
+    },
+    {
+      "from": "Dev",
+      "to": "Session",
+      "reason": "开发本地传输工厂实现 ILocalTransportFactory"
+    },
+    {
+      "from": "Map",
+      "to": "Config",
+      "reason": "MapProvider 读 IConfigService 表行"
+    },
+    {
+      "from": "Meta",
+      "to": "Config",
+      "reason": "MetaSegment/MetaDeployConfig 读 DeployBake 烙入"
+    },
+    {
+      "from": "Procedure",
+      "to": "Battle",
+      "reason": "流程只经战斗端口编排（IBattleViewGroup/IBattleCommands/IBattleRunFactory）"
+    },
+    {
+      "from": "Procedure",
+      "to": "Camera",
+      "reason": "流程相机就绪门（ICameraService）"
+    },
+    {
+      "from": "Procedure",
+      "to": "Config",
+      "reason": "预载/页面流读配置读口"
+    },
+    {
+      "from": "Procedure",
+      "to": "Dev",
+      "reason": "流程读 IDevSession/DevHooks"
+    },
+    {
+      "from": "Procedure",
+      "to": "Input",
+      "reason": "流程持输入服务（IInputService）"
+    },
+    {
+      "from": "Procedure",
+      "to": "Map",
+      "reason": "流程取地图行键/场景路径"
+    },
+    {
+      "from": "Procedure",
+      "to": "Meta",
+      "reason": "流程联机入口/账号控制端口"
+    },
+    {
+      "from": "Procedure",
+      "to": "Session",
+      "reason": "流程经会话端口取账号会话（IAccountSessionFactory/IMatchJoin）"
+    },
+    {
+      "from": "Procedure",
+      "to": "Ui",
+      "reason": "流程页面流/页面目录"
+    },
+    {
+      "from": "Session",
+      "to": "Battle",
+      "reason": "会话实现 Battle 端口/经客户端工厂注入（IAccountRuntime/IBattleClientFactory）"
+    },
+    {
+      "from": "Session",
+      "to": "Config",
+      "reason": "会话工厂玩法摘要/gameplayDigestBase"
+    },
+    {
+      "from": "Session",
+      "to": "Dev",
+      "reason": "会话读 IDevSession 播种规则"
+    },
+    {
+      "from": "Session",
+      "to": "Map",
+      "reason": "会话装配点取地图委托注入 Account 工厂（MapProvider/BattleScenes）"
+    },
+    {
+      "from": "Session",
+      "to": "Meta",
+      "reason": "会话用 MetaEntryConfig 部署快照"
+    },
+    {
+      "from": "Ui",
+      "to": "Config",
+      "reason": "UI 段读表读口与文本目录（IConfigService/LTextCatalog）"
+    }
+  ],
+  "scanTargets": [
+    {
+      "root": "Packages/com.litegame.sim",
+      "rules": "SimRules",
+      "exclude": "SimLayerExcludes",
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.net",
+      "rules": "NetRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.framework/Runtime/Core",
+      "rules": "CoreRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.framework/Runtime/Adapters/Unity",
+      "rules": "UnityRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.framework/Runtime/Services",
+      "rules": "GameRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.framework/Runtime/Hosting",
+      "rules": "GameRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.framework/Runtime/Adapters/YooAsset",
+      "rules": "GameRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.framework/Runtime/Adapters/XLua",
+      "rules": "GameRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.framework/Runtime/Adapters/InputSystem",
+      "rules": "GameRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft",
+      "rules": "GameRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Assets/LiteGame",
+      "rules": "GameRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.framework/Runtime/Services/UI",
+      "rules": "UILayerRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Assets/RoomServer/Core",
+      "rules": "RuntimePurityRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.sim",
+      "rules": "ConfigPortRules",
+      "exclude": "ConfigPortExcludes",
+      "includeEditor": false
+    },
+    {
+      "root": "Assets/RoomServer/Modules",
+      "rules": "ConfigPortRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Server/RoomServer",
+      "rules": "ConfigPortRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Server/MetaServer",
+      "rules": "MetaPurityRules",
+      "exclude": "MetaHostExcludes",
+      "includeEditor": false
+    },
+    {
+      "root": "Assets/LiteGame/Adapters/Dev/Projection",
+      "rules": "ProjectionRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Assets/LiteGame/Editor/Gm",
+      "rules": "ProjectionRules",
+      "exclude": null,
+      "includeEditor": true
+    }
+  ],
+  "topLevel": {
+    "assets": {
+      "dirs": [
+        "Animation",
+        "Animator",
+        "Art",
+        "FX",
+        "Map",
+        "Model",
+        "ThirdParty",
+        "GameData",
+        "Scenes",
+        "Settings",
+        "StreamingAssets",
+        "ShareResource",
+        "LiteCodeGen",
+        "LiteGame",
+        "LiteTesting",
+        "RoomServer",
+        "Tests",
+        "Tools",
+        "Resources",
+        "TextMesh Pro"
+      ],
+      "ignored": [
+        "AgentScripts",
+        "Temp",
+        "Plugins"
+      ]
+    },
+    "liteGame": [
+      "Adapters",
+      "App",
+      "Bootstrap",
+      "Core",
+      "Editor",
+      "Lua",
+      "Modules"
+    ]
+  }
+}

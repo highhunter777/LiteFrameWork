@@ -9,21 +9,23 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// B3 模块发行登记守卫：scripts/content/module-tiers.json 是「模块 → tier（base/script/data）→ 收集组」
+    /// B3 模块发行登记守卫：arch/units.json 是「模块 → tier（base/script/data）→ 收集组」
     /// 与「改什么 → 发什么」矩阵的单源；本用例把它拉进 L1（CI），防止登记与真实模块/收集组漂移。
+    /// scripts/content/module-tiers.json 是模型生成的只读镜像（旧表保留一个版本周期）。
     /// B4-4c 追加：收集组路径必须落在归属模块的 <c>Content/</c> 下（顶层例外逐条给依据），
     /// 并校验收集路径真实存在——Sound 曾漂在 <c>Assets/Sound</c> 而登记归属 Shared，此类漂移由本用例拦住。
     /// </summary>
     public sealed class ModuleTierMatrixTests
     {
         /// <summary>收集组路径的登记例外：组 → （归属模块，依据）。模块自有资源必须落 `<模块>/Content/`，例外逐条说明。</summary>
-        private static readonly Dictionary<string, (string Owner, string Reason)> CollectPathExceptions =
-            new Dictionary<string, (string, string)>(StringComparer.Ordinal)
-            {
-                ["Scenes"] = ("LiteGame.Modules.Map", "2026-10-11 裁决：流程编排资产维持 Assets/Scenes 顶层"),
-                ["Config"] = ("LiteGame.Modules.Config", "2026-10-11 裁决：表产物维持 Assets/GameData/Config 顶层"),
-                ["Lua"] = ("LiteGame.Modules.Procedure", "资源收集目录专项设计 §5：L2 样板（代码即热更资源，目录即收集组）"),
-            };
+        private static Dictionary<string, (string Owner, string Reason)> LoadCollectPathExceptions(string root)
+        {
+            ArchModel model = ArchModel.Load(root);
+            var result = new Dictionary<string, (string Owner, string Reason)>(StringComparer.Ordinal);
+            foreach (var pair in model.CollectPathExceptions)
+                result[pair.Key] = (pair.Value.Owner, pair.Value.Reason);
+            return result;
+        }
 
         private sealed class Manifest
         {
@@ -115,6 +117,7 @@ namespace LiteFramework.Core.Tests
             string root = RepoRoot();
             Manifest manifest = LoadManifest(root);
             Dictionary<string, List<string>> paths = ReadCollectPaths(root);
+            Dictionary<string, (string Owner, string Reason)> collectPathExceptions = LoadCollectPathExceptions(root);
 
             var errors = new List<string>();
             var owner = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -134,7 +137,7 @@ namespace LiteFramework.Core.Tests
                     {
                         if (path.StartsWith(expectedPrefix, StringComparison.Ordinal)) continue;
 
-                        if (CollectPathExceptions.TryGetValue(group, out (string Owner, string Reason) exception) == false)
+                        if (collectPathExceptions.TryGetValue(group, out (string Owner, string Reason) exception) == false)
                         {
                             errors.Add(module.Id + " 的收集组 " + group + " 路径不在 " + expectedPrefix + " 下：" + path);
                             continue;
@@ -151,7 +154,7 @@ namespace LiteFramework.Core.Tests
 
             foreach (string group in paths.Keys)
                 if (!owner.ContainsKey(group)) errors.Add("收集组无模块归属：" + group);
-            foreach (string group in CollectPathExceptions.Keys)
+            foreach (string group in collectPathExceptions.Keys)
             {
                 if (!paths.ContainsKey(group)) errors.Add("例外表登记了不存在的收集组：" + group);
                 else if (!usedExceptions.Contains(group)) errors.Add("例外表残留（该组已按模块 Content 路径对齐）：" + group);
@@ -167,15 +170,42 @@ namespace LiteFramework.Core.Tests
 
         private static Manifest LoadManifest(string root)
         {
-            string manifestPath = Path.Combine(root, "scripts", "content", "module-tiers.json");
-            Assert.True(File.Exists(manifestPath), "缺 scripts/content/module-tiers.json");
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            Manifest manifest = JsonSerializer.Deserialize<Manifest>(File.ReadAllText(manifestPath), options);
-            Assert.NotNull(manifest);
-            Assert.Equal(1, manifest.Version);
-            Assert.NotNull(manifest.Tiers);
-            Assert.Equal(new[] { "base", "data", "script" }, manifest.Tiers.OrderBy(x => x, StringComparer.Ordinal).ToArray());
-            return manifest;
+            ArchModel model = ArchModel.Load(root);
+            Assert.Equal(1, model.Version);
+            Assert.NotNull(model.Tiers);
+            Assert.Equal(new[] { "base", "data", "script" }, model.Tiers.OrderBy(x => x, StringComparer.Ordinal).ToArray());
+
+            var modules = model.Units
+                .Where(unit => IsLegacyModule(unit.Path))
+                .Select(unit => new ModuleEntry
+                {
+                    Id = unit.Id,
+                    Path = unit.Path,
+                    Tiers = unit.Tier,
+                    CollectGroups = unit.CollectGroups,
+                    Ship = "base",
+                })
+                .ToArray();
+            return new Manifest
+            {
+                Version = 1,
+                Tiers = model.Tiers,
+                Modules = modules,
+                ChangeMatrix = model.ChangeMatrix.Select(row => new ChangeEntry
+                {
+                    Change = row.Change,
+                    Paths = row.Paths,
+                    Ship = row.Ship,
+                }).ToArray(),
+            };
+        }
+
+        private static bool IsLegacyModule(string path)
+        {
+            return path == "Assets/LiteGame/Core"
+                || path == "Assets/LiteGame/App"
+                || path == "Assets/LiteGame/Bootstrap"
+                || (path.StartsWith("Assets/LiteGame/Modules/", StringComparison.Ordinal) && path.Split('/').Length == 4);
         }
 
         /// <summary>从收集器配置解析 组名 → 收集路径（配置是 Unity 产出的 YAML；只读文本，不引 Unity）。</summary>
