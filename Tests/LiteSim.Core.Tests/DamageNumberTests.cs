@@ -57,6 +57,24 @@ namespace LiteSim.Tests
         }
 
         [Fact]
+        public void 聚合_合并窗与寿命_可注入覆盖_由表驱动调用方决定()
+        {
+            // B3b 表驱动：merge_window / fade_end 由驱动从策略表注入，聚合器不再读静态常量。
+            var agg = new DamageNumberAggregator(mergeWindowSeconds: 0.2f, fadeEndSeconds: 0.4f);
+            agg.MergeOrSpawn(7L, HitLocalRole.Caused, 30, crit: false, now: 1.0, seed: 1);
+
+            var outsideWindow = agg.MergeOrSpawn(7L, HitLocalRole.Caused, 10, crit: false, now: 1.25, seed: 2);
+            Assert.False(outsideWindow.Merged, "超过注入的 0.2s 合并窗 → 新条目");
+
+            var expired = new List<(long TargetId, HitLocalRole Role, bool Crit)>();
+            agg.CollectExpired(1.5, expired);
+            Assert.Empty(expired);                      // 距最后活动 0.25s < 注入的 0.4s 寿命
+            agg.CollectExpired(1.7, expired);
+            Assert.Single(expired);                     // 0.45s ≥ 0.4s → 到期
+            Assert.Equal((7L, HitLocalRole.Caused, false), expired[0]);
+        }
+
+        [Fact]
         public void 聚合_爆头与普通_分离成条_各并各的()
         {
             // 用户裁决："连击合并区分爆头/普通，爆头合爆头的、普通合普通的"——爆头档进合并键。

@@ -1,3 +1,5 @@
+using System;
+
 namespace LiteGame.Feedback.DamageNumbers
 {
     /// <summary>
@@ -88,24 +90,109 @@ namespace LiteGame.Feedback.DamageNumbers
         public static readonly DamageNumberStyle ReceivedCritDeepRed =
             new DamageNumberStyle(0.78f, 0.16f, 0.12f, 0.45f, 0.02f, 0.02f, 6.5f, 1f, DamageNumberTier.ReceivedCrit);
 
+        private readonly bool _usesProfile;
+        private readonly DamageNumberStyleProfile _profile;
+
+        /// <summary>缺省构造 = 代码常量档（表未装载/测试装配；行为与表驱动前一致）。</summary>
+        public DamageNumberStyleResolver() { }
+
+        /// <summary>表驱动构造：四档样式与按值分带由策略表投影给出（缺行已由投影回落默认）。</summary>
+        public DamageNumberStyleResolver(DamageNumberStyleProfile profile)
+        {
+            _profile = profile;
+            _usesProfile = true;
+        }
+
+        public DamageNumberStyle Resolve(int value, HitLocalRole role, bool crit)
+            => _usesProfile ? _profile.Resolve(value, role, crit) : ResolveDefaults(value, role, crit);
+
+        private static DamageNumberStyle ResolveDefaults(int value, HitLocalRole role, bool crit)
+            => DamageNumberStyleProfile.Default.Resolve(value, role, crit);   // 默认档同样走 profile 单实现
+
+        /// <summary>按值分带缩放（默认档；表驱动走 <see cref="DamageNumberStyleProfile.ValueScaleBoost"/>）。</summary>
+        public static float ValueScaleBoost(int value) => DamageNumberStyleProfile.Default.ValueScaleBoost(value);
+    }
+
+    /// <summary>
+    /// 伤害数字四档样式 + 按值分带（纯数据、零引擎）：<c>battlestrategy</c> 表 <c>damage.style.*</c> /
+    /// <c>damage.value_scale.*</c> 行的不可变投影。缺行由装配点回落
+    /// <see cref="DamageNumberStyleResolver"/> 的常量档；本结构只做参数校验与解析。
+    /// </summary>
+    public readonly struct DamageNumberStyleProfile
+    {
+        public readonly DamageNumberStyle Caused;
+        public readonly DamageNumberStyle CausedCrit;
+        public readonly DamageNumberStyle Received;
+        public readonly DamageNumberStyle ReceivedCrit;
+
+        public readonly float Band1Threshold;
+        public readonly float Band1Boost;
+        public readonly float Band2Threshold;
+        public readonly float Band2Boost;
+        public readonly float Band3Threshold;
+        public readonly float Band3Boost;
+
+        public DamageNumberStyleProfile(DamageNumberStyle caused, DamageNumberStyle causedCrit,
+            DamageNumberStyle received, DamageNumberStyle receivedCrit,
+            float band1Threshold, float band1Boost, float band2Threshold, float band2Boost,
+            float band3Threshold, float band3Boost)
+        {
+            RequireStyle(caused, nameof(caused));
+            RequireStyle(causedCrit, nameof(causedCrit));
+            RequireStyle(received, nameof(received));
+            RequireStyle(receivedCrit, nameof(receivedCrit));
+            RequireBand(band1Threshold, band1Boost, nameof(band1Threshold));
+            RequireBand(band2Threshold, band2Boost, nameof(band2Threshold));
+            RequireBand(band3Threshold, band3Boost, nameof(band3Threshold));
+            if (!(band1Threshold < band2Threshold && band2Threshold < band3Threshold))
+                throw new ArgumentOutOfRangeException(nameof(band1Threshold), "按值分带阈值必须严格递增");
+
+            Caused = caused;
+            CausedCrit = causedCrit;
+            Received = received;
+            ReceivedCrit = receivedCrit;
+            Band1Threshold = band1Threshold;
+            Band1Boost = band1Boost;
+            Band2Threshold = band2Threshold;
+            Band2Boost = band2Boost;
+            Band3Threshold = band3Threshold;
+            Band3Boost = band3Boost;
+        }
+
+        /// <summary>缺表/缺行默认（与 <see cref="DamageNumberStyleResolver"/> 常量档同值）。</summary>
+        public static DamageNumberStyleProfile Default => new DamageNumberStyleProfile(
+            DamageNumberStyleResolver.CausedWhite, DamageNumberStyleResolver.CausedCritRed,
+            DamageNumberStyleResolver.ReceivedRed, DamageNumberStyleResolver.ReceivedCritDeepRed,
+            20f, 1.05f, 50f, 1.12f, 100f, 1.20f);
+
         public DamageNumberStyle Resolve(int value, HitLocalRole role, bool crit)
         {
             DamageNumberStyle s = role == HitLocalRole.Received
-                ? (crit ? ReceivedCritDeepRed : ReceivedRed)
-                : (crit ? CausedCritRed : CausedWhite);
-
-            // 按值分带缩放与角色档正交（大伤害无论谁打都更大——"按值缩放"独立语义）
+                ? (crit ? ReceivedCrit : Received)
+                : (crit ? CausedCrit : Caused);
             return new DamageNumberStyle(s.TopR, s.TopG, s.TopB, s.BottomR, s.BottomG, s.BottomB,
                 s.FontSize, s.ScaleBoost * ValueScaleBoost(value), s.Tier);
         }
 
-        /// <summary>按值分带缩放：≥100 → 1.20；≥50 → 1.12；≥20 → 1.05；否则 1（边界含左端）。</summary>
-        public static float ValueScaleBoost(int value)
+        /// <summary>按值分带缩放：≥band3 → band3 boost；≥band2 → band2；≥band1 → band1；否则 1。</summary>
+        public float ValueScaleBoost(int value)
         {
-            if (value >= 100) return 1.20f;
-            if (value >= 50) return 1.12f;
-            if (value >= 20) return 1.05f;
+            if (value >= Band3Threshold) return Band3Boost;
+            if (value >= Band2Threshold) return Band2Boost;
+            if (value >= Band1Threshold) return Band1Boost;
             return 1f;
+        }
+
+        private static void RequireStyle(DamageNumberStyle style, string name)
+        {
+            if (!(style.FontSize > 0f)) throw new ArgumentOutOfRangeException(name, "字号必须大于 0");
+            if (!(style.ScaleBoost > 0f)) throw new ArgumentOutOfRangeException(name, "缩放必须大于 0");
+        }
+
+        private static void RequireBand(float threshold, float boost, string name)
+        {
+            if (!(threshold > 0f)) throw new ArgumentOutOfRangeException(name, "分带阈值必须大于 0");
+            if (!(boost > 0f)) throw new ArgumentOutOfRangeException(name, "分带倍率必须大于 0");
         }
     }
 }

@@ -46,9 +46,10 @@ namespace LiteGame
         /// <summary>配置服务（表投影）：字节通道经内容租约（代次/引用统一，提取即释放源资产）。
         /// 装载期不接覆写合并口（传 null）：覆写合并已下移到进房时点，
         /// 客户端发布面与本地服房间数值必须由同一求值结果派生（见 <see cref="Modules.Config.SimParamsActivation"/>）。</summary>
-        internal Func<IContentService, IConfigService> ConfigServiceFactory()
-            => content => new ConfigService(
-                (location, token) => LoadBytesViaContentLease(content, location, token));
+        internal Func<IContentService, IFileStore, ActivationTransactionStore, IConfigService> ConfigServiceFactory()
+            => (content, files, activation) => new ConfigService(
+                (location, token) => LoadBytesViaContentLease(content, location, token),
+                candidateConfig: new CandidateConfigSource(files, () => activation.ActiveGeneration));
 
         /// <summary>意图设备源（New Input System 适配器）：本局规则经读口注入（进房时才有值）。</summary>
         internal Func<IDevSession, IIntentSource> IntentSourceFactory()
@@ -69,6 +70,17 @@ namespace LiteGame
         /// <summary>Lua 候选脚本健康探针（受控 XLua 沙箱）：只经 IHealthProbe 注入内容编排。</summary>
         internal Func<string, IFileStore, IHealthProbe> LuaHealthProbeFactory()
             => (candidateRoot, files) => new LuaScriptsHealthProbe(candidateRoot, ReleaseLayout.LuaScripts, files);
+
+        /// <summary>候选配置语义探针（H4-2）：全量 config/ → cfg.Tables → ConfigTableValidator；
+        /// 只经 IHealthProbe 注入内容编排，Luban 细节不穿透到 Composition。</summary>
+        internal Func<string, IFileStore, IHealthProbe> ConfigHealthProbeFactory()
+            => (candidateRoot, files) => new ConfigCandidateHealthProbe(files, candidateRoot);
+
+        /// <summary>Bridge 能力探针（H4-4）：候选清单 RequiredCapabilities vs 本包 BridgeCapabilitySet；
+        /// 能力事实源由本装配点声明，Core/编排只做比较。</summary>
+        internal Func<IHealthProbe> BridgeHealthProbeFactory()
+            => () => new BridgeCapabilityHealthProbe(
+                BridgeCapabilitySet.Default(), manifest => manifest.RequiredCapabilities);
 
         /// <summary>Lua 桥装订口工厂（房间会话门面 + 产品桥，**同一实例**）：适配器类型只出现在这里，
         /// 流程段经 <c>IRoomSessionBridge</c>/<c>ILuaProductBridge</c> 端口消费。</summary>
@@ -123,7 +135,7 @@ namespace LiteGame
             Bridge.BindRegistries(_uiRegistry, _contentRegistry);
             Bridge.BindUIService(context.Require<UIService>());
             Bridge.BindNavigation(context.Require<UINavigationController>());
-            Bridge.BindBattle(() => BattleLuaFactsFactory.Create(config.Tables.BattleStrategyTable));   // B3b 事实来自策略表；缺表回落默认
+            Bridge.BindBattle(() => config.Strategy.ToLuaFacts());   // B3b 事实与对局消费同源（策略表投影）；缺行回落默认
             // 注册表接口键（Lua 门面/回填/工具只经端口取；与具体键同实例）
             context.Services.RegisterInstance<IUILuaRegistry>(_uiRegistry);
             context.Services.RegisterInstance<IContentLuaRegistry>(_contentRegistry);

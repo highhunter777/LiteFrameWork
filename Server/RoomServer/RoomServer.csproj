@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">  <!--
+<Project Sdk="Microsoft.NET.Sdk">  <!--
     RoomServer（《状态同步实施方案》§4.5：.NET 8 控制台，单进程多房间，权威 Sim——MVP 不拆 Gate/Sim）。
     协议单源红线（§4.6）：直接引用 LiteNet 工程（其中 Protocol/ 纯函数与 Transport/ 分层），
     服务器侧另写消息结构在物理上不可能。
@@ -35,6 +35,7 @@
     <Compile Include="..\..\Packages\com.code-philosophy.luban\Runtime\*.cs" Link="LubanRuntime\%(Filename)%(Extension)" />
     <Compile Include="..\..\Assets\GameData\Generated\**\*.cs" Link="LubanGenerated\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Config\SimConfigMapper.cs" Link="LubanMappings\SimConfigMapper.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\BattleStrategyTableReader.cs" Link="LubanMappings\BattleStrategyTableReader.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Config\TableLayout.cs" Link="LubanMappings\TableLayout.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Config\MapTableProjection.cs" Link="LubanMappings\MapTableProjection.cs" />
   </ItemGroup>

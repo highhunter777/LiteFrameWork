@@ -64,6 +64,7 @@ namespace LiteGame
         private WeaponGripCatalog _gripCatalog;            // 持枪数据（grip.bin 装载；null = 降级）
         private readonly RootMotionDigestHolder _rootMotionDigest;   // 根位移摘要登记口（容器装配期注册；null = 测试装配）
         private readonly IAnimationBackendFactory _backendFactory;    // 动画后端工厂（装配根注入；null = 驱动降级）
+        private readonly BattleStrategyProfile _strategy;             // 策略表投影（HUD 排行/伤害数字参数）
         private RootMotionCatalog _rootMotionCatalog;                // 根位移数据（rootmotion.bin 装载；对局必备）
 
         /// <param name="account">Account 作用域（本件在其下建 `BattleView` 子作用域——离场即整体回收）。</param>
@@ -74,7 +75,7 @@ namespace LiteGame
             Func<UIThemeAsset> themeProvider = null, LiteGame.IDevSession dev = null,
             IBattleDevOverlay devOverlay = null, Action<SimVector3> teleportDispatch = null,
             ILookPreferences lookPreferences = null, RootMotionDigestHolder rootMotionDigest = null,
-            IAnimationBackendFactory animationBackendFactory = null)
+            IAnimationBackendFactory animationBackendFactory = null, BattleStrategyProfile? strategy = null)
         {
             if (content == null) throw new ArgumentNullException(nameof(content));
             if (account == null) throw new ArgumentNullException(nameof(account));
@@ -87,6 +88,7 @@ namespace LiteGame
             _teleportDispatch = teleportDispatch;
             _rootMotionDigest = rootMotionDigest;
             _backendFactory = animationBackendFactory;
+            _strategy = strategy ?? BattleStrategyProfile.Default;
 
             _viewScope = account.CreateChild("BattleView");
             _viewRootGo = new GameObject("[BattleView]");
@@ -94,8 +96,9 @@ namespace LiteGame
             _viewRoot = _viewRootGo.transform;
 
             _assets = new BattleViewAssets(content, _viewScope, _viewRoot, themeProvider);
-            _hudAssembler = new BattleHudAssembler(crosshairFeel);
-            _feedbackAssembler = new BattleFeedbackAssembler(vfx, audio, worldClock, camera, _assets, _viewRoot, dev);
+            _hudAssembler = new BattleHudAssembler(crosshairFeel, _strategy);
+            _feedbackAssembler = new BattleFeedbackAssembler(vfx, audio, worldClock, camera, _assets, _viewRoot, dev,
+                _strategy);
             _lookController = new BattleLookController(input, camera, lookPreferences);   // 视角偏好端口（可空 = 纯机制常量）
         }
 

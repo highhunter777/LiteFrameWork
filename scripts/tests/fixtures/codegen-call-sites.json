@@ -71,21 +71,21 @@
     },
     {
       "file": "scripts/codegen/gen-build-hash.py",
-      "line": 162,
+      "line": 163,
       "literal": "scripts/codegen/toolbox.py",
       "kind": "signature",
       "note": "shared template doc comment names the toolbox entry"
     },
     {
       "file": "scripts/codegen/gen-build-hash.py",
-      "line": 179,
+      "line": 180,
       "literal": "scripts/codegen/toolbox.py",
       "kind": "signature",
       "note": "meta template doc comment names the toolbox entry"
     },
     {
       "file": "scripts/codegen/gen-build-hash.py",
-      "line": 274,
+      "line": 275,
       "literal": "scripts/codegen/toolbox.py",
       "kind": "text",
       "note": "stale-check rerun hint"

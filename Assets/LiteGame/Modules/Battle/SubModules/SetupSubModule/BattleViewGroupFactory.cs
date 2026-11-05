@@ -36,13 +36,15 @@ namespace LiteGame
         private readonly RootMotionDigestHolder _rootMotionDigest;   // 根位移摘要登记口（容器装配期单实例）
         private readonly Func<IBattleDevOverlay> _devOverlayOf;      // 开发叠加层来源（装配期注入；发布 null）
         private readonly IAnimationBackendFactory _animationBackendFactory;   // 动画后端工厂（装配根注入）
+        private readonly Func<BattleStrategyProfile> _strategy;               // 策略表投影（延迟到对局创建）
         private BattleViewRig _last;                     // 真 rig（诊断读口；Dispose 即置空）
 
         public BattleViewGroupFactory(IContentService content, IInputService input, ICameraService camera,
             IVfxService vfx, IWorldClock worldClock, AudioService audio, CommandCenter commands,
             CrosshairFeelProfile crosshairFeel, Func<UIThemeAsset> themeProvider, IDevSession dev,
             ILookPreferences lookPreferences, RootMotionDigestHolder rootMotionDigest,
-            Func<IBattleDevOverlay> devOverlayOf = null, IAnimationBackendFactory animationBackendFactory = null)
+            Func<IBattleDevOverlay> devOverlayOf = null, IAnimationBackendFactory animationBackendFactory = null,
+            Func<BattleStrategyProfile> strategy = null)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _input = input;
@@ -58,6 +60,7 @@ namespace LiteGame
             _rootMotionDigest = rootMotionDigest;
             _devOverlayOf = devOverlayOf;
             _animationBackendFactory = animationBackendFactory;
+            _strategy = strategy;
         }
 
         /// <inheritdoc />
@@ -66,9 +69,10 @@ namespace LiteGame
         public IBattleViewGroup Create(ClientScope account, Action<SimVector3> teleportDispatch)
         {
             IBattleDevOverlay devOverlay = _devOverlayOf?.Invoke();   // 每局取一次（开发装配按局建实例）
+            BattleStrategyProfile strategy = _strategy?.Invoke() ?? BattleStrategyProfile.Default;   // Preload 后必已就绪
             var rig = new BattleViewRig(_content, _input, _camera, account, _vfx, _worldClock, _audio, _commands,
                 _crosshairFeel, _themeProvider, _dev, devOverlay, teleportDispatch, _lookPreferences,
-                _rootMotionDigest, animationBackendFactory: _animationBackendFactory);
+                _rootMotionDigest, animationBackendFactory: _animationBackendFactory, strategy: strategy);
             Volatile.Write(ref _last, rig);
             return new LastCreatedDecorator(this, rig);
         }

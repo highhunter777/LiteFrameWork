@@ -45,6 +45,7 @@ namespace LiteGame
         public static readonly string[] TableDataFiles = TableLayout.Files;
 
         private readonly Func<string, CancellationToken, UniTask<byte[]>> _bytesProvider;
+        private readonly ICandidateConfigSource _candidateConfig;
 
         /// <summary>判定参数覆写合并委托（**装载期合并口**，可空）：门（<see cref="SimParamsGate"/>）为真时是
         /// 覆写实例的合并方法，否则 null。产品装配不传（传 null）——覆写合并已下移到进房时点
@@ -55,17 +56,22 @@ namespace LiteGame
         private readonly ConfigSnapshotService<Tables> _snapshots;   // 原子发布（候选校验→替换→版本单调）
         private Tables _tables;
 
+        /// <summary>策略表投影（装载成功后同刻绑定；未装载访问抛——与 <see cref="Tables"/> 同判据）。</summary>
+        private BattleStrategyProfile _strategy;
+
         /// <summary>表装载的判定数值（**不含覆写**；<see cref="TableCombatValues"/> 的后备）。
         /// 在 <see cref="ApplyCombatValues"/> 里于合并之前保存——每局激活点从这里出发。</summary>
         private CombatValues _tableCombatValues;
 
         /// <param name="combatOverrides">判定参数覆写合并（可空；null = 不合并，数值即表值）。</param>
         public ConfigService(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider,
-            Func<CombatValues, CombatValues> combatOverrides = null)
+            Func<CombatValues, CombatValues> combatOverrides = null,
+            ICandidateConfigSource candidateConfig = null)
         {
             _bytesProvider = bytesProvider ?? throw new ArgumentNullException(nameof(bytesProvider));
             _combatOverrides = combatOverrides;
-            _snapshots = new ConfigSnapshotService<Tables>(ValidateCandidate);
+            _candidateConfig = candidateConfig;
+            _snapshots = new ConfigSnapshotService<Tables>(ConfigTableValidator.Validate);
         }
 
         public bool Loaded => _tables != null;
@@ -95,6 +101,18 @@ namespace LiteGame
             }
         }
 
+        /// <summary>B3 战斗策略投影（规则/排行/伤害数字参数）。未装载即访问抛——与 <see cref="Tables"/> 同判据。</summary>
+        public BattleStrategyProfile Strategy
+        {
+            get
+            {
+                if (_tables == null)
+                    throw new InvalidOperationException(
+                        "配置未加载——Strategy 在 LoadAsync 完成前不可读（对局/本地测试房恒在 Preload 之后）");
+                return _strategy;
+            }
+        }
+
         /// <summary>表装载的判定数值（合并前保存；不含覆写）。未装载即访问抛——与 <see cref="Tables"/> 同判据。</summary>
         public CombatValues TableCombatValues
         {
@@ -115,23 +133,43 @@ namespace LiteGame
             // **键 = 裸表名（Luban 生成物 cfg.Tables 按裸名回调 loader）；位置 = 领域相对路径**
             // ——两者都从 TableLayout 单源派生（与 RoomServer.ServerTableLoader 同范式）。
             var cache = new Dictionary<string, byte[]>(TableDataFiles.Length);
-            foreach (string file in TableDataFiles)
+            bool candidateSource = _candidateConfig is { HasConfigSegment: true };
+            if (candidateSource)
             {
-                ct.ThrowIfCancellationRequested();
-                string location = TableLayout.TableDataPath(file);
-                try
+                if (!_candidateConfig.TryReadAll(out var candidateTables, out string problem))
+                    throw new InvalidOperationException($"候选配置加载失败：{problem}");
+
+                foreach (string file in TableDataFiles)
                 {
-                    cache[TableLayout.TableName(file)] = await _bytesProvider(location, ct);
+                    ct.ThrowIfCancellationRequested();
+                    string name = TableLayout.TableName(file);
+                    if (!candidateTables.TryGetValue(name, out byte[] bytes) || bytes == null || bytes.Length == 0)
+                        throw new InvalidOperationException($"候选配置缺表：{TableLayout.TableDataPath(file)}");
+                    cache[name] = bytes;
                 }
-                catch (Exception ex) when (ex is not OperationCanceledException)
+            }
+            else
+            {
+                foreach (string file in TableDataFiles)
                 {
-                    // 报错带 location 与根因——"删掉一个 .bytes → LoadAsync 报错明确"的自测即此路径
-                    throw new InvalidOperationException($"配置文件加载失败:{location}", ex);
+                    ct.ThrowIfCancellationRequested();
+                    string location = TableLayout.TableDataPath(file);
+                    try
+                    {
+                        cache[TableLayout.TableName(file)] = await _bytesProvider(location, ct);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        // 报错带 location 与根因——"删掉一个 .bytes → LoadAsync 报错明确"的自测即此路径
+                        throw new InvalidOperationException($"配置文件加载失败:{location}", ex);
+                    }
                 }
             }
 
             // ② 候选建表（Luban 同步解析——解析失败抛；此刻未触碰任何已发布状态/全局数值）
             var candidate = new Tables(file => new ByteBuf(cache[file]));
+            // 策略表投影先于发布构建：非法值在"触碰已发布状态"之前 fail-fast。
+            BattleStrategyProfile strategy = BattleStrategyProfileFactory.Create(candidate.Tbbattlestrategy);
 
             // ③ 校验 + 原子发布 + 回填（顺序钉死：发布失败 → Loaded 保持 false、CombatConfig 不动）
             _snapshots.Publish(candidate);                 // 校验失败抛（保留旧版/空态），版本 +1
@@ -140,69 +178,14 @@ namespace LiteGame
             ApplyMovementValues(candidate);               // 移动数值（同上：一致性闸门在 ValidateCandidate）
             ApplyWeaponTable(candidate);                   // 武器表（多行回填——WeaponSystem 消费）
             ApplyAnimationProfile(candidate);               // 动画 Profile 行（投影为 Core 行并发布读口——对局装配/构建器/测试消费）
+            _strategy = strategy;                          // 策略投影与表快照同刻绑定
             _tables = candidate;                           // 对外可见（发布成功后）
             Log.Info($"配置快照发布完成:{TableDataFiles.Length} 张表 version={Version} " +
-                     $"digest={GameplayDigestBase:x8}（判定面 {TableLayout.JudgmentFiles.Length} 表）", LogTag.Config);
-        }
-
-        /// <summary>候选校验（发布闸门——返回 null 通过，非 null 为拒绝原因上抛）。</summary>
-        private static string ValidateCandidate(Tables candidate)
-        {
-            if (candidate == null) return "候选表为 null";
-            string valuesError = SimConfigMapper.Validate(candidate.Tbcombatnum,
-                candidate.Tbmovementconfig, candidate.Tbentityconfig, candidate.Tbcombatgeom);
-            if (valuesError != null) return valuesError;
-            if (candidate.Tbitemconfig == null || candidate.Tbitemconfig.DataList.Count == 0)
-                return "tbitemconfig 空表——表源被改坏或生成物过期";
-            if (candidate.Tbweapon == null || candidate.Tbweapon.GetOrDefault(WeaponConfig.DefaultRifleId) == null)
-                return "tbweapon 缺默认步枪行（id=0）——武器系统懒装备依赖它";
-            foreach (cfg.weapon row in candidate.Tbweapon.DataList)
-            {
-                if (row.FireMode != WeaponConfig.FireModeAuto && row.FireMode != WeaponConfig.FireModeSemi)
-                    return $"tbweapon id={row.Id} 非法 fire_mode：'{row.FireMode}'（合法集 auto/semi——两端同链映射 bool）";
-                if (row.Slot < 0 || row.Slot >= SimConfig.WeaponSlotsPerEntity)
-                    return $"tbweapon id={row.Id} slot 越界：{row.Slot}（槽数 {SimConfig.WeaponSlotsPerEntity}——切枪装备依赖槽位映射）";
-                if (row.Pellets < 1)
-                    return $"tbweapon id={row.Id} pellets 非法：{row.Pellets}（≥1——零弹丸＝哑枪，错表必两端分叉）";
-            }
-
-            // 动画 Profile 行：翻译边界（类别/通道字符串）+ 全族装载演练——语义校验
-            // （速度区间/两栖/回退防环/空绑定）全部前置到启动，错表炸在 Preload 而非对局装配
-            if (candidate.Tbanimationprofile == null || candidate.Tbanimationprofile.DataList.Count == 0)
-                return "tbanimationprofile 空表——表源被改坏或生成物过期";
-            try
-            {
-                var animRows = AnimationProfileTableMapper.ToRows(candidate.Tbanimationprofile);
-                var families = new HashSet<string>();
-                foreach (var row in animRows) families.Add(row.ModelFamily);
-                foreach (string family in families)
-                    AnimationProfileLoader.FromRows(animRows, family);   // 装载演练：结果丢弃，只为把语义错误炸在此处
-            }
-            catch (Exception ex)
-            {
-                return $"tbanimationprofile: {ex.Message}";
-            }
-
-            // 准心调参表（表现域——不进判定面摘要，行完整性仍是配置错误）：每把武器一行 + 值域
-            // （缺行/错值炸 Preload，不在对局内静默丢手感）。static_max_scale 以 1 为基线（<1 会把准心
-            // 缩得比本体小）；burst_cap 须 ≥ 静态上限（连发只张开不收紧）
-            if (candidate.Tbcrosshair == null || candidate.Tbcrosshair.DataList.Count == 0)
-                return "tbcrosshair 空表——表源被改坏或生成物过期";
-            foreach (cfg.weapon weapon in candidate.Tbweapon.DataList)
-            {
-                if (candidate.Tbcrosshair.GetOrDefault(weapon.Id) == null)
-                    return $"tbcrosshair 缺武器 id={weapon.Id} 行——每把武器一行（准心手感完整性闸）";
-            }
-            foreach (cfg.crosshair row in candidate.Tbcrosshair.DataList)
-            {
-                if (row.StaticMaxScale < 1f)
-                    return $"tbcrosshair id={row.Id} static_max_scale 非法：{row.StaticMaxScale}（≥1——1=基线倍率）";
-                if (row.BurstCap < row.StaticMaxScale)
-                    return $"tbcrosshair id={row.Id} burst_cap={row.BurstCap} 低于 static_max_scale={row.StaticMaxScale}（连发上限须不低于静态上限）";
-                if (row.BurstGrowth < 0f || row.Kick < 0f)
-                    return $"tbcrosshair id={row.Id} 负值非法：burst_growth={row.BurstGrowth} kick={row.Kick}";
-            }
-            return null;
+                     $"digest={GameplayDigestBase:x8}（判定面 {TableLayout.JudgmentFiles.Length} 表）" +
+                     $" source={(candidateSource ? "candidate-config" : "bundle")}", LogTag.Config);
+            Log.Info($"战斗策略装载：规则 {strategy.Rules.DurationFrames}/{strategy.Rules.KillLimit}/" +
+                     $"{strategy.Rules.RespawnDelayFrames}/{strategy.Rules.SpawnProtectionFrames} " +
+                     $"rank={strategy.Rank.ToWireValue()} prefix={strategy.ResultNamePrefix}", LogTag.Config);
         }
 
         /// <summary>

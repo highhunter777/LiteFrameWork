@@ -61,11 +61,12 @@ namespace LiteGame
         private readonly Func<TextMeshPro> _factory;
         private readonly IWorldClock _clock;
         private readonly IDamageNumberStyleResolver _style;
+        private readonly DamageNumberMotionProfile _motion;   // 轨道参数（表驱动；缺省 = 代码常量档）
         private readonly DamageNumberMaterialSet _materials;   // 逐档材质（null = 不换材质——底件默认档；测试/降级形态）
         private readonly Func<Camera> _cameraOf;         // **对局渲染相机**（billboard 面——不是 Camera.main，见下）
         private readonly IDevSession _dev;               // 开发会话端口（飘字开关；null = 测试装配 = 恒显）
         private readonly ObjectPool<GameObject> _pool;
-        private readonly DamageNumberAggregator _aggregator = new DamageNumberAggregator();
+        private readonly DamageNumberAggregator _aggregator;   // 合并窗/寿命随表驱动轨道参数
         private readonly Dictionary<(long TargetId, HitLocalRole Role, bool Crit), Active> _active =
             new Dictionary<(long, HitLocalRole, bool), Active>(16);
         private readonly List<(long TargetId, HitLocalRole Role, bool Crit)> _expired = new List<(long, HitLocalRole, bool)>(8);
@@ -98,12 +99,15 @@ namespace LiteGame
 
         public BattleDamageNumberDriver(SimView view, Func<TextMeshPro> factory, IWorldClock clock,
             IDamageNumberStyleResolver style = null, Func<Camera> cameraOf = null,
-            DamageNumberMaterialSet materials = null, IDevSession dev = null)
+            DamageNumberMaterialSet materials = null, IDevSession dev = null,
+            DamageNumberMotionProfile? motion = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _style = style ?? new DamageNumberStyleResolver();
+            _motion = motion ?? DamageNumberMotion.DefaultProfile;
+            _aggregator = new DamageNumberAggregator(_motion.MergeWindowSeconds, _motion.FadeEndSeconds);
             // **逐档材质调色板**（批C）：装配点整组注入（缺档即不注入——见 ProcedureBattle 取件）；
             // null = 保持底件默认材质（测试装配/降级形态——观感回到批B 平色，行为不失效）。
             _materials = materials;
@@ -221,7 +225,7 @@ namespace LiteGame
                 }
             }
 
-            Debug.LogWarning($"[Battle] 伤害数字超预算（{Budget}）——淘汰最旧并释放其实例（不静默丢）：目标 {oldest.Item1}");
+            Log.Warning($"伤害数字超预算（{Budget}）——淘汰最旧并释放其实例（不静默丢）：目标 {oldest.Item1}", LogTag.Battle);
             Release(oldest);
         }
 
@@ -255,7 +259,7 @@ namespace LiteGame
                 if (!_active.TryGetValue(key, out var a)) continue;               // 快照后被移除（到期/淘汰/重入）→ 容错跳过
                 if (!_aggregator.TryGet(key.Item1, key.Item2, key.Item3, out var snap)) continue;
 
-                DamageNumberMotion.Evaluate(
+                _motion.Evaluate(
                     (float)(now - snap.SpawnedAt), (float)(now - snap.LastMergeAt),
                     snap.Crit, snap.Seed,
                     out float rise, out float push, out float alpha, out float shake, out float pop);
@@ -263,12 +267,12 @@ namespace LiteGame
                 // 锚点追随（合并时目标=最新受击点）：恒速靠近——数字平滑滑向最新命中处（不瞬跳）。
                 // 起条目时 Anchor==AnchorTarget，此步为空转；向量 != 用近似比较，到点即停。
                 if (dt > 0f && a.Anchor != a.AnchorTarget)
-                    a.Anchor = Vector3.MoveTowards(a.Anchor, a.AnchorTarget, DamageNumberMotion.AnchorFollowSpeed * dt);
+                    a.Anchor = Vector3.MoveTowards(a.Anchor, a.AnchorTarget, _motion.AnchorFollowSpeed * dt);
 
                 // 受击点锚位置（不随实体移动；升浮/推挤/抖动归轨道数学叠在锚上）
                 Vector3 pos = new Vector3(
                     a.Anchor.x + push + shake,
-                    a.Anchor.y + DamageNumberMotion.HoverHeight + rise,
+                    a.Anchor.y + _motion.HoverHeight + rise,
                     a.Anchor.z);
 
                 float camScale = 1f;

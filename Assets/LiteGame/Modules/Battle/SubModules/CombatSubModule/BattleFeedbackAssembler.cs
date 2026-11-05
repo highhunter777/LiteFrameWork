@@ -4,6 +4,7 @@ using LiteSim;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Feedback.DamageNumbers;
 using LiteGame.Modules.Camera;
 
 namespace LiteGame
@@ -22,6 +23,7 @@ namespace LiteGame
         private readonly BattleViewAssets _assets;
         private readonly Transform _viewRoot;
         private readonly IDevSession _dev;            // 开发会话端口（伤害数字开关；可空 = 测试装配）
+        private readonly BattleStrategyProfile _strategy;   // 策略表投影（伤害数字样式/轨道参数）
 
         private HitFeedbackDispatcher _dispatcher;
         private AuthoritativeCombatFeedback _authority;
@@ -36,7 +38,8 @@ namespace LiteGame
         private BattleAudioDriver _battleAudio;
 
         public BattleFeedbackAssembler(IVfxService vfx, AudioService audio, IWorldClock worldClock,
-            ICameraService camera, BattleViewAssets assets, Transform viewRoot, IDevSession dev = null)
+            ICameraService camera, BattleViewAssets assets, Transform viewRoot, IDevSession dev = null,
+            BattleStrategyProfile? strategy = null)
         {
             _vfx = vfx;
             _audio = audio;
@@ -45,6 +48,7 @@ namespace LiteGame
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
             _viewRoot = viewRoot ?? throw new ArgumentNullException(nameof(viewRoot));
             _dev = dev;
+            _strategy = strategy ?? BattleStrategyProfile.Default;   // 缺省 = 常量档（测试/降级装配）
         }
 
         public HitFeedbackDispatcher Dispatcher => _dispatcher;
@@ -139,7 +143,9 @@ namespace LiteGame
             _damageNumbers = new BattleDamageNumberDriver(view, NewDamageNumber, _worldClock,
                 cameraOf: RenderCameraOf(),       // billboard 面对局渲染相机（非 Camera.main——叠加形态会拿错）
                 materials: _assets.DamageNumberMaterials,   // 逐档材质（四档不齐 = null 走底件默认，取件处已警告）
-                dev: _dev);                        // 开发会话端口（飘字开关；null = 恒显）
+                dev: _dev,                         // 开发会话端口（飘字开关；null = 恒显）
+                style: new DamageNumberStyleResolver(_strategy.DamageStyle),   // 表驱动四档 + 按值分带
+                motion: _strategy.DamageMotion);   // 表驱动轨道参数
             _dispatcher?.Register(_damageNumbers);
             Log.Info("damage-numbers-attached", LogTag.Battle);
         }

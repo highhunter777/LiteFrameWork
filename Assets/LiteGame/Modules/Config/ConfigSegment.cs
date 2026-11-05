@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -13,20 +13,23 @@ namespace LiteGame.Modules.Config
     /// 装配形态（用哪个实现）留在 <see cref="AppComposition"/>。</summary>
     public sealed class ConfigSegment : IClientSegment, IClientSegmentGraph
     {
-        private readonly Func<IContentService, IConfigService> _createConfig;
+        private readonly Func<IContentService, IFileStore, ActivationTransactionStore, IConfigService> _createConfig;
 
-        public ConfigSegment(Func<IContentService, IConfigService> createConfig)
+        public ConfigSegment(
+            Func<IContentService, IFileStore, ActivationTransactionStore, IConfigService> createConfig)
             => _createConfig = createConfig ?? throw new ArgumentNullException(nameof(createConfig));
 
         public string Name => "Config";
 
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
-        public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[] { "Content" };
+        public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[] { "Content", "PlatformInfrastructure" };
 
         public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
         {
             var content = context.Require<IContentService>();   // 依赖②——注册序即依赖序
-            context.Put<IConfigService>(_createConfig(content));
+            var files = context.Require<IFileStore>();
+            var activation = context.Require<ActivationTransactionStore>();
+            context.Put<IConfigService>(_createConfig(content, files, activation));
             return UniTask.CompletedTask;
         }
 

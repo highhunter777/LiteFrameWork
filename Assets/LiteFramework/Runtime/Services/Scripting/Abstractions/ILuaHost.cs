@@ -25,7 +25,7 @@ namespace LiteFramework
         /// </summary>
         UniTask StartAsync(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider,
             Func<string[]> listLuaFiles, string luaDir, IEventBus eventBus,
-            Action<object> bindGlobals = null, CancellationToken ct = default);
+            Action<object> bindGlobals = null, ICandidateLuaSource candidateLua = null, CancellationToken ct = default);
 
         /// <summary>执行 main.lua（只 require/定义；重复执行抛）。</summary>
         void DoMain();

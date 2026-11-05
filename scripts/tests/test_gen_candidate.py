@@ -82,6 +82,7 @@ class GenCandidateTests(unittest.TestCase):
                     "Channel",
                     "Compatibility",
                     "Dependencies",
+                    "RequiredCapabilities",
                     "Files",
                     "CreatedAtUnix",
                     "ExpiresAtUnix",

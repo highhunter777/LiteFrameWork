@@ -102,52 +102,6 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 关键入口资源探针（§8"健康确认至少覆盖…关键 UI/入口及其资源"）。
-    ///
-    /// **本探针只做候选根内的文件存在性检查**，不加载 prefab——
-    /// 加载需要 YooAsset 包与真实资产管线，且"加载成功"是激活**之后**才有意义的事实。
-    /// 这里回答的是"候选里到底有没有那几个入口文件"，
-    /// 真实可加载性由 <see cref="AssetsHealthProbe"/>（走 AssetDatabase）承担。
-    /// </summary>
-    public sealed class CandidateEntryFilesHealthProbe : IHealthProbe
-    {
-        private readonly string _candidateRoot;
-        private readonly Func<ReleaseManifest, IReadOnlyList<string>> _entryPaths;
-        private readonly IFileStore _files;
-
-        public string Name => "candidate-entry-files";
-
-        public CandidateEntryFilesHealthProbe(string candidateRoot,
-            Func<ReleaseManifest, IReadOnlyList<string>> entryPaths, IFileStore files = null)
-        {
-            _candidateRoot = string.IsNullOrEmpty(candidateRoot)
-                ? throw new ArgumentException("候选根不能为空", nameof(candidateRoot))
-                : candidateRoot.TrimEnd('/');
-            _entryPaths = entryPaths ?? throw new ArgumentNullException(nameof(entryPaths));
-            _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
-        }
-
-        public UniTask<string> CheckAsync(ReleaseManifest candidate, CancellationToken ct = default)
-        {
-            if (candidate == null) return UniTask.FromResult("候选为空");
-
-            IReadOnlyList<string> paths = _entryPaths(candidate);
-            if (paths == null || paths.Count == 0) return UniTask.FromResult<string>(null);
-
-            var problems = new List<string>();
-            foreach (string rel in paths)
-            {
-                if (ct.IsCancellationRequested) return UniTask.FromResult("入口资源检查已取消");
-                if (_files.GetFileLength(_candidateRoot + "/" + rel) <= 0)
-                    problems.Add(rel);
-            }
-            return UniTask.FromResult(problems.Count == 0
-                ? null
-                : "入口资源缺失或为空：" + string.Join(", ", problems));
-        }
-    }
-
-    /// <summary>
     /// 已发布资源的健康探针（§8"关键 UI/入口及其资源"）——**加载**而非仅存在性。
     ///
     /// 经 <see cref="IContentService"/> 租约通道获取并立即释放：走的是与运行时**同一条**加载路径，

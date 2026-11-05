@@ -29,10 +29,12 @@ namespace LiteGame
         private readonly UIService _ui;
         private readonly FeedbackService _feedback;        // 启动走廊装载面（窗口③）
         private readonly Func<string[]> _listLuaFiles;     // Lua 清单（装配点绑定——静态门面收口于装配点）
+        private readonly ICandidateLuaSource _candidateLua; // 候选 lua/ 段（H4-3；无候选时 null）
 
         public ProcedurePreload(IContentService content, IConfigService config, ILuaHost lua, ILuaRegistryFiller filler,
             IPageDirectory pages, ILuaProductBridge productBridge, IEventBus events,
-            UIService ui, Func<string[]> listLuaFiles = null, CancellationToken rootToken = default, FeedbackService feedback = null)
+            UIService ui, Func<string[]> listLuaFiles = null, CancellationToken rootToken = default,
+            FeedbackService feedback = null, ICandidateLuaSource candidateLua = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -45,6 +47,7 @@ namespace LiteGame
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _feedback = feedback;                          // 可空 = 测试装配（LaunchLoading.Begin 空引用跳过）
             _listLuaFiles = listLuaFiles;
+            _candidateLua = candidateLua;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -65,7 +68,7 @@ namespace LiteGame
                 //    （字节经 IContentService 租约通道——代次/引用统一，提取即释放；
                 //     清单经装配点注入——不直查静态门面）
                 await _lua.StartAsync(LoadLuaBytesViaContent, _listLuaFiles, LuaLayout.LuaDir, _events,
-                    _productBridge.BindGlobals, ct);
+                    _productBridge.BindGlobals, _candidateLua, ct);
 
                 var report = _filler.FillAll(ct);                // ③ 读三件套逐行 require/校验 → Fill → 报告
                 if (report.HasFailures)                          // ④ 整批统一判定（不遇错即停，一次拿全问题）

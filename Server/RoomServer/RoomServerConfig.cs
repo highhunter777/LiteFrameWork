@@ -288,6 +288,23 @@ namespace RoomServer
             return _rooms.ContainsKey(id);
         }
 
+        /// <summary>
+        /// 用策略表投影的规则值填充**未显式配置规则**的模板（battlestrategy 的 match.* 行）。
+        /// 显式配了任一规则字段的模板保持原值（JSON 覆盖表默认——部署调参优先）。
+        /// 返回被填充的模板数（供启动日志核对）。
+        /// </summary>
+        public int ApplyDefaultRules(LiteSim.MatchRules defaults)
+        {
+            int applied = 0;
+            foreach (RoomTemplate template in _rooms.Values)
+            {
+                if (template.HasExplicitRules) continue;
+                template.Rules = defaults;
+                applied++;
+            }
+            return applied;
+        }
+
         // ---- 装载 ----
 
         /// <summary>从文件装载（启动路径）。</summary>
@@ -549,6 +566,9 @@ namespace RoomServer
             public long WaitingTimeoutMs;
             public LiteSim.MatchRules Rules;
 
+            /// <summary>本模板是否显式写了任一规则字段（是 = 表默认不覆盖它）。</summary>
+            public bool HasExplicitRules;
+
             /// <summary>快照广播频率（Hz，房级；范围见 <see cref="ProtocolConstants"/>）。</summary>
             public int SnapshotHz;
 
@@ -575,6 +595,10 @@ namespace RoomServer
                 long mapId = OptionalLong(el, "map_id", 0);
                 if (mapId < 0 || mapId > int.MaxValue)
                     throw new InvalidDataException($"rooms.{name} 的 map_id 越界（须 ≥0）：{sourcePath}");
+                bool hasExplicitRules = el.TryGetProperty("match_duration_frames", out _)
+                    || el.TryGetProperty("kill_limit", out _)
+                    || el.TryGetProperty("respawn_delay_frames", out _)
+                    || el.TryGetProperty("spawn_protection_frames", out _);
                 LiteSim.MatchRules defaults = LiteSim.MatchRules.Default;
                 LiteSim.MatchRules rules;
                 try
@@ -607,6 +631,7 @@ namespace RoomServer
                     MatchTimeLimitMs = timeLimit,
                     WaitingTimeoutMs = waitTimeout,
                     Rules = rules,
+                    HasExplicitRules = hasExplicitRules,
                     MapId = (int)mapId,
                     SnapshotHz = (int)snapshotHzValue,
                     Aoi = aoi,

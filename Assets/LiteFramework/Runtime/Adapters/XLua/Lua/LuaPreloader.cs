@@ -25,6 +25,7 @@ namespace LiteFramework
         private readonly string _luaDir;                   // 产品 Lua 根（装配根注入——框架不写死产品路径）
         private readonly Func<string, CancellationToken, UniTask<byte[]>> _bytesProvider;   // 必注入（内容租约）
         private readonly Func<string[]> _listLuaFiles;    // 必注入（装配点绑定的清单来源）
+        private readonly ICandidateLuaSource _candidateLua; // 可空：已确认候选整套脚本（H4-3）
         private readonly Dictionary<string, byte[]> _scripts = new Dictionary<string, byte[]>(256);
 
         /// <summary>已预载脚本（require 路径 → 字节；loader 只读）。</summary>
@@ -36,17 +37,38 @@ namespace LiteFramework
         /// <param name="listLuaFiles">清单通道（装配点绑定——返回 .lua 资产路径数组；
         /// 以发布清单替换绑定时本类零改动）。**必注入**。</param>
         public LuaPreloader(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider,
-            Func<string[]> listLuaFiles, string luaDir)
+            Func<string[]> listLuaFiles, string luaDir, ICandidateLuaSource candidateLua = null)
         {
             _bytesProvider = bytesProvider;
             _listLuaFiles = listLuaFiles;
             _luaDir = luaDir ?? throw new ArgumentNullException(nameof(luaDir),
                 "Lua 根目录必填——由产品装配根注入（框架不写死产品路径）");
+            _candidateLua = candidateLua;
         }
 
         public async UniTask PreloadAllAsync(CancellationToken ct = default)
         {
             _scripts.Clear();                              // DevReload 重入语义：清了再来
+
+            // 候选 lua/ 段（H4-3）：已确认候选整套脚本优先；不读 tag 清单、不回落静态门面。
+            if (_candidateLua != null && _candidateLua.IsActive)
+            {
+                if (!_candidateLua.TryLoadAll(out IReadOnlyDictionary<string, byte[]> candidateScripts, out string problem))
+                    throw new InvalidOperationException("候选 Lua 预载失败：" + problem);
+
+                foreach (var pair in candidateScripts)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (_scripts.ContainsKey(pair.Key))
+                        throw new InvalidOperationException(
+                            $"Lua 预载重复 key:{pair.Key}（候选 lua/ 段自身重复——候选集合被污染）");
+                    _scripts[pair.Key] = pair.Value;
+                }
+
+                Log.Info($"Lua 全量预载完成（候选 lua/）：{Count} 个文件", LogTag.Lua);
+                return;
+            }
+
             var paths = ListLuaFilePaths();
             if (paths == null || paths.Length == 0)
                 throw new InvalidOperationException("Lua 预载清单为空——清单绑定/收集组 LiteGameLua 的 lua tag 未生效");

@@ -140,12 +140,16 @@ namespace LiteGame
         /// <param name="roomValues">本局判定数值（装配根在进房时点解析；null = 直构形态回落默认表值）。</param>
         public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0, MatchTestRules testRules = null,
             uint gameplayDigestBase = 0, SimMapData map = null, int mapId = 0, ILocalTestHooks hooks = null,
-            CombatValues? roomValues = null)
+            CombatValues? roomValues = null, MatchRules? rules = null)
         {
             if (string.IsNullOrEmpty(roomId)) throw new ArgumentException("房间号不得为空", nameof(roomId));
             if (map == null)
                 throw new ArgumentException("地图必填——装配根经 IMapProvider 注入（D22：无回退地图）", nameof(map));
-            var config = new RoomConfig { RoomId = roomId, Map = map, MapId = mapId };
+            var config = new RoomConfig
+            {
+                RoomId = roomId, Map = map, MapId = mapId,
+                Rules = rules ?? MatchRules.Default,   // 策略表默认（装配根传入）；null = 缺省
+            };
             if (expectedPlayers > 0) config.ExpectedPlayers = expectedPlayers;
             return new LocalServerTransport(config, testRules, gameplayDigestBase, hooks, roomValues);
         }

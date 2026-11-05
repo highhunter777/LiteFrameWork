@@ -37,6 +37,12 @@ namespace LiteFramework
         /// <summary>依赖的其他 ReleaseId（本发布生效前必须已确认的版本）。</summary>
         public List<string> Dependencies = new List<string>();
 
+        /// <summary>
+        /// 本候选要求的 Bridge 能力键（如 bridge.room/bridge.battle；空 = 不声明）。
+        /// 与 <see cref="BridgeCapabilitySet"/> 比较，缺一即拒（发布描述注入；签名覆盖）。
+        /// </summary>
+        public List<string> RequiredCapabilities = new List<string>();
+
         /// <summary>候选文件清单。</summary>
         public List<ReleaseFileEntry> Files = new List<ReleaseFileEntry>();
 

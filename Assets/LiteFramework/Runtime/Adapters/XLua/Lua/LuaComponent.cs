@@ -71,9 +71,9 @@ namespace LiteFramework
         /// <inheritdoc />
         public async UniTask StartAsync(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider,
             Func<string[]> listLuaFiles, string luaDir, IEventBus eventBus,
-            Action<object> bindGlobals = null, CancellationToken ct = default)
+            Action<object> bindGlobals = null, ICandidateLuaSource candidateLua = null, CancellationToken ct = default)
         {
-            var preloader = new LuaPreloader(bytesProvider, listLuaFiles, luaDir);
+            var preloader = new LuaPreloader(bytesProvider, listLuaFiles, luaDir, candidateLua);
             await preloader.PreloadAllAsync(ct);                 // 同步 loader 的咽喉：先建缓存再建 env
             Init(preloader, eventBus, bindGlobals == null ? (Action<LuaEnv>)null : env => bindGlobals(env));
             DoMain();

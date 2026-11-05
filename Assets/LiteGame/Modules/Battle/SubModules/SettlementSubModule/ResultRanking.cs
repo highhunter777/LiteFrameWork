@@ -15,7 +15,8 @@ namespace LiteGame
     {
         /// <summary>构建排行行表（已按全序排好）。<paramref name="players"/> null/空 → 空表。
         /// 行类型＝契约 <see cref="MatchSettlementRow"/>（端口 <see cref="ISettlementSummary"/> 的返回值）。</summary>
-        internal static MatchSettlementRow[] Build(IReadOnlyList<PlayerMatchResult> players)
+        internal static MatchSettlementRow[] Build(IReadOnlyList<PlayerMatchResult> players,
+            BattleRankPolicy policy)
         {
             if (players == null || players.Count == 0) return System.Array.Empty<MatchSettlementRow>();
 
@@ -33,9 +34,9 @@ namespace LiteGame
                     p.Kills, p.Deaths);
             }
 
-            // 全序与名次走单一实现（与局内排行榜共用 BattleRankOrder）。
+            // 全序与名次走单一实现（与局内排行榜共用 BattleRankPolicy——策略表投影）。
             var order = new int[n];
-            BattleRankOrder.SortDisplay(n, entityIds, kills, order);
+            policy.SortDisplay(n, entityIds, kills, order);
             var sorted = new MatchSettlementRow[n];
             var sortedKills = new int[n];
             for (int i = 0; i < n; i++)
@@ -44,7 +45,7 @@ namespace LiteGame
                 sortedKills[i] = sorted[i].Kills;
             }
             for (int i = 0; i < n; i++)
-                sorted[i] = new MatchSettlementRow(sorted[i].PlayerId, BattleRankOrder.RankAt(i, sortedKills),
+                sorted[i] = new MatchSettlementRow(sorted[i].PlayerId, policy.RankAt(i, sortedKills),
                     sorted[i].Name, sorted[i].Kills, sorted[i].Deaths);
             return sorted;
         }

@@ -45,7 +45,7 @@ gen_luban = _load("gen_luban", "scripts/codegen/gen_luban.py")
 gen_sync_code = _load("gen_sync_code", "scripts/codegen/gen_sync_code.py")
 gen_lua_keys = _load("gen_lua_keys", "Luban/gen_lua_keys.py")
 
-SYNC_OUTPUT = ROOT / "Assets" / "LiteSim" / "Diagnostics" / "Generated" / "EntitySlot.Sync.g.cs"
+SYNC_OUTPUT = ROOT / "Packages" / "com.litegame.sim" / "Diagnostics" / "Generated" / "EntitySlot.Sync.g.cs"
 
 # artifact path -> toolbox tool token (10 artifacts, plan v8 assumption 1)
 GENERATED = {
@@ -53,9 +53,9 @@ GENERATED = {
     "Server/MetaServer/Host/BuildHash.g.cs": "build-hash",
     "Packages/com.litegame.sim/Diagnostics/Generated/EntitySlot.Sync.g.cs": "sync-code",
     "Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs": "ui-page",
-    "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindIndex.Api.g.cs": "ui-api",
-    "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindBase.Api.g.cs": "ui-api",
-    "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIApiManifest.g.cs": "ui-api",
+    "Assets/LiteFramework/Runtime/Services/UI/Bind/Generated/UIBindIndex.Api.g.cs": "ui-api",
+    "Assets/LiteFramework/Runtime/Services/UI/Bind/Generated/UIBindBase.Api.g.cs": "ui-api",
+    "Assets/LiteFramework/Runtime/Services/UI/Bind/Generated/UIApiManifest.g.cs": "ui-api",
     "Assets/LiteGame/Adapters/LuaBridge/Generated/UIApiShim.g.cs": "ui-api",
     "Assets/LiteGame/Adapters/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs": "ui-api",
     "Assets/LiteGame/Modules/Shared/Generated/LuaKeys.g.cs": "luban",

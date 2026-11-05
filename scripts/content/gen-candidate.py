@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E402
 
 DEFAULT_KEY = Path.home() / ".unitylib-content-signing" / "release-key-2026-09-26.xml"
-DEFAULT_ANCHORS = "Assets/LiteFramework/Runtime/Modules/Content/ContentTrustAnchors.cs"
+DEFAULT_ANCHORS = "Assets/LiteFramework/Runtime/Services/Content/ContentTrustAnchors.cs"
 
 
 def parse_args(argv=None):
@@ -29,6 +29,7 @@ def parse_args(argv=None):
     parser.add_argument("--out-file", default="content/candidate.json")
     parser.add_argument("--expires-in-days", type=int, default=30)
     parser.add_argument("--platform", default="")
+    parser.add_argument("--required-capability", action="append", default=[], help="候选要求的 Bridge 能力键（可重复）")
     parser.add_argument("--anchors-cs", default=DEFAULT_ANCHORS)
     parser.add_argument("--key-path", default=str(DEFAULT_KEY))
     parser.add_argument("--key-id", default="release-key-2026-09-26")
@@ -71,7 +72,8 @@ def collect_entries(content_dir):
     return entries, skipped
 
 
-def canonical_manifest(entries, release_id, revision, platform, created, expires, key_id):
+def canonical_manifest(entries, release_id, revision, platform, created, expires, key_id,
+                      required_capabilities=None):
     parts = [
         '{"SchemaVersion":1',
         ',"ReleaseId":',
@@ -83,8 +85,18 @@ def canonical_manifest(entries, release_id, revision, platform, created, expires
         ',"Channel":""',
         ',"Compatibility":{}',
         ',"Dependencies":[]',
-        ',"Files":[',
+        ',"RequiredCapabilities":[',
     ]
+    for index, capability in enumerate(required_capabilities or []):
+        if index:
+            parts.append(",")
+        parts.append(esc(capability))
+    parts.extend(
+        [
+            "]",
+            ',"Files":[',
+        ]
+    )
     for index, entry in enumerate(entries):
         if index:
             parts.append(",")
@@ -170,7 +182,8 @@ def main(argv=None):
 
     now = int(time.time())
     expires = now + int(args.expires_in_days) * 86400
-    canonical = canonical_manifest(entries, args.release_id, args.revision, args.platform, now, expires, args.key_id)
+    canonical = canonical_manifest(entries, args.release_id, args.revision, args.platform, now, expires,
+                                    args.key_id, args.required_capability)
     canonical_bytes = canonical.encode("utf-8")
 
     try:

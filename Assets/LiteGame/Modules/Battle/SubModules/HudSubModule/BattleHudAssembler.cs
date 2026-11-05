@@ -16,6 +16,7 @@ namespace LiteGame
     internal sealed class BattleHudAssembler
     {
         private readonly CrosshairFeelProfile _crosshairFeel;   // 准心手感投影（tbcrosshair——可空 = 测试装配回落 Default）
+        private readonly BattleStrategyProfile _strategy;      // 策略表投影（排行榜全序）
 
         private BattleCrosshairDriver _crosshair;
         private IBattleReadModel _predictedModel;             // HUD/击杀提示共用（预测态读源）
@@ -28,8 +29,12 @@ namespace LiteGame
         private GameObject _hudInstance;
         private UnityEngine.Events.UnityAction _menuClick;
 
-        public BattleHudAssembler(CrosshairFeelProfile crosshairFeel)
-            => _crosshairFeel = crosshairFeel;
+        public BattleHudAssembler(CrosshairFeelProfile crosshairFeel,
+            BattleStrategyProfile? strategy = null)
+        {
+            _crosshairFeel = crosshairFeel;
+            _strategy = strategy ?? BattleStrategyProfile.Default;   // 缺省 = 历史全序（缺表回落）
+        }
 
         public BattleCrosshairDriver Crosshair => _crosshair;
 
@@ -165,7 +170,8 @@ namespace LiteGame
             _rankboard = new BattleRankboardDriver(publicFacts,
                 () => view != null ? view.LocalEntityId : 0L,
                 _hudView.RankCells, _hudView.RankNames, _hudView.RankKills, _hudView.RankHighlights,
-                _hudView.TeamScoreText);                   // 团队比分预留节点（缺 = 驱动内跳过）
+                _hudView.TeamScoreText,                    // 团队比分预留节点（缺 = 驱动内跳过）
+                _strategy.Rank);                           // 策略表全序（缺表 = 击杀降序→EntityId 升序）
             Log.Info("rankboard-attached", LogTag.Battle);
         }
 

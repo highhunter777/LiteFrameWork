@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LiteSim;
@@ -83,13 +83,15 @@ namespace RoomServer
                 $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}");
 
             WeaponTable weapons = BuildWeaponTable(tables);
+            // 规则四值：与客户端本地测试房同一读取口（BattleStrategyTableReader）——表驱动，缺行回落默认。
+            MatchRules rules = BattleStrategyTableReader.ReadRules(tables.Tbbattlestrategy, MatchRules.Default);
             // 判定面表字节基摘要（批 E）：与客户端同一清单/同一顺序/同一份字节 → 同摘要；
             // 房间摘要 = 它 + 本局规则初值（`FixedCombatConfig.Capture`）——客户端据此复算拒局。
             uint digest = TableLayout.ComputeGameplayDigestBase(cache);
             HostLog.Info("Tables",
                 $"玩法数据身份基摘要:0x{digest:x8}（判定面 {TableLayout.JudgmentFiles.Length} 表——客户端装载后复算比对）");
             // 装载产物经返回值交给组合根显式传递（技术债 #1：不再回填全局静态面）。
-            return new ServerTableLoad(values, weapons, digest);
+            return new ServerTableLoad(values, weapons, digest, rules);
         }
 
         /// <summary>
@@ -176,7 +178,7 @@ namespace RoomServer
         }
     }
 
-    /// <summary>装载产物（数值行 + 武器表实例 + 判定面表字节基摘要；由装配方持有并显式传递——无静态面）。</summary>
+    /// <summary>装载产物（数值行 + 武器表实例 + 判定面表字节基摘要 + 规则默认值；由装配方持有并显式传递——无静态面）。</summary>
     public readonly struct ServerTableLoad
     {
         /// <summary>玩法数值行（`ToValues()` → <see cref="CombatValues"/> 实例）。</summary>
@@ -189,11 +191,15 @@ namespace RoomServer
         /// 经 `HostAssembly.Inputs.GameplayDigestBase` 显式传入宿主/房间）。</summary>
         public readonly uint Digest;
 
-        public ServerTableLoad(ServerCombatValues combat, WeaponTable weapons, uint digest)
+        /// <summary>房间规则默认值（battlestrategy 的 match.* 行；未显式配置规则的房间模板用它）</summary>
+        public readonly MatchRules Rules;
+
+        public ServerTableLoad(ServerCombatValues combat, WeaponTable weapons, uint digest, MatchRules rules)
         {
             Combat = combat;
             Weapons = weapons;
             Digest = digest;
+            Rules = rules;
         }
     }
 

@@ -135,7 +135,9 @@ namespace LiteFramework.Core.Tests
         /// 常量/资源标识归共享常量面 `LiteGame.Shared`（那里只有生成物与路径常量），不放这里——
         /// Core 一旦"什么都收"，就会退化成杂物抽屉，而它是 fan-in 最高的产品程序集。
         /// </summary>
-        private static readonly string[] CoreDirectories = { "Dev", "Feedback", "Flow", "Input", "Lua", "Spatial", "UI" };
+        // Strategy = 配置侧生产、战斗/表现/Lua 侧共读的**不可变策略事实**（规则/排行/伤害数字参数），
+        // 不是战斗业务端口（业务端口仍住 Modules/Battle/Abstractions）。
+        private static readonly string[] CoreDirectories = { "Dev", "Feedback", "Flow", "Input", "Lua", "Spatial", "Strategy", "UI" };
 
         [Fact]
         public void Core目录必须落在准入章程内()

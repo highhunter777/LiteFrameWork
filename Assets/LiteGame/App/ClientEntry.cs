@@ -85,7 +85,9 @@ namespace LiteGame
                 .AddSegment(new ContentSegment(_deployBake,        // ⑤ 内容/场景/缓存租约（配置/Lua 字节通道来源）
                     _appComposition.ContentServiceFactory(),
                     _appComposition.SceneServiceFactory(),
-                    _appComposition.LuaHealthProbeFactory()))
+                    _appComposition.LuaHealthProbeFactory(),
+                    _appComposition.ConfigHealthProbeFactory(),
+                    _appComposition.BridgeHealthProbeFactory()))
                 .AddSegment(new SettingsSegment())                 // ⑥ 玩家偏好 + 视角偏好单实例（先于 UI/音频）
                 .AddSegment(new EventsSegment())                   // ⑦ 事件总线（唯一产出方；只需 ① 的池）
                 .AddSegment(new ClocksSegment())                   // ⑧ 双轨时钟（事件域已独立，时钟只负责时间）

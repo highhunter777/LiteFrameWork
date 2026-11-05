@@ -5,7 +5,7 @@ namespace LiteGame
 {
     /// <summary>
     /// 结算摘要端口（Battle 域产物）：冻结结果行 → 结算页排行行表。
-    /// 全序/名次/占位名口径**单源**（与局内排行榜同一实现 <c>BattleRankOrder</c>）——
+    /// 全序/名次/占位名口径**单源**（与局内排行榜同一实现 <c>BattleRankPolicy</c>）——
     /// 流程段只经本口取行表，不认战斗域内部投影件。
     /// </summary>
     public interface ISettlementSummary

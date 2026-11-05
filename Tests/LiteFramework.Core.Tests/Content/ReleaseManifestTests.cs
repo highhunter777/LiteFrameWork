@@ -561,6 +561,41 @@ namespace LiteFramework.Tests.Content
             Assert.Equal(ReleaseRejectReason.InvalidPath, verdict.Reason);
         }
 
+        [Fact]
+        public void 能力要求_空清单通过_旧清单兼容()
+        {
+            var (verifier, sign) = NewKeyPair();
+            var manifest = NewManifest();
+            Assert.True(Validate(manifest, sign, verifier, 1).Accepted);
+        }
+
+        [Fact]
+        public void 能力要求_重复项拒绝()
+        {
+            var (verifier, sign) = NewKeyPair();
+            var manifest = NewManifest();
+            manifest.RequiredCapabilities.Add("bridge.battle");
+            manifest.RequiredCapabilities.Add("bridge.battle");
+
+            var verdict = Validate(manifest, sign, verifier, 1);
+            Assert.False(verdict.Accepted);
+            Assert.Equal(ReleaseRejectReason.InvalidEntry, verdict.Reason);
+        }
+
+        [Fact]
+        public void 能力要求_空或超长项拒绝()
+        {
+            var (verifier, sign) = NewKeyPair();
+            foreach (string bad in new[] { "", "   ", new string('x', 65) })
+            {
+                var manifest = NewManifest();
+                manifest.RequiredCapabilities.Add(bad);
+                var verdict = Validate(manifest, sign, verifier, 1);
+                Assert.False(verdict.Accepted, $"非法能力项应拒绝：'{bad}'");
+                Assert.Equal(ReleaseRejectReason.InvalidEntry, verdict.Reason);
+            }
+        }
+
         private sealed class ThrowingVerifier : ISignatureVerifier
         {
             public bool Verify(byte[] data, byte[] signature) => throw new InvalidOperationException("验签器不应被调用");

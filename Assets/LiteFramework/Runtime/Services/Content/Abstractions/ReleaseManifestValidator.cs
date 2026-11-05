@@ -125,6 +125,10 @@ namespace LiteFramework
             var idVerdict = ValidateReleaseId(manifest.ReleaseId);
             if (!idVerdict.Accepted) return idVerdict;
 
+            // ②' Bridge 能力要求（可选；旧清单无字段 = 空）
+            var capabilityVerdict = ValidateRequiredCapabilities(manifest.RequiredCapabilities);
+            if (!capabilityVerdict.Accepted) return capabilityVerdict;
+
             // ③ 路径与预算
             var files = manifest.Files ?? new List<ReleaseFileEntry>();
             if (files.Count == 0)
@@ -298,6 +302,27 @@ namespace LiteFramework
             foreach (char c in s)
                 if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) return false;
             return true;
+        }
+
+        /// <summary>能力键：非空、≤64 字符、同清单不重复；数量≤64（防止签名描述膨胀）。</summary>
+        private static ReleaseVerdict ValidateRequiredCapabilities(List<string> capabilities)
+        {
+            if (capabilities == null || capabilities.Count == 0) return ReleaseVerdict.Accept();
+            if (capabilities.Count > 64)
+                return ReleaseVerdict.Reject(ReleaseRejectReason.BudgetExceeded,
+                    $"RequiredCapabilities 数量 {capabilities.Count} 超上限 64");
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string capability in capabilities)
+            {
+                if (string.IsNullOrWhiteSpace(capability) || capability.Length > 64)
+                    return ReleaseVerdict.Reject(ReleaseRejectReason.InvalidEntry,
+                        $"RequiredCapabilities 非法项：'{capability}'");
+                if (!seen.Add(capability))
+                    return ReleaseVerdict.Reject(ReleaseRejectReason.InvalidEntry,
+                        $"RequiredCapabilities 重复项：{capability}");
+            }
+            return ReleaseVerdict.Accept();
         }
     }
 }

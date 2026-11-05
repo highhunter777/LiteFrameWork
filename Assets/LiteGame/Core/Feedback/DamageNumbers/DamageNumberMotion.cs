@@ -55,26 +55,88 @@ namespace LiteGame.Feedback.DamageNumbers
 
         /// <summary>
         /// 逐帧求值（无状态——驱动按条目两钟喂入）。推挤用种子黄金角散布（确定性：同种子同散布，
-        /// 合并条目保持原种子 → 运动不漂）。
+        /// 合并条目保持原种子 → 运动不漂）。生产路径用表驱动实例 <see cref="DamageNumberMotionProfile"/>；
+        /// 本静态口保留默认参数求值（L1/测试与缺表回退同口径）。
         /// </summary>
         public static void Evaluate(float sinceSpawn, float sinceLastMerge, bool crit, int seed,
             out float riseY, out float pushX, out float alpha, out float shakeX, out float popScale)
+            => DefaultProfile.Evaluate(sinceSpawn, sinceLastMerge, crit, seed,
+                out riseY, out pushX, out alpha, out shakeX, out popScale);
+
+        /// <summary>缺表/缺行默认（常量即表值默认；表驱动时由策略表覆盖）。</summary>
+        public static DamageNumberMotionProfile DefaultProfile => new DamageNumberMotionProfile(
+            HoverHeight, RiseSpeed, RiseDecel, FadeStartSeconds, FadeEndSeconds, MergeWindowSeconds,
+            PopSeconds, PushDistance, AnchorFollowSpeed, CritShakeSeconds, CritShakeAmplitude,
+            CritShakeFrequency);
+    }
+
+    /// <summary>
+    /// 伤害数字轨道参数（纯数据、零引擎）：<c>battlestrategy</c> 表 <c>damage.motion.*</c> 行的不可变投影。
+    /// 缺行由装配点回落 <see cref="DamageNumberMotion.DefaultProfile"/>；本结构只做参数校验与逐帧求值。
+    /// </summary>
+    public readonly struct DamageNumberMotionProfile
+    {
+        public readonly float HoverHeight;
+        public readonly float RiseSpeed;
+        public readonly float RiseDecel;
+        public readonly float FadeStartSeconds;
+        public readonly float FadeEndSeconds;
+        public readonly float MergeWindowSeconds;
+        public readonly float PopSeconds;
+        public readonly float PushDistance;
+        public readonly float AnchorFollowSpeed;
+        public readonly float CritShakeSeconds;
+        public readonly float CritShakeAmplitude;
+        public readonly float CritShakeFrequency;
+
+        public DamageNumberMotionProfile(float hoverHeight, float riseSpeed, float riseDecel,
+            float fadeStartSeconds, float fadeEndSeconds, float mergeWindowSeconds, float popSeconds,
+            float pushDistance, float anchorFollowSpeed, float critShakeSeconds, float critShakeAmplitude,
+            float critShakeFrequency)
         {
-            // 升浮：v0·t − ½·a·t²，峰值后钳住（缓升——"飘起后缓停"读感）
+            RequireNonNegative(hoverHeight, nameof(hoverHeight));
+            RequirePositive(riseDecel, nameof(riseDecel));
+            RequireNonNegative(riseSpeed, nameof(riseSpeed));
+            RequireNonNegative(fadeStartSeconds, nameof(fadeStartSeconds));
+            if (fadeEndSeconds <= fadeStartSeconds)
+                throw new ArgumentOutOfRangeException(nameof(fadeEndSeconds), "淡出终点必须大于起点");
+            RequireNonNegative(mergeWindowSeconds, nameof(mergeWindowSeconds));
+            RequirePositive(popSeconds, nameof(popSeconds));
+            RequireNonNegative(pushDistance, nameof(pushDistance));
+            RequireNonNegative(anchorFollowSpeed, nameof(anchorFollowSpeed));
+            RequireNonNegative(critShakeSeconds, nameof(critShakeSeconds));
+            RequireNonNegative(critShakeAmplitude, nameof(critShakeAmplitude));
+            RequirePositive(critShakeFrequency, nameof(critShakeFrequency));
+
+            HoverHeight = hoverHeight;
+            RiseSpeed = riseSpeed;
+            RiseDecel = riseDecel;
+            FadeStartSeconds = fadeStartSeconds;
+            FadeEndSeconds = fadeEndSeconds;
+            MergeWindowSeconds = mergeWindowSeconds;
+            PopSeconds = popSeconds;
+            PushDistance = pushDistance;
+            AnchorFollowSpeed = anchorFollowSpeed;
+            CritShakeSeconds = critShakeSeconds;
+            CritShakeAmplitude = critShakeAmplitude;
+            CritShakeFrequency = critShakeFrequency;
+        }
+
+        /// <summary>逐帧求值（字段版本——表驱动参数；算法与静态口同源）。</summary>
+        public void Evaluate(float sinceSpawn, float sinceLastMerge, bool crit, int seed,
+            out float riseY, out float pushX, out float alpha, out float shakeX, out float popScale)
+        {
             float peakT = RiseSpeed / RiseDecel;
             float t = Math.Min(sinceSpawn, peakT);
             riseY = RiseSpeed * t - 0.5f * RiseDecel * t * t;
 
-            // 推挤：种子 → [0,1) 黄金角分数 → [−1,1] × 距离（散开防叠）
             float frac = (seed * 0.61803398875f) % 1f;
             pushX = (frac * 2f - 1f) * PushDistance;
 
-            // 淡出：最后活动钟起线性 1 → 0（窗口内合并重置即驻留）
             alpha = sinceLastMerge <= FadeStartSeconds
                 ? 1f
                 : Math.Max(0f, 1f - (sinceLastMerge - FadeStartSeconds) / (FadeEndSeconds - FadeStartSeconds));
 
-            // 抖动：仅暴击、出场窗内，包络线性衰减正弦（种子定相位）
             if (crit && sinceSpawn < CritShakeSeconds)
             {
                 float envelope = 1f - sinceSpawn / CritShakeSeconds;
@@ -85,8 +147,17 @@ namespace LiteGame.Feedback.DamageNumbers
                 shakeX = 0f;
             }
 
-            // 出场缩放：0.6 → 1 线性拉伸（0.09s）——与按值分带缩放（样式解析器）相乘成终值
             popScale = sinceSpawn >= PopSeconds ? 1f : 0.6f + 0.4f * (sinceSpawn / PopSeconds);
+        }
+
+        private static void RequirePositive(float value, string name)
+        {
+            if (!(value > 0f)) throw new ArgumentOutOfRangeException(name, value, "必须大于 0");
+        }
+
+        private static void RequireNonNegative(float value, string name)
+        {
+            if (!(value >= 0f)) throw new ArgumentOutOfRangeException(name, value, "不得为负");
         }
     }
 }

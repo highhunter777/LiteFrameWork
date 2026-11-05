@@ -38,6 +38,7 @@ namespace LiteGame
         private readonly TextMeshProUGUI[] _kills;
         private readonly GameObject[] _highlights;
         private readonly TextMeshProUGUI _teamScore;
+        private readonly BattleRankPolicy _order;      // 排行策略（策略表投影；缺省 = 击杀降序→EntityId 升序）
 
         // 每帧采集缓冲（零分配——容量上界 = MaxEntities；索引即规范序）
         private readonly long[] _ids;
@@ -66,7 +67,7 @@ namespace LiteGame
         /// <summary>读源为只读事实端口（生产：权威镜像优先的 `BattleReadModel`；测试可传替身）。</summary>
         public BattleRankboardDriver(IBattleReadModel readModel, Func<long> localEntityId,
             GameObject[] cells, TextMeshProUGUI[] names, TextMeshProUGUI[] kills, GameObject[] highlights,
-            TextMeshProUGUI teamScore = null)
+            TextMeshProUGUI teamScore = null, BattleRankPolicy order = default)
         {
             _readModel = readModel ?? throw new ArgumentNullException(nameof(readModel));
             _localEntityId = localEntityId ?? throw new ArgumentNullException(nameof(localEntityId));
@@ -79,6 +80,7 @@ namespace LiteGame
             if (_highlights.Length != CellCount)
                 throw new ArgumentException($"高亮件数须为 {CellCount}", nameof(highlights));
             _teamScore = teamScore;                       // null = 无预留节点（静默跳过）
+            _order = order;                               // default = 历史全序（策略表缺行同值）
 
             int capacity = SimConfig.MaxEntities;
             _ids = new long[capacity];
@@ -137,9 +139,9 @@ namespace LiteGame
             }
         }
 
-        /// <summary>展示序：Kills 降序 → EntityId 升序（与结算页共用 <see cref="BattleRankOrder"/> 单源；左＝第一名）。</summary>
+        /// <summary>展示序：Kills 降序 → EntityId 升序（与结算页共用 <see cref="BattleRankPolicy"/> 单源；左＝第一名）。</summary>
         private void SortByDisplay()
-            => BattleRankOrder.SortDisplay(_count, _ids, _killCounts, _display);
+            => _order.SortDisplay(_count, _ids, _killCounts, _display);
 
         // ---- 写入（脏位）----
 

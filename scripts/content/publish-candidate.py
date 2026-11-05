@@ -12,7 +12,7 @@ from _common import EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E40
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _local_cdn import load_config  # noqa: E402
 
-DEFAULT_ANCHORS = "Assets/LiteFramework/Runtime/Modules/Content/ContentTrustAnchors.cs"
+DEFAULT_ANCHORS = "Assets/LiteFramework/Runtime/Services/Content/ContentTrustAnchors.cs"
 
 
 def parse_args(argv=None):
@@ -27,6 +27,7 @@ def parse_args(argv=None):
     parser.add_argument("--key-path", default=None)
     parser.add_argument("--anchors-cs", default=None)
     parser.add_argument("--key-id", default=None)
+    parser.add_argument("--required-capability", action="append", default=[], help="候选要求的 Bridge 能力键（可重复）")
     return parser.parse_args(argv)
 
 
@@ -82,6 +83,8 @@ def main(argv=None):
         command.extend(["--key-path", str(Path(args.key_path).resolve())])
     if args.key_id:
         command.extend(["--key-id", args.key_id])
+    for capability in args.required_capability:
+        command.extend(["--required-capability", capability])
 
     result = subprocess.run(command, cwd=str(repo_root()))
     if result.returncode != 0:

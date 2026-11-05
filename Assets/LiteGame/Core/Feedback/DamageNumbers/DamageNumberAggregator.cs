@@ -61,14 +61,18 @@ namespace LiteGame.Feedback.DamageNumbers
             new Dictionary<(long, HitLocalRole, bool), Entry>(16);
 
         private readonly double _mergeWindow;
+        private readonly double _fadeEnd;
 
         /// <summary>在册条目数（诊断/预算面）。</summary>
         public int ActiveCount => _entries.Count;
 
-        /// <param name="mergeWindowSeconds">合并窗口（秒）——默认单源常量；测试注边界用。</param>
-        public DamageNumberAggregator(float mergeWindowSeconds = DamageNumberMotion.MergeWindowSeconds)
+        /// <param name="mergeWindowSeconds">合并窗口（秒）——默认单源常量；表驱动由驱动注入。</param>
+        /// <param name="fadeEndSeconds">淡出终点/条目寿命（秒）——默认单源常量；表驱动由驱动注入。</param>
+        public DamageNumberAggregator(float mergeWindowSeconds = DamageNumberMotion.MergeWindowSeconds,
+            float fadeEndSeconds = DamageNumberMotion.FadeEndSeconds)
         {
             _mergeWindow = mergeWindowSeconds;
+            _fadeEnd = fadeEndSeconds;
         }
 
         /// <summary>
@@ -119,15 +123,16 @@ namespace LiteGame.Feedback.DamageNumbers
         }
 
         /// <summary>
-        /// 淡出到期键收集（驱动 Tick 调）：最后活动距今 ≥ <see cref="DamageNumberMotion.FadeEndSeconds"/>
-        /// 的条目键入列。聚合器只裁决，不做释放——实例释放与 <see cref="Remove"/> 归驱动。
+        /// 淡出到期键收集（驱动 Tick 调）：最后活动距今 ≥ 注入的淡出终点（缺省
+        /// <see cref="DamageNumberMotion.FadeEndSeconds"/>）的条目键入列。聚合器只裁决，不做释放——
+        /// 实例释放与 <see cref="Remove"/> 归驱动。
         /// </summary>
         public void CollectExpired(double now, List<(long TargetId, HitLocalRole Role, bool Crit)> expired)
         {
             expired.Clear();
             foreach (var kv in _entries)
             {
-                if (now - kv.Value.LastMergeAt >= DamageNumberMotion.FadeEndSeconds)
+                if (now - kv.Value.LastMergeAt >= _fadeEnd)
                     expired.Add(kv.Key);
             }
         }

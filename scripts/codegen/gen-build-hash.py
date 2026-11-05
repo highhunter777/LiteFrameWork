@@ -74,6 +74,7 @@ SHARED_LINK_FILES = [
     # 静默分叉且 buildHash 不动。登记规则（与 META_EXTRA_FILES 同一条）：csproj 每加一条出树链接，
     # 这里必须同批加对应条目。
     'Assets/LiteGame/Modules/Config/SimConfigMapper.cs',   # 表 → CombatValues 投影（两端同链）
+    'Assets/LiteGame/Modules/Config/BattleStrategyTableReader.cs', # 战斗策略键/规则四值投影（两端同链）
     'Assets/LiteGame/Modules/Config/TableLayout.cs',       # 表清单/判定面清单/取数键单源
 ]
 # 第二目标（P1④）：**Meta 服务自身**的构建身份——"接真"取代原手写占位常量

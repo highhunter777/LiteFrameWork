@@ -12,7 +12,7 @@ namespace LiteGame.Tests.EditMode
     /// <summary>
     /// 排行口径一致性：局内排行榜（<see cref="BattleRankboardDriver"/>，每帧从活世界读）
     /// 与结算页（<see cref="ResultRanking"/>，从冻结结果读）必须给出**同一条全序与同一套名次**——
-    /// 两处共用 <see cref="BattleRankOrder"/>；本用例用同一批玩家从两条入口各算一次并逐格比对，
+    /// 两处共用 <see cref="BattleRankPolicy"/>；本用例用同一批玩家从两条入口各算一次并逐格比对，
     /// 防"各写一份排序"在同分边界漂移。
     /// </summary>
     public sealed class BattleRankingConsistencyEditModeTests : UnityTestBase
@@ -92,7 +92,7 @@ namespace LiteGame.Tests.EditMode
             IReadOnlyList<MatchSettlementRow> rows = new SettlementSummary().Build(FrozenRows(world));
 
             Assert.AreEqual(rows.Count, 4, "四名参赛玩家");
-            // 独立期望序列：不调用 BattleRankOrder，钉死 EntityId 并列时的顺序（id1→id2，击杀同分）。
+            // 独立期望序列：不调用 BattleRankPolicy，钉死 EntityId 并列时的顺序（id1→id2，击杀同分）。
             Assert.AreEqual(5, rows[0].Kills);
             Assert.AreEqual(2, rows[1].Kills);
             Assert.AreEqual(2, rows[2].Kills);

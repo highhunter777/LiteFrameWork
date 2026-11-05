@@ -109,6 +109,8 @@ ServerTableLoad load = combatTableDir != null
     : ServerTableLoader.LoadFromRepo();
 CombatValues combat = load.Combat.ToValues();
 WeaponTable weapons = load.Weapons;
+// 规则默认值来自策略表（battlestrategy match.*）；显式配了规则的模板不被覆盖。
+int ruleTemplatesApplied = serverConfig.ApplyDefaultRules(load.Rules);
 
 // 判定地图装载（《地图数据专项设计》§7：与数值/武器同一份 .bytes 目录；fail-fast——无图不得起权威局，D22）。
 SimMapData map = combatTableDir != null
@@ -188,6 +190,8 @@ else
 Console.WriteLine($"[RoomServer] 配置：{serverConfig.Describe()}（{serverConfig.SourcePath}）");
 Console.WriteLine($"[RoomServer] 启动（端口 {serverConfig.Port} / 容量 {serverConfig.MaxRooms} 房 / 模板 [{string.Join(",", serverConfig.TemplateIds)}] / {SimConfig.TickRate}Hz 权威步 / 快照频率与 AOI 按房间模板）");
 Console.WriteLine($"[RoomServer] buildHash={ServerHost.ServerBuildHash}（源码内容哈希——Sim 或协议一改即变）");
+Console.WriteLine($"[RoomServer] 战斗策略（表默认）：规则 {load.Rules.DurationFrames}/{load.Rules.KillLimit}/" +
+    $"{load.Rules.RespawnDelayFrames}/{load.Rules.SpawnProtectionFrames} 已应用到 {ruleTemplatesApplied} 个未显式配置的模板");
 Console.WriteLine($"[RoomServer] 玩法数值（装载实例——所有房间同一份）：move={combat.MoveSpeed} " +
     $"gravity={combat.Gravity} hp={combat.EntityHp} dmg={combat.BaseDamage}±{combat.DamageSpread}");
 

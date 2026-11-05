@@ -16,6 +16,8 @@ namespace LiteGame.Modules.Composition
         private readonly Func<IFileStore, IContentService> _contentFactory;
         private readonly Func<ISceneService> _sceneFactory;
         private readonly Func<string, IFileStore, IHealthProbe> _luaHealthProbeFactory;
+        private readonly Func<string, IFileStore, IHealthProbe> _configHealthProbeFactory;
+        private readonly Func<IHealthProbe> _bridgeHealthProbeFactory;
         private IContentService _content;
         private ISceneService _scenes;      // 场景句柄服务（流程/工具体消费；租约面归内容域）
 
@@ -25,12 +27,16 @@ namespace LiteGame.Modules.Composition
         public ContentSegment(DeployBake deployBake,
             Func<IFileStore, IContentService> contentFactory,
             Func<ISceneService> sceneFactory,
-            Func<string, IFileStore, IHealthProbe> luaHealthProbeFactory)
+            Func<string, IFileStore, IHealthProbe> luaHealthProbeFactory,
+            Func<string, IFileStore, IHealthProbe> configHealthProbeFactory,
+            Func<IHealthProbe> bridgeHealthProbeFactory)
         {
             _deployBake = deployBake ?? throw new ArgumentNullException(nameof(deployBake));
             _contentFactory = contentFactory ?? throw new ArgumentNullException(nameof(contentFactory));
             _sceneFactory = sceneFactory ?? throw new ArgumentNullException(nameof(sceneFactory));
             _luaHealthProbeFactory = luaHealthProbeFactory ?? throw new ArgumentNullException(nameof(luaHealthProbeFactory));
+            _configHealthProbeFactory = configHealthProbeFactory ?? throw new ArgumentNullException(nameof(configHealthProbeFactory));
+            _bridgeHealthProbeFactory = bridgeHealthProbeFactory ?? throw new ArgumentNullException(nameof(bridgeHealthProbeFactory));
         }
 
         public string Name => "Content";
@@ -45,7 +51,10 @@ namespace LiteGame.Modules.Composition
             if (_content is not IGenerationSink generationSink)
                 throw new InvalidOperationException("内容服务实现必须同时实现 IGenerationSink（代次推进端口）");
             context.Put<IGenerationSink>(generationSink);                                // 代次推进（§9：确认后切换，失败回退）
-            context.Put(new ActivationTransactionStore(new FileActivationRecordIO(files: files)));   // 启动恢复决策（Patch 流程消费）
+            var activation = new ActivationTransactionStore(new FileActivationRecordIO(files: files));
+            context.Put(activation);   // 启动恢复决策（Patch 流程消费）
+            context.Put<ICandidateLuaSource>(
+                new FileSystemLuaCandidateSource(files, () => activation.ActiveGeneration));
             RegisterSceneAndCacheServices(context, files);
 
             // 热更链生产装配。装配形态决定能力边界：
@@ -101,7 +110,9 @@ namespace LiteGame.Modules.Composition
                 fetcher,
                 new CompositeHealthCheck(
                     new CandidateConfigHealthProbe(candidateRoot, ReleaseLayout.ConfigPaths, files),
-                    _luaHealthProbeFactory(candidateRoot, files)),
+                    _configHealthProbeFactory(candidateRoot, files),
+                    _luaHealthProbeFactory(candidateRoot, files),
+                    _bridgeHealthProbeFactory()),
                 new ContentActivator(_content),
                 context.Require<IGenerationSink>());   // 确认/回退时推进加载代次（同一内容服务实例）
             context.Put(new PatchRunner(

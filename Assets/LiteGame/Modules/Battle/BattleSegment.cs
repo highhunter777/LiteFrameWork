@@ -78,27 +78,30 @@ namespace LiteGame
             context.Put<IBattleClientFactory>(new BattleClientFactory());
             // 对局运行工厂（A2）：Match/运行会话的构造与所有权归 Battle 域；流程只认端口。
             IdentityContext identity = context.Require<IdentityContext>();
+            IConfigService config = context.Require<IConfigService>();
+            Func<BattleStrategyProfile> strategy = () => config.Strategy;   // 延迟到对局/装配点（Preload 之后）
             var matchSessions = new MatchSessionFactory(
                 context.Require<IInputService>(),
-                () => context.Require<IConfigService>().GameplayDigestBase,
+                () => config.GameplayDigestBase,
                 context.Require<IReferencePool>(),
                 identity.Diagnostics);
             context.Put<IMatchSessionFactory>(matchSessions);
             context.Put<IBattleRunFactory>(new BattleRunFactory(
                 matchSessions, context.Require<IDevSession>(), _devDiagnostics?.Invoke()));
             // 结算摘要端口：冻结结果 → 结算页排行行表（全序/名次与局内排行榜同一实现）——流程只认端口
-            context.Put<ISettlementSummary>(new SettlementSummary());
+            context.Put<ISettlementSummary>(new SettlementSummary(() => strategy().Rank));
             // 视图组工厂：战斗域自持的装配点（流程只认端口；每局再注入 account 作用域/开发叠加层/传送分发）
             context.Put<IBattleViewGroupFactory>(new BattleViewGroupFactory(
                 content, context.Require<IInputService>(), context.Require<ICameraService>(),
                 _vfxService, context.Require<IWorldClock>(), _audio, context.Require<CommandCenter>(),
-                new CrosshairFeelProfile(context.Require<IConfigService>()),
+                new CrosshairFeelProfile(config),
                 context.Require<UIService>().ThemeAssetProvider,      // HUD 状态色主题注入
                 context.Require<IDevSession>(),                        // dev 投影读本局规则（实例端口）
                 context.Require<ILookPreferences>(),                   // 视角手感偏好（设置段单实例）
                 rootMotionDigest,                                      // 根位移摘要登记口（对局装载写入）
                 _devOverlay,                                           // 开发叠加层来源（发布 null）
-                _animationBackendFactory));                            // 动画后端工厂（适配器由组合根注入）
+                _animationBackendFactory,                              // 动画后端工厂（适配器由组合根注入）
+                strategy));                                            // 策略表投影（规则/排行/伤害数字参数）
             return UniTask.CompletedTask;
         }
 

@@ -36,7 +36,8 @@ namespace LiteGame
                 LiteSim.MatchTestRules rules = MatchRulesSeeder.Seed(testRoom, dev);
                 CombatValues roomValues = ResolveRoomValues(testRoom, dev, config, simParams);
                 return new MatchTransport(
-                    CreateTransport(testRoom, rules, deploy, gameplayDigestBase, maps, roomValues), rules);
+                    CreateTransport(testRoom, rules, deploy, gameplayDigestBase, maps, roomValues,
+                        config.Strategy.Rules), rules);
             };
             // 弱网注入装饰器（开发形态）：只包传输本身，本局规则原样带过（开发端口不认识会话域类型）
             _factory = testRoom =>
@@ -84,7 +85,8 @@ namespace LiteGame
         /// 本地分支缺失即抛：不允许本地服静默回落默认值而与客户端分叉。</summary>
         internal static LiteNet.Transport.IClientTransport CreateTransport(bool testRoom,
             LiteSim.MatchTestRules rules, MetaEntryConfig deploy = null, Func<uint> gameplayDigestBase = null,
-            IMapProvider maps = null, LiteSim.CombatValues? roomValues = null)
+            IMapProvider maps = null, LiteSim.CombatValues? roomValues = null,
+            LiteSim.MatchRules? roomRules = null)
         {
             if (testRoom && DevBuildFacts.IsDevelopment)
             {
@@ -94,7 +96,7 @@ namespace LiteGame
                 if (roomValues == null)
                     throw new InvalidOperationException(
                         "本地测试模式缺本局判定数值——进房单点须先按 SimParamsActivation 解析（表值/覆写合并）再创建传输");
-                return local.Create(testRoom, rules, roomValues.Value, gameplayDigestBase, maps);
+                return local.Create(testRoom, rules, roomValues.Value, gameplayDigestBase, maps, roomRules);
             }
 
             return new LiteNet.Transport.SecureEnvelopeClientTransport(
