@@ -9,14 +9,14 @@
 
 UI 不是"一个 UIManager"，而是**运行时 + 绑定生成 + 工具链 + Lua 注册表**四段流水线。四段共同服务的约束（违反由扫描器、校验规则或运行时抛错兜住）：
 
-1. **视觉单一来源**：可见结构只能来自 `Assets/ShareResource/UI/{Screens,Widgets,Hud}` 的 prefab，运行时不得 `new GameObject`/`AddComponent` 拼界面。`RuntimeVisualRule` 扫 `UIValidator.SourceScanDirs`（`Assets/LiteFramework/Runtime`、`Assets/LiteGame/App`、`Assets/LiteGame/Modules/Battle` 等）。
+1. **视觉单一来源**：可见结构只能来自 `Assets/ShareResource/UI/{Screens,Widgets,Hud}` 的 prefab，运行时不得 `new GameObject`/`AddComponent` 拼界面。`RuntimeVisualRule` 扫 `UIValidator.SourceScanDirs`（`Packages/com.litegame.framework/Runtime`、`Assets/LiteGame/App`、`Assets/LiteGame/Modules/Battle` 等）。
 2. **单写者**：产品页面开关只经 `UINavigationController`；`UIService.ShowAsync` 只留给工具/测试。
 3. **逻辑可热更**：页面逻辑在 Lua，C# 只提供受控 API 面（`self.ui`）与生命周期桥，换表不重建 `LuaEnv`。
 4. **制作可分工**：美术管 prefab/命名/暴露，工程管表行/绑定/接线，以**页面契约**交接。
 
 ## 2. 运行时：一个壳 + 协作件
 
-`UIService`（`Assets/LiteFramework/Runtime/Services/UI/UIService.cs`）只做**开关管线编排**（校验 → 取/建实例 → 转场 → 落池 → 重算遮盖/模态），其余由协作件各管一件：`UIFormStore`/`UIFormCacheEvictor`/`UIFormStats` 管实例、租约、LRU 记账与淘汰选谁（表只给候选集，只淘汰池中非 `Resident`）；`UIFormLogicBinder` 管逻辑解析/注入/换表标记；`UILayerGroupFactory`/`UIStack` 管运行时根与层级组（索引即 `PageDefinition.Layer`）；`UICoverageResolver` 管遮盖推导（以"仍逻辑打开的最高全屏"为界，更低组全遮，逐界面最小迁移并联动焦点）；`UIModalStack` 管模态、顶模态、射线遮蔽与 Back 目标（从仍打开页面推导，只依赖 `IUIFormQuery`）；`UITransitionRunner` 管转场（不注册 `ITickable`，壳在 Tick 帧末转发）；`UIFocusCoordinator`/`UIBindIndex` 管焦点与名字到控件索引（`Get` 未命中直接抛）。
+`UIService`（`Packages/com.litegame.framework/Runtime/Services/UI/UIService.cs`）只做**开关管线编排**（校验 → 取/建实例 → 转场 → 落池 → 重算遮盖/模态），其余由协作件各管一件：`UIFormStore`/`UIFormCacheEvictor`/`UIFormStats` 管实例、租约、LRU 记账与淘汰选谁（表只给候选集，只淘汰池中非 `Resident`）；`UIFormLogicBinder` 管逻辑解析/注入/换表标记；`UILayerGroupFactory`/`UIStack` 管运行时根与层级组（索引即 `PageDefinition.Layer`）；`UICoverageResolver` 管遮盖推导（以"仍逻辑打开的最高全屏"为界，更低组全遮，逐界面最小迁移并联动焦点）；`UIModalStack` 管模态、顶模态、射线遮蔽与 Back 目标（从仍打开页面推导，只依赖 `IUIFormQuery`）；`UITransitionRunner` 管转场（不注册 `ITickable`，壳在 Tick 帧末转发）；`UIFocusCoordinator`/`UIBindIndex` 管焦点与名字到控件索引（`Get` 未命中直接抛）。
 
 层级固定为 `UIService.GroupNames = Bottom / Window / Top / System`（索引 0/1/2/3）。**没有独立的 Modal/Loading 层**：模态是"页面属性 + 栈推导"，Toast/Loading/错误重试统一落 `System` 层并由统一排序器分配 `order`——反馈面不得自建 Canvas 或私有 `sortingOrder`。
 

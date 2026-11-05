@@ -14,7 +14,7 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly string[] ProductRoots =
         {
-            "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Hosting", "Assets/LiteGame", "Assets/LiteFramework", "Packages/com.litegame.net",
+            "Packages/com.litegame.framework/Runtime/Services", "Packages/com.litegame.framework/Runtime/Hosting", "Assets/LiteGame", "Packages/com.litegame.framework", "Packages/com.litegame.net",
         };
 
         private static readonly string[] BackgroundSymbols =
@@ -23,7 +23,7 @@ namespace LiteFramework.Core.Tests
         };
 
         /// <summary>唯一允许的后台卸载点：FileSystem 的 JSON 序列化（纯 BCL，不触达 UnityEngine）。</summary>
-        private const string AllowedFile = "Assets/LiteFramework/Runtime/Core/IO/FileSystem.cs";
+        private const string AllowedFile = "Packages/com.litegame.framework/Runtime/Core/IO/FileSystem.cs";
 
         [Fact]
         public void 后台卸载仅限纯BCL的FileSystem()

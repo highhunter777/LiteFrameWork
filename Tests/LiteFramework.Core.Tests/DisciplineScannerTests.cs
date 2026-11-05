@@ -536,44 +536,44 @@ namespace LiteFramework.Tests
         public void 纪律_R12_边界目录内_对应适配器import放行()
         {
             // **每个边界只放行它对应的那一个适配器**——不是"边界目录里什么都能 import"。
-            // 适配器在 `Adapters/` 层；框架侧在 `Assets/LiteFramework/Runtime/{Services,Framework}/`，
+            // 适配器在 `Adapters/` 层；框架侧在 `Packages/com.litegame.framework/Runtime/{Services,Framework}/`，
             // Lua 桥归 `Assets/LiteGame/Adapters/LuaBridge/`（目录一变规则就红，本用例即其表现）。
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Adapters/YooAsset/C.cs",
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Adapters/YooAsset/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Adapters/XLua/Lua/C.cs",
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Adapters/XLua/Lua/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Assets/LiteGame/Adapters/LuaBridge/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Services/UI/Anim/C.cs",
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Anim/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
             // JSON 序列化器：只有适配层可引（消费方走 IJsonSerializer / IJsonCodec 端口）
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Adapters/Newtonsoft/NewtonsoftJsonCodec.cs",
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft/NewtonsoftJsonCodec.cs",
                 "using Newtonsoft.Json;", LintRule.R12AdapterBoundary));
 
             // 反向：边界目录**不**放行别人的适配器
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Adapters/YooAsset/C.cs",
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Adapters/YooAsset/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Adapters/XLua/Lua/C.cs",
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Adapters/XLua/Lua/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/Adapters/LuaBridge/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Services/UI/Anim/C.cs",
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Anim/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
         }
 
         [Fact]
         public void 纪律_R12_边界外_适配器import被命中()
         {
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Services/C.cs",
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/App/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Services/UI/Adapter.cs",
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Adapter.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
             // JSON 序列化器同守：业务/框架代码只认 IJsonSerializer / IJsonCodec 端口
             Assert.Equal(1, CountAt("Assets/LiteGame/Modules/Meta/MetaJson.cs",
                 "using Newtonsoft.Json.Linq;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Services/C.cs",
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/C.cs",
                 "using Newtonsoft.Json;", LintRule.R12AdapterBoundary));
         }
 
@@ -581,16 +581,16 @@ namespace LiteFramework.Tests
         public void 纪律_R12_前缀相近的目录不误放行()
         {
             // 边界表的路径比较两端补斜杠：`Scripting.XLua` 不得放行 `Scripting.XLuaExtras`
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Adapters/XLuaExtras/C.cs",
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Adapters/XLuaExtras/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Services/UI/Animation/C.cs",
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Animation/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
         }
 
         [Fact]
         public void 纪律_R12_非适配器import与限定名不受影响()
         {
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Services/C.cs",
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Services/C.cs",
                 "using System.Collections;", LintRule.R12AdapterBoundary));
 
             // 边界表只列已登记的适配器（见 DisciplineScanner.R12Boundaries）——其它第三方不受 R12 管
@@ -602,7 +602,7 @@ namespace LiteFramework.Tests
         public void 纪律_R12_注释里的using不算违规()
         {
             // 与其它规则同口径：注释先剔除再匹配
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Services/C.cs",
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Services/C.cs",
                 "// 该文件不用 using YooAsset; 了", LintRule.R12AdapterBoundary));
         }
 
@@ -723,10 +723,10 @@ namespace LiteFramework.Tests
                 ScanTarget t = ScanTargets.Default[i];
                 if (Array.IndexOf(t.Rules, LintRule.R15PlatformFork) < 0) continue;
                 if (t.Root == "Assets/LiteGame") game = true;
-                if (t.Root == "Assets/LiteFramework/Runtime/Adapters/Unity") unity = true;
+                if (t.Root == "Packages/com.litegame.framework/Runtime/Adapters/Unity") unity = true;
             }
             Assert.True(game, "R15 缺 Assets/LiteGame 受守根——产品侧平台分叉将不受把守");
-            Assert.True(unity, "R15 缺 Assets/LiteFramework/Runtime/Adapters/Unity 受守根——设备适配层将不受把守");
+            Assert.True(unity, "R15 缺 Packages/com.litegame.framework/Runtime/Adapters/Unity 受守根——设备适配层将不受把守");
 
             // 允许面陈旧 = 静默失效（登记的收敛点搬迁后，规则会放行一条不存在的路径）
             string repoRoot = RepoRoot();

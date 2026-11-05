@@ -60,7 +60,7 @@
 
   <ItemGroup>
     <!-- 契约序列化行为单源（camelCase/禁日期自动解析/未知字段报错）。 -->
-    <Compile Include="..\..\Assets\LiteFramework\Runtime\Adapters\Newtonsoft\WireJsonSettings.cs" Link="Shared\MetaWire\WireJsonSettings.cs" />
+    <Compile Include="..\..\Packages\com.litegame.framework\Runtime\Adapters\Newtonsoft\WireJsonSettings.cs" Link="Shared\MetaWire\WireJsonSettings.cs" />
   </ItemGroup>
 
 </Project>

@@ -24,7 +24,7 @@ namespace LiteFramework.Tests
             string projectRoot = FindProjectRoot();
             string[] sourceRoots =
             {
-                Path.Combine(projectRoot, "Assets", "LiteFramework", "Scripts", "Unity"),
+                Path.Combine(projectRoot, "Packages", "com.litegame.framework", "Runtime", "Adapters", "Unity"),
                 Path.Combine(projectRoot, "Assets", "LiteGame", "Scripts", "Runtime"),
             };
 

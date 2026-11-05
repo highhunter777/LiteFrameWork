@@ -3,7 +3,7 @@
   <!--
     双轨编译产物重定向：dotnet 侧的 bin/obj 不落在 Assets 目录内（Unity 会扫描 obj 里的生成 .cs）。
     点开头的目录 Unity 资产数据库直接忽略。Tests/RoomServer 项目在 Assets 外，用默认位置。
-    （与 Assets/LiteFramework、Packages/com.litegame.sim 的 Directory.Build.props 同款；三个零依赖程序集各自一份。）
+    （与 Packages/com.litegame.framework、Packages/com.litegame.sim 的 Directory.Build.props 同款；三个零依赖程序集各自一份。）
   -->
   <PropertyGroup>
     <BaseIntermediateOutputPath>.dotnet/obj/</BaseIntermediateOutputPath>

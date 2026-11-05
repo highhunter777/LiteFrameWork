@@ -27,7 +27,7 @@ namespace LiteGame.Editor.UITools.Binding
         public static readonly string[] DefaultScanRoots =
         {
             "Assets/LiteGame/Lua",
-            "Assets/LiteFramework/Runtime/Services/UI",
+            "Packages/com.litegame.framework/Runtime/Services/UI",
             "Assets/LiteGame/App",
             "Assets/Tests",
         };

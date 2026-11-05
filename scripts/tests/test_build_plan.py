@@ -194,10 +194,10 @@ class BuildPlanTests(unittest.TestCase):
 
     def test_meta_files_follow_their_asset_area(self):
         plan = self.plan([
-            "Assets/LiteFramework/Runtime/Modules/UI/Style/UIThemeAsset.cs.meta",
+            "Packages/com.litegame.framework/Runtime/Services/UI/Style/UIThemeAsset.cs.meta",
             "Assets/ShareResource/UI/Screens/Page_Lobby.prefab.meta",
         ])
-        self.assertEqual(self.finding(plan, "Assets/LiteFramework/Runtime/Modules/UI/Style/UIThemeAsset.cs.meta")["area"], "client_code")
+        self.assertEqual(self.finding(plan, "Packages/com.litegame.framework/Runtime/Services/UI/Style/UIThemeAsset.cs.meta")["area"], "client_code")
         self.assertEqual(self.finding(plan, "Assets/ShareResource/UI/Screens/Page_Lobby.prefab.meta")["area"], "content")
 
     def test_editor_code(self):

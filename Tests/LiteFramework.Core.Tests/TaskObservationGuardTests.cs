@@ -20,27 +20,27 @@ namespace LiteFramework.Core.Tests
         private static readonly Dictionary<string, int> SafeCallBoundaries = new Dictionary<string, int>(StringComparer.Ordinal)
         {
             // Lua 回调边界（页面/桥脚本回调不得炸派发链）
-            ["Assets/LiteFramework/Runtime/Adapters/XLua/Lua/EventBridge.cs"] = 2,
+            ["Packages/com.litegame.framework/Runtime/Adapters/XLua/Lua/EventBridge.cs"] = 2,
             ["Assets/LiteGame/Modules/Meta/MetaBridge.cs"] = 1,
             ["Assets/LiteGame/Adapters/LuaBridge/RoomBridge.cs"] = 3,
             // UI 逻辑/控件回调边界（页面生命周期、控件事件、主题/静态文案绑定、红点规则）
-            ["Assets/LiteFramework/Runtime/Services/UI/UIForm.cs"] = 13,
-            ["Assets/LiteFramework/Runtime/Services/UI/Bind/UIBindEvents.cs"] = 4,
-            ["Assets/LiteFramework/Runtime/Services/UI/Bind/UIBindIndex.cs"] = 1,
-            ["Assets/LiteFramework/Runtime/Services/UI/Bind/UIBindListSource.cs"] = 1,
-            ["Assets/LiteFramework/Runtime/Services/UI/Localization/UIStaticTextBinder.cs"] = 1,
-            ["Assets/LiteFramework/Runtime/Services/UI/Style/UIThemeBinder.cs"] = 1,
-            ["Assets/LiteFramework/Runtime/Services/UI/Widgets/RedDotRegistry.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/UIForm.cs"] = 13,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Bind/UIBindEvents.cs"] = 4,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Bind/UIBindIndex.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Bind/UIBindListSource.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Localization/UIStaticTextBinder.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Style/UIThemeBinder.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Widgets/RedDotRegistry.cs"] = 1,
             // 调度器/Timeline 用户回调边界（单个回调抛异常不得中断派发）
-            ["Assets/LiteFramework/Runtime/Core/Clock/GameScheduler.cs"] = 1,
-            ["Assets/LiteFramework/Runtime/Core/Clock/TimelineRunner.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Core/Clock/GameScheduler.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Core/Clock/TimelineRunner.cs"] = 1,
             // 表现降级边界（HUD 主题注入失败保持烘焙值，不阻断对局）
             ["Assets/LiteGame/Modules/Battle/BattleViewAssets.cs"] = 1,
         };
 
         private static readonly string[] ProductRoots =
         {
-            "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Hosting", "Assets/LiteGame", "Assets/LiteFramework", "Packages/com.litegame.net",
+            "Packages/com.litegame.framework/Runtime/Services", "Packages/com.litegame.framework/Runtime/Hosting", "Assets/LiteGame", "Packages/com.litegame.framework", "Packages/com.litegame.net",
         };
 
         /// <summary>产品代码禁裸 <c>.Forget()</c>：无回调 = 异常静默；改用 <c>ForgetLogged(op)</c>。</summary>

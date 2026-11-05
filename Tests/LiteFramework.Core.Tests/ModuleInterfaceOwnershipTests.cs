@@ -38,9 +38,9 @@ namespace LiteFramework.Core.Tests
             string root = RepoRoot();
             string[] scanRoots =
             {
-                Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Core"),
-                Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Services"),
-                Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Hosting"),
+                Path.Combine(root, "Packages", "com.litegame.framework", "Runtime", "Core"),
+                Path.Combine(root, "Packages", "com.litegame.framework", "Runtime", "Services"),
+                Path.Combine(root, "Packages", "com.litegame.framework", "Runtime", "Hosting"),
                 Path.Combine(root, "Assets", "LiteGame", "Modules"),
             };
 

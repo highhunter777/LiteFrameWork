@@ -99,8 +99,8 @@ namespace LiteGame.Tests.EditMode
             // 此处**必须同步**——例外只对"被扫到的文件"生效，漏扫该目录等于让唯一例外与整个目录一起失去把守。
             List<VisualConstructionScanner.Violation> found =
                 VisualConstructionScanner.ScanDirectory(root,
-                    "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Hosting", "Assets/LiteGame/App",
-                    "Assets/LiteFramework/Runtime", "Assets/LiteGame/Modules", "Assets/LiteGame/Adapters");
+                    "Packages/com.litegame.framework/Runtime/Services", "Packages/com.litegame.framework/Runtime/Hosting", "Assets/LiteGame/App",
+                    "Packages/com.litegame.framework/Runtime", "Assets/LiteGame/Modules", "Assets/LiteGame/Adapters");
 
             if (found.Count > 0)
                 Assert.Fail("运行时视觉构建违规（§7 视觉单一来源）:\n" +

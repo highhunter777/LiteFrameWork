@@ -149,7 +149,7 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// `Assets/LiteGame/` 下**允许存在的顶层目录**（《客户端总设计》§5 顶层分层）；
-        /// 框架侧 `LiteFramework.*` 住 `Assets/LiteFramework/Runtime/{Core,Services,Adapters,Hosting}/`（见 <see cref="Default"/> 扫描目标）。
+        /// 框架侧 `LiteFramework.*` 住 `Packages/com.litegame.framework/Runtime/{Core,Services,Adapters,Hosting}/`（见 <see cref="Default"/> 扫描目标）。
         ///
         /// 新增顶层目录必须在此登记，并说明它属于 §5 的哪一层（或为何是例外）。
         /// 未登记的目录会让本规则报红——**目录一变就红**，与 R12 边界表同一纪律。
@@ -189,7 +189,7 @@ namespace Tools.DisciplineScan
         /// `Assets/` 下**允许存在的顶层目录**（组织级登记；口径＝《客户端架构重构演进路线图》§5.1）。
         ///
         /// 分层：L1 原始资源（Animation/Animator/Art/FX/Map/Model/Sound）／
-        /// 自研代码与测试根（LiteCodeGen/LiteFramework/LiteGame/LiteTesting/RoomServer/Tests/Tools）／
+        /// 自研代码与测试根（LiteCodeGen/LiteGame/LiteTesting/RoomServer/Tests/Tools）／
         /// 收集与工程强制定位（GameData/Scenes/Settings/StreamingAssets/ShareResource）／
         /// 第三方归拢根（ThirdParty）／例外（Resources＝Unity 特殊目录；TextMesh Pro＝Unity 官方包导入面）。
         ///
@@ -216,7 +216,6 @@ namespace Tools.DisciplineScan
             "ShareResource",         // L3 共享资源（其下自建顶层子目录）
             // 自研代码与测试根
             "LiteCodeGen",           // UI/Lua 绑定生成运行时（BindRoot/BindNode）
-            "LiteFramework",         // 客户端框架（Core/Services/Adapters/Hosting + Editor）
             "LiteGame",              // 产品侧（Core/Modules/Adapters/App/Bootstrap/Editor/Lua）
             "LiteTesting",           // 测试替身
             "RoomServer",            // 服务端房间内核（noEngine，双轨共编件）
@@ -263,18 +262,18 @@ namespace Tools.DisciplineScan
         {
             new ScanTarget("Packages/com.litegame.sim", SimRules, SimLayerExcludes),
             new ScanTarget("Packages/com.litegame.net", NetRules),
-            new ScanTarget("Assets/LiteFramework/Runtime/Core", CoreRules),
-            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Unity", UnityRules),
+            new ScanTarget("Packages/com.litegame.framework/Runtime/Core", CoreRules),
+            new ScanTarget("Packages/com.litegame.framework/Runtime/Adapters/Unity", UnityRules),
             // R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
             // IEnumerable 迭代器的 `yield return` 会被误报。
-            new ScanTarget("Assets/LiteFramework/Runtime/Services", GameRules),
-            new ScanTarget("Assets/LiteFramework/Runtime/Hosting", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Services/Hosting）
-            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/YooAsset", GameRules),                          // R8/R12（第三方桥接件）
-            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/XLua", GameRules),
-            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/InputSystem", GameRules),
-            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Newtonsoft", GameRules),
+            new ScanTarget("Packages/com.litegame.framework/Runtime/Services", GameRules),
+            new ScanTarget("Packages/com.litegame.framework/Runtime/Hosting", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Services/Hosting）
+            new ScanTarget("Packages/com.litegame.framework/Runtime/Adapters/YooAsset", GameRules),                          // R8/R12（第三方桥接件）
+            new ScanTarget("Packages/com.litegame.framework/Runtime/Adapters/XLua", GameRules),
+            new ScanTarget("Packages/com.litegame.framework/Runtime/Adapters/InputSystem", GameRules),
+            new ScanTarget("Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft", GameRules),
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）
-            new ScanTarget("Assets/LiteFramework/Runtime/Services/UI", UILayerRules),                                // R10 UI 层不发业务包
+            new ScanTarget("Packages/com.litegame.framework/Runtime/Services/UI", UILayerRules),                                // R10 UI 层不发业务包
             // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
             new ScanTarget("Assets/RoomServer/Core", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
             new ScanTarget("Packages/com.litegame.sim", ConfigPortRules, ConfigPortExcludes),             // R13 数值读口禁读（机制面；表现层与读口定义文件除外）
@@ -526,17 +525,17 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] ClientFrameworkPurityAsmdefs =
         {
-            "Assets/LiteFramework/Runtime/Services/LiteFramework.Services.asmdef",
-            "Assets/LiteFramework/Runtime/Adapters/LiteFramework.Adapters.asmdef",
-            "Assets/LiteFramework/Runtime/Hosting/LiteFramework.Hosting.asmdef",
+            "Packages/com.litegame.framework/Runtime/Services/LiteFramework.Services.asmdef",
+            "Packages/com.litegame.framework/Runtime/Adapters/LiteFramework.Adapters.asmdef",
+            "Packages/com.litegame.framework/Runtime/Hosting/LiteFramework.Hosting.asmdef",
         };
 
         /// <summary>第一方代码根（注释卫生扫描范围；第三方与生成物不在内）。</summary>
         public static readonly string[] CommentHygieneRoots =
         {
-            "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Hosting",
+            "Packages/com.litegame.framework/Runtime/Services", "Packages/com.litegame.framework/Runtime/Hosting",
             "Assets/LiteGame",
-            "Assets/LiteFramework",
+            "Packages/com.litegame.framework",
             "Packages/com.litegame.sim",
             "Packages/com.litegame.net",
             "Assets/LiteTesting",

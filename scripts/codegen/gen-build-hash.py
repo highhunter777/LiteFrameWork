@@ -98,7 +98,7 @@ META_EXTRA_FILES = [
     'Assets/LiteGame/Modules/Meta/WireSubModule/MetaWireContracts.cs',
     'Assets/LiteGame/Modules/Meta/WireSubModule/MetaWireEndpoints.cs',
     'Assets/LiteGame/Modules/Meta/WireSubModule/MetaWireLimits.cs',
-    'Assets/LiteFramework/Runtime/Adapters/Newtonsoft/WireJsonSettings.cs',
+    'Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft/WireJsonSettings.cs',
 ]
 SHARED_OUT_REL = 'Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs'
 

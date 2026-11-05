@@ -14,7 +14,7 @@ namespace LiteFramework
     /// <see cref="Serialize{T}"/> 与 <see cref="Deserialize{T}"/> 共用同一份契约设置
     /// （`WireJsonSettings`），保证两端字段名/日期/null 行为一致。
     ///
-    /// 实现住 <c>Assets/LiteFramework/Runtime/Adapters/Newtonsoft/</c>：业务代码不得直接引用序列化库。
+    /// 实现住 <c>Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft/</c>：业务代码不得直接引用序列化库。
     /// </summary>
     public interface IJsonCodec
     {

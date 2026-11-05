@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.litegame.framework": {
+      "version": "file:com.litegame.framework",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.code-philosophy.luban": {
       "version": "file:com.code-philosophy.luban",
       "depth": 0,

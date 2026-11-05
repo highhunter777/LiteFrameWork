@@ -13,7 +13,7 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly string[] Roots =
         {
-            "Assets/LiteFramework", "Assets/LiteFramework/Runtime/Services", "Assets/LiteFramework/Runtime/Hosting", "Assets/LiteGame", "Packages/com.litegame.net",
+            "Packages/com.litegame.framework", "Packages/com.litegame.framework/Runtime/Services", "Packages/com.litegame.framework/Runtime/Hosting", "Assets/LiteGame", "Packages/com.litegame.net",
         };
 
         [Fact]
@@ -21,7 +21,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             Assert.False(File.Exists(Path.Combine(root,
-                "Assets/LiteFramework/Runtime/Core/Errors/ClientErrorRecovery.cs")));
+                "Packages/com.litegame.framework/Runtime/Core/Errors/ClientErrorRecovery.cs")));
 
             int errorEnums = 0;
             foreach (string file in Files(root))

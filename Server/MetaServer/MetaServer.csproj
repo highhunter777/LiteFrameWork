@@ -72,7 +72,7 @@
       契约序列化行为单源（camelCase + 禁日期自动解析 + 未知字段报错）。它引用 Newtonsoft，
       因此住客户端适配层（R12 允许），服务端链接同一份——**两端的字段名/转义/日期口径只有一个定义**。
     -->
-    <Compile Include="..\..\Assets\LiteFramework\Runtime\Adapters\Newtonsoft\WireJsonSettings.cs" Link="Shared\MetaWire\WireJsonSettings.cs" />
+    <Compile Include="..\..\Packages\com.litegame.framework\Runtime\Adapters\Newtonsoft\WireJsonSettings.cs" Link="Shared\MetaWire\WireJsonSettings.cs" />
   </ItemGroup>
 
   <ItemGroup>

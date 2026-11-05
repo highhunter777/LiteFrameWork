@@ -18,11 +18,11 @@ namespace LiteFramework.Core.Tests
         private static readonly Dictionary<string, string[]> Allowed = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["Assets/LiteCodeGen/Runtime/LiteCodeGen.Runtime.asmdef"] = Array.Empty<string>(),
-            ["Assets/LiteFramework/Editor/LiteFramework.Editor.asmdef"] = new[] { "LiteCodeGen.Runtime" },
-            ["Assets/LiteFramework/Runtime/Core/LiteFramework.Core.asmdef"] = Array.Empty<string>(),
-            ["Assets/LiteFramework/Runtime/Services/LiteFramework.Services.asmdef"] = new[] { "LiteCodeGen.Runtime", "LiteFramework.Core", "DOTween.Modules", "UniTask", "Unity.InputSystem", "Unity.TextMeshPro" },
-            ["Assets/LiteFramework/Runtime/Adapters/LiteFramework.Adapters.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "UniTask", "Unity.InputSystem", "YooAsset", "xLuaMain" },
-            ["Assets/LiteFramework/Runtime/Hosting/LiteFramework.Hosting.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "UniTask" },
+            ["Packages/com.litegame.framework/Editor/LiteFramework.Editor.asmdef"] = new[] { "LiteCodeGen.Runtime" },
+            ["Packages/com.litegame.framework/Runtime/Core/LiteFramework.Core.asmdef"] = Array.Empty<string>(),
+            ["Packages/com.litegame.framework/Runtime/Services/LiteFramework.Services.asmdef"] = new[] { "LiteCodeGen.Runtime", "LiteFramework.Core", "DOTween.Modules", "UniTask", "Unity.InputSystem", "Unity.TextMeshPro" },
+            ["Packages/com.litegame.framework/Runtime/Adapters/LiteFramework.Adapters.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "UniTask", "Unity.InputSystem", "YooAsset", "xLuaMain" },
+            ["Packages/com.litegame.framework/Runtime/Hosting/LiteFramework.Hosting.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "UniTask" },
             ["Assets/LiteGame/Adapters/Dev/LiteGame.Adapters.Dev.asmdef"] = new[] { "LiteGame.Adapters.Luban", "LiteGame.Modules.Config", "LiteGame.Modules.Settings", "LiteGame.Modules.Input", "LiteGame.Modules.Camera", "LiteGame.Adapters.Unity", "LiteGame.Core", "LiteGame.Modules.Battle", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting", "LiteGame.App", "LiteGame.Bootstrap", "LiteGame.Adapters.LuaBridge", "LiteNet", "LiteSync", "LiteSim", "Luban.Tables", "RoomServer.Application.Runtime", "RoomServer.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "LiteGame.Shared", "LiteGame.Modules.UI", "LiteGame.Modules.Procedure", "LiteGame.Modules.Meta", "LiteGame.Modules.Session", "LiteGame.Modules.Map", "LiteGame.Modules.Dev", "LiteGame.Battle.Abstractions" },
             ["Assets/LiteGame/Adapters/LuaBridge/LiteGame.Adapters.LuaBridge.asmdef"] = new[] { "LiteGame.Core", "LiteGame.Shared", "LiteGame.Modules.Procedure", "LiteGame.Modules.Session", "LiteGame.Modules.UI", "LiteGame.Modules.Config", "LiteGame.Modules.Settings", "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting", "LiteNet", "LiteSync", "Luban.Runtime", "Luban.Tables", "UniTask", "xLuaMain", "LiteGame.Modules.Meta", "LiteGame.Modules.Map", "LiteGame.Modules.Dev", "LiteGame.Battle.Abstractions" },
             ["Assets/LiteGame/Adapters/Luban/LiteGame.Adapters.Luban.asmdef"] = new[] { "LiteFramework.Core", "LiteFramework.Services", "LiteFramework.Adapters", "LiteFramework.Hosting", "LiteGame.Modules.Config", "LiteGame.Core", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask" },
@@ -81,7 +81,7 @@ namespace LiteFramework.Core.Tests
 
         private static readonly string[] ClientRoots =
         {
-            "Assets/LiteFramework",
+            "Packages/com.litegame.framework",
             "Assets/LiteGame",
             "Packages/com.litegame.sim",
             "Packages/com.litegame.net",
@@ -128,18 +128,18 @@ namespace LiteFramework.Core.Tests
                         Forbid(refs, pair.Key, "LiteNet", offenders);
                         ForbidPrefix(refs, pair.Key, "RoomServer.", offenders);
                         break;
-                    case "Assets/LiteFramework/Runtime/Services/LiteFramework.Services.asmdef":
+                    case "Packages/com.litegame.framework/Runtime/Services/LiteFramework.Services.asmdef":
                         ForbidPrefix(refs, pair.Key, "LiteGame.", offenders);
                         ForbidPrefix(refs, pair.Key, "LiteFramework.Adapters", offenders);   // 服务实现不得依赖第三方/平台适配器
                         ForbidPrefix(refs, pair.Key, "LiteFramework.Hosting", offenders);    // 前三件不得引用宿主
                         Forbid(refs, pair.Key, "YooAsset", offenders);
                         Forbid(refs, pair.Key, "xLuaMain", offenders);
                         break;
-                    case "Assets/LiteFramework/Runtime/Adapters/LiteFramework.Adapters.asmdef":
+                    case "Packages/com.litegame.framework/Runtime/Adapters/LiteFramework.Adapters.asmdef":
                         ForbidPrefix(refs, pair.Key, "LiteGame.", offenders);
                         ForbidPrefix(refs, pair.Key, "LiteFramework.Hosting", offenders);    // 适配器不得引用宿主
                         break;
-                    case "Assets/LiteFramework/Runtime/Hosting/LiteFramework.Hosting.asmdef":
+                    case "Packages/com.litegame.framework/Runtime/Hosting/LiteFramework.Hosting.asmdef":
                         ForbidPrefix(refs, pair.Key, "LiteGame.", offenders);
                         break;
                     case "Assets/LiteGame/App/LiteGame.App.asmdef":
@@ -162,7 +162,7 @@ namespace LiteFramework.Core.Tests
                     ForbidPrefix(refs, pair.Key, "LiteGame.Adapters.", offenders);
                     ForbidPrefix(refs, pair.Key, "LiteFramework.Adapters", offenders);   // 框架适配器同样不得进模块
                 }
-                if (pair.Key.StartsWith("Assets/LiteFramework/", StringComparison.Ordinal))
+                if (pair.Key.StartsWith("Packages/com.litegame.framework/", StringComparison.Ordinal))
                     ForbidPrefix(refs, pair.Key, "LiteGame.", offenders);
             }
             Assert.True(offenders.Count == 0, "架构硬边违规：" + string.Join(" | ", offenders));
@@ -175,9 +175,9 @@ namespace LiteFramework.Core.Tests
             var offenders = new List<string>();
             AssertNoEngineReferences(root, "Assets/LiteGame/Core/LiteGame.Core.asmdef");
             // 框架 Core 的"零引擎零第三方"由程序集边保证：noEngine + 零引用（引任何第三方都会编译失败）。
-            AssertNoEngineReferences(root, "Assets/LiteFramework/Runtime/Core/LiteFramework.Core.asmdef");
+            AssertNoEngineReferences(root, "Packages/com.litegame.framework/Runtime/Core/LiteFramework.Core.asmdef");
             using (var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(root,
-                "Assets/LiteFramework/Runtime/Core/LiteFramework.Core.asmdef"))))
+                "Packages/com.litegame.framework/Runtime/Core/LiteFramework.Core.asmdef"))))
             {
                 Assert.Equal(0, doc.RootElement.GetProperty("references").GetArrayLength());
             }

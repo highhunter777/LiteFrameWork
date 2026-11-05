@@ -203,9 +203,8 @@ def _area_for(path, shared_files, shared_targets, shared_links, meta_targets, me
     if p.endswith(".asmdef"):
         return "client_code"
     if p.endswith(".cs") and (
-        p.startswith("Assets/LiteFramework/Runtime/Modules/")
+        p.startswith("Packages/com.litegame.framework/")
         or p.startswith("Assets/LiteGame/")
-        or p.startswith("Assets/LiteFramework/")
         or p.startswith("Packages/com.litegame.sim/")
         or p.startswith("Assets/LiteTesting/")
     ):

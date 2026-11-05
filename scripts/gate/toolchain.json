@@ -602,9 +602,9 @@
       ],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindIndex.Api.g.cs", "kind": "generated" },
-        { "path": "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindBase.Api.g.cs", "kind": "generated" },
-        { "path": "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIApiManifest.g.cs", "kind": "generated" },
+        { "path": "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindIndex.Api.g.cs", "kind": "generated" },
+        { "path": "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindBase.Api.g.cs", "kind": "generated" },
+        { "path": "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIApiManifest.g.cs", "kind": "generated" },
         { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/UIApiShim.g.cs", "kind": "generated" },
         { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs", "kind": "generated" }
       ],

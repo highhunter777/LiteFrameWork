@@ -22,7 +22,7 @@ namespace LiteGame.Editor.UITools.Validation
         public static readonly string[] SourceScanDirs =
         {
             "Assets/LiteGame/App",
-            "Assets/LiteFramework/Runtime",
+            "Packages/com.litegame.framework/Runtime",
             "Assets/LiteGame/Modules/Battle",
         };
 

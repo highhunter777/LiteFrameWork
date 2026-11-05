@@ -21,10 +21,10 @@ namespace LiteFramework.Core.Tests
             // 四件分治后逐件断言——只钉其中一件会让其余三件静默失守。
             foreach (string asmdef in new[]
             {
-                "Assets/LiteFramework/Runtime/Core/LiteFramework.Core.asmdef",
-                "Assets/LiteFramework/Runtime/Services/LiteFramework.Services.asmdef",
-                "Assets/LiteFramework/Runtime/Adapters/LiteFramework.Adapters.asmdef",
-                "Assets/LiteFramework/Runtime/Hosting/LiteFramework.Hosting.asmdef",
+                "Packages/com.litegame.framework/Runtime/Core/LiteFramework.Core.asmdef",
+                "Packages/com.litegame.framework/Runtime/Services/LiteFramework.Services.asmdef",
+                "Packages/com.litegame.framework/Runtime/Adapters/LiteFramework.Adapters.asmdef",
+                "Packages/com.litegame.framework/Runtime/Hosting/LiteFramework.Hosting.asmdef",
             })
                 AssertNoReferencePrefix(root, asmdef, "LiteGame.");
 
@@ -50,7 +50,7 @@ namespace LiteFramework.Core.Tests
             Assert.Contains("LITEFRAMEWORK_DEBUG", devText);
 
             var offenders = new List<string>();
-            string[] clientRoots = { "Assets/LiteFramework", "Assets/LiteGame" };
+            string[] clientRoots = { "Packages/com.litegame.framework", "Assets/LiteGame" };
             foreach (string clientRoot in clientRoots)
             {
                 string dir = Path.Combine(root, clientRoot.Replace('/', Path.DirectorySeparatorChar));
@@ -72,7 +72,7 @@ namespace LiteFramework.Core.Tests
         {
             // I4 / §4.11 10：除 IUIOperationQueue 的实现外，UI 运行时代码不得声明 Queue<...> 作为调度器。
             string root = RepoRoot();
-            string uiRoot = Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Services", "UI");
+            string uiRoot = Path.Combine(root, "Packages", "com.litegame.framework", "Runtime", "Services", "UI");
             var offenders = new List<string>();
             var pattern = new Regex(@"\bQueue\s*<", RegexOptions.Compiled);
 

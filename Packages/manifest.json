@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.litegame.framework": "file:com.litegame.framework",
     "com.unity.burst": "1.8.18",
     "com.unity.cinemachine": "2.10.7",
     "com.unity.collab-proxy": "2.6.0",
