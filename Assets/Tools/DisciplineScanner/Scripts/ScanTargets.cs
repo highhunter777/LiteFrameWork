@@ -185,6 +185,85 @@ namespace Tools.DisciplineScan
             return unregistered;
         }
 
+        /// <summary>
+        /// `Assets/` 下**允许存在的顶层目录**（组织级登记；口径＝《客户端架构重构演进路线图》§5.1）。
+        ///
+        /// 分层：L1 原始资源（Animation/Animator/Art/FX/Map/Model/Sound）／
+        /// 自研代码与测试根（LiteCodeGen/LiteFramework/LiteGame/LiteTesting/RoomServer/Tests/Tools）／
+        /// 收集与工程强制定位（GameData/Scenes/Settings/StreamingAssets/ShareResource）／
+        /// 第三方归拢根（ThirdParty）／例外（Resources＝Unity 特殊目录）。
+        ///
+        /// 本表是"当前允许面"，不是永久白名单；目录迁出后同批删旧项。
+        /// 新增顶层目录必须在此登记；未登记即红。
+        /// </summary>
+        public static readonly string[] AssetsTopLevelDirs =
+        {
+            // L1 原始资源层（只被引用、不直接寻址；多为 .gitignore 本地面）
+            "Animation",
+            "Animator",
+            "Art",
+            "FX",
+            "Map",
+            "Model",
+            "Sound",
+            // 第三方（付费/外部包；归拢根见 ThirdParty）
+            "CombatGirlsCharacterPack",
+            "DamageNumbersPro",
+            "KriptoFX",
+            "MagicaCloth2",
+            "Plugins",
+            "Synty",
+            "TextMesh Pro",
+            "XLua",
+            "ThirdParty",            // 第三方归拢根（付费/外部包）
+            // 收集与工程强制定位
+            "GameData",              // 表产物（Luban .bytes + 生成读码面）
+            "Scenes",                // 流程编排资产（《资源收集目录专项设计》§5 裁决维持顶层）
+            "Settings",              // URP 三档管线资产 / 渲染器 / 后处理 profile
+            "StreamingAssets",       // YooAsset 内置包根（Player 分发）
+            "ShareResource",         // L3 共享资源（其下自建顶层子目录）
+            // 自研代码与测试根
+            "LiteCodeGen",           // UI/Lua 绑定生成运行时（BindRoot/BindNode）
+            "LiteFramework",         // 客户端框架（Core/Services/Adapters/Hosting + Editor）
+            "LiteGame",              // 产品侧（Core/Modules/Adapters/App/Bootstrap/Editor/Lua）
+            "LiteTesting",           // 测试替身
+            "RoomServer",            // 服务端房间内核（noEngine，双轨共编件）
+            "Tests",                 // Unity EditMode/PlayMode 用例
+            "Tools",                 // DisciplineScanner 等编辑器工具
+            // 例外
+            "Resources",             // Unity 特殊目录（DOTweenSettings 等第三方运行期配置）
+        };
+
+        /// <summary>
+        /// 不参与 `Assets/` 顶层登记的**非版本化/瞬时面**：Unity 或工具自建、内容不入库
+        /// （`.gitignore` 已有对应规则）。它们不是"逃出设计"，但也不构成合法结构位置。
+        /// </summary>
+        public static readonly string[] AssetsTopLevelIgnored =
+        {
+            "AgentScripts",          // 会话级脚本/留档抽屉（.gitignore）
+            "Temp",                  // Unity/工具临时面（.gitignore）
+        };
+
+        /// <summary>
+        /// 校验 `Assets/` 顶层目录全部已登记（未登记 = 逃出组织分层，见上）。
+        /// 返回未登记目录名（无则空）。
+        /// </summary>
+        public static List<string> ValidateAssetsTopLevel(string projectRoot)
+        {
+            var unregistered = new List<string>();
+            string root = Path.Combine(projectRoot, "Assets");
+            if (!Directory.Exists(root)) return unregistered;
+
+            foreach (string dir in Directory.GetDirectories(root))
+            {
+                string name = Path.GetFileName(dir);
+                if (Array.IndexOf(AssetsTopLevelIgnored, name) >= 0) continue;
+                if (Array.IndexOf(AssetsTopLevelDirs, name) < 0) unregistered.Add(name);
+            }
+            unregistered.Sort(StringComparer.Ordinal);
+            return unregistered;
+        }
+
         /// <summary>默认扫描目标集合。</summary>
         public static readonly ScanTarget[] Default =
         {

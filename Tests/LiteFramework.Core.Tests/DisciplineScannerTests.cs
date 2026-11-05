@@ -403,6 +403,18 @@ namespace LiteFramework.Tests
                 + string.Join(", ", unregistered));
         }
 
+        /// <summary>组织级守卫：`Assets/` 下不允许出现未登记的顶层目录。
+        /// 登记表 = <c>ScanTargets.AssetsTopLevelDirs</c>（L1 原始资源 / 自研根 / 收集定位 /
+        /// 第三方归拢根 / 例外）；非版本化瞬时面在 <c>AssetsTopLevelIgnored</c>。</summary>
+        [Fact]
+        public void 纪律_Assets顶层目录必须已登记()
+        {
+            var unregistered = Tools.DisciplineScan.ScanTargets.ValidateAssetsTopLevel(RepoRoot());
+            Assert.True(unregistered.Count == 0,
+                "Assets 下存在未登记的顶层目录（逃出组织分层，或需在 AssetsTopLevelDirs 登记并说明归属）："
+                + string.Join(", ", unregistered));
+        }
+
         /// <summary>D2 守卫（《客户端与服务端共享代码范围专项设计》§3）：客户端 asmdef 引服务端程序集，
         /// 必须落在 <c>DevHostMayReferenceServerAssemblies</c> 登记目录里。
         ///
