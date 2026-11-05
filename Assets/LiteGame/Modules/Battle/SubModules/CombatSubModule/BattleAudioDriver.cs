@@ -17,7 +17,7 @@ namespace LiteGame
     /// <item><b>Hit/Crit</b>：命中点 3D（全角色可闻——空间衰减天然管距离；爆头档独立 clip）。</item>
     /// <item><b>Death</b>：死亡位置 3D。</item>
     /// </list>
-    /// **clip 常量** = Sound 库文件名（AddressByFileName 组——见收集器 Sound 组）；租约获取在
+    /// **clip 常量** = Sound 收集组 assetPath（DefaultPackage 未开可寻址 → 运行时按 assetPath 定位；见收集器 Sound 组）；租约获取在
     /// <see cref="ProcedureBattle"/>（与其他表现资产同批，缺失按 kind 静默降级——音效是表现增益）。
     /// **并发预算归 <see cref="AudioService"/>**：Effect 组代理全忙且同优先级 → 丢弃（累计计数 +
     /// 限频日志——不刷屏）。**静默门**由上游 <c>SimView.EventSink</c> 保证（回滚重放不重复出声）。
@@ -25,17 +25,17 @@ namespace LiteGame
     /// </summary>
     public sealed class BattleAudioDriver : IHitFeedbackConsumer, IDisposable
     {
-        /// <summary>开火音（Sound 库 location——收集组 Sound，AddressByFileName）。</summary>
-        public const string FireClipLocation = "Assets/Sound/Weapon/Fire/sfx_gun_fire_rifle_01.wav";
+        /// <summary>开火音（Sound 收集组 assetPath）。</summary>
+        public const string FireClipLocation = "Assets/LiteGame/Modules/Shared/Content/Sound/Weapon/Fire/sfx_gun_fire_rifle_01.wav";
 
         /// <summary>命中音（普通档）。</summary>
-        public const string HitClipLocation = "Assets/Sound/Impact/Hit/sfx_hit_generic_01.wav";
+        public const string HitClipLocation = "Assets/LiteGame/Modules/Shared/Content/Sound/Impact/Hit/sfx_hit_generic_01.wav";
 
         /// <summary>命中音（爆头档——更"肉"的一档，与飘字爆头档同语义）。</summary>
-        public const string CritClipLocation = "Assets/Sound/Impact/Hit/sfx_hit_flesh_01.mp3";
+        public const string CritClipLocation = "Assets/LiteGame/Modules/Shared/Content/Sound/Impact/Hit/sfx_hit_flesh_01.mp3";
 
         /// <summary>死亡音（角色 vocal）。</summary>
-        public const string DeathClipLocation = "Assets/Sound/Character/Vocal/sfx_char_death_01.wav";
+        public const string DeathClipLocation = "Assets/LiteGame/Modules/Shared/Content/Sound/Character/Vocal/sfx_char_death_01.wav";
 
         /// <summary>本地开火音的同源 voice 键（连发走同一代理重触发）。</summary>
         public const string LocalFireVoice = "gun_fire_local";

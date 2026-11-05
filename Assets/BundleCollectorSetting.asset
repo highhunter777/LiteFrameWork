@@ -133,12 +133,12 @@ MonoBehaviour:
         AssetTags: 
         UserData: 
     - GroupName: Sound
-      GroupDesc: "\u97F3\u6548\u5E93\uFF08Assets/Sound \u5206\u7C7B\u76EE\u5F55\uFF1B\u6309\u6587\u4EF6\u540D\u5BFB\u5740\uFF0CBattleAudioDriver
-        \u6D88\u8D39\uFF09"
+      GroupDesc: "\u97F3\u6548\u5E93\uFF08LiteGame/Modules/Shared/Content/Sound \u5206\u7C7B\u76EE\u5F55\uFF1B\u5305\u672A\u5F00\u53EF\u5BFB\u5740\uFF0C\u6309
+        assetPath \u5B9A\u4F4D\uFF1BBattleAudioDriver \u6D88\u8D39\uFF09"
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/Sound
+      - CollectPath: Assets/LiteGame/Modules/Shared/Content/Sound
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName

@@ -90,8 +90,11 @@ Assets/FX/
 Assets/FX.meta
 Assets/Model/
 Assets/Model.meta
-Assets/Sound/
-Assets/Sound.meta
+# Sound 库（第三方音频，不入库）：B4-4c 随模块资源收拢迁入 Modules/Shared/Content；
+#           文件夹 meta 与本地面同忽略（缺库时音效按表现降级，不入库裁决不变）
+Assets/LiteGame/Modules/Shared/Content/Sound/
+Assets/LiteGame/Modules/Shared/Content/Sound.meta
+Assets/LiteGame/Modules/Shared/Content.meta
 # 2026-10-13 放开入库（用户裁决）：NotoSansSC TMP SDF ×2（SIL OFL，许可文件 NotoSansSC-OFL.txt
 # 同批入库）——75 处文本引用的视觉单一来源，7 个 EditMode 用例按真实字体资产加载。
 # 金楷系列维持不入库（B4-4b 随 Fonts 迁 Modules/UI/Content/Fonts；110MB、零引用、许可未核实）：

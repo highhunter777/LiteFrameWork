@@ -186,7 +186,7 @@ def main(argv=None):
         miss("xlua.bundle missing: Assets/ThirdParty/Plugins/xlua.bundle (runtime required; should ship with repo)")
 
     # 5. Tracked UI/render assets
-    if (project / "Assets" / "ShareResource" / "Fonts" / "NotoSansSC-Regular SDF.asset").is_file():
+    if (project / "Assets" / "LiteGame" / "Modules" / "UI" / "Content" / "Fonts" / "NotoSansSC-Regular SDF.asset").is_file():
         good("TMP CJK font present (Assets/LiteGame/Modules/UI/Content/Fonts, tracked)")
     else:
         miss(

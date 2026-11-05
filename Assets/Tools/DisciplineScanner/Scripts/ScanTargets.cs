@@ -188,10 +188,13 @@ namespace Tools.DisciplineScan
         /// <summary>
         /// `Assets/` 下**允许存在的顶层目录**（组织级登记；口径＝《客户端架构重构演进路线图》§5.1）。
         ///
-        /// 分层：L1 原始资源（Animation/Animator/Art/FX/Map/Model/Sound）／
+        /// 分层：L1 原始资源（Animation/Animator/Art/FX/Map/Model）／
         /// 自研代码与测试根（LiteCodeGen/LiteGame/LiteTesting/RoomServer/Tests/Tools）／
         /// 收集与工程强制定位（GameData/Scenes/Settings/StreamingAssets/ShareResource）／
         /// 第三方归拢根（ThirdParty）／例外（Resources＝Unity 特殊目录；TextMesh Pro＝Unity 官方包导入面）。
+        ///
+        /// 收集目录不进本表：模块资源住 `LiteGame/Modules/<模块>/Content/`（Sound 自 B4-4c 起归
+        /// `Modules/Shared/Content/Sound`），L3 共享资源住 `ShareResource/`。
         ///
         /// 本表是"当前允许面"，不是永久白名单；目录迁出后同批删旧项。
         /// 新增顶层目录必须在此登记；未登记即红。
@@ -205,7 +208,6 @@ namespace Tools.DisciplineScan
             "FX",
             "Map",
             "Model",
-            "Sound",
             // 第三方归拢根（付费/外部包；目录见 Assets/ThirdParty）
             "ThirdParty",
             // 收集与工程强制定位

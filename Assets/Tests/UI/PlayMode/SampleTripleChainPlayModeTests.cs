@@ -23,7 +23,7 @@ namespace LiteGame.Tests.UI.PlayMode
     ///
     /// ── 素材可复现性（**如实标注，勿当成"真美术资源"**）─────────────────────────
     /// 设计原文的"测试角色/特效/音效"在本仓库的既定政策下**不是美术资产**：
-    /// `Assets/{Art,Model,Animation,FX,Sound}` 与 `CombatGirlsCharacterPack` **均不入库**
+    /// `Assets/{Art,Model,Animation,FX}`、`Assets/LiteGame/Modules/Shared/Content/Sound` 与 `CombatGirlsCharacterPack` **均不入库**
     /// （`环境恢复指南` §3 第 5 条：demo 内容不入库；176MB 角色包由用户选择不入 VCS）。
     /// 故本组用**干净检出上必然存在**的素材走完整链：
     /// - **场景**：`Assets/Scenes/Boot.unity`（入库）
@@ -32,7 +32,7 @@ namespace LiteGame.Tests.UI.PlayMode
     /// - **动画**：`AnimatorAnimationBackend` 需真控制器（属角色包，不入库）→ 本组**不接动画**，
     ///   改用**特效实例的生命周期**代表"播放中的表现"
     /// - **特效**：引擎基本体经 `VfxService` 的真管线（池/表/时钟/归还）
-    /// - **音效**：`AudioClip.Create` 运行时合成（不依赖 `Assets/Sound`）
+    /// - **音效**：`AudioClip.Create` 运行时合成（不依赖入库的 Sound 库）
     ///
     /// 这条链证明的是**串联与卸载正确**，不是"真美术资源下的表现效果"——后者需入库素材，
     /// 属 VCS 政策取舍（`环境恢复指南` §3），本组不冒充。
@@ -123,7 +123,7 @@ Assert.IsTrue(scene.IsLoaded(TestScene), "①真场景应已加载");
             Assert.AreEqual(1, avatar.GameObject.transform.childCount,
                 "③跟随挂点的特效应挂在测试角色下（挂点归属正确）");
 
-            // 音效：运行时合成片段（不依赖 Assets/Sound）
+            // 音效：运行时合成片段（不依赖入库的 Sound 库）
             _audio = new AudioService();
             _audio.BindClocks(_world, _ui);
             var clip = AudioClip.Create("chain_tone", 4410, 1, 44100, false);

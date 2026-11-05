@@ -22,7 +22,7 @@ namespace LiteGame.Tests.EditMode
         private static readonly string[] RawRoots =
         {
             "Assets/Art/", "Assets/ThirdParty/Synty/", "Assets/Model/", "Assets/Animation/", "Assets/Animator/",
-            "Assets/Map/", "Assets/FX/", "Assets/Sound/", "Assets/ThirdParty/CombatGirlsCharacterPack/",
+            "Assets/Map/", "Assets/FX/", "Assets/ThirdParty/CombatGirlsCharacterPack/",
             "Assets/ThirdParty/KriptoFX/", "Assets/ThirdParty/DamageNumbersPro/", "Assets/ThirdParty/MagicaCloth2/", "Assets/GameFramework/",
             "Assets/GameMain/", "Assets/TutorialInfo/", "Assets/StateMachine/", "Assets/Resources/",
         };

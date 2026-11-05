@@ -222,7 +222,7 @@
       "notes": "Config 收集组；表值可热更，但需重跑生成/摘要链"
     },
     {
-      "change": "UI/角色/特效/场景资源",
+      "change": "UI/角色/特效/音效/场景资源",
       "paths": [
         "Assets/LiteGame/Modules/*/Content/**",
         "Assets/ShareResource/**",
@@ -231,7 +231,7 @@
       "ship": [
         "data"
       ],
-      "notes": "按收集组（UIScreens/UIWidgets/Fonts/Characters/FX/UIHud/Scenes）发内容包"
+      "notes": "按收集组（UIScreens/UIWidgets/Fonts/Characters/FX/Sound/UIHud/Scenes）发内容包"
     }
   ]
 }

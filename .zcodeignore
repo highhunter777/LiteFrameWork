@@ -86,8 +86,9 @@ Assets/FX/
 Assets/FX.meta
 Assets/Model/
 Assets/Model.meta
-Assets/Sound/
-Assets/Sound.meta
+Assets/LiteGame/Modules/Shared/Content/Sound/
+Assets/LiteGame/Modules/Shared/Content/Sound.meta
+Assets/LiteGame/Modules/Shared/Content.meta
 # 2026-10-13 放开入库（用户裁决）：NotoSansSC TMP SDF ×2（SIL OFL，许可文件 NotoSansSC-OFL.txt
 # 同批入库）——75 处文本引用的视觉单一来源，7 个 EditMode 用例按真实字体资产加载。
 # 金楷系列维持不入库（迁移批一裁决不变：110MB、全仓零引用、再分发许可未核实）：
