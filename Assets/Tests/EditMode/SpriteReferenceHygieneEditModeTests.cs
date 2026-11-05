@@ -39,10 +39,13 @@ namespace LiteGame.Tests.EditMode
         public void 收集组UI预制体_原始库sprite直引清零()
         {
             var violations = new List<string>();
-            string[] guids = AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/ShareResource/UI" });
-            Assert.Greater(guids.Length, 0, "扫描面失效（收集目录无 prefab？核对路径）");
+            var guidSet = new HashSet<string>();
+            foreach (string root in new[] { "Assets/ShareResource/UI", "Assets/LiteGame/Modules/UI/Content", "Assets/LiteGame/Modules/Battle/Content/Hud" })
+                foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { root }))
+                    guidSet.Add(guid);
+            Assert.Greater(guidSet.Count, 0, "扫描面失效（收集目录无 prefab？核对路径）");
 
-            foreach (string guid in guids)
+            foreach (string guid in guidSet)
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);

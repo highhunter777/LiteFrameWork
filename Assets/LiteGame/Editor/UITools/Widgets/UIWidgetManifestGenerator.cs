@@ -39,7 +39,7 @@ namespace LiteGame.Editor.UITools.Widgets
     /// </summary>
     public static class UIWidgetManifestGenerator
     {
-        /// <summary>扫真实模板目录（`Assets/ShareResource/UI/Widgets`）生成清单。</summary>
+        /// <summary>扫真实模板目录（`Assets/LiteGame/Modules/UI/Content/Widgets`）生成清单。</summary>
         public static UIWidgetManifestGenerationResult Generate() => Generate((IEnumerable<string>)null);
 
         /// <summary>按显式 prefab 路径生成（测试/工具用；null＝扫模板目录）。</summary>

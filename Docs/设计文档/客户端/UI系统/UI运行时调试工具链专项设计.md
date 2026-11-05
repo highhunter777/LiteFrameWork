@@ -234,7 +234,7 @@ Seed / Language / PageId
 
 | 项 | 约定 |
 | --- | --- |
-| 目标 | `Assets/ShareResource/UI/{Screens,Widgets,Hud}/**` 的 prefab；scene-only 对象拒绝 |
+| 目标 | `Assets/LiteGame/Modules/UI/Content/{Screens,Widgets}/**`、`Assets/LiteGame/Modules/Battle/Content/Hud/**` 的 prefab；scene-only 对象拒绝 |
 | 粒度 | 属性级（已有组件的序列化字段）；不做节点/组件增删、资产创建/删除 |
 | 载体 | `UiPatch`（diff/属性选择/冲突检查/Undo/归档）；不建第二套格式 |
 | 通道 | 编辑器 Play：实例 diff → patch → 标准 prefab；Player/F10：只采集 patch 文件，编辑器导入应用 |

@@ -79,7 +79,7 @@ namespace LiteGame.Tests.EditMode
         {
             var options = new UIPreviewMatrixOptions
             {
-                PagePath = "Assets/ShareResource/UI/Screens/Page_Login.prefab",
+                PagePath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab",
                 ProfileIds = new List<string> { "pc.16-9" },
                 Locales = new List<string> { "zh-CN" },
                 FontScales = new List<float> { 1f },
@@ -95,7 +95,7 @@ namespace LiteGame.Tests.EditMode
         {
             var options = new UIPreviewMatrixOptions
             {
-                PagePath = "Assets/ShareResource/UI/Screens/Page_Login.prefab",
+                PagePath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab",
                 OutputDir = "Artifacts/../Assets/PreviewMatrix",
             };
             Assert.IsFalse(UIPreviewMatrixPlanner.TryCreatePlan(options, out _, out string error));
@@ -107,7 +107,7 @@ namespace LiteGame.Tests.EditMode
         {
             var options = new UIPreviewMatrixOptions
             {
-                PagePath = "Assets/ShareResource/UI/Screens/Page_Login.prefab",
+                PagePath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab",
                 Locales = new List<string> { "fr" },
             };
             Assert.IsFalse(UIPreviewMatrixPlanner.TryCreatePlan(options, out _, out string error));

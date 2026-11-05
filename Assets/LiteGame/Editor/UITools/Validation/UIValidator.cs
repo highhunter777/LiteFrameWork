@@ -27,8 +27,8 @@ namespace LiteGame.Editor.UITools.Validation
         };
 
         /// <summary>UI 资产扫描面（模板 prefab 所在，供资产面规则用）。</summary>
-        public const string ScreensDir = "Assets/ShareResource/UI/Screens";
-        public const string WidgetsDir = "Assets/ShareResource/UI/Widgets";
+        public const string ScreensDir = "Assets/LiteGame/Modules/UI/Content/Screens";
+        public const string WidgetsDir = "Assets/LiteGame/Modules/UI/Content/Widgets";
         public const string HudDir = "Assets/LiteGame/Modules/Battle/Content/Hud";
 
         /// <summary>规则族全表（设计 §6.2 九族 + 项目自定义「渲染/适配」）。已接入＝有真实执行面；族内未落地子项在描述里列明原因。</summary>

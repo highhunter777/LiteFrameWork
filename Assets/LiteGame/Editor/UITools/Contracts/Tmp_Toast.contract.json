@@ -7,7 +7,7 @@
   "page": {
     "formId": 203,
     "name": "Tmp_Toast",
-    "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Toast.prefab",
+    "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Toast.prefab",
     "prefabGuid": "0bf9df73520fbb44598749076ba98391",
     "luaPath": null,
     "layer": 3,

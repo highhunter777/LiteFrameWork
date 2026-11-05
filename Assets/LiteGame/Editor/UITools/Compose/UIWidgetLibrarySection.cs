@@ -8,7 +8,7 @@ namespace LiteGame.Editor.UITools.Compose
 {
     /// <summary>
     /// 控件库分区（《UI编辑器工具专项设计》§5"控件库"）：**清单＝目录即清单**
-    /// （<see cref="UIWidgetLibrary.Load"/> 扫 <c>Assets/ShareResource/UI/Widgets</c> 的 <c>Tmp_</c> 模板）；
+    /// （<see cref="UIWidgetLibrary.Load"/> 扫 <c>Assets/LiteGame/Modules/UI/Content/Widgets</c> 的 <c>Tmp_</c> 模板）；
     /// **列表呈现＝inline OdinMenuTree**（左树 + Odin 搜索栏；右侧为选中模板的组件/受控面预览 + 插入）；
     /// 插入走 <see cref="UIWidgetInstaller"/>——**只在 Prefab Stage 内**原生嵌套实例化
     /// （Variant/嵌套作用域与 Undo 全复用 Unity 原生），插入后**不改名**，命名/标记的下一步交绑定标记工具。

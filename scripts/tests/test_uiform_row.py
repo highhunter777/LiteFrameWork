@@ -65,7 +65,7 @@ class UiFormRowTests(unittest.TestCase):
             self.assertEqual(code, 0, output)
             self.assertIs(payload["ok"], True, output)
             self.assertGreaterEqual(len(payload["rows"]), 11, payload)
-            self.assertTrue(all(row["prefab"].startswith("ShareResource/UI/Screens/") for row in payload["rows"]))
+            self.assertTrue(all(row["prefab"].startswith("LiteGame/Modules/UI/Content/Screens/") for row in payload["rows"]))
 
     def test_check_rejects_duplicate_and_reserved_ids(self):
         with TableCopy() as copy:

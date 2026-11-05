@@ -98,7 +98,7 @@ namespace LiteGame.Tests.UI.PlayMode
         private UIService BuildService(Func<UIThemeAsset> themeProvider)
         {
             var catalog = new StaticCatalog();
-            catalog.Add(PageLogin, layer: 0, fullScreen: true, "Assets/ShareResource/UI/Screens/Page_Login.prefab");
+            catalog.Add(PageLogin, layer: 0, fullScreen: true, "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab");
             return new UIService(catalog,
                 logicResolver: info => new NullLogic(),
                 loadPrefab: LoadLeaseAsync,

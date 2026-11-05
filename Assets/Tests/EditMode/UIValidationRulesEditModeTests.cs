@@ -166,7 +166,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 页面清单_缺失报Warning_漂移报Error()
         {
-            const string pageAsset = "Assets/ShareResource/UI/Screens/Page_Login.prefab";
+            const string pageAsset = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab";
             string missingPath = TempDir + "/missing-page-manifest.json";
             var missing = Check(new PageManifestRule(), new UIValidationContext(UIValidator.ProjectRoot, null,
                 new[] { pageAsset }, pageManifestPath: missingPath));

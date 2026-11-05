@@ -131,7 +131,7 @@ Hud_Battle
 
 | 项 | 约束 | 依据 |
 | --- | --- | --- |
-| 字体资产 | 复用 HUD 全树同一份 `Assets/ShareResource/Fonts/NotoSansSC SDF.asset` | 不为一个读数引入第二字体/第二图集 |
+| 字体资产 | 复用 HUD 全树同一份 `Assets/LiteGame/Modules/UI/Content/Fonts/NotoSansSC SDF.asset` | 不为一个读数引入第二字体/第二图集 |
 | 字号 | 语义档位"读数级"，建议 30–34（`Txt_Score`=22、`Txt_Ammo`=54、`Txt_RespawnCountdown`=72 之间） | 最终值制作侧定档；**代码不设置字号** |
 | 颜色 | 沿用 HUD 现有烘焙值口径（本节点不挂 `UIStyleRef`） | HUD 全树当前零令牌引用，单点接令牌会造成视觉来源分叉；如接令牌须同批登记 HUD 例外（规范 05 UI-TEXT-08） |
 | `raycastTarget` | **false**（TMP 默认 true，必须显式关） | 规范 05 UI-RENDER-02；`BattleHudMenuEditModeTests` 钉住"全 HUD 恰 1 个 raycastTarget=true（菜单钮）" |

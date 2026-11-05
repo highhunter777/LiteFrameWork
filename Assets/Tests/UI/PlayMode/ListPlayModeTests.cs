@@ -93,7 +93,7 @@ namespace LiteGame.Tests.UI.PlayMode
                 new StaticCatalog(new[]
                 {
                     new PageDefinition { Id = PageList, Layer = 0, FullScreen = true,
-                        LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_ListScreen.prefab" },
+                        LuaPath = "", Location = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_ListScreen.prefab" },
                 }),
                 loadPrefab: LoadRealPrefabAsync,
                 transitionStrategy: new FadeSlideTransition());   // 生产同款（默认已改零动效，见 §5.1）

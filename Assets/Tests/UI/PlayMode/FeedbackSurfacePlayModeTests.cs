@@ -40,10 +40,10 @@ namespace LiteGame.Tests.UI.PlayMode
         {
             return new StaticCatalog(new[]
             {
-                new PageDefinition { Id = ErrorFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab" },
-                new PageDefinition { Id = LoadingFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Loading.prefab" },
-                new PageDefinition { Id = ToastFormId,   Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Toast.prefab" },
-                new PageDefinition { Id = ConfirmFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab" },
+                new PageDefinition { Id = ErrorFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Dialog.prefab" },
+                new PageDefinition { Id = LoadingFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Loading.prefab" },
+                new PageDefinition { Id = ToastFormId,   Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Toast.prefab" },
+                new PageDefinition { Id = ConfirmFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Dialog.prefab" },
             });
         }
 

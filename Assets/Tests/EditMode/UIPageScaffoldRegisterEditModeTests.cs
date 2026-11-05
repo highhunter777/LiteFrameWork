@@ -35,8 +35,8 @@ namespace LiteGame.Tests.EditMode
         private const string TempManifest = TempRoot + "/PageManifest.json";
         private const string TempBindManifest = TempRoot + "/UIBindManifest.json";
         private const string TableCopyRelative = "Temp/ui-page-split/uiform.xlsx";
-        private const string BaselineA = "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab";
-        private const string BaselineList = "Assets/ShareResource/UI/Screens/Tmp_ListScreen.prefab";
+        private const string BaselineA = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_BaselineA.prefab";
+        private const string BaselineList = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_ListScreen.prefab";
         private const int ValidId = 17;
 
         private static string RealTableFullPath
@@ -185,7 +185,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(UIPageScaffold.ScaffoldFailure.Validate, badName.FailedAt);
 
             UIPageScaffold.ScaffoldResult missingBaseline =
-                Scaffold("Page_TestScaffoldC", "Assets/ShareResource/UI/Screens/Tmp_Missing.prefab");
+                Scaffold("Page_TestScaffoldC", "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Missing.prefab");
             Assert.AreEqual(UIPageScaffold.ScaffoldFailure.Validate, missingBaseline.FailedAt);
             Assert.IsFalse(File.Exists(FullPath(PrefabPath("Page_TestScaffoldC"))));
         }
@@ -758,7 +758,7 @@ namespace LiteGame.Tests.EditMode
                 {
                     FormId = 0,
                     Name = "Page_Draft",
-                    PrefabPath = "Assets/ShareResource/UI/Screens/Page_Draft.prefab",
+                    PrefabPath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Draft.prefab",
                     PrefabGuid = new string('a', 32),
                     LuaPath = null,
                     Layer = UIContractGenerator.DraftLayer,

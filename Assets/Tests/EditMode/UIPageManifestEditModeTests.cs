@@ -14,7 +14,7 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class UIPageManifestEditModeTests
     {
-        private const string TempDir = "Assets/ShareResource/UI/Screens/TempPageManifestTests";
+        private const string TempDir = "Assets/LiteGame/Modules/UI/Content/Screens/TempPageManifestTests";
 
         [OneTimeSetUp]
         public void SetUp()
@@ -61,7 +61,7 @@ namespace LiteGame.Tests.EditMode
             => new UIPageTableRow
             {
                 id = id,
-                prefab = "ShareResource/UI/Screens/TempPageManifestTests/" + name + ".prefab",
+                prefab = "LiteGame/Modules/UI/Content/Screens/TempPageManifestTests/" + name + ".prefab",
                 lua = lua ?? "UI." + name,
                 layer = layer,
                 fullScreen = fullScreen,
@@ -80,7 +80,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(2, result.Manifest.Pages.Count);
             Assert.AreEqual("Page_Alpha", result.Manifest.Pages[0].Name, "按页面名稳定排序");
             UIPageManifestEntry alpha = result.Manifest.Pages.Single(x => x.Name == "Page_Alpha");
-            Assert.AreEqual("Assets/ShareResource/UI/Screens/TempPageManifestTests/Page_Alpha.prefab", alpha.PrefabPath);
+            Assert.AreEqual("Assets/LiteGame/Modules/UI/Content/Screens/TempPageManifestTests/Page_Alpha.prefab", alpha.PrefabPath);
             Assert.AreEqual(1, alpha.Forms.Count);
             Assert.AreEqual(901, alpha.Forms[0].FormId);
             Assert.AreEqual(1, alpha.Forms[0].Layer);

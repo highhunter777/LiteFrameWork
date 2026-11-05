@@ -149,7 +149,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 表路径_判据_路径形态识别不误伤()
         {
-            Assert.IsTrue(AssetTablePathRule.IsPathLike("ShareResource/UI/Screens/Tmp_Dialog.prefab"));
+            Assert.IsTrue(AssetTablePathRule.IsPathLike("LiteGame/Modules/UI/Content/Screens/Tmp_Dialog.prefab"));
             Assert.IsTrue(AssetTablePathRule.IsPathLike("Assets/Scenes/Boot.unity"));
             Assert.IsFalse(AssetTablePathRule.IsPathLike("UI.Page_Login"), "LuaPath 点分模块名不是资产路径");
             Assert.IsFalse(AssetTablePathRule.IsPathLike(""));
@@ -162,9 +162,9 @@ namespace LiteGame.Tests.EditMode
             var entries = new List<AssetTablePathRule.PathEntry>
             {
                 new AssetTablePathRule.PathEntry("UI/tbuiform.bytes", "Prefab", "Id=999",
-                    "ShareResource/UI/Screens/Tmp_Dialog.prefab"),        // 在盘（真实资产）——不应报
+                    "LiteGame/Modules/UI/Content/Screens/Tmp_Dialog.prefab"),        // 在盘（真实资产）——不应报
                 new AssetTablePathRule.PathEntry("UI/tbuiform.bytes", "Prefab", "Id=998",
-                    "ShareResource/UI/Screens/NoSuch.prefab"),           // 悬空（uiform 病类合成形态）
+                    "LiteGame/Modules/UI/Content/Screens/NoSuch.prefab"),           // 悬空（uiform 病类合成形态）
                 new AssetTablePathRule.PathEntry("X/dummy.bytes", "Scene", "Id=997",
                     "Assets/Scenes/NoSuch.unity"),                        // 带 Assets/ 前缀形态的悬空
             };

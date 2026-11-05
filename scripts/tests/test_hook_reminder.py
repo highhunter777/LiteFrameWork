@@ -130,7 +130,7 @@ class HookReminderTests(unittest.TestCase):
 
     def test_unity_asset_warning(self):
         self.require_hook()
-        payload = self.reminder("Assets/ShareResource/UI/Screens/Foo.prefab")
+        payload = self.reminder("Assets/LiteGame/Modules/UI/Content/Screens/Foo.prefab")
         self.assertIn("红线4", payload["additionalContext"])
 
     def test_non_match_is_silent(self):

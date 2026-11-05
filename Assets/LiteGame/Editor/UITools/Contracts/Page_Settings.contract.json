@@ -7,7 +7,7 @@
   "page": {
     "formId": 15,
     "name": "Page_Settings",
-    "prefabPath": "Assets/ShareResource/UI/Screens/Page_Settings.prefab",
+    "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Settings.prefab",
     "prefabGuid": "a55b9bd4fc4f63149b8724b7650bab41",
     "luaPath": "UI.Page_Settings",
     "layer": 1,

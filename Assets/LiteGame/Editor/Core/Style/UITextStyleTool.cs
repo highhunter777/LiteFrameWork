@@ -47,8 +47,8 @@ namespace LiteGame.EditorTools.UI
         /// <summary>文字档作用域（§3.2——与颜色对账同面；共享资源层的控件模板与页面夹具）。</summary>
         public static readonly string[] DefaultScanDirs =
         {
-            "Assets/ShareResource/UI/Widgets",
-            "Assets/ShareResource/UI/Screens",
+            "Assets/LiteGame/Modules/UI/Content/Widgets",
+            "Assets/LiteGame/Modules/UI/Content/Screens",
         };
 
         public static void MenuApply()
@@ -306,8 +306,8 @@ namespace LiteGame.EditorTools.UI
         /// <summary>精确角色迁移默认扫描面：控件模板 + 页面 + HUD（37 个匹配中 9 个在 HUD）。</summary>
         private static readonly string[] MigrationScanDirs =
         {
-            "Assets/ShareResource/UI/Widgets",
-            "Assets/ShareResource/UI/Screens",
+            "Assets/LiteGame/Modules/UI/Content/Widgets",
+            "Assets/LiteGame/Modules/UI/Content/Screens",
             "Assets/LiteGame/Modules/Battle/Content/Hud",
         };
 

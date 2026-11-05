@@ -71,7 +71,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/ShareResource/UI/Screens
+      - CollectPath: Assets/LiteGame/Modules/UI/Content/Screens
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName
@@ -84,7 +84,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/ShareResource/UI/Widgets
+      - CollectPath: Assets/LiteGame/Modules/UI/Content/Widgets
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName
@@ -97,7 +97,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/ShareResource/Fonts
+      - CollectPath: Assets/LiteGame/Modules/UI/Content/Fonts
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName

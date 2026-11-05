@@ -113,7 +113,7 @@
 4. 生成页面草稿元数据（`UIPageManifest` 条目：Owner=美术、状态=草案）。
 5. 草稿契约：美术跑 `ui.contract` 时，批量把草稿页纳入（`formId=0`，见 §5.2），作为交接前可评审产物。
 
-产物：`Assets/ShareResource/UI/Screens/Page_<Semantic>.prefab` + 草稿清单条目 + 草稿契约。
+产物：`Assets/LiteGame/Modules/UI/Content/Screens/Page_<Semantic>.prefab` + 草稿清单条目 + 草稿契约。
 
 失败语义：预检失败零产物；复制/根契约/清单写盘任一步失败都删除新建 prefab，并把清单恢复为操作前状态（不静默、不留半成品）。
 
@@ -240,7 +240,7 @@
   "page": {
     "formId": 12,
     "name": "Page_Lobby",
-    "prefabPath": "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
+    "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
     "prefabGuid": "…",
     "luaPath": "UI.Page_Lobby",
     "layer": 1,
@@ -448,7 +448,7 @@
   "widgets": [
     {
       "template": "Tmp_HpBar",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_HpBar.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_HpBar.prefab",
       "prefabGuid": "…",
       "usageSegment": "HpBar_",
       "specPresent": true,
@@ -501,7 +501,7 @@
   "pages": [
     {
       "name": "Page_Lobby",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
       "forms": [{ "formId": 12, "layer": 0, "fullScreen": true }],
       "luaPath": "UI.Page_Lobby",
       "cacheStrategy": "Lru",
@@ -515,7 +515,7 @@
     },
     {
       "name": "Tmp_Dialog",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Dialog.prefab",
       "forms": [
         { "formId": 201, "layer": 3, "fullScreen": false },
         { "formId": 206, "layer": 1, "fullScreen": false }

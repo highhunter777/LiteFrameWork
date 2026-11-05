@@ -149,7 +149,7 @@
       "menu": "LiteGame/UI/制作/起页（仅 prefab）",
       "writes": ["asset"],
       "outputs": [
-        { "path": "Assets/ShareResource/UI/Screens/", "kind": "asset" },
+        { "path": "Assets/LiteGame/Modules/UI/Content/Screens/", "kind": "asset" },
         { "path": "Assets/LiteGame/Editor/UITools/UIPageManifest.json", "kind": "data" }
       ],
       "destructive": false,
@@ -223,8 +223,8 @@
       "menu": "LiteGame/UI/样式工具/刷新 UI 颜色（按 token 收敛）",
       "writes": ["asset"],
       "outputs": [
-        { "path": "Assets/ShareResource/UI/Widgets/", "kind": "asset" },
-        { "path": "Assets/ShareResource/UI/Screens/", "kind": "asset" }
+        { "path": "Assets/LiteGame/Modules/UI/Content/Widgets/", "kind": "asset" },
+        { "path": "Assets/LiteGame/Modules/UI/Content/Screens/", "kind": "asset" }
       ],
       "destructive": false,
       "order": 60
@@ -272,8 +272,8 @@
       "menu": "LiteGame/UI/样式工具/应用文字档（按标记收敛）",
       "writes": ["asset"],
       "outputs": [
-        { "path": "Assets/ShareResource/UI/Widgets/", "kind": "asset" },
-        { "path": "Assets/ShareResource/UI/Screens/", "kind": "asset" }
+        { "path": "Assets/LiteGame/Modules/UI/Content/Widgets/", "kind": "asset" },
+        { "path": "Assets/LiteGame/Modules/UI/Content/Screens/", "kind": "asset" }
       ],
       "destructive": false,
       "order": 90

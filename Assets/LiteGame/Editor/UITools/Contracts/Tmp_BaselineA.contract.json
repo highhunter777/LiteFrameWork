@@ -7,7 +7,7 @@
   "page": {
     "formId": 204,
     "name": "Tmp_BaselineA",
-    "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab",
+    "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_BaselineA.prefab",
     "prefabGuid": "219b7fa6620f5ed459f8662f9b1bd158",
     "luaPath": null,
     "layer": 0,

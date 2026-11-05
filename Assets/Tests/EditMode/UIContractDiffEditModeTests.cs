@@ -18,7 +18,7 @@ namespace LiteGame.Tests.EditMode
                 {
                     FormId = 11,
                     Name = "Page_Test",
-                    PrefabPath = "Assets/ShareResource/UI/Screens/Page_Test.prefab",
+                    PrefabPath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Test.prefab",
                     PrefabGuid = "0123456789abcdef0123456789abcdef",
                     LuaPath = "UI.Page_Test",
                     Layer = 0,

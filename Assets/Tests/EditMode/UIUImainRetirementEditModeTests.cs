@@ -74,9 +74,9 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 测试载体_旧路径移除且新路径存在()
         {
-            const string oldPrefab = "Assets/ShareResource/UI/Screens/UIMain.prefab";
+            const string oldPrefab = "Assets/LiteGame/Modules/UI/Content/Screens/UIMain.prefab";
             const string oldLua = "Assets/LiteGame/Lua/UI/UIMain.lua";
-            const string newPrefab = "Assets/ShareResource/UI/Screens/Tmp_UITestPage.prefab";
+            const string newPrefab = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_UITestPage.prefab";
             const string newLua = "Assets/LiteGame/Lua/Tests/UITestPage.lua";
 
             Assert.IsNull(AssetDatabase.LoadAssetAtPath<GameObject>(oldPrefab), "旧 UIMain prefab 应已改名");

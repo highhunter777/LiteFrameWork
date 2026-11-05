@@ -94,16 +94,14 @@ Assets/Sound/
 Assets/Sound.meta
 # 2026-10-13 放开入库（用户裁决）：NotoSansSC TMP SDF ×2（SIL OFL，许可文件 NotoSansSC-OFL.txt
 # 同批入库）——75 处文本引用的视觉单一来源，7 个 EditMode 用例按真实字体资产加载。
-# 金楷系列维持不入库（迁移批一裁决不变：110MB、全仓零引用、再分发许可未核实）：
-Assets/ShareResource/Fonts/11月金楷系列/
-Assets/ShareResource/Fonts/11月金楷系列.meta
+# 金楷系列维持不入库（B4-4b 随 Fonts 迁 Modules/UI/Content/Fonts；110MB、零引用、许可未核实）：
+Assets/LiteGame/Modules/UI/Content/Fonts/11月金楷系列/
+Assets/LiteGame/Modules/UI/Content/Fonts/11月金楷系列.meta
 # 死规则清理（2026-10-13）：Assets/LiteGame/Fonts 已于 2026-10-11 迁移批一迁至
 # ShareResource/Fonts，原两条忽略规则无对应路径（restore-check 的字体 WARN 同批改指真路径）。
 # 同批去重：Assets/Animator、Assets/ShareResource/Characters 原各出现两次，各保留一份。
 Assets/Animator/
 Assets/Animator.meta
-Assets/ShareResource/Characters/
-Assets/ShareResource/Characters.meta
 Assets/LiteGame/Art/
 Assets/LiteGame/Art.meta
 Assets/GameFramework/

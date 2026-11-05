@@ -81,7 +81,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 真实资产_模板受控行存在()
         {
-            const string path = "Assets/ShareResource/UI/Widgets/Tmp_HpBar.prefab";
+            const string path = "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_HpBar.prefab";
             var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             Assert.IsNotNull(asset, "模板资产缺失：" + path);
 

@@ -9,7 +9,7 @@
 
 UI 不是"一个 UIManager"，而是**运行时 + 绑定生成 + 工具链 + Lua 注册表**四段流水线。四段共同服务的约束（违反由扫描器、校验规则或运行时抛错兜住）：
 
-1. **视觉单一来源**：可见结构只能来自 `Assets/ShareResource/UI/{Screens,Widgets,Hud}` 的 prefab，运行时不得 `new GameObject`/`AddComponent` 拼界面。`RuntimeVisualRule` 扫 `UIValidator.SourceScanDirs`（`Packages/com.litegame.framework/Runtime`、`Assets/LiteGame/App`、`Assets/LiteGame/Modules/Battle` 等）。
+1. **视觉单一来源**：可见结构只能来自 `Assets/LiteGame/Modules/UI/Content/{Screens,Widgets}` 与 `Assets/LiteGame/Modules/Battle/Content/Hud` 的 prefab，运行时不得 `new GameObject`/`AddComponent` 拼界面。`RuntimeVisualRule` 扫 `UIValidator.SourceScanDirs`（`Packages/com.litegame.framework/Runtime`、`Assets/LiteGame/App`、`Assets/LiteGame/Modules/Battle` 等）。
 2. **单写者**：产品页面开关只经 `UINavigationController`；`UIService.ShowAsync` 只留给工具/测试。
 3. **逻辑可热更**：页面逻辑在 Lua，C# 只提供受控 API 面（`self.ui`）与生命周期桥，换表不重建 `LuaEnv`。
 4. **制作可分工**：美术管 prefab/命名/暴露，工程管表行/绑定/接线，以**页面契约**交接。
@@ -115,7 +115,7 @@ Lua 只能经白名单门面访问 C#：`Bridge` 只导出 `data / ui / content 
 
 ### 7.3 起页与登记
 
-**起页（美术）**：输入页面名 `Page_<Semantic>`（根名与文件名同文）+ 视觉基线（`Tmp_BaselineA`/`Tmp_BaselineB`/`Tmp_ListScreen`/空白 `Tmp_Page`）。产物：`Assets/ShareResource/UI/Screens/Page_<Semantic>.prefab`（从基线**复制**为自包含 prefab，不是 Variant）、`UIPageManifest` 草稿条目（`owner` 默认 `art.ui`、`status=Draft`）；**不写** Lua、不写 `tbuiform`、不生成绑定类。根契约幂等补齐 `Canvas`+`CanvasScaler`（1920×1080，Match 0.5）+`GraphicRaycaster`+`CanvasGroup`；`SafeAreaReceiver` 挂在现有拉伸 `Cot_*` 容器（无则由工具新建）。交接前须生成草稿契约（查 `sourceHash`/`controls[]`/`text[]`/`templates[]`），草稿布局改动后必须重生成（`ContractDriftRule` 判 Error），无草稿契约时登记被拒。
+**起页（美术）**：输入页面名 `Page_<Semantic>`（根名与文件名同文）+ 视觉基线（`Tmp_BaselineA`/`Tmp_BaselineB`/`Tmp_ListScreen`/空白 `Tmp_Page`）。产物：`Assets/LiteGame/Modules/UI/Content/Screens/Page_<Semantic>.prefab`（从基线**复制**为自包含 prefab，不是 Variant）、`UIPageManifest` 草稿条目（`owner` 默认 `art.ui`、`status=Draft`）；**不写** Lua、不写 `tbuiform`、不生成绑定类。根契约幂等补齐 `Canvas`+`CanvasScaler`（1920×1080，Match 0.5）+`GraphicRaycaster`+`CanvasGroup`；`SafeAreaReceiver` 挂在现有拉伸 `Cot_*` 容器（无则由工具新建）。交接前须生成草稿契约（查 `sourceHash`/`controls[]`/`text[]`/`templates[]`），草稿布局改动后必须重生成（`ContractDriftRule` 判 Error），无草稿契约时登记被拒。
 
 **登记（工程）**：输入页面名、`id`（窗口给"最小空闲 ≥16"建议值，不复用 201–206）、`layer`（0–3）、`full_screen`、缓存策略；契约门槛＝`Contracts/<Page>.contract.json` 存在、`formId=0`、`prefabGuid` 与当前 prefab 一致。步骤与失败面 `UIPageRegisterFailure`（`Validate / Contract / Lua / WriteTable / Codegen / Manifest / ContractRefresh`）：① 预检（查重、非法名/保留 id/layer 越界）→ 失败零产物；② 写表前备份 → `Luban/Data/#uiform.xlsx` 追加 `id/lua_path/prefab/layer/full_screen` 行；③ `codegen.luban` → `codegen.build-hash`；④ Lua 骨架 `Assets/LiteGame/Lua/UI/<Page>.lua`（已存在则保留）；⑤ 清单 `Draft → Registered` + 写 `formId`/缓存策略；⑥ 契约按真实 `formId` 重生成。回滚：表写失败按备份回滚并复核行不存在；Luban/BuildHash 失败回滚表行并重跑 Luban（清单仍 Draft）；清单保存失败不回滚表；契约刷新失败提示重跑 `ui.contract`。
 
@@ -127,10 +127,10 @@ Lua 只能经白名单门面访问 C#：`Bridge` 只导出 `data / ui / content 
 
 ## 8. 现状清点
 
-`Assets/ShareResource/UI/Screens` 13 个 prefab = 6 个产品页 + 6 个模板 + 1 个测试载体。生成目录 `UIPageCatalog.g.cs`（源头 `#uiform` + `UIPageManifest` + `Contracts`，重生成 `python scripts/codegen/toolbox.py ui-page`）：产品页 11–16（`Page_Login/Lobby/Room/Result/Settings/Records`），除设置页 15 为 Layer 1 外全为 Layer 0 全屏，设置页在预载放行时登记为模态；模板 201–206（`Tmp_Dialog` 占 201 Layer 3 与 206 Layer 1 两行，其余为 Loading/Toast/两个基线）。6 个产品页全部 `status=Registered`、`cacheStrategy=Lru`、有契约；模板页也登记在表与清单里——读目录时不要假设"一页一行"。
+`Assets/LiteGame/Modules/UI/Content/Screens` 13 个 prefab = 6 个产品页 + 6 个模板 + 1 个测试载体。生成目录 `UIPageCatalog.g.cs`（源头 `#uiform` + `UIPageManifest` + `Contracts`，重生成 `python scripts/codegen/toolbox.py ui-page`）：产品页 11–16（`Page_Login/Lobby/Room/Result/Settings/Records`），除设置页 15 为 Layer 1 外全为 Layer 0 全屏，设置页在预载放行时登记为模态；模板 201–206（`Tmp_Dialog` 占 201 Layer 3 与 206 Layer 1 两行，其余为 Loading/Toast/两个基线）。6 个产品页全部 `status=Registered`、`cacheStrategy=Lru`、有契约；模板页也登记在表与清单里——读目录时不要假设"一页一行"。
 
 - `Tmp_UITestPage`（原样例页改名）与 `Tests/UITestPage.lua` 是 UI 栈夹具：**不登记** `tbuiform`、不产出 `LuaKeys` 常量。
-- 控件模板 `Assets/ShareResource/UI/Widgets` 30 个 prefab；HUD 为 `Assets/LiteGame/Modules/Battle/Content/Hud/Hud_Battle.prefab`（`UIHud` 收集组单件打包）。生产接线集中在 `ProgressBar`/`HpBar`/`Countdown`/`Toast`/`UIBubble`/`FlyTextPool`/`VirtualList`/`UIDialog`/`LoadingMask`；`AvatarFrame`/`GuideHighlight`/`StarRating`/`Stepper`/`BottomNav`/`TabGroup`/`SafeAreaReceiver`/`SimpleListView` 等只有模板与测试，不能宣称接入业务。
+- 控件模板 `Assets/LiteGame/Modules/UI/Content/Widgets` 30 个 prefab；HUD 为 `Assets/LiteGame/Modules/Battle/Content/Hud/Hud_Battle.prefab`（`UIHud` 收集组单件打包）。生产接线集中在 `ProgressBar`/`HpBar`/`Countdown`/`Toast`/`UIBubble`/`FlyTextPool`/`VirtualList`/`UIDialog`/`LoadingMask`；`AvatarFrame`/`GuideHighlight`/`StarRating`/`Stepper`/`BottomNav`/`TabGroup`/`SafeAreaReceiver`/`SimpleListView` 等只有模板与测试，不能宣称接入业务。
 - **红点未生效**：`RedDotRegistry` 在 `UISegment` 建实例并 `Put` 进上下文，但 C# 侧没有 `Register` 规则也没有 `Evaluate` 调用点，Lua 侧零引用；`RedDot`/`RedDotTree` 未接入 `UIBindIndex`。
 - **Lua 调试器未接线**：`Assets/LiteGame/Lua/LuaPanda.lua` 存在但无 `require` 消费者；`Core/` 只有 `class.lua`。
 

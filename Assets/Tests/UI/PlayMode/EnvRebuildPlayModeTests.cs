@@ -83,7 +83,7 @@ namespace LiteGame.Tests.UI.PlayMode
                 new StaticCatalog(new[]
                 {
                     new PageDefinition { Id = TestPageFormId, Layer = 0, FullScreen = true,
-                        LuaPath = "Tests.UITestPage", Location = "Assets/ShareResource/UI/Screens/Tmp_UITestPage.prefab" },
+                        LuaPath = "Tests.UITestPage", Location = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_UITestPage.prefab" },
                 }),
                 // resolver 读**实例字段**——env 重建后同一 UIService 的复用路径会解析到新 env 的模块
                 logicResolver: info => new LuaBehaviourAdapter(_env, _module),

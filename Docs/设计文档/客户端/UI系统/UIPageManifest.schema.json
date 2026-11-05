@@ -61,7 +61,7 @@
         },
         "prefabPath": {
           "type": "string",
-          "pattern": "^Assets/ShareResource/UI/.+\\.prefab$"
+          "pattern": "^Assets/LiteGame/Modules/(UI/Content/Screens|Battle/Content/Hud)/.+\\.prefab$"
         },
         "forms": {
           "type": "array",

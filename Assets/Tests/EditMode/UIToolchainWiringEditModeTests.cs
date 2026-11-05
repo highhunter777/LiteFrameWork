@@ -25,7 +25,7 @@ namespace LiteGame.Tests.EditMode
             "ui.page-manifest",
         };
 
-        private static readonly string PilotPagePath = "Assets/ShareResource/UI/Screens/Page_Login.prefab";
+        private static readonly string PilotPagePath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab";
 
         private static readonly string ProjectRoot = ToolchainManifestLoader.ProjectRoot;
 

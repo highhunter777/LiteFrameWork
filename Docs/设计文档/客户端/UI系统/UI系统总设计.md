@@ -136,10 +136,13 @@ L5 Process      角色 / Lane / 交接 / 评审 / 度量 / CI
 ### 3.4 目录蓝图
 
 ```text
-Assets/ShareResource/UI/
+Assets/LiteGame/Modules/UI/Content/
   Screens/        Page_*.prefab（业务页）、Tmp_*（页面模板/系统面）
   Widgets/        Tmp_*.prefab（控件模板）
+  Fonts/          TMP 字体资产（NotoSansSC SDF + OFL）
+Assets/LiteGame/Modules/Battle/Content/
   Hud/            Hud_*.prefab（战斗 HUD 组合）
+Assets/ShareResource/UI/
   Icons/          图标源/图集输入
   Patches/        仅编辑器/dev 的 UIPatch 输出（不进包）
 Packages/com.litegame.framework/Runtime/Services/UI/        运行时基座（不改结构）
@@ -492,7 +495,7 @@ Page Logic (C# UIBindBase 或 Lua)
 
 ### 6.6 视觉单一来源与例外
 
-- 用户可见 UI 视觉一律来自 `Assets/ShareResource/UI/{Screens,Widgets,Hud}` 的 prefab。
+- 用户可见 UI 视觉一律来自 `Assets/LiteGame/Modules/UI/Content/{Screens,Widgets}` 与 `Assets/LiteGame/Modules/Battle/Content/Hud` 的 prefab。
 - 运行时不得 `new GameObject` 造 Canvas/Graphic/Text/Button，不得 `AddComponent` 挂视觉组件。
 - 层容器节点（`UIRoot`/层节点）与输入底座（`EventSystem`）不属于视觉结构，允许运行时建位。
 - **唯一例外**：引导期错误页，资源系统不可用时可用代码构建；必须满足：

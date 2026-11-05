@@ -28,8 +28,8 @@ namespace LiteGame.EditorTools.UI
         /// <summary>颜色对账作用域（§3.2——控件模板 + 页面夹具；扫描根可注入，测试用）。</summary>
         public static readonly string[] DefaultScanDirs =
         {
-            "Assets/ShareResource/UI/Widgets",
-            "Assets/ShareResource/UI/Screens",
+            "Assets/LiteGame/Modules/UI/Content/Widgets",
+            "Assets/LiteGame/Modules/UI/Content/Screens",
         };
 
         /// <summary>命中阈值（单源＝<see cref="LiteFramework.UI.UIStyleResolver.HitEpsilon"/>：工具/规则/阈值面同源）。</summary>

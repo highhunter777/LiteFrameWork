@@ -54,7 +54,7 @@ namespace LiteGame.Tests.EditMode
 
             foreach (string path in paths)
                 Assert.IsFalse(path.StartsWith(UIValidator.ScreensDir), "控件库只收 Widgets 目录：" + path);
-            CollectionAssert.DoesNotContain(paths, "Assets/ShareResource/UI/Screens/Tmp_Loading.prefab",
+            CollectionAssert.DoesNotContain(paths, "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Loading.prefab",
                 "Screens 下的 Tmp_ 框架夹具不是控件模板");
         }
 

@@ -17,13 +17,13 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class UIContractGeneratorEditModeTests
     {
-        private const string TempDir = "Assets/ShareResource/UI/Screens/TempUiContractTests";
+        private const string TempDir = "Assets/LiteGame/Modules/UI/Content/Screens/TempUiContractTests";
 
         [SetUp]
         public void SetUp()
         {
             if (!AssetDatabase.IsValidFolder(TempDir))
-                AssetDatabase.CreateFolder("Assets/ShareResource/UI/Screens", "TempUiContractTests");
+                AssetDatabase.CreateFolder("Assets/LiteGame/Modules/UI/Content/Screens", "TempUiContractTests");
         }
 
         [TearDown]
@@ -215,7 +215,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 真实页面_按tbuiform行生成_契约可用()
         {
-            var result = UIContractGenerator.GenerateRegistered("Assets/ShareResource/UI/Screens/Page_Login.prefab");
+            var result = UIContractGenerator.GenerateRegistered("Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab");
             Assert.IsTrue(result.Ok, result.ErrorText);
             Assert.AreEqual(11, result.Contract.Page.FormId);
             Assert.AreEqual("UI.Page_Login", result.Contract.Page.LuaPath);
@@ -226,7 +226,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 真实页面_模板依赖被记录()
         {
-            var result = UIContractGenerator.GenerateRegistered("Assets/ShareResource/UI/Screens/Page_Lobby.prefab");
+            var result = UIContractGenerator.GenerateRegistered("Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab");
             Assert.IsTrue(result.Ok, result.ErrorText);
             Assert.GreaterOrEqual(result.Contract.Templates.Count, 1, "Page_Lobby 使用了 Tmp_* 模板");
             Assert.IsTrue(result.Contract.Templates.All(x => x.Template.StartsWith("Tmp_")),

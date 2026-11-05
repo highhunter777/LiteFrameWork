@@ -64,11 +64,11 @@ namespace LiteGame.Tests.EditMode
         public void 资产与节点通配_命中()
         {
             var report = ReportWith(
-                Error(asset: "Assets/ShareResource/UI/Widgets/Tmp_Dialog.prefab", node: "Root/Content"),
-                Error(asset: "Assets/ShareResource/UI/Widgets/Tmp_Toast.prefab", node: "Other"));
+                Error(asset: "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Dialog.prefab", node: "Root/Content"),
+                Error(asset: "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Toast.prefab", node: "Other"));
             var set = UIRuleExceptionSet.Parse(@"{
   ""exceptions"": [
-    { ""ruleId"": ""ui.page-structure"", ""asset"": ""Assets/ShareResource/UI/Widgets/Tmp_*.prefab"",
+    { ""ruleId"": ""ui.page-structure"", ""asset"": ""Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_*.prefab"",
       ""node"": """", ""owner"": ""art.ui"", ""reason"": ""批量迁移"", ""expiry"": ""2099-12-31"" }
   ]
 }");

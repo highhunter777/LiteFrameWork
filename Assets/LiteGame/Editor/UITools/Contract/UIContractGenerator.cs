@@ -45,7 +45,7 @@ namespace LiteGame.Editor.UITools.Contracts
             new Regex("^(Page|Hud|Tmp)_[A-Za-z0-9]+$", RegexOptions.CultureInvariant);
 
         private static readonly Regex PrefabPathPattern =
-            new Regex("^Assets/ShareResource/UI/(Screens|Hud)/.+\\.prefab$", RegexOptions.CultureInvariant);
+            new Regex("^Assets/LiteGame/Modules/(UI/Content/Screens|Battle/Content/Hud)/.+\\.prefab$", RegexOptions.CultureInvariant);
 
         private static readonly HashSet<string> CacheStrategies =
             new HashSet<string>(Enum.GetNames(typeof(UICacheStrategy)), StringComparer.Ordinal);
@@ -85,7 +85,7 @@ namespace LiteGame.Editor.UITools.Contracts
             if (!IsContractPageName(prefab.name))
                 result.Errors.Add($"页面根名不符合 Page_/Hud_/Tmp_ 文法：{prefab.name}");
             if (!PrefabPathPattern.IsMatch(path))
-                result.Errors.Add("页面 prefab 必须位于 Assets/ShareResource/UI/Screens 或 Hud：" + path);
+                result.Errors.Add("页面 prefab 必须位于 Assets/LiteGame/Modules/UI/Content/Screens 或 Assets/LiteGame/Modules/Battle/Content/Hud：" + path);
 
             string guid = AssetDatabase.AssetPathToGUID(path);
             if (string.IsNullOrEmpty(guid)) result.Errors.Add("取不到 prefab GUID：" + path);

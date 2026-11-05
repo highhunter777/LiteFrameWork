@@ -116,7 +116,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(UIWorkbenchLane.Engineering, state.Lane, "默认工程 Lane");
             Assert.AreEqual(UIWorkbenchPerspectiveId.Page, state.Perspective, "默认页面透视");
 
-            const string prefab = "Assets/ShareResource/UI/Screens/Page_Login.prefab";
+            const string prefab = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab";
             state.SelectPage("Page_Login");
             state.SetTarget(prefab);
             state.MarkDirty();
@@ -188,7 +188,7 @@ namespace LiteGame.Tests.EditMode
             generated.Written.Add(new UIContractBatchEntry
             {
                 PageName = "Page_Login",
-                PrefabPath = "Assets/ShareResource/UI/Screens/Page_Login.prefab",
+                PrefabPath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab",
                 ContractPath = "Assets/LiteGame/Editor/UITools/Contracts/Page_Login.contract.json",
             });
             generated.Skipped.Add("Tmp_Skip");
@@ -388,7 +388,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 目标解析_Stage打开时指向Stage根()
         {
-            const string path = "Assets/ShareResource/UI/Screens/Page_Login.prefab";
+            const string path = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab";
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             Assert.IsNotNull(prefab, path);
 

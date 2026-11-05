@@ -30,7 +30,7 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class UIU0EditModeTests : UnityTestBase
     {
-        private const string TestPagePrefab = "Assets/ShareResource/UI/Screens/Tmp_UITestPage.prefab";
+        private const string TestPagePrefab = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_UITestPage.prefab";
         private const string TestPageRequire = "Tests.UITestPage";
 
         [TearDown]
@@ -212,7 +212,7 @@ return m";
             PageDefinition login = catalog.Get(11);
             Assert.AreEqual("Page_Login", login.Name);
             Assert.AreEqual("UI.Page_Login", login.LuaPath);
-            Assert.AreEqual("Assets/ShareResource/UI/Screens/Page_Login.prefab", login.Location);
+            Assert.AreEqual("Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab", login.Location);
             Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => catalog.Get(1),
                 "UIMain 退役后生成的页面目录不得再有 id=1");
         }

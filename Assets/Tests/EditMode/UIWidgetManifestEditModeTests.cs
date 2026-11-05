@@ -15,7 +15,7 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class UIWidgetManifestEditModeTests
     {
-        private const string WidgetsDir = "Assets/ShareResource/UI/Widgets";
+        private const string WidgetsDir = "Assets/LiteGame/Modules/UI/Content/Widgets";
         private const string DirA = WidgetsDir + "/TempUiWidgetManifestA";
         private const string DirB = WidgetsDir + "/TempUiWidgetManifestB";
 

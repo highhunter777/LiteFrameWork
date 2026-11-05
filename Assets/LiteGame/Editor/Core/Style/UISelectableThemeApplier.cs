@@ -25,8 +25,8 @@ namespace LiteGame.EditorTools.UI
         /// <summary>迁移默认扫描面：控件模板 + 页面 + HUD（与校验核心同三面）。</summary>
         public static readonly string[] DefaultScanDirs =
         {
-            "Assets/ShareResource/UI/Widgets",
-            "Assets/ShareResource/UI/Screens",
+            "Assets/LiteGame/Modules/UI/Content/Widgets",
+            "Assets/LiteGame/Modules/UI/Content/Screens",
             "Assets/LiteGame/Modules/Battle/Content/Hud",
         };
 

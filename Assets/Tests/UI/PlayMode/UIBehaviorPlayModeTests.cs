@@ -126,8 +126,8 @@ namespace LiteGame.Tests.UI.PlayMode
                 new Dictionary<string, string> { ["UI.Login.Title"] = "English Title" });
 
             var catalog = new StaticCatalog();
-            catalog.Add(PageLogin, layer: 0, fullScreen: true, "Assets/ShareResource/UI/Screens/Page_Login.prefab");
-            catalog.Add(Dialog, layer: 3, fullScreen: false, "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab");
+            catalog.Add(PageLogin, layer: 0, fullScreen: true, "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab");
+            catalog.Add(Dialog, layer: 3, fullScreen: false, "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Dialog.prefab");
 
             _loginLogic = new CountingLogic();
             _ui = new UIService(catalog,

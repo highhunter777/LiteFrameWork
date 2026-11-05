@@ -87,7 +87,7 @@
 
 ## 3. 控件模板清单
 
-> 以 `Assets/ShareResource/UI/Widgets/Tmp_*.prefab` 与 `UIWidgetManifest` 为准；新增模板先登记词表/清单再使用。
+> 以 `Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_*.prefab` 与 `UIWidgetManifest` 为准；新增模板先登记词表/清单再使用。
 
 | 模板 | 用途 | 关键能力 |
 | --- | --- | --- |

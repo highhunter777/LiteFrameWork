@@ -7,7 +7,7 @@
   "page": {
     "formId": 13,
     "name": "Page_Room",
-    "prefabPath": "Assets/ShareResource/UI/Screens/Page_Room.prefab",
+    "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Room.prefab",
     "prefabGuid": "b7e33cddf11466c488b75e831f812071",
     "luaPath": "UI.Page_Room",
     "layer": 0,

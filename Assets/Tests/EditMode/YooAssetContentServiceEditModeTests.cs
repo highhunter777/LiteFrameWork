@@ -23,8 +23,8 @@ namespace LiteGame.Tests.EditMode
         {
             var content = new YooAssetContentService(new FileSystem(new UnityPathProvider(), new NewtonsoftJsonSerializer()));
             var ex = Assert.Throws<InvalidOperationException>(() =>
-                content.AcquireAsync<GameObject>("Assets/ShareResource/UI/Widgets/any.prefab").GetAwaiter().GetResult());
-            StringAssert.Contains("Assets/ShareResource/UI/Widgets/any.prefab", ex.Message);   // 契约：失败含 location
+                content.AcquireAsync<GameObject>("Assets/LiteGame/Modules/UI/Content/Widgets/any.prefab").GetAwaiter().GetResult());
+            StringAssert.Contains("Assets/LiteGame/Modules/UI/Content/Widgets/any.prefab", ex.Message);   // 契约：失败含 location
         }
 
         [Test]

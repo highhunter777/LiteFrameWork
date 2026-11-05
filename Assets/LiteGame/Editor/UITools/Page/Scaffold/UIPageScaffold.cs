@@ -67,9 +67,9 @@ namespace LiteGame.Editor.UITools.Page
         /// <summary>基线表（单源）：新增基线只加一行；缺失项由窗口禁用并给原因。</summary>
         public static IReadOnlyList<UIPageBaseline> Baselines { get; } = new List<UIPageBaseline>
         {
-            new UIPageBaseline { Label = "全屏基线 A", Path = "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab" },
-            new UIPageBaseline { Label = "全屏基线 B", Path = "Assets/ShareResource/UI/Screens/Tmp_BaselineB.prefab" },
-            new UIPageBaseline { Label = "列表页基线", Path = "Assets/ShareResource/UI/Screens/Tmp_ListScreen.prefab" },
+            new UIPageBaseline { Label = "全屏基线 A", Path = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_BaselineA.prefab" },
+            new UIPageBaseline { Label = "全屏基线 B", Path = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_BaselineB.prefab" },
+            new UIPageBaseline { Label = "列表页基线", Path = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_ListScreen.prefab" },
             new UIPageBaseline { Label = "空白骨架", Path = TemplatePath },
         };
 

@@ -7,7 +7,7 @@
   "widgets": [
     {
       "template": "Tmp_AnimatedImage",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_AnimatedImage.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_AnimatedImage.prefab",
       "prefabGuid": "b595abd25969b7c4d8d59cbd92229d65",
       "usageSegment": "AnimatedImage_",
       "specPresent": true,
@@ -23,7 +23,7 @@
     },
     {
       "template": "Tmp_AvatarFrame",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_AvatarFrame.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_AvatarFrame.prefab",
       "prefabGuid": "4921d3bccb1c3384c90d23c283610f77",
       "usageSegment": "AvatarFrame_",
       "specPresent": true,
@@ -39,7 +39,7 @@
     },
     {
       "template": "Tmp_Baseline",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Baseline.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Baseline.prefab",
       "prefabGuid": "b371b14793d2ec741a36061d421835be",
       "specPresent": true,
       "owner": "art.ui",
@@ -54,7 +54,7 @@
     },
     {
       "template": "Tmp_BottomNav",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_BottomNav.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_BottomNav.prefab",
       "prefabGuid": "bd5d311eeb8d70c45895dbae692eb2e2",
       "usageSegment": "BottomNav_",
       "specPresent": true,
@@ -78,7 +78,7 @@
     },
     {
       "template": "Tmp_Bubble",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Bubble.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Bubble.prefab",
       "prefabGuid": "d5a3a61d93001e340a2b4f3d96ef08b1",
       "usageSegment": "Bubble_",
       "specPresent": true,
@@ -94,7 +94,7 @@
     },
     {
       "template": "Tmp_CountText",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_CountText.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_CountText.prefab",
       "prefabGuid": "f4b90f8143baaf34a8cb5a395d84402c",
       "usageSegment": "CountText_",
       "specPresent": true,
@@ -118,7 +118,7 @@
     },
     {
       "template": "Tmp_Countdown",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Countdown.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Countdown.prefab",
       "prefabGuid": "3fcc6f10f5cfcbb4496e238e255c4469",
       "usageSegment": "Countdown_",
       "specPresent": true,
@@ -134,7 +134,7 @@
     },
     {
       "template": "Tmp_Dialog",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Dialog.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Dialog.prefab",
       "prefabGuid": "d30fb3c29cb1e7447914ba31be4d1782",
       "usageSegment": "Dialog_",
       "specPresent": true,
@@ -152,7 +152,7 @@
     },
     {
       "template": "Tmp_Dropdown",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Dropdown.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Dropdown.prefab",
       "prefabGuid": "38cc7c13edc237346a163346c8d6ec63",
       "specPresent": true,
       "owner": "art.ui",
@@ -174,7 +174,7 @@
     },
     {
       "template": "Tmp_EventRelay",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_EventRelay.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_EventRelay.prefab",
       "prefabGuid": "7c3b176735016c341b6c94f5e4c3a93b",
       "specPresent": true,
       "owner": "art.ui",
@@ -193,7 +193,7 @@
     },
     {
       "template": "Tmp_FlyText",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_FlyText.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_FlyText.prefab",
       "prefabGuid": "e7b0b14966bc2644fb036170c1fa61ff",
       "usageSegment": "FlyText_",
       "specPresent": true,
@@ -211,7 +211,7 @@
     },
     {
       "template": "Tmp_GuideHighlight",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_GuideHighlight.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_GuideHighlight.prefab",
       "prefabGuid": "09b7b0d4dcf03454d918bcd4268e5bb3",
       "usageSegment": "GuideHighlight_",
       "specPresent": true,
@@ -227,7 +227,7 @@
     },
     {
       "template": "Tmp_HpBar",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_HpBar.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_HpBar.prefab",
       "prefabGuid": "5dd92cb7a1183d248b35136286477928",
       "usageSegment": "HpBar_",
       "specPresent": true,
@@ -268,7 +268,7 @@
     },
     {
       "template": "Tmp_InputField",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_InputField.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_InputField.prefab",
       "prefabGuid": "554bed2242ecd464ab1037d34d9df786",
       "specPresent": true,
       "owner": "art.ui",
@@ -291,7 +291,7 @@
     },
     {
       "template": "Tmp_KillFeedRow",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_KillFeedRow.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_KillFeedRow.prefab",
       "prefabGuid": "ca14c42dcd4947f4d8c0e2fb42053e9f",
       "specPresent": true,
       "owner": "art.ui",
@@ -306,7 +306,7 @@
     },
     {
       "template": "Tmp_Loading",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Loading.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Loading.prefab",
       "prefabGuid": "f64eb14820b2faa488d93d0a321bcc07",
       "usageSegment": "Loading_",
       "specPresent": true,
@@ -339,7 +339,7 @@
     },
     {
       "template": "Tmp_ProgressBar",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_ProgressBar.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_ProgressBar.prefab",
       "prefabGuid": "29aaf0992b87dff4db81b5f8f49cbf79",
       "usageSegment": "ProgressBar_",
       "specPresent": true,
@@ -364,7 +364,7 @@
     },
     {
       "template": "Tmp_RankCell",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_RankCell.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_RankCell.prefab",
       "prefabGuid": "9b33fccb13288d7479a10a9a529286bf",
       "specPresent": true,
       "owner": "art.ui",
@@ -379,7 +379,7 @@
     },
     {
       "template": "Tmp_RedDot",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_RedDot.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_RedDot.prefab",
       "prefabGuid": "667a09dd6a2010344abd7d1085790bdf",
       "usageSegment": "RedDot_",
       "specPresent": true,
@@ -395,7 +395,7 @@
     },
     {
       "template": "Tmp_RotatingImage",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_RotatingImage.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_RotatingImage.prefab",
       "prefabGuid": "61d2fcadc5e56714cb19ec9a3f545d51",
       "usageSegment": "RotatingImage_",
       "specPresent": true,
@@ -411,7 +411,7 @@
     },
     {
       "template": "Tmp_SafeArea",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_SafeArea.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_SafeArea.prefab",
       "prefabGuid": "c48db677d8a69684d993c96a65702898",
       "specPresent": true,
       "owner": "art.ui",
@@ -426,7 +426,7 @@
     },
     {
       "template": "Tmp_SimpleList",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_SimpleList.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_SimpleList.prefab",
       "prefabGuid": "4503f01e1849cd147b0e048ffbf88318",
       "usageSegment": "SimpleList_",
       "specPresent": true,
@@ -447,7 +447,7 @@
     },
     {
       "template": "Tmp_Slider",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Slider.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Slider.prefab",
       "prefabGuid": "64055a2ee8ab2ba45a8f7b89f88d55cf",
       "specPresent": true,
       "owner": "art.ui",
@@ -469,7 +469,7 @@
     },
     {
       "template": "Tmp_StarRating",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_StarRating.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_StarRating.prefab",
       "prefabGuid": "5521aa25bcf5621408015a119d4bfa96",
       "usageSegment": "StarRating_",
       "specPresent": true,
@@ -490,7 +490,7 @@
     },
     {
       "template": "Tmp_StateButton",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_StateButton.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_StateButton.prefab",
       "prefabGuid": "066462ec7ad116843940483fbdd84eff",
       "usageSegment": "StateButton_",
       "specPresent": true,
@@ -515,7 +515,7 @@
     },
     {
       "template": "Tmp_Stepper",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Stepper.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Stepper.prefab",
       "prefabGuid": "89d8fea443e75274b9532bffb116627f",
       "usageSegment": "Stepper_",
       "specPresent": true,
@@ -560,7 +560,7 @@
     },
     {
       "template": "Tmp_TabGroup",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_TabGroup.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_TabGroup.prefab",
       "prefabGuid": "324ac28fb07fffb459efe4cd20bd0730",
       "usageSegment": "TabGroup_",
       "specPresent": true,
@@ -584,7 +584,7 @@
     },
     {
       "template": "Tmp_Toast",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Toast.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Toast.prefab",
       "prefabGuid": "3d18fb0acc1c3914b98bfbf0b01dfdac",
       "usageSegment": "Toast_",
       "specPresent": true,
@@ -602,7 +602,7 @@
     },
     {
       "template": "Tmp_Toggle",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Toggle.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Toggle.prefab",
       "prefabGuid": "a32dc3d5c3e134c40b979e83ed9e4d0f",
       "specPresent": true,
       "owner": "art.ui",
@@ -625,7 +625,7 @@
     },
     {
       "template": "Tmp_VirtualList",
-      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_VirtualList.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_VirtualList.prefab",
       "prefabGuid": "22d0dbf9dfe06ca4eb7412b6501e5d24",
       "usageSegment": "VirtualList_",
       "specPresent": true,

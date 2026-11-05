@@ -22,7 +22,7 @@ namespace LiteGame.Tests.EditMode
     public sealed class UIContractReconciliationEditModeTests
     {
         private const string TempDir = "Assets/TempUiContractTests";
-        private const string RealLoginPage = "Assets/ShareResource/UI/Screens/Page_Login.prefab";
+        private const string RealLoginPage = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab";
         private const string RealLoginContract = "Assets/LiteGame/Editor/UITools/Contracts/Page_Login.contract.json";
 
         [SetUp]

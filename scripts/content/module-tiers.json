@@ -224,6 +224,7 @@
     {
       "change": "UI/角色/特效/场景资源",
       "paths": [
+        "Assets/LiteGame/Modules/*/Content/**",
         "Assets/ShareResource/**",
         "Assets/Scenes/**"
       ],

@@ -174,7 +174,7 @@ class BuildPlanTests(unittest.TestCase):
             "Assets/Art/weapons/rifle.png",
             "Assets/Animation/aim.anim",
             "Assets/LiteGame/Lua/UI/Page_Login.lua",
-            "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
+            "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
             "Assets/Scenes/Boot.unity",
             "Assets/GameData/Config/UI/UITheme.asset",
         ]
@@ -195,10 +195,10 @@ class BuildPlanTests(unittest.TestCase):
     def test_meta_files_follow_their_asset_area(self):
         plan = self.plan([
             "Packages/com.litegame.framework/Runtime/Services/UI/Style/UIThemeAsset.cs.meta",
-            "Assets/ShareResource/UI/Screens/Page_Lobby.prefab.meta",
+            "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab.meta",
         ])
         self.assertEqual(self.finding(plan, "Packages/com.litegame.framework/Runtime/Services/UI/Style/UIThemeAsset.cs.meta")["area"], "client_code")
-        self.assertEqual(self.finding(plan, "Assets/ShareResource/UI/Screens/Page_Lobby.prefab.meta")["area"], "content")
+        self.assertEqual(self.finding(plan, "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab.meta")["area"], "content")
 
     def test_editor_code(self):
         plan = self.plan(["Assets/LiteGame/Editor/Toolchain/Registry/EditorToolHandlers.cs"])
@@ -271,7 +271,7 @@ class BuildPlanTests(unittest.TestCase):
         plan = self.plan([
             "Packages/com.litegame.net/Core/Protocol/Wire.cs",
             "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureMatch.cs",
-            "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
+            "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
             "Docs/项目说明/11-联机测试流程.md",
         ])
         self.assertEqual(plan["delivery"], [
@@ -304,7 +304,7 @@ class BuildPlanTests(unittest.TestCase):
 
     def test_release_matrix_six_rows(self):
         rows = [
-            ("Assets/ShareResource/UI/Screens/Page_Lobby.prefab", {"rebuild_content_bundle", "rebuild_client_player"}),
+            ("Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab", {"rebuild_content_bundle", "rebuild_client_player"}),
             ("Server/RoomServer/Program.cs", {"rebuild_server_room", "publish_server"}),
             ("Packages/com.litegame.net/Core/Protocol/Wire.cs", {"rebuild_client_player", "rebuild_server_room", "publish_server"}),
             ("Assets/RoomServer/Core/Ghost.cs", {"rebuild_server_room", "publish_server"}),

@@ -62,7 +62,7 @@
         },
         "prefabPath": {
           "type": "string",
-          "pattern": "^Assets/ShareResource/UI/Widgets/.+\\.prefab$"
+          "pattern": "^Assets/LiteGame/Modules/UI/Content/Widgets/.+\\.prefab$"
         },
         "prefabGuid": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
         "usageSegment": {

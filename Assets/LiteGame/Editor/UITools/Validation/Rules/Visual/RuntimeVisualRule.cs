@@ -29,7 +29,7 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                     Asset = v.File,
                     Node = null,
                     Message = $"第 {v.Line} 行：{v.Reason}（{v.Snippet}）",
-                    FixHint = "改为引用 Assets/ShareResource/UI/{Screens,Widgets} 的模板，不 new GameObject/AddComponent 造视觉",
+                    FixHint = "改为引用 Assets/LiteGame/Modules/UI/Content/{Screens,Widgets} 或 Assets/LiteGame/Modules/Battle/Content/Hud 的模板，不 new GameObject/AddComponent 造视觉",
                 });
             }
             return issues;

@@ -36,7 +36,7 @@ HEADER_ROWS = 3
 COL_ID, COL_LUA, COL_PREFAB, COL_LAYER, COL_FULL = 2, 3, 4, 5, 6
 RESERVED_IDS = {201, 202, 203, 204, 205, 206}
 PAGE_RE = re.compile(r"^Page_[A-Z][A-Za-z0-9]*$")
-PREFAB_RE = re.compile(r"^ShareResource/UI/Screens/Page_[A-Z][A-Za-z0-9]*\.prefab$")
+PREFAB_RE = re.compile(r"^LiteGame/Modules/UI/Content/Screens/Page_[A-Z][A-Za-z0-9]*\.prefab$")
 
 
 def emit(ok, **fields):
@@ -100,7 +100,7 @@ def validate(args, ws):
     if args.layer < 0 or args.layer > 3:
         raise ValueError("layer 必须在 0..3")
     lua_path = f"UI.{page}"
-    prefab = f"ShareResource/UI/Screens/{page}.prefab"
+    prefab = f"LiteGame/Modules/UI/Content/Screens/{page}.prefab"
     if args.lua_path and args.lua_path != lua_path:
         raise ValueError(f"lua_path 与页面名不一致：{args.lua_path} != {lua_path}")
     if args.prefab and args.prefab != prefab:

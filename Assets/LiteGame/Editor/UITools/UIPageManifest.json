@@ -7,7 +7,7 @@
   "pages": [
     {
       "name": "Page_Lobby",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
       "forms": [
         {
           "formId": 12,
@@ -25,7 +25,7 @@
     },
     {
       "name": "Page_Login",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Login.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab",
       "forms": [
         {
           "formId": 11,
@@ -43,7 +43,7 @@
     },
     {
       "name": "Page_Records",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Records.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Records.prefab",
       "forms": [
         {
           "formId": 16,
@@ -61,7 +61,7 @@
     },
     {
       "name": "Page_Result",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Result.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Result.prefab",
       "forms": [
         {
           "formId": 14,
@@ -79,7 +79,7 @@
     },
     {
       "name": "Page_Room",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Room.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Room.prefab",
       "forms": [
         {
           "formId": 13,
@@ -97,7 +97,7 @@
     },
     {
       "name": "Page_Settings",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Settings.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Settings.prefab",
       "forms": [
         {
           "formId": 15,
@@ -115,7 +115,7 @@
     },
     {
       "name": "Tmp_BaselineA",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_BaselineA.prefab",
       "forms": [
         {
           "formId": 204,
@@ -132,7 +132,7 @@
     },
     {
       "name": "Tmp_BaselineB",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_BaselineB.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_BaselineB.prefab",
       "forms": [
         {
           "formId": 205,
@@ -149,7 +149,7 @@
     },
     {
       "name": "Tmp_Dialog",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Dialog.prefab",
       "forms": [
         {
           "formId": 201,
@@ -171,7 +171,7 @@
     },
     {
       "name": "Tmp_Loading",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Loading.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Loading.prefab",
       "forms": [
         {
           "formId": 202,
@@ -188,7 +188,7 @@
     },
     {
       "name": "Tmp_Toast",
-      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Toast.prefab",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Toast.prefab",
       "forms": [
         {
           "formId": 203,
@@ -205,5 +205,5 @@
     }
   ],
   "warnings": [],
-  "sourceHash": "sha256:2b447601c2d443ea491c015946e4653255435d0cdf7a757d9a63fe04a1c047c6"
+  "sourceHash": "sha256:9a03d315b4ab1f30fc396510ea4ebed34908c6701ac7178e72543b21b2b15a5e"
 }

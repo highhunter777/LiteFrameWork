@@ -7,7 +7,7 @@
   "page": {
     "formId": 12,
     "name": "Page_Lobby",
-    "prefabPath": "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
+    "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
     "prefabGuid": "bb72b834805ea1e4c97a5c3c87a2d10d",
     "luaPath": "UI.Page_Lobby",
     "layer": 0,

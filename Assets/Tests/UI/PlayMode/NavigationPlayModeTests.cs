@@ -128,11 +128,11 @@ namespace LiteGame.Tests.UI.PlayMode
                 new StaticCatalog(new[]
                 {
                     new PageDefinition { Id = PageMain, Layer = 0, FullScreen = true,
-                        LuaPath = "Tests.UITestPage", Location = "Assets/ShareResource/UI/Screens/Tmp_UITestPage.prefab" },
+                        LuaPath = "Tests.UITestPage", Location = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_UITestPage.prefab" },
                     new PageDefinition { Id = PageA, Layer = 1, FullScreen = true,
-                        LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab" },
+                        LuaPath = "", Location = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_BaselineA.prefab" },
                     new PageDefinition { Id = PageB, Layer = 1, FullScreen = true,
-                        LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_BaselineB.prefab" },
+                        LuaPath = "", Location = "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_BaselineB.prefab" },
                 }),
                 transitionStrategy: _transition,
                 logicResolver: info => string.IsNullOrEmpty(info.LuaPath)

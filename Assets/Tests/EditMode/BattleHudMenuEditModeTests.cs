@@ -22,9 +22,9 @@ namespace LiteGame.Tests.EditMode
     public sealed class BattleHudMenuEditModeTests : UnityTestBase
     {
         private const string HudPath = "Assets/LiteGame/Modules/Battle/Content/Hud/Hud_Battle.prefab";
-        private const string SettingsPath = "Assets/ShareResource/UI/Screens/Page_Settings.prefab";
-        private const string RoomPath = "Assets/ShareResource/UI/Screens/Page_Room.prefab";
-        private const string LobbyPath = "Assets/ShareResource/UI/Screens/Page_Lobby.prefab";
+        private const string SettingsPath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Settings.prefab";
+        private const string RoomPath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Room.prefab";
+        private const string LobbyPath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab";
 
         [Test]
         public void HUD_菜单角组_单独开射线_其余零射线()

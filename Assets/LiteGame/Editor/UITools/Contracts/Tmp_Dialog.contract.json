@@ -7,7 +7,7 @@
   "page": {
     "formId": 201,
     "name": "Tmp_Dialog",
-    "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab",
+    "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Dialog.prefab",
     "prefabGuid": "627cdcc6c55aff8489bfbda2633fd292",
     "luaPath": null,
     "layer": 3,

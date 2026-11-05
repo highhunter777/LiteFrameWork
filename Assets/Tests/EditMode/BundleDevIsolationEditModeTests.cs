@@ -22,11 +22,11 @@ namespace LiteGame.Tests.EditMode
         public void dev路径判定_编辑器与开发装配层命中_产品资源放行()
         {
             Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Editor/Gm/GmPanel.cs"));
-            Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/ShareResource/UI/Screens/Editor/Preview.prefab"));
+            Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Modules/UI/Content/Screens/Editor/Preview.prefab"));
             Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Adapters/Dev/Projection/Hud/DevHud.prefab"));
             Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Adapters/Dev/LocalServer/Room.prefab"));
 
-            Assert.IsFalse(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/ShareResource/UI/Screens/Page_Login.prefab"));
+            Assert.IsFalse(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab"));
             Assert.IsFalse(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Lua/UI/Page_Login.lua"));
             Assert.IsFalse(BuiltinBundleBuildInvoker.IsDevAssetPath(null));
         }

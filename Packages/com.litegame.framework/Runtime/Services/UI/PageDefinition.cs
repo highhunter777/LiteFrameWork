@@ -24,7 +24,7 @@ namespace LiteFramework.UI
         public int Id;
         /// <summary>页面名（Page_/Hud_/Tmp_ 前缀；工具/诊断面）。</summary>
         public string Name;
-        /// <summary>prefab 资源完整路径（如 "Assets/ShareResource/UI/Screens/Page_Login.prefab"）。</summary>
+        /// <summary>prefab 资源完整路径（如 "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab"）。</summary>
         public string Location;
         /// <summary>Lua 逻辑表路径（"UI.Page_Login"；空 = 无 Lua 逻辑）。</summary>
         public string LuaPath;

@@ -7,7 +7,7 @@
   "page": {
     "formId": 202,
     "name": "Tmp_Loading",
-    "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Loading.prefab",
+    "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Loading.prefab",
     "prefabGuid": "2961a464355f7374bb0af2f19273bb2d",
     "luaPath": null,
     "layer": 3,
