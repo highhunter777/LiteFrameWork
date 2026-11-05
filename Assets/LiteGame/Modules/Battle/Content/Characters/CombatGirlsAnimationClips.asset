@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a310d56c5d33b88449d8e1acac2d5831, type: 3}
+  m_Name: CombatGirlsAnimationClips
+  m_EditorClassIdentifier: 
+  _entries:
+  - Key: Idle
+    Clip: {fileID: -5109575877556825824, guid: 3787889f507548045abba6b87370b07d, type: 3}
+  - Key: Walk
+    Clip: {fileID: 599494264617130908, guid: b7d86c75d3dffa04d889b5e80533d0d5, type: 3}
+  - Key: Run
+    Clip: {fileID: -7614703449353396500, guid: 711a2af0b4d844b47ad8942d0114c502, type: 3}
+  - Key: AimIdle
+    Clip: {fileID: 145786180134763700, guid: 5b0c2c871074d4742bf7150dca39c436, type: 3}
+  - Key: Reload
+    Clip: {fileID: 5714656323464922859, guid: 0cca85e4195c278438de2c6dc0070788, type: 3}
+  - Key: Hit1
+    Clip: {fileID: -931760275423846564, guid: 8030672582f1a5b4a9712aa6aec547b8, type: 3}
+  - Key: Die2
+    Clip: {fileID: 5447582539675603047, guid: a0c38a748b749e646abf30c366cbace9, type: 3}
+  - Key: Evade
+    Clip: {fileID: -7460461406658957179, guid: abd15090614857d41983ab3e845e7e5b, type: 3}
+  - Key: AimWalk_F
+    Clip: {fileID: 5894193304264930834, guid: ffaad9b5fa2aca24f936b413f946d13a, type: 3}
+  - Key: AimWalk_R
+    Clip: {fileID: -5623134367737449910, guid: 1b3623718425b26439845ecbed51affa, type: 3}
+  - Key: AimWalk_B
+    Clip: {fileID: -5655021037047679943, guid: cb8c00cab1db5b349b9e0be38e5a94f0, type: 3}
+  - Key: AimWalk_L
+    Clip: {fileID: -4848307607560839397, guid: 4215908e7e959b848a815fb5a6430a30, type: 3}

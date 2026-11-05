@@ -14,7 +14,7 @@ namespace LiteGame
     public sealed class BattleHudView : MonoBehaviour
     {
         /// <summary>HUD prefab 内容包路径（收集组 UIHud——AddressByFileName/assetPath 双可寻址）。</summary>
-        public const string PrefabLocation = "Assets/ShareResource/UI/Hud/Hud_Battle.prefab";
+        public const string PrefabLocation = "Assets/LiteGame/Modules/Battle/Content/Hud/Hud_Battle.prefab";
 
         [Header("准心（BattleCrosshairDriver）")]
         [SerializeField] private RectTransform _crosshairRoot;

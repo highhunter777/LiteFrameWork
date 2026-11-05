@@ -24,7 +24,7 @@ namespace LiteGame.EditorTools
 
         /// <summary>烘焙唯一来源 prefab（**不入版本管理**——重烘需本地还原；运行时同值见
         /// SimView.DefaultEntityPrefab / CombatGirlsAnimationProfile.ViewPrefabPath，属运行时面另行登记）。</summary>
-        public const string PrefabPath = "Assets/ShareResource/Characters/Player(Rifle).prefab";
+        public const string PrefabPath = "Assets/LiteGame/Modules/Battle/Content/Characters/Player(Rifle).prefab";
 
         /// <summary>参考姿态控制器（采样参考片段用；换包/换控制器后全工具箱重烘）。</summary>
         public const string ControllerPath = "Assets/ThirdParty/CombatGirlsCharacterPack/RifleGirl/Animations/Rifle_Controller.controller";

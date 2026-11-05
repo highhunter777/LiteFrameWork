@@ -27,7 +27,7 @@ namespace LiteGame.EditorTools.UI
         {
             "Assets/ShareResource/UI/Widgets",
             "Assets/ShareResource/UI/Screens",
-            "Assets/ShareResource/UI/Hud",
+            "Assets/LiteGame/Modules/Battle/Content/Hud",
         };
 
         /// <summary>按目录补组件（幂等）；真实面预期 Added=33、Direct=33、Inherited=13。</summary>

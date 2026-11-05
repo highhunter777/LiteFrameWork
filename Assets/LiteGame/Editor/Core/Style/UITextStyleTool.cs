@@ -308,7 +308,7 @@ namespace LiteGame.EditorTools.UI
         {
             "Assets/ShareResource/UI/Widgets",
             "Assets/ShareResource/UI/Screens",
-            "Assets/ShareResource/UI/Hud",
+            "Assets/LiteGame/Modules/Battle/Content/Hud",
         };
 
         /// <summary>精确角色迁移报告（Added=新增组件；Direct=直挂已有/新增；Inherited=嵌套实例跳过；Ambiguous=多档歧义；Skipped=不匹配）。</summary>

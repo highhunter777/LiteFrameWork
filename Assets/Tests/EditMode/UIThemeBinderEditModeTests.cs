@@ -151,7 +151,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void Apply_真HUD_ButtonSettings变色_Slider不抛()
         {
-            const string hudPath = "Assets/ShareResource/UI/Hud/Hud_Battle.prefab";
+            const string hudPath = "Assets/LiteGame/Modules/Battle/Content/Hud/Hud_Battle.prefab";
             GameObject hud = PrefabUtility.LoadPrefabContents(hudPath);
             try
             {

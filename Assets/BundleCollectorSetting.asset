@@ -111,7 +111,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/ShareResource/Characters
+      - CollectPath: Assets/LiteGame/Modules/Battle/Content/Characters
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName
@@ -124,7 +124,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/ShareResource/FX
+      - CollectPath: Assets/LiteGame/Modules/Battle/Content/FX
         CollectorGUID: 5155224002b933e48b649ead227673de
         CollectorType: 0
         AddressRuleName: AddressByFileName
@@ -151,7 +151,7 @@ MonoBehaviour:
       AssetTags: ui
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/ShareResource/UI/Hud
+      - CollectPath: Assets/LiteGame/Modules/Battle/Content/Hud
         CollectorGUID: e20122305ef04616b15008ce7d506254
         CollectorType: 0
         AddressRuleName: AddressByFileName

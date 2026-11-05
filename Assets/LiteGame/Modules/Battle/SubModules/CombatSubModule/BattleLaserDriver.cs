@@ -12,7 +12,7 @@ namespace LiteGame
     /// <summary>
     /// 武器瞄准激光驱动（**激光器装在武器上**：束实例挂到武器挂载点、沿枪管方向出射，
     /// 端点只由枪口前向决定——不追鼠标，也不收敛到准心/AimPoint）：纯 View 层——每渲染帧把
-    /// <see cref="LineRenderer"/>（Assets/ShareResource/FX/fx_lazer_sight.prefab——KriptoFX Lazer 的
+    /// <see cref="LineRenderer"/>（Assets/LiteGame/Modules/Battle/Content/FX/fx_lazer_sight.prefab——KriptoFX Lazer 的
     /// fx 归置副本，纯视觉资产零脚本）从枪口挂载点铺到枪管射线的截停点。
     ///
     /// **挂载与方向**（用户口径："做在武器上、只从武器激光挂载点射出"）：

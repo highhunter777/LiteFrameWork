@@ -569,7 +569,7 @@ Page Logic (C# UIBindBase 或 Lua)
 
 ### 8.2 装配与生命周期
 
-- HUD prefab 住 `Assets/ShareResource/UI/Hud/Hud_*.prefab`，根名 `Hud_<Semantic>`。
+- HUD prefab 住 `Assets/LiteGame/Modules/Battle/Content/Hud/Hud_*.prefab`，根名 `Hud_<Semantic>`。
 - 对局视图装配时实例化并解析序列化引用；禁止字符串路径 `Find`。
 - 对局结束/退出时停止 ticker、解绑事件、释放租约；不得留到下一局。
 - HUD 的 Canvas 与排序带独立定义（目标 1000–1999），不参与 `UIService` 层组。

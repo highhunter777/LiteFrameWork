@@ -167,7 +167,7 @@ HUD 属对局表现域，由 `BattleHudAssembler` 随对局视图创建/销毁�
 | `BattleHudAssembler.Tick` | 顺序：`_hud` → `_timer` → 排行榜 → 击杀提示 → 网络 → 阵亡（同帧 UI 值，先本人面板后公共读数） |
 | `BattleHudAssembler.DisposePanel` | 先 `_timer?.Dispose()` 再 `_hud?.Dispose()`（消费者逆序，与现有逐件 Dispose 风格一致） |
 
-**不新增**：不新建装配器、不改 `BattleViewRig` 相位、不改 `ProcedureBattle`、不改收集组（`Assets/ShareResource/UI/Hud` 已在 `UIHud` 组内，件级热更自动覆盖）。
+**不新增**：不新建装配器、不改 `BattleViewRig` 相位、不改 `ProcedureBattle`、不改收集组（`Assets/LiteGame/Modules/Battle/Content/Hud` 已在 `UIHud` 组内，件级热更自动覆盖）。
 
 ## 7. 读模型契约扩展
 

@@ -21,10 +21,10 @@ namespace LiteGame
     /// </summary>
     public sealed class BattleImpactFxDriver : IHitFeedbackConsumer, IDisposable
     {
-        /// <summary>命中特效资源名（"命名即引用"→ `Assets/ShareResource/FX/fx_impact_enemy.prefab`）。</summary>
+        /// <summary>命中特效资源名（"命名即引用"→ `Assets/LiteGame/Modules/Battle/Content/FX/fx_impact_enemy.prefab`）。</summary>
         public const string EffectName = "fx_impact_enemy";
 
-        /// <summary>着墙特效资源名（"命名即引用"→ `Assets/ShareResource/FX/fx_impact_wall.prefab`）。</summary>
+        /// <summary>着墙特效资源名（"命名即引用"→ `Assets/LiteGame/Modules/Battle/Content/FX/fx_impact_wall.prefab`）。</summary>
         public const string WallEffectName = "fx_impact_wall";
 
         /// <summary>爆头档放大（观感区分；普通档 = 1）。</summary>

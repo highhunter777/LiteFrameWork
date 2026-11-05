@@ -9,7 +9,7 @@ namespace LiteGame.Modules.Shared
     /// </summary>
     public static class BattleViewPaths
     {
-        /// <summary>对局实体视图 prefab（本体住 `Assets/ShareResource/Characters/`，收集组须覆盖）。</summary>
-        public const string DefaultEntityPrefab = "Assets/ShareResource/Characters/Player(Rifle).prefab";
+        /// <summary>对局实体视图 prefab（本体住 `Assets/LiteGame/Modules/Battle/Content/Characters/`，收集组须覆盖）。</summary>
+        public const string DefaultEntityPrefab = "Assets/LiteGame/Modules/Battle/Content/Characters/Player(Rifle).prefab";
     }
 }

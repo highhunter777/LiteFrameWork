@@ -22,20 +22,20 @@ namespace LiteGame
         internal const string EntityPrefab = SimView.DefaultEntityPrefab;
 
         /// <summary>瞄准激光束 prefab（内容包路径：Assets/FX 归置副本 fx_lazer_sight——KriptoFX Lazer 单源）。</summary>
-        internal const string LaserSightPrefab = "Assets/ShareResource/FX/fx_lazer_sight.prefab";
+        internal const string LaserSightPrefab = "Assets/LiteGame/Modules/Battle/Content/FX/fx_lazer_sight.prefab";
 
         /// <summary>伤害数字底件 prefab（世界空间 TMP 飘字；实例由驱动按预算逐条实例化）。</summary>
-        internal const string DamageNumberPrefab = "Assets/ShareResource/FX/fx_damage_number.prefab";
+        internal const string DamageNumberPrefab = "Assets/LiteGame/Modules/Battle/Content/FX/fx_damage_number.prefab";
 
         /// <summary>出生保护壳件 prefab（FX 域；**金色**半透明包裹壳——表现件走 ShareResource/FX，收集组件级热更）。</summary>
-        private const string ProtectionShellPrefab = "Assets/ShareResource/FX/fx_spawn_protection.prefab";
+        private const string ProtectionShellPrefab = "Assets/LiteGame/Modules/Battle/Content/FX/fx_spawn_protection.prefab";
 
         /// <summary>伤害数字逐档材质（黑描边+软影+按档光晕；面部颜色归顶点渐变，不进材质）。
         /// **四档路径与 builder（AgentScripts/BuildDamageNumberAssets）单源同串**——任缺整组不注入。</summary>
-        private const string DamageNumberMatCaused = "Assets/ShareResource/FX/fx_damage_number_caused.mat";
-        private const string DamageNumberMatCausedCrit = "Assets/ShareResource/FX/fx_damage_number_caused_crit.mat";
-        private const string DamageNumberMatReceived = "Assets/ShareResource/FX/fx_damage_number_received.mat";
-        private const string DamageNumberMatReceivedCrit = "Assets/ShareResource/FX/fx_damage_number_received_crit.mat";
+        private const string DamageNumberMatCaused = "Assets/LiteGame/Modules/Battle/Content/FX/fx_damage_number_caused.mat";
+        private const string DamageNumberMatCausedCrit = "Assets/LiteGame/Modules/Battle/Content/FX/fx_damage_number_caused_crit.mat";
+        private const string DamageNumberMatReceived = "Assets/LiteGame/Modules/Battle/Content/FX/fx_damage_number_received.mat";
+        private const string DamageNumberMatReceivedCrit = "Assets/LiteGame/Modules/Battle/Content/FX/fx_damage_number_received_crit.mat";
 
         /// <summary>角色片段清单（去 AC 主路径的片源：键→Clip 显式引用的纯配置资产）。
         /// 路径单源在动画 Profile——角色族配置归一处。</summary>

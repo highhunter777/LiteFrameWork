@@ -130,7 +130,7 @@ Lua 只能经白名单门面访问 C#：`Bridge` 只导出 `data / ui / content 
 `Assets/ShareResource/UI/Screens` 13 个 prefab = 6 个产品页 + 6 个模板 + 1 个测试载体。生成目录 `UIPageCatalog.g.cs`（源头 `#uiform` + `UIPageManifest` + `Contracts`，重生成 `python scripts/codegen/toolbox.py ui-page`）：产品页 11–16（`Page_Login/Lobby/Room/Result/Settings/Records`），除设置页 15 为 Layer 1 外全为 Layer 0 全屏，设置页在预载放行时登记为模态；模板 201–206（`Tmp_Dialog` 占 201 Layer 3 与 206 Layer 1 两行，其余为 Loading/Toast/两个基线）。6 个产品页全部 `status=Registered`、`cacheStrategy=Lru`、有契约；模板页也登记在表与清单里——读目录时不要假设"一页一行"。
 
 - `Tmp_UITestPage`（原样例页改名）与 `Tests/UITestPage.lua` 是 UI 栈夹具：**不登记** `tbuiform`、不产出 `LuaKeys` 常量。
-- 控件模板 `Assets/ShareResource/UI/Widgets` 30 个 prefab；HUD 为 `Assets/ShareResource/UI/Hud/Hud_Battle.prefab`（`UIHud` 收集组单件打包）。生产接线集中在 `ProgressBar`/`HpBar`/`Countdown`/`Toast`/`UIBubble`/`FlyTextPool`/`VirtualList`/`UIDialog`/`LoadingMask`；`AvatarFrame`/`GuideHighlight`/`StarRating`/`Stepper`/`BottomNav`/`TabGroup`/`SafeAreaReceiver`/`SimpleListView` 等只有模板与测试，不能宣称接入业务。
+- 控件模板 `Assets/ShareResource/UI/Widgets` 30 个 prefab；HUD 为 `Assets/LiteGame/Modules/Battle/Content/Hud/Hud_Battle.prefab`（`UIHud` 收集组单件打包）。生产接线集中在 `ProgressBar`/`HpBar`/`Countdown`/`Toast`/`UIBubble`/`FlyTextPool`/`VirtualList`/`UIDialog`/`LoadingMask`；`AvatarFrame`/`GuideHighlight`/`StarRating`/`Stepper`/`BottomNav`/`TabGroup`/`SafeAreaReceiver`/`SimpleListView` 等只有模板与测试，不能宣称接入业务。
 - **红点未生效**：`RedDotRegistry` 在 `UISegment` 建实例并 `Put` 进上下文，但 C# 侧没有 `Register` 规则也没有 `Evaluate` 调用点，Lua 侧零引用；`RedDot`/`RedDotTree` 未接入 `UIBindIndex`。
 - **Lua 调试器未接线**：`Assets/LiteGame/Lua/LuaPanda.lua` 存在但无 `require` 消费者；`Core/` 只有 `class.lua`。
 

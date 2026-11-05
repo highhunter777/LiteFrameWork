@@ -20,7 +20,7 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class BodyBakeEditModeTests
     {
-        private const string PrefabPath = "Assets/ShareResource/Characters/Player(Rifle).prefab";
+        private const string PrefabPath = "Assets/LiteGame/Modules/Battle/Content/Characters/Player(Rifle).prefab";
 
         [Test]
         [Category(TestCategory.Contract)]

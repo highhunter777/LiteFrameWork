@@ -21,7 +21,7 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class BattleHudMenuEditModeTests : UnityTestBase
     {
-        private const string HudPath = "Assets/ShareResource/UI/Hud/Hud_Battle.prefab";
+        private const string HudPath = "Assets/LiteGame/Modules/Battle/Content/Hud/Hud_Battle.prefab";
         private const string SettingsPath = "Assets/ShareResource/UI/Screens/Page_Settings.prefab";
         private const string RoomPath = "Assets/ShareResource/UI/Screens/Page_Room.prefab";
         private const string LobbyPath = "Assets/ShareResource/UI/Screens/Page_Lobby.prefab";
