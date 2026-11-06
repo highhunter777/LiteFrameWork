@@ -11,13 +11,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 公共战斗事件面（《状态同步专项设计》§5.2 CombatEvent 面）：
-    /// 房间内核窗口（<see cref="CombatEventWindow"/>）、wire 映射（<see cref="CombatEventCodec"/>）、
-    /// 独立包下发（<see cref="CombatEventPipeline"/>），以及**取代旧三个窗口的三条纪律**：
-    /// 时间老化、同键聚合、容量有界。
-    ///
-    /// 本文件合并了原 <c>KillFeedTests</c>/<c>FireSignalTests</c>/<c>HitFeedTests</c>——
-    /// 三类事件现在是同一条链，分开测会掩盖"它们共用同一个窗口/同一个预算"这个事实。
+    /// 公共战斗事件面（《状态同步专项设计》§5.2 CombatEvent 面）： 房间内核窗口（<see cref="CombatEventWindow"/>）。
     /// </summary>
     public sealed class CombatEventTests
     {
@@ -106,9 +100,6 @@ namespace LiteNet.Tests
 
         /// <summary>
         /// **预算守望**：满窗口的事件批必须装进一个不可靠包。
-        /// 这条测试就是"别再把包撑爆"的机制化守卫——红了说明有人加了字段/提了容量，
-        /// 而 KCP 会在运行时静默丢掉整包。
-        /// 两侧常量都从单源读（<see cref="WireBudget"/> / <see cref="CombatEventWindow"/>），不写字面量。
         /// </summary>
         [Fact]
         public void FullWindowBatchFitsUnreliableBudget()

@@ -8,12 +8,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 可信 ACK 用例（《商业级通用服务端框架总设计》§5 P0-4）：
-    /// ACK 只能确认"真实发送过、单调前进、仍在 ledger 窗内"的快照帧；
-    /// 释放 = 该帧发送后的累计字节（水位永不因伪造/回退/超前 ack 倒退或清空）。
-    ///
-    /// 四道闸在 <see cref="Session.TryAcceptAck"/>（ACK 只触连接级水位/ledger，属 App 层事实）；
-    /// 计数由返回的分类结果表达，Ops 归宿主汇总。
+    /// 可信 ACK 用例（《商业级通用服务端框架总设计》§5 P0-4）： ACK 只能确认"真实发送过、单调前进、仍在 ledger 窗内"的快照帧。
     /// </summary>
     public sealed class SnapshotAckTests
     {
@@ -106,9 +101,7 @@ namespace LiteNet.Tests
             s.RecordSnapshotSend(4, 150);
             s.RecordSnapshotSend(6, 120);              // 累计 370
 
-            // 攻击面：客户端只收到帧 2，却谎报帧 6 想"清空水位"——
-            // 但帧 6 **确实发送过**（ledger 在），所以释放合法且精确：只释放到帧 6 的累计。
-            // 真正的防线在"超前帧拒绝"（上一用例）与累计口径（谎报旧帧只能少释放，不能多释放）。
+            // 攻击面：客户端只收到帧 2，却谎报帧 6 想"清空水位"—— 但帧 6 **确实发送过**（ledger 在），所以释放合法且精确：只释放到帧 6 的累计。
             Assert.Equal(AckResult.Accepted, s.TryAcceptAck(6));
             Assert.Equal(370, s.AckedBytes);
 

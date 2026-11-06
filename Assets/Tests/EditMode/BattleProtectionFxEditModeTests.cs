@@ -9,9 +9,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 出生保护壳驱动的 L2 EditMode 覆盖（FX 域）：保护态/视图查询/壳工厂走**构造注入**，确定性驱动。
-    /// 钉住：保护态（`Frame &lt; InvulnerableUntilFrame`，**端点不含**）开关、保护期内**跟随对应玩家视图**、
-    /// 本地与远端各自独立壳、无视图不显示、Dispose 收起且幂等。
-    /// 真场景观感（金色壳/包裹尺寸）归 PlayMode/手测。
     /// </summary>
     public sealed class BattleProtectionFxEditModeTests : UnityTestBase
     {

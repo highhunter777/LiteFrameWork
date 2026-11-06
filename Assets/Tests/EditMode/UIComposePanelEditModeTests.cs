@@ -10,10 +10,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// UI 编排面板（《UI编辑器工具专项设计》§5）的**逻辑面**覆盖：目标解析单源
-    /// （<see cref="UIComposeTarget"/>：Stage 活体 / 资产只读两态）、窄档校验路径（资产面上下文 →
-    /// 报告可定位）、报告的行反查定位、"未接入族显式列出"契约。
-    /// 窗口与分区绘制面属手测（与既有工具窗口同口径——纯 IMGUI/Odin 绘制不做自动化断言）。
+    /// UI 编排面板（《UI编辑器工具专项设计》§5）的**逻辑面**覆盖：目标解析单源 （<see cref="UIComposeTarget"/>：Stage 活体 / 资产只读两态）。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIComposePanelEditModeTests

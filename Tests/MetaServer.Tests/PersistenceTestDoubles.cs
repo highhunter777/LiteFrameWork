@@ -6,16 +6,7 @@ using MetaServer.Contracts.Persistence;
 
 namespace MetaServer.Tests
 {
-    // =====================================================================
-    // 测试替身（《Meta 服务专项设计》§14、《测试开发框架总设计》分层）。
-    //
-    // **替身只验端口语义，不构成重启恢复证据**——《框架先行》§5-5"只做 fake 存储
-    // 不能证明重启恢复"。重启恢复的完成证据在 L3：真实 Mongo（副本集）容器 + 进程级重启。
-    // 替身刻意把持久状态外持（State 类）："新建实例复用同一状态"＝模拟"介质比进程活得久"，
-    // 验证的是端口语义在重启边界下的正确性，不是介质持久性本身。
-    //
-    // 单线程口径（测试串行）——真实并发下的唯一性兜底由 L3 用 Mongo 唯一索引验证。
-    // =====================================================================
+    // ===================================================================== 测试替身（《Meta 服务专项设计》§14、《测试开发框架总设计》分层）。
 
     /// <summary>FakeSettlementLedger 的外持介质状态。跨实例共享即模拟进程重启。</summary>
     public sealed class FakeLedgerState
@@ -65,8 +56,6 @@ namespace MetaServer.Tests
                 : 0;
 
             // CAS：账目写入与修订推进必须同一原子边界——冲突则整笔不落。
-            // 追加模式（-1）不做期望比对——修订号只增不比，幂等由上方双维度字典承载
-            // （与 Mongo 适配器的唯一索引承载同语义）。
             if (write.ExpectedRevision != AppendMode && write.ExpectedRevision != current)
             {
                 return ValueTask.FromResult<SettlementOutcome>(

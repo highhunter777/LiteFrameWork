@@ -14,15 +14,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 多房间隔离的**真实传输**段（《框架先行》§6 样例④"两个**真实客户端** → 测试房间 → …
-    /// 多房间隔离"、§8 准入项「联机宿主闭环」的证据类型"**纯运行时与真实传输/客户端联合记录**"）。
-    ///
-    /// 与 <see cref="MultiRoomIsolationTests"/> 的分工：
-    /// - 那一组走**假传输**（纯命令面、零 Socket），钉的是路由与状态隔离的**逻辑**；
-    /// - 本组走**真 KCP + 真客户端**（127.0.0.1 回环），钉的是隔离在**真实传输下**同样成立
-    ///   ——假件代替不了这一层（UDP 回环、编解码、连接与房间的绑定都是假件抹掉的）。
-    ///
-    /// 形态沿用 <see cref="RoomServerTests"/>（ServerHost 同进程内嵌 + 真实 KCP 客户端）。
+    /// 多房间隔离的**真实传输**段（《框架先行》§6 样例④"两个**真实客户端** → 测试房间 → … 多房间隔离"、§8 准入项「联机宿主闭环」的证据类型"**纯运行时与真实传输/客户端联合记录**"）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class MultiRoomTransportTests : IDisposable

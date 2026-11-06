@@ -7,10 +7,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 直 Clip 后端（《动画模块专项设计》§4「Clip 资源键」分支——控制器可选）：
-    /// 无 RuntimeAnimatorController 的模型（带 Animator、片段经 RegisterClip 外部登记）必须完整可用——
-    /// 单片段直驱、完成边界、混合节点/就地调参、能力位诚实声明、默认姿态位缺席时的诊断口径。
-    /// 片段为程序化构造（SetCurve 定长），不依赖任何美术资产。
+    /// 直 Clip 后端（《动画模块专项设计》§4「Clip 资源键」分支——控制器可选）： 无 RuntimeAnimatorController 的模型（带 Animator。）。
     /// </summary>
     public sealed class ClipDirectBackendEditModeTests : UnityTestBase
     {

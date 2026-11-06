@@ -6,9 +6,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 线程亲和守卫（《客户端架构重构演进路线图》§4.10）：Unity 服务/UI/表现/Sim 跑主线程；
-    /// 允许后台的只有纯 BCL 的内容 IO/序列化（<c>FileSystem</c>），且不得在后台触达引擎对象。
-    /// 新增后台卸载点 = 先论证"纯 BCL + 结果回主线程"，再把文件登记进白名单。
+    /// 线程亲和守卫（《客户端架构重构演进路线图》§4.10）：Unity 服务/UI/表现/Sim 跑主线程； 允许后台的只有纯 BCL 的内容 IO/序列化（<c>FileSystem</c>），且不得在后台触达引擎对象。
     /// </summary>
     public sealed class ThreadAffinityGuardTests
     {

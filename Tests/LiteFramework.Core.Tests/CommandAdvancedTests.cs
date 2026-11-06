@@ -9,11 +9,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// CommandCenter 高级执行形态直测（《命令中心专项设计》§4 批3）：
-    /// 排队（fire-and-forget/到期序/有界溢出/池化回收/执行时过门与拦截）、
-    /// 异步处理器（同键互斥/类型错配 fail-fast/异常隔离/OCE 透传）、
-    /// 拦截器（拒绝短路/注销幂等）、撤销重做（入栈/逆序撤销/重做重执行/容量 64/失败不入栈）。
-    /// [Collection("CoreStatic")]：异常路径写全局 Log。
+    /// CommandCenter 高级执行形态直测（《命令中心专项设计》§4 批3）： 排队（fire-and-forget/到期序/有界溢出/池化回收/执行时过门与拦截）。
     /// </summary>
     [Collection("CoreStatic")]
     public sealed class CommandAdvancedTests

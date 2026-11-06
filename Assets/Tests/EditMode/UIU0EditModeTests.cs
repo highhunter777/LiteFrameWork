@@ -17,16 +17,7 @@ using LiteGame.Modules.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// UI U0 正确性验收（《UI框架总设计》§13 U0 行 + §12.1 分层用例）：
-    /// ① 真 Lua 首开/关闭/复用（真配置投影 + 真 prefab + 真 LuaEnv + 真注册表，仅资源加载走替身）；
-    /// ② 复用与首次同管线（复位 alpha/重新排序/复用同判 Replace——UI-02）；
-    /// ③ 三层全屏遮盖 + Covered/Paused 可关 + CloseAllOpen 全清（UI-04）；
-    /// ④ OnInit/OnShow 失败回滚（无残留、可重试——§4.1）；
-    /// ⑤ env 重建零旧引用（DropAllLogic → dispose → 新 env/新注册表 → 复用重解析——§10.2）；
-    /// ⑥ VirtualList 窗口复用：有界节点、首尾往返、缩容、Refresh 不重复重绑（UI-07/UI-08）。
-    ///
-    /// 时序口径与 UITransitionEditModeTests 相同：假策略 + `Tick(dt)` 手动驱动，await 内联完成，
-    /// 零 PlayerLoop 依赖；真 Lua 用例在 Editor 上以 xlua.dll 运行（总设计 §2.2）。
+    /// UI U0 正确性验收（《UI框架总设计》§13 U0 行 + §12.1 分层用例）： ① 真 Lua 首开/关闭/复用（真配置投影 + 真 prefab + 真 LuaEnv + 真注册表，仅资源加载走替身）。
     /// </summary>
     public sealed class UIU0EditModeTests : UnityTestBase
     {

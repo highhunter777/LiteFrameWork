@@ -8,8 +8,6 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// I1 守卫（路线图 §3.4/§4.11 6）：`public static` 可变字段**只减不增**。
-    /// M0 建立基线（脚本生成，勿手改排序）；新字段一律改构造注入/实例状态，
-    /// 确需例外先在设计文档登记再从基线加行。
     /// </summary>
     public sealed class StaticMutableAllowlistTests
     {

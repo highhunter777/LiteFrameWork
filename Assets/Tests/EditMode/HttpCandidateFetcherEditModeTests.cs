@@ -15,20 +15,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 真实下载端到端（《热更与内容发布专项设计》§7）。
-    ///
-    /// **本地起 HTTP 监听做真实传输**——不需要外部 CDN，但也不是替身：
-    /// 走的是 <c>UnityWebRequest</c> 全链路（TCP→HTTP→响应），
-    /// 能抓到替身测试断言不了的传输层与 PlayerLoop 依赖问题
-    /// （`GetAwaiter().GetResult()` 对 `SendWebRequest` 会抛 "Not yet completed"）。
-    ///
-    /// **来源语义**：下载基址来自 <see cref="DownloadPlan"/> 选定源（端口契约"按计划取字节"）——
-    /// 故每用例的计划的源就是本地监听基址；重试/换源语义用 <see cref="LocalHttpTestServer.RouteFlaky"/>
-    /// 的故障注入 + <see cref="LocalHttpTestServer.HitCount"/> 断言实际尝试次数。
-    ///
-    /// **形态**：异步用例用 <c>[UnityTest]</c> + <c>IEnumerator</c>——
-    /// EditMode 下没有 PlayerLoop，`SendWebRequest` 的续延不在 MoveNext 点执行，
-    /// 同步忙等会挂起，必须由 Test Framework 在帧间推进。
-    /// 纯同步用例（路径换算、构造校验）仍用 <c>[Test]</c>。
     /// </summary>
     public sealed class HttpCandidateFetcherEditModeTests : UnityTestBase
     {

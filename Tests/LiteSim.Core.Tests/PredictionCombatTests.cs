@@ -4,9 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 客户端预测隔离（P0）：`resolveCombat:false` 时保留开火资源/开火窗/Fire 事件，
-    /// 但**不产权威伤害与命中/死亡事实**——命中、伤害、死亡只由服务端快照/权威反馈面驱动。
-    /// 这是"一边打死、另一边没死"的结构性根因用例。
+    /// 客户端预测隔离（P0）：`resolveCombat:false` 时保留开火资源/开火窗/Fire 事件， 但**不产权威伤害与命中/死亡事实**——命中、伤害、死亡只由服务端快照/权威反馈面驱动。
     /// </summary>
     public sealed class PredictionCombatTests
     {

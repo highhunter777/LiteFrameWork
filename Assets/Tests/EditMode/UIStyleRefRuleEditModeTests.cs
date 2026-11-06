@@ -13,9 +13,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// ui.style.ref 规则族（P2-3 B2 / AC5）：五判据——UIStyleRef 未知令牌 Error / 值漂移 Warning / 无 Graphic Error；
-    /// widget 状态 token 三态（未知 Error / 漂移 Warning / 空合法）；同节点 UIStyleRef＋IThemeBound 双写者 Error。
-    /// 阈值单源（UIStyleResolver.HitEpsilon）；规则注册进 UIValidator 默认规则集。
+    /// ui.style.ref 规则族（P2-3 B2 / AC5）：五判据——UIStyleRef 未知令牌 Error / 值漂移 Warning / 无 Graphic Error。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIStyleRefRuleEditModeTests

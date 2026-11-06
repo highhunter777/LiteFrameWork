@@ -14,9 +14,7 @@ using UIThemePaths = LiteGame.EditorTools.UI.UIThemePaths;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 样式值表退役（P2-3a）：颜色/文字值只从 `UIThemeAsset` 读，生产读口不再持有字面量；
-    /// 对账判定与阈值保持不变；`ui.style.token-drift` 对"JSON 改了没重生成"报 Error。
-    /// 十六进制与量化值见方案表（取整单源 `UIThemeColorHex.Quantize`）。
+    /// 样式值表退役（P2-3a）：颜色/文字值只从 `UIThemeAsset` 读，生产读口不再持有字面量； 对账判定与阈值保持不变；`ui.style.token-drift` 对"JSON 改了没重生成"报 Error。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIStyleRetirementEditModeTests

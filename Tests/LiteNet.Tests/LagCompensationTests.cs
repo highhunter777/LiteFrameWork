@@ -8,9 +8,6 @@ namespace LiteNet.Tests
 {
     /// <summary>
     /// 延迟补偿（服务器回溯）用例（《M10实施指导》§2.8 / §3"回溯判定"组 / §9 验收行）。
-    ///
-    /// 验收口径：<b>高 ping（模拟 150ms）下开火命中"客户端看到的那个目标位置"，而不是目标现在的位置</b>。
-    /// 形态：直接驱动 <see cref="LagCompensator"/>（不跑网络），历史输入与快照环都按服务器真实时序喂进去。
     /// </summary>
     public sealed class LagCompensationTests
     {
@@ -72,9 +69,7 @@ namespace LiteNet.Tests
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
             var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, NoSpreadTable());
 
-            // 目标沿 +X 匀速远离（射手不动），跑 20 帧（> 窗口 16，保证"当时位置"仍在窗口内）
-            // 余量是必须的：目标"当时的位置"也要落在窗口内，否则回溯目标帧已在环外，
-            // 判定会退化为当前帧——那是窗口设计的正确行为，不是本用例要验的场景
+            // 目标沿 +X 匀速远离（射手不动），跑 20 帧（> 窗口 16，保证"当时位置"仍在窗口内） 余量是必须的：目标"当时的位置"也要落在窗口内，否则回溯目标帧已在环外， 判定会退化为当前帧——那是窗口设计的正确行为，不是本用例要验的场景。
             const int ExtraFrames = 20;
             for (int i = 0; i < SimConfig.LagCompHistory + ExtraFrames; i++)
                 StepWorld(state, map, ring, lag, 0f, 1f);
@@ -140,10 +135,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// **回溯补判必须带历史瞄准点**（AimPoint 单口径，《固定斜视角射击方案专项设计》§4）：
-        /// 历史输入带头部带瞄准点 ⇒ 回溯判定命中头部带 ⇒ 产出 <see cref="FrameEventKind.Crit"/>，
-        /// 且 <see cref="LagCompensator.LastHit"/> 为真（爆头走 Crit，<c>HasHit</c> 只认 Hit 会漏计）。
-        /// 反例锁定：补判漏拷 AimPoint ⇒ 无点无效开火 ⇒ 无 Crit、<c>LastHit=false</c>。
+        /// **回溯补判必须带历史瞄准点**（AimPoint 单口径，《固定斜视角射击方案专项设计》§4）： 历史输入带头部带瞄准点 ⇒ 回溯判定命中头部带 ⇒ 产出 <see cref="FrameEventKind.Crit"。
         /// </summary>
         [Fact]
         public void 回溯补判带历史瞄准点_远距命中头部带_爆头成立且计为命中()
@@ -180,9 +172,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// **退化路径必须用当前帧瞄准点**（同口径的另一半）：窗口外/关补偿时判定虽按当前帧，
-        /// 但瞄准点仍取当前帧输入——否则窗口外的玩家恒无点无效开火，永远打不出爆头，
-        /// 且与同帧客户端预测不一致。
+        /// **退化路径必须用当前帧瞄准点**（同口径的另一半）：窗口外/关补偿时判定虽按当前帧， 但瞄准点仍取当前帧输入——否则窗口外的玩家恒无点无效开火，永远打不出爆头， 且与同帧客户端预测不一致。
         /// </summary>
         [Fact]
         public void 窗口外退化_用当前帧瞄准点_爆头成立()
@@ -242,10 +232,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// **持续火力的回溯补判跳过武器资源门**（<see cref="SimInputFrame.ButtonFireFlag"/> 契约）：
-        /// 600rpm 连发第三发的"视帧"落在上一发的节拍窗内（视帧上 NextFireFrame 在未来）——
-        /// 补判若重查节拍会错杀整条持续火力（历史帧资源门 ≠ 权威帧事实：弹药/节拍权威帧已消费）。
-        /// 跳门后补判只补几何判定，仍产出对目标的伤害命令。
+        /// **持续火力的回溯补判跳过武器资源门**（<see cref="SimInputFrame.ButtonFireFlag"/> 契约）： 600rpm 连发第三发的"视帧"落在上一发的节拍窗内（视帧上 NextFireF。）。
         /// </summary>
         [Fact]
         public void 回溯补判_连发第三发_视帧节拍未到仍命中()
@@ -270,8 +257,6 @@ namespace LiteNet.Tests
             }
 
             // 第三发（frame 16）的视帧：客户端 lag 3 帧 ⇒ ack=13 ⇒ 回溯目标帧 13。
-            // frame 13 上 NextFireFrame = 16（第二发 frame 8 置的节拍窗）——**在视帧的未来**：
-            // 资源门重查必拦（本用例锁定的反例面）；补判按 ButtonFireFlag 跳门仍判定。
             int ack = 16 - 3;
             int reportedView = ack;
 

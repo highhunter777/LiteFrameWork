@@ -5,15 +5,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 回滚验收用例组（《M9 实施指导》§2.6/§3，对账 §9 M9 验收行）：
-    /// 人为注入预测错误 → 回滚后状态与"全程真实输入"直跑**完全一致**（终态逐元素 + 重放段逐帧 checksum）；
-    /// 回滚深度 8 可用；超出深度正确退化（停预测 + 恢复续跑）；单渲染帧上限 2；重复确认幂等。
-    /// 全部用例 .NET 侧闭环（同运行时红线，M9 决策⑩）。
-    ///
-    /// 帧号/驱动约定（与 RollbackSim 决策②一致）：帧号 = 已执行步数；**第 k 步消费 script[k]**（script[0] 占位）。
-    /// 延迟 D 确认：tick t 开头（Frame==t）确认步 k = t-D+1——回滚 target = 帧 k-1 = Frame-D，
-    /// D=8 恰为环窗口最老帧（深度 8），D=9 越界。尾部 D 步逐帧排水确认（Tick(0f) 重置单渲染帧窗口且不推进）。
-    /// 初始状态 = 帧 0 由 RollbackSim 构造期捕获——第 1 步的回滚天然可用，无需预喂。
+    /// 回滚验收用例组（《M9 实施指导》§2.6/§3，对账 §9 M9 验收行）： 人为注入预测错误 → 回滚后状态与"全程真实输入"直跑**完全一致**（终态逐元素 + 重放段逐帧 checksum）。
     /// </summary>
     public class RollbackSimTests
     {
@@ -156,9 +148,7 @@ namespace LiteSim.Tests
         [Fact]
         public void 多步渲染帧_额外帧执行值等于预发沿用形()
         {
-            // 预发契约（客户端在步进前上行"即将执行的沿用帧"）：本渲染帧走 2 步时——
-            // 第 1 步执行真实输入、第 2 步执行沿用形（Buttons 只留连续意图位）。
-            // 本案钉"本地执行值 == 预发值"，否则进程内权威先走完的第 2 步会与本地执行逐位分叉（每份快照都和解）。
+            // 预发契约（客户端在步进前上行"即将执行的沿用帧"）：本渲染帧走 2 步时—— 第 1 步执行真实输入、第 2 步执行沿用形（Buttons 只留连续意图位）。
             var (map, players) = Scenario();
             var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players),
                 CombatValues.Default, WeaponTable.Default);

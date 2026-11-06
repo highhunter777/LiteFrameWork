@@ -6,9 +6,7 @@ using Xunit;
 namespace MetaServer.Tests
 {
     /// <summary>
-    /// 访问令牌线格式（<see cref="AccessTokenFormat"/>）L1：《Meta 服务专项设计》§6.1/§14 L1
-    /// "票据/令牌的过期、篡改、重放、audience 不符、kid 未知与时钟回拨"矩阵——令牌侧半边。
-    /// 签发/校验服务层（含 audience/purpose 判定与注入时钟）见 <see cref="AccessTokenServiceTests"/>。
+    /// 访问令牌线格式（<see cref="AccessTokenFormat"/>）L1：《Meta 服务专项设计》§6.1/§14 L1 "票据/令牌的过期、篡改、重放、audience 不符。
     /// </summary>
     public sealed class AccessTokenFormatTests
     {

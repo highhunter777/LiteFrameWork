@@ -11,11 +11,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// VFX 服务验收（《VFX服务实施指导》§3 /《动作与特效设计》§2.6）。
-    ///
-    /// 全替身、**零素材依赖**（`Assets/FX/` 下尚无项目自制的 `fx_*` prefab）：
-    /// 假时钟可确定性推进 `Now`；同步 loader（`UniTask.FromResult`）让加载内联完成 → 无需 PlayerLoop；
-    /// 假 prefab 用 `Scope.CreateGameObject(..., typeof(ParticleSystem))` 造，池照常 Instantiate；
-    /// 全部 GameObject（prefab/世界容器/池/挂点）由 `UnityTestBase.Scope` 在 TearDown 统一回收。
     /// </summary>
     public sealed class VfxServiceEditModeTests : UnityTestBase
     {
@@ -78,9 +73,7 @@ namespace LiteGame.Tests.EditMode
         // ---- API 跑通 ----
 
         /// <summary>
-        /// <c>PlayAt</c> 世界位落位（回归卡）：**prefab 已缓存（第二次起）时 Play 内同步 Materialize**——
-        /// 落点必须在实例登记前就位，事后补写只会躺进表里没人再应用，特效留在池内原位（世界原点）。
-        /// 故连播两次：首次走异步加载、第二次走缓存同步路径，两次都必须落在指定世界位。
+        /// <c>PlayAt</c> 世界位落位（回归卡）：**prefab 已缓存（第二次起）时 Play 内同步 Materialize**—— 落点必须在实例登记前就位，事后补写只会躺进表里没人再应用。
         /// </summary>
         [Test]
         [Category(TestCategory.Contract)]
@@ -332,8 +325,6 @@ namespace LiteGame.Tests.EditMode
 
         /// <summary>
         /// **挂点随视图根被销毁后的到期回收**（离场冒烟的既有残留形态：跟随特效挂表不降、活跃数删不掉）。
-        /// 已实例化的特效被外部销毁时 Unity 让字段变 fake-null——旧判据 <c>Go != null</c> 把它误当成
-        /// "加载在途"，表项永久残留（活跃数永不归零，池/租约账也算错）。判据＝时钟越过寿命后活跃归零。
         /// </summary>
         [Test]
         [Category(TestCategory.Contract)]

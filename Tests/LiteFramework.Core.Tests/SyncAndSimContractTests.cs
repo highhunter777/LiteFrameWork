@@ -8,13 +8,6 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// 同步层拆分与判定参数化（批 6 LiteSync 去耦 + 批 7 尾段参数面）的红测：UT-01~UT-03、UT-13~UT-20。
-    ///
-    /// **基线可编译**：新程序集（<c>LiteSync</c>）、新文件（<c>AoiSettings</c>/<c>SimParams*</c>/<c>.bin</c>）
-    /// 与迁移后的守卫面在当前基线尚不存在，故一律用**文件存在性 + 源码文本断言**钉住契约，
-    /// 不引用任何尚不存在的类型——失败形态是断言失败，不是编译错误。
-    ///
-    /// 规格：<c>.workflow/active/sync-and-sim-params/test-plan.md</c>（UT 编号一一对应）。
-    /// 施工后同一批用例应转绿；不得以删用例或弱断言换绿。
     /// </summary>
     public sealed class SyncAndSimContractTests
     {

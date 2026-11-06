@@ -9,8 +9,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 网络质量 HUD 驱动的 L2 EditMode 覆盖（ping/丢包批）：质量源走**构造注入**（免真会话——确定性驱动）。
-    /// 钉住：离线/无样本整组隐藏（不显示陈旧值）、千分比 → 百分比一位小数、值/连通性变化才写、Dispose 归位。
-    /// 真场景观感（字号/落位）归 PlayMode/手测。
     /// </summary>
     public sealed class BattleNetworkHudEditModeTests : UnityTestBase
     {

@@ -95,9 +95,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// **批 E 核心不变量**：判定面表字节基摘要两端取数同源——
-        /// 服务端盘上直读（`ServerTableLoader`）与客户端装载缓存形（`ConfigService` 同形缓存）算出同一摘要；
-        /// 判定表改一字节 → 变；表现/内容表（`tbanimationprofile`——用户裁决"也要可热更"）改一字节 → 不变。
+        /// **批 E 核心不变量**：判定面表字节基摘要两端取数同源—— 服务端盘上直读（`ServerTableLoader`）与客户端装载缓存形（`ConfigService` 同形缓存）算出同一摘要。
         /// </summary>
         [Fact]
         public void 判定面表字节基摘要_两端同源_判定表敏感_表现表不敏感()

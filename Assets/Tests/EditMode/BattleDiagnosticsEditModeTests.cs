@@ -6,10 +6,7 @@ using LiteSync.Client;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 对局诊断读口的 L2 EditMode 覆盖（联机诊断 HUD 批）：钉住描述单源的展示口径——
-    /// 丢包千分比 → 一位小数百分比（与 BattleNetworkHudDriver 同口径）、无样本占位不显示数值、
-    /// 无对局空态（DescribeCurrent = null ⇒ 消费方整组隐藏，不显示陈旧值）。
-    /// 登记口（Attach/Detach）接在对局视图装配/拆视图两处，EditMode 不造 BattleContext 假体——归 Play 面核证。
+    /// 对局诊断读口的 L2 EditMode 覆盖（联机诊断 HUD 批）：钉住描述单源的展示口径—— 丢包千分比 → 一位小数百分比（与 BattleNetworkHudDriver 同口径）、无样本占位不显示数值。
     /// </summary>
     public sealed class BattleDiagnosticsEditModeTests : UnityTestBase
     {

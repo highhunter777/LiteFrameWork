@@ -30,26 +30,6 @@ namespace MetaServer.IntegrationTests
 {
     /// <summary>
     /// 上云测试回环（《上云测试专项设计》§3 批C 的服务端侧等价物）：**在本机把"云上"那条链完整跑一遍**。
-    ///
-    /// 链路（每一段都是真实实现，无替身）：
-    /// <list type="number">
-    /// <item>Meta 真 Kestrel + 真 Mongo：游客登录签发访问令牌；</item>
-    /// <item>房间服真注册心跳 → Meta 实例注册表（buildHash/容量/地址）；</item>
-    /// <item>客户端持令牌取 Join Ticket（Meta 按容量分配实例并签发）；</item>
-    /// <item>客户端真 KCP + 安全信封连**房间服真监听端口**，用票据 Join → 房间端**真验签**；</item>
-    /// <item>**房主发起开局**（起满员不再自动开局）→ **真开火打真击杀**（走完整判定链：枪口→AimPoint 射线、命中柱、伤害、K/D）；</item>
-    /// <item>达击杀上限 → 结算冻结 → Outbox → 提交管道真 HTTP → Meta 落库；</item>
-    /// <item><c>GET /matches</c> 按账号查回该局 → **与权威 Sim 逐项对账**。</item>
-    /// </list>
-    ///
-    /// **为什么值得单独一条**：既有的 L3 覆盖"注册→签发→验签"（<c>LobbyHttpTests</c>）与
-    /// "Outbox→提交→落库"（<c>SettlementL3Tests</c>）两段，但**没有任何一条**把"真客户端经真票据进真房间、
-    /// 打出真击杀、结算回流"串起来——两段之间的接缝（票据玩家身份 → 席位账号 → 结算载荷）正是
-    /// 最容易漂移又最不容易被发现的地方。
-    ///
-    /// **客户端角色**：本用例用真 <see cref="RoomClient"/> + 真 KCP/信封扮演客户端（批C 的 Unity
-    /// 客户端尚未接线，见《非作者机恢复与验证记录》§5 第 10 项）——验的是**协议与数据链**，
-    /// 不含 Unity 表现层。
     /// </summary>
     [Collection("Mongo")]
     [Trait(TestTrait.Category, TestCategory.Integration)]
@@ -144,9 +124,7 @@ namespace MetaServer.IntegrationTests
             Assert.True(WaitFor(() => a.HasStartGame && b.HasStartGame, 15_000),
                 $"StartGame 未达（room.Phase={host.Room?.Phase} seats={host.Room?.NextPlayerId}）");
 
-            // 票据身份 → 席位账号 → 结算载荷（SeatAccountIds）这条链不在此处窥探内部状态：
-            // 它的可观察终点是"按各自账号查得到本局"（见 §⑥ 的按账号查询断言）——
-            // 链上任一环断裂（票据身份丢失/席位账号空串/Meta 按账号落库错位）都会让该断言红。
+            // 票据身份 → 席位账号 → 结算载荷（SeatAccountIds）这条链不在此处窥探内部状态： 它的可观察终点是"按各自账号查得到本局"（见 §⑥ 的按账号查询断言）—— 链上任一环断裂（票据身份丢失/席位账号空串/Meta 按账号落库错位）都会让该断言红。
 
             // ── ④ 真开火打真击杀（完整判定链）──────────────────────────────────────────
             long entityA = host.Room.EntityIdOf(0);
@@ -203,12 +181,7 @@ namespace MetaServer.IntegrationTests
         }
 
         /// <summary>
-        /// **多图批 · 真服务器**（独立用例——不与 FFA 主链耦合，几十秒内完成）：
-        /// Meta `create-room{mapId=2}` 出号并把行键盖章进票据 → 客户端真 KCP/信封持票进房 →
-        /// **JoinAck.map_id=2**（客户端据此选地图表行与场景）＋ 房间端实建房间的行键与判定图同为训练场行
-        /// （行 2：8 障碍/16 出生，摘要 c78441a74f6bc5f9，== 表行投影）。
-        /// 同批验**开房参数**：创建意图带 `expected_players=4` → 房间端建房时生效、JoinAck 回执房事实。
-        /// 该房不开局（4 座只进 1 人）；验完即断。
+        /// **多图批 · 真服务器**（独立用例——不与 FFA 主链耦合，几十秒内完成）： Meta `create-room{mapId=2}` 出号并把行键盖章进票据 → 客户端真 KCP/信封持票进房 → **JoinAc。
         /// </summary>
         [SkippableFact]
         public async Task 多图与人数_创建训练场四人房_真票据真进房_JoinAck回执房事实()
@@ -227,13 +200,7 @@ namespace MetaServer.IntegrationTests
             await 多图与人数_创建训练场四人房_真票据进房_回执房事实(metaBase, account, roomPort, host);
         }
 
-        // ══════════════════════════════════════════════════════════════════════════════
-        // 外接模式（进程级验证）：指向**已起的真服务器进程**，不再起进程内宿主
-        //   启用：LITELOOP_META_URL=http://127.0.0.1:5000  LITELOOP_ROOM_PORT=17777
-        //   可选：LITELOOP_KILL_LIMIT=3（须与外部房间配置一致）
-        //   —— 与同进程用例的差别：无进程内权威态可读，**唯一可观测面 = 客户端镜像**；
-        //      对账降为两面对账（客户端观测 ↔ Meta 落库），权威面由外部服务器的日志/指标印证。
-        // ══════════════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════════════════ 外接模式（进程级验证）：指向**已起的真服务器进程**。
 
         [SkippableFact]
         public async Task 上云回环_外接进程_真链跑通()
@@ -332,19 +299,10 @@ namespace MetaServer.IntegrationTests
             return true;
         }
 
-        // ══════════════════════════════════════════════════════════════════════════════
-        // 击杀驱动
-        // ══════════════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════════════════ 击杀驱动 ════════════════════════════════════════════════════════。
 
         /// <summary>
         /// 真开火直到权威 Sim 的击杀数达上限（或预算耗尽）。
-        ///
-        /// **瞄准口径**：AimPoint = 对手实体位置 + 1.0m（躯干中部）。射击链从逻辑枪口沿
-        /// "枪口→AimPoint"求交（<c>SimRaycast</c>），命中柱 [pos.Y, pos.Y+1.8]×0.45 覆盖该高度；
-        /// 爆头带下沿 = 1.8×0.805 = 1.449，故 1.0m 判为**躯干命中**（伤害 16，非 32）。
-        ///
-        /// **输入帧号**：取房间服权威帧 +1（inputDelay=1 语义，与 <c>RoomServerTests</c> 同款）——
-        /// 客户端在本进程内可直接读权威帧，这是测试 harness 的特权，不是生产路径。
         /// </summary>
         private int DriveKills(LoopbackClient shooter, ServerHost host, LoopbackClient target, int targetSlot,
             int budgetMs)
@@ -411,9 +369,7 @@ namespace MetaServer.IntegrationTests
             return true;
         }
 
-        // ══════════════════════════════════════════════════════════════════════════════
-        // HTTP 客户端面（游客登录 / 取票 / 查结果）
-        // ══════════════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════════════════ HTTP 客户端面（游客登录 / 取票 / 查结果） ══════════════════════════════════。
 
         private static async Task<string> GuestLoginAsync(string metaBase, string deviceId)
         {
@@ -462,10 +418,7 @@ namespace MetaServer.IntegrationTests
         }
 
         /// <summary>
-        /// 起房间服宿主（真 KCP + 真票据验签 + 真注册/结算管道，端口系统分配）——两条 L3 用例共用：
-        /// ① 上云回环主链（FFA 真击杀/结算）；② 多图批（真创建真进房/JoinAck 回执）。
-        /// **不**注册心跳、**不**启动循环/结算（调用方决定——主链要结算，多图用例不需要）。
-        /// 多图批：`MapCatalog` 与生产装配 Program 同形（缓存装载、缺行 fail-closed）。
+        /// 起房间服宿主（真 KCP + 真票据验签 + 真注册/结算管道，端口系统分配）——两条 L3 用例共用： ① 上云回环主链（FFA 真击杀/结算）；② 多图批（真创建真进房/JoinAck 回执）。
         /// </summary>
         private async Task<(ServerHost host, LobbyRegistrationClient lobby, SettlementSubmitService settlement,
             ServerLoop loop, int roomPort)> StartRoomServerAsync(string metaBase)
@@ -541,9 +494,7 @@ namespace MetaServer.IntegrationTests
         }
 
         /// <summary>
-        /// 多图批（真服务器）：`create-room{mapId=2}` → 响应票据 → 真 KCP/信封 Join → **JoinAck.map_id=2**；
-        /// 房间端实建房间的行键与判定图同为训练场行（表行 2：训练场快照摘要 c78441a74f6bc5f9）。
-        /// 该房不开局（expected_players=2 只进 1 人）；验完即断——多图链路证据与 FFA 主链共用同一次真宿主。
+        /// 多图批（真服务器）：`create-room{mapId=2}` → 响应票据 → 真 KCP/信封 Join → **JoinAck.map_id=2**。
         /// </summary>
         private async Task 多图与人数_创建训练场四人房_真票据进房_回执房事实(string metaBase, string accessToken,
             int roomPort, ServerHost host)
@@ -614,9 +565,7 @@ namespace MetaServer.IntegrationTests
             return n;
         }
 
-        // ══════════════════════════════════════════════════════════════════════════════
-        // 装配与轮询
-        // ══════════════════════════════════════════════════════════════════════════════
+        // ══════════════════════════════════════════════════════════════════════════════ 装配与轮询 ═══════════════════════════════════════════════════════。
 
         /// <summary>房间服配置（等价部署形态：注册+结算都指向本机 Meta；单人不下发、2 人满员开局）。</summary>
         private static string BuildRoomServerConfigJson(string metaBase, string journal)

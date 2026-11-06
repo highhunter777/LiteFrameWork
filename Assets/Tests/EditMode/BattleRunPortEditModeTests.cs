@@ -15,9 +15,7 @@ using NUnit.Framework;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 对局运行端口（<see cref="IBattleRun"/>）直接验收：StartGame 早到/Ended 早到、终局原因映射、
-    /// Leave 幂等、Dispose 不触发 Ended、视图挂载/拆除。用真 <see cref="BattleSession"/> +
-    /// 假传输（零网络），不依赖 PlayMode。
+    /// 对局运行端口（<see cref="IBattleRun"/>）直接验收：StartGame 早到/Ended 早到、终局原因映射、 Leave 幂等、Dispose 不触发 Ended、视图挂载/拆除。
     /// </summary>
     public sealed class BattleRunPortEditModeTests
     {

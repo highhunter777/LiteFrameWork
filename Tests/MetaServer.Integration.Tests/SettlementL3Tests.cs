@@ -20,12 +20,7 @@ using Xunit;
 namespace MetaServer.IntegrationTests
 {
     /// <summary>
-    /// 结算链真实端到端 L3（《上云测试专项设计》§6 第 4 条："结果在 Meta 可查（按账号）；
-    /// 同一结果重复提交 100 次只落一条"）：真 Kestrel + 真 Mongo 测试容器 + 真迁移（v4）。
-    ///
-    /// 覆盖：提交幂等（归档 _id 裁判 + 账本双维度）／按账号查询／鉴权与形状；
-    /// 以及**房间侧提交管道接真 Meta**的闭环（Outbox → SettlementSubmitService → Meta → Mongo，
-    /// 重启续投不丢不重——重投由 Meta 幂等收敛为一条）。
+    /// 结算链真实端到端 L3（《上云测试专项设计》§6 第 4 条："结果在 Meta 可查（按账号）； 同一结果重复提交 100 次只落一条"）：真 Kestrel + 真 Mongo 测试容器 + 真迁移（v4）。
     /// </summary>
     [Collection("Mongo")]
     [Trait(TestTrait.Category, TestCategory.Integration)]

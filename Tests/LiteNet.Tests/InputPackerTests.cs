@@ -48,10 +48,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 映射_全字段面逐项钉住_十字段无一漏()
         {
-            // P0-3：真服 ServerHost 与本地服 LocalServerTransport 曾各手抄一份逐字段拷贝
-            // （AimPoint 六字段真实漂移过一次：真服断点而本地服照常——本地绿掩盖真服红）。
-            // 字段面已归 InputPacker 单源；本用例把**全部 10 个字段**填成可区分值逐项断言，
-            // 任何一处漏映射即红（原用例只钉了 6 个面，SelectedWeaponSlot/TargetEntityId/ActionSeq 无护栏）。
+            // P0-3：真服 ServerHost 与本地服 LocalServerTransport 曾各手抄一份逐字段拷贝 （AimPoint 六字段真实漂移过一次：真服断点而本地服照常——本地绿掩盖真服红）。
             var src = new SimInputFrame
             {
                 EntityId = 0x0001_0002_0003_0004L,
@@ -114,9 +111,7 @@ namespace LiteNet.Tests
                 EntityId = 0x0001_0002_0003_0004L,
                 MoveX = -3.1415927f,
                 MoveZ = 1e-30f,
-                // **AimPoint 三分量必须填非默认**——否则"零到零"往返会假绿
-                // （AimPoint 单口径：《固定斜视角射击方案专项设计》§4；协议字段号 11/12/13，
-                // 漏映射则瞄准点静默丢失、命中/爆头永不发生）
+                // **AimPoint 三分量必须填非默认**——否则"零到零"往返会假绿 （AimPoint 单口径：《固定斜视角射击方案专项设计》§4；协议字段号 11/12/13， 漏映射则瞄准点静默丢失、命中/爆头永不发生）。
                 AimPointX = 6.2831853f,
                 AimPointY = 2.7182818f,
                 AimPointZ = -6.2831853f,

@@ -8,8 +8,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 确认缝路由器（批 3 · A14）：UI 段产出可后绑定的 <see cref="IConfirmDialog"/>，装配根后段绑定真实现。
-    /// 判据——**未绑定**只记一条告警并按取消返回（不抛、不悬挂）；**绑定后**四段文案原样转发并返回实现结果；
-    /// 解绑回到取消语义（模块关闭不留指向已拆服务的委托）。
     /// </summary>
     public sealed class ConfirmDialogRouterEditModeTests
     {

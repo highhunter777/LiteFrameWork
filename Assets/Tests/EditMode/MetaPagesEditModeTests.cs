@@ -15,13 +15,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 批C-④ 五页接线（《上云测试页面层级设计》§1～§6）：真 LuaEnv + 磁盘脚本 + **受控面替身**
-    /// （Bridge 三表 + self.ui 记录器——页面只认受控面，故无需 Unity 对象即可驱动整页逻辑并断言调用序）：
-    /// ① 登录页（未配置拒绝 / 在途态 / 成功替换大厅 / 失败页内重试 + Toast）；② 大厅页（列表三态 / 快速进入）；
-    /// ③ 房间页（房号 + 离开=回大厅并请流程收尾）；④ 结算页（本局结果 + 玩家排行 / 空态）；
-    /// ⑤ 战绩页（ListRecords 列表行投影 / 空态）；⑥ 设置页（标签 + 只读数据 + 关闭）。
-    /// 另含**文案键守卫**：页面脚本引用的每个 LText 键（含结束原因值域拼键）必须在 tbltext 表源在册。
-    /// 流程侧三处页面切换（首进开入口 / 开局关房间页 / 结束开结算页）归 <c>PageFlow</c>（C# 面，真导航需 Unity——归 PlayMode/夜间）。
+    /// 批C-④ 五页接线（《上云测试页面层级设计》§1～§6）：真 LuaEnv + 磁盘脚本 + **受控面替身** （Bridge 三表 + self.ui 记录器——页面只认受控面。）。
     /// </summary>
     public sealed class MetaPagesEditModeTests : UnityTestBase
     {

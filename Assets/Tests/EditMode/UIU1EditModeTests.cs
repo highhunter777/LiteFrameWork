@@ -11,11 +11,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 操作记录与取消验收（《UI框架总设计》§4.3——UI-03）：
-    /// 并发 Show 合流共享一次加载（不返回 null）；数据冲突 Busy；调用方 token 只取消本人等待、
-    /// 全员退出撤工作；Close 对在途打开发权威取消；失败类型化（UIOpenException）；
-    /// 展示代次（复用递增、迟到代次核验失败）与展示作用域 CTS（关闭即取消）；Tick 快照重入安全。
-    /// 时序口径与 UIU0EditModeTests 相同（假策略 + 手动 Tick；UTCS 定向续延控制加载窗口）。
+    /// 操作记录与取消验收（《UI框架总设计》§4.3——UI-03）： 并发 Show 合流共享一次加载（不返回 null）；数据冲突 Busy；调用方 token 只取消本人等待、 全员退出撤工作。
     /// </summary>
     public sealed class UIU1EditModeTests : UnityTestBase
     {
@@ -222,10 +218,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 交付链内紧接Close_真关闭_不被在途登记吞掉()
         {
-            // 打开任务在转场 FSM 收尾（Tick 内）才交付，交付是**内联同步链**：await 落点（异步状态机
-            // 续体）在 TrySetResult 的调用栈内执行——产品面就是这个形状（await ShowAsync 后就地做后续，
-            // 如进房快路径"打开加载遮罩随即收口"）。若"在途登记"此刻仍在，紧接着的 Close 会撞进
-            // "在途打开 = 权威取消"分支——只取消、不关闭，刚落地就被要求关闭的面静默留存。
+            // 打开任务在转场 FSM 收尾（Tick 内）才交付，交付是**内联同步链**：await 落点（异步状态机 续体）在 TrySetResult 的调用栈内执行——产品面就是这个形状（await ShowAsync 后就地做后续， 如进房快路径"打开加载遮罩随即收口"）。
             var catalog = new FakeCatalog(); catalog.Add(1);
             var loader = new GateLoader();
             var service = Service(catalog, loader);

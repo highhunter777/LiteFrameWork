@@ -11,9 +11,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 布局/适配族与性能静态族规则（工具链设计 §6.2「布局/适配」「性能」；制作规范 UI-LAYOUT-01/UI-PREFAB-03）：
-    /// CanvasScaler 基线与第二缩放器禁令、raycastTarget 预算、布局深度、UI 禁 Animator。
-    /// 阈值单源＝<see cref="UIRuleThresholds"/>；真实面（Page_* 全合规）由全量校准门禁承担。
+    /// 布局/适配族与性能静态族规则（工具链设计 §6.2「布局/适配」「性能」；制作规范 UI-LAYOUT-01/UI-PREFAB-03）： CanvasScaler 基线与第二缩放器禁令。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UILayoutPerformanceRuleEditModeTests

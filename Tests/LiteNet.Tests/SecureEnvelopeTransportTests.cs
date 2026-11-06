@@ -351,10 +351,7 @@ namespace LiteNet.Tests
     }
 
     /// <summary>
-    /// 安全信封的**真实 KCP 回环**段：信封装饰器套在真 KCP 两端——
-    /// 握手与密文在真实 UDP/MTU/可靠信道语义下走通，Join→JoinAck 全链可用。
-    /// 与上层 <see cref="SecureEnvelopeTransportTests"/>（假传输，钉协议与攻击面）互补：
-    /// 假件抹不掉的这层（Socket 时序、MTU、KCP 会话）由本组钉住。
+    /// 安全信封的**真实 KCP 回环**段：信封装饰器套在真 KCP 两端—— 握手与密文在真实 UDP/MTU/可靠信道语义下走通，Join→JoinAck 全链可用。
     /// </summary>
     [Trait(LiteTesting.TestTrait.Category, LiteTesting.TestCategory.Integration)]
     public sealed class SecureEnvelopeRealTransportTests : IDisposable

@@ -6,12 +6,6 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// `SimMath.Sqrt` 自研 software sqrt 的正确性（见《待办总览》§5-33）。
-    ///
-    /// 判据分两层：
-    /// ① **正确性**——与 BCL `(float)Math.Sqrt`（IEEE 要求正确舍入，.NET 侧可信）**逐位一致**：
-    ///    大量随机位型 + 幂次 + 次正规 + 完美平方及邻域（强制舍入边界）+ 特例。
-    /// ② **跨运行时确定性**——纯整数/位运算无 BCL 数学调用；Unity 侧一致性由
-    ///    `Assets/Tests/EditMode` 的 IEEE 基线对账（含 10k 步 Chain）与 `Baselines/SimChecksum.txt` 共同守住。
     /// </summary>
     public sealed class SimMathSqrtTests
     {

@@ -4,10 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 尸体期集成链（死亡链路审计的根治面）：死亡帧 → **事件可达**（槽位未回收——
-    /// 驱动器 TryGetSlot 不再门口丢失）→ **尸体期槽位存活**（视图载体/快照重建/重连可见）→
-    /// 期满回收。覆盖此前的审计盲区：Cleanup 同帧回收让死亡事件在驱动器门口丢失、视图载体即逝。
-    /// 全链走真实 <see cref="SimStep.Step"/>（非单系统直调）。
+    /// 尸体期集成链（死亡链路审计的根治面）：死亡帧 → **事件可达**（槽位未回收—— 驱动器 TryGetSlot 不再门口丢失）→ **尸体期槽位存活**（视图载体/快照重建/重连可见）→ 期满回收。
     /// </summary>
     public sealed class CorpsePhaseTests
     {

@@ -14,10 +14,7 @@ using XLua;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 批C-⑥ 控件族（G15～G17）与列表（G6）**真 Lua 调用面**（《UI控件Lua API 参考》§6：
-    /// "新增受控方法必须同步 shim/Dispatch/UIBindIndex/白名单并**提供真 Lua 调用测试**"）——
-    /// 真 LuaEnv + 真轻适配器 + 合成控件树（BindNode 标记 → BindIndexBuilder 索引 → shim → Dispatch → UIBindIndex 全链），
-    /// 断言落到**控件状态/回调/条目文本**（不是"C# 方法存在"）。
+    /// 批C-⑥ 控件族（G15～G17）与列表（G6）**真 Lua 调用面**（《UI控件Lua API 参考》§6： "新增受控方法必须同步 shim/Dispatch/UIBindIndex/白名单并**提供真 Lua 。）。
     /// </summary>
     public sealed class UIControlListProtocolEditModeTests : UnityTestBase
     {

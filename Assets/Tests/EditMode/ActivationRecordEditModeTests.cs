@@ -7,13 +7,7 @@ using LiteFramework;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// FileActivationRecordIO 用例：文件往返、损坏/缺失/未知结构版本 → null（不可信即弃——
-    /// 回 builtin 起点，fail-safe）；**完整性保护**（半截/被改写的记录一律不可信，
-    /// 《热更与内容发布专项设计》§8）。FileSystem 在 EditMode 直读 persistentDataPath（无 YooAsset 依赖）。
-    /// 用独立测试路径，不触碰真实 activation.json。
-    ///
-    /// 注：**生产路径由 ActivationTransactionStore 提交（自动盖章）**，业务不应直接 Save 未盖章记录；
-    /// 本文件的"未盖章 → 不可信"负例正是这一纪律的回归卡。
+    /// FileActivationRecordIO 用例：文件往返、损坏/缺失/未知结构版本 → null（不可信即弃—— 回 builtin 起点，fail-safe）；**完整性保护**（半截/被改写的记录一律不可信。）。
     /// </summary>
     public sealed class ActivationRecordEditModeTests : UnityTestBase
     {

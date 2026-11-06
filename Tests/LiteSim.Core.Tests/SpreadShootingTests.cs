@@ -4,11 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 散布与多弹丸的**射击系统集成**用例（《游戏业务系统总设计》§5 散布/弹丸）：
-    /// 经 <see cref="SimStep"/> 全链（InputSystem 置瞄准态 → 武器装备 → 弹丸环）验证——
-    /// 随机消费口径（每弹丸 2 笔 + 每命中 ±1 一笔）、锥角上界的命中界、腰射放大、
-    /// 霰弹多弹丸的伤害合计与逐弹丸障碍截停、无效开火零消耗。
-    /// 纯几何件见 <see cref="SimSpreadTests"/>；半自动边沿门见 <see cref="SemiAutoTests"/>。
+    /// 散布与多弹丸的**射击系统集成**用例（《游戏业务系统总设计》§5 散布/弹丸）： 经 <see cref="SimStep"/> 全链（InputSystem 置瞄准态 → 武器装备 → 弹丸环）验证—— 随机消费口径。
     /// </summary>
     public sealed class SpreadShootingTests
     {

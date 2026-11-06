@@ -8,10 +8,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 房主开局用例（开房裁决：**开房者 = 首个入座者**，owner 位随 JoinAck 下发；
-    /// **开局唯一入口 = 房主发起**〔满员自动开局已取消——满员也停在等待〕——
-    /// 世界只生成已入座实体，缺席席位沿用空输入；对局中拒加入〔此前中途加入
-    /// 会拿到无实体的空席位〕）。Runtime 直测（纯逻辑）；宿主路由/协议面归 ServerHost 集成用例。
+    /// 房主开局用例（开房裁决：**开房者 = 首个入座者**，owner 位随 JoinAck 下发； **开局唯一入口 = 房主发起**〔满员自动开局已取消——满员也停在等待〕—— 世界只生成已入座实体，缺席席位沿用空输入。）。
     /// </summary>
     public sealed class OwnerStartEarlyTests
     {

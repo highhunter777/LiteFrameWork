@@ -7,15 +7,6 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// SimWorldDiff 覆盖面守卫：**每个进全量 checksum 的字段，差异报告都必须能指出来**。
-    ///
-    /// **为什么需要**：checksum 只能回答"是否相同"，回答不了"哪里不同"——后者正是
-    /// <see cref="SimWorldDiff"/> 存在的意义。但它的字段清单是手写的：checksum 侧经
-    /// [StateLayer] 生成物自动跟上，本类若漏扩展，"checksum 报警但报告无差异"的静默漏检
-    /// 就回来了（分型表曾整层缺失——checksum 报警、报告空白）。
-    ///
-    /// 守卫方法与 <see cref="SyncCoverageTests"/> 同款**扰动法**：逐字段把一侧改成非默认值，
-    /// <see cref="SimWorldDiff.Compare"/> 必须产出至少一条差异，且路径含该字段名
-    /// （钉"能指出"，不是笼统的"报了不同"）。
     /// </summary>
     public class SimWorldDiffCoverageTests
     {

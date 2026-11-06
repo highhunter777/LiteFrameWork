@@ -10,18 +10,7 @@ using NUnit.Framework;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 页面 Lua "名字面"守卫（契约族）：Lua 里出现的名字形状字面量必须落在该页契约面
-    /// （<c>controls[].bindName</c> ∪ <c>text[]</c> 节点名 ∪ 页面自身名）。
-    ///
-    /// 为什么需要：<see cref="LiteGame.Editor.UITools.Validation.Rules.ContractReferenceRule"/> 只认
-    /// <c>self.ui:Api("名字", …)</c> 的**字面量第一参**——经表驱动传名字（<c>TAB_TEXT_NODES[i]</c> /
-    /// <c>PANELS[i]</c>）时它看不见，拼错或改名漂移就一路静默到运行期：<c>SetText</c>/<c>Get</c> 在
-    /// SafeCall 里抛异常，页面 OnShow 中段停摆，控制台只剩一行 LuaException。本用例按**全文名字形状
-    /// 字面量**对账（与调用形态无关），补上那条盲区。
-    ///
-    /// 实锤：局内 ESC 开设置页时控制台报错——Page_Settings.lua 写 <c>Txt_Tab_Audio</c>（两个下划线，
-    /// 不合 §9.2 文法）而 prefab 绑定名是 <c>Txt_TabAudio</c>；五个 <c>Cot_*Panel</c> 页签面板压根没挂
-    /// BindNode，<c>SetVisible</c> 取不到——两处都落在动态名字盲区，既有规则全绿。
+    /// 页面 Lua "名字面"守卫（契约族）：Lua 里出现的名字形状字面量必须落在该页契约面 （<c>controls[].bindName</c> ∪ <c>text[]</c> 节点名 ∪ 页面自身名）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class UIPageNameFaceEditModeTests

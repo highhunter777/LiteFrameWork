@@ -16,17 +16,7 @@ using LiteFramework;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 真 Lua 页面生命周期 PlayMode 用例（《框架先行》§4 包③退出条件"**真 Lua**/Prefab/
-    /// 动画资源组合运行，取消、暂停、**复用**、**卸载**可验证"）。
-    ///
-    /// 与 `UIU0EditModeTests` 的差异是本组存在的理由：EditMode 版由用例显式泵 Tick，PlayMode 走
-    /// 真实 PlayerLoop + 真实转场 runner——**转场期间的状态迁移在 EditMode 下根本不发生**。
-    ///
-    /// 链路：真 LuaEnv（loader 读磁盘 `LiteGame/Lua/**.lua`）→ `LuaBehaviourAdapter`
-    /// （真 ui-API 派发表）→ 真注册表模块 `Tests.UITestPage`（测试载体）→ 真 prefab → `UIService` 真转场。
-    ///
-    /// 断言口径取 [UI测试开发专项 §4.3](../docs)：页面状态 / 实例 Created·Reused·Destroyed /
-    /// 资源 Acquired·Released——**不只断言"最终可见"**。
+    /// 真 Lua 页面生命周期 PlayMode 用例（《框架先行》§4 包③退出条件"**真 Lua**/Prefab/ 动画资源组合运行，取消、暂停、**复用**、**卸载**可验证"）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class LuaPagePlayModeTests
@@ -228,9 +218,7 @@ return m";
 
         private static async UniTask<IUIPrefabLease> LoadRealPrefabAsync(string location, CancellationToken ct)
         {
-            // 让出一帧再加载：把"在途窗口"变成**确定性**的，取消用例才测得到取消语义
-            // （真实 IO 若同帧完成，CloseAsync 走的是"已打开"的转场关闭路径）。
-            // 这不是放宽断言——是让用例测量的正是它声称测量的东西（UI-U2"最小可复现"口径）。
+            // 让出一帧再加载：把"在途窗口"变成**确定性**的，取消用例才测得到取消语义 （真实 IO 若同帧完成，CloseAsync 走的是"已打开"的转场关闭路径）。
             await UniTask.Yield(ct);
             GameObject prefab = await AssetService.LoadAssetAsync<GameObject>(location, ct);
             if (prefab == null) throw new InvalidOperationException($"真资源加载失败:{location}");

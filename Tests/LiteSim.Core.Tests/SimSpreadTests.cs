@@ -5,9 +5,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 散布锥偏转（<see cref="SimSpread"/>）几何用例：纯几何件，随机源由调用方传入——
-    /// 本组直接喂（偏转角, 方位角）验证：恒等性 / 锥角上界 / 单位性 / 竖直退化 / 逐位确定性。
-    /// 与射击系统集成（随机消费口径/多弹丸）见 <see cref="SpreadShootingTests"/>。
+    /// 散布锥偏转（<see cref="SimSpread"/>）几何用例：纯几何件，随机源由调用方传入—— 本组直接喂（偏转角, 方位角）验证：恒等性 / 锥角上界 / 单位性 / 竖直退化 / 逐位确定性。
     /// </summary>
     public sealed class SimSpreadTests
     {

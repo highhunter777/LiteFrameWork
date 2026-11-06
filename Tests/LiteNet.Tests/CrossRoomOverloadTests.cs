@@ -15,14 +15,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 跨房间过载隔离（《商业级通用服务端框架总设计》§514"**多房间并发时一个慢客户端或过载房间
-    /// 不拖累其他房间**"；§593 弱网行"其他房间不受单慢连接拖累"；§560"退出条件：并发多房间、
-    /// 慢客户端、过载房间和 drain 测试通过"）。
-    ///
-    /// 与 <see cref="RoomBroadcastTests"/>「背压超限_该客户端降档抽帧_其余客户端不受拖累」的分工：
-    /// 那条钉的是**房间内**（同房间不同客户端）；本组钉的是**跨房间**——A 房被慢客户端压垮时，
-    /// B 房的推帧与广播频率必须不受影响。两件事的失效模式不同：房间内靠 per-Session 记账隔开，
-    /// 跨房间靠 per-Room 管线 + 逐房间推帧隔开（若哪天有人把管线或帧推进改成全局共享，本组会红）。
+    /// 跨房间过载隔离（《商业级通用服务端框架总设计》§514"**多房间并发时一个慢客户端或过载房间 不拖累其他房间**"；§593 弱网行"其他房间不受单慢连接拖累"；§560"退出条件：并发多房间、 慢客户端。）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class CrossRoomOverloadTests
@@ -50,8 +43,6 @@ namespace LiteNet.Tests
 
             /// <summary>
             /// 本房两个席位都按正常节奏反馈（ack 最新已发帧，对齐真实 §4.5 输入包携带 ack）。
-            /// **不 ack 的席位会被背压判定为慢客户端**（水位只经验证过的 ACK 释放）——
-            /// 用例必须显式表达"谁在正常反馈"，不能靠默认值蒙混。
             /// </summary>
             public void AckAll()
             {
@@ -99,11 +90,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// 命令面步进。两房各自用自己的 Runtime 与管线——与 ServerHost.Pump 的逐房间循环同序。
-        ///
-        /// <paramref name="ackA"/>/<paramref name="ackB"/> 声明该房是否按正常节奏反馈。
-        /// **必须显式声明**：不 ack 的席位会被背压判定为慢客户端（水位只经验证过的 ACK 释放），
-        /// 所以"没写 ack"等价于"这一房全员慢客户端"——那是另一个测试场景，不能靠默认值蒙混。
+        /// 命令面步进。
         /// </summary>
         private static void StepPair(RoomFixture a, RoomFixture b, int count, bool ackA = false, bool ackB = false)
         {
@@ -169,8 +156,6 @@ namespace LiteNet.Tests
         public void 两房间管线各自记账_水位互不串用()
         {
             // 若哪天有人把 SnapshotPipeline 改成跨房间共享，本用例会红。
-            // 注意 B 房席位的水位**不是 0**——B 房自己也在正常广播，自然累积已发字节；
-            // "不共享"的正确判据是"B 的水位只反映 B 自己的发送量"，故用**量级差**而非零值。
             RoomFixture a = BuildStartedRoom("Room-A", 50);
             RoomFixture b = BuildStartedRoom("Room-B", 60);
 
@@ -199,8 +184,6 @@ namespace LiteNet.Tests
             Assert.True(a.Slow.BackpressureTier >= 1);
 
             // A 房慢客户端开始正常 ACK → 水位回落 → 逐档恢复。
-            // **恢复是逐档的、每档要连续达标 2s**（`UpdateBackpressureTier` 每次只降一档），
-            // 故跑够 tier 档数 × 2s。这与 RoomBroadcastTests「背压恢复」同一口径。
             int tiers = a.Slow.BackpressureTier;
             var outputs = new List<RoomOutput>();
             int frames = (int)(tiers * ProtocolConstants.RecoverHoldMillis * SimConfig.TickRate / 1000) + 10;

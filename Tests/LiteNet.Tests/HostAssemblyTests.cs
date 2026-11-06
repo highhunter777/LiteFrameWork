@@ -12,11 +12,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 宿主装配收敛批1（《服务端宿主装配收敛专项设计》）：组合根解析全图（含 Worker 执行形态装配）
-    /// ＋释放序等价（host 接管释放内部序 transport → outbox；容器按创建序逆序收尾，双释放不抛）。
-    /// 装配等价——宿主运行语义（准入/排空/多房间/过载）由既有宿主链用例把守，本组不重复。
-    /// 批3 直迁件：五件协作对象（Ops/RateLimiter/SessionManager/ReconnectService/JoinAdmissionGate）
-    /// 经容器注册——解析所得＝宿主持有同一单例；公共构造缺省自建与显式注入端口各自可验。
+    /// 宿主装配收敛批1（《服务端宿主装配收敛专项设计》）：组合根解析全图（含 Worker 执行形态装配） ＋释放序等价（host 接管释放内部序 transport → outbox；容器按创建序逆序收尾，双释放不抛）。
     /// </summary>
     public sealed class HostAssemblyTests
     {

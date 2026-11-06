@@ -10,10 +10,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// HUD 面板驱动的 L2 EditMode 覆盖：HP 文本/填充随预测态（值变化跳过）、弹匣/剩余备弹读出/未装备/换弹标签
-    /// （<see cref="WeaponSlotState"/> 私有面）、本地未对齐整组隐藏、Dispose 归零。
-    /// 预测态与本地 Id 走构造注入——EditMode 无流程依赖，确定性。
-    /// 真场景面板观感（Synty 素材布局）归 PlayMode/手测；模板结构另由 run_script 验收。
+    /// HUD 面板驱动的 L2 EditMode 覆盖：HP 文本/填充随预测态（值变化跳过）、弹匣/剩余备弹读出/未装备/换弹标签 （<see cref="WeaponSlotState"/> 私有面）、本地未对齐整组隐藏。
     /// </summary>
     public sealed class BattleHudEditModeTests : UnityTestBase
     {

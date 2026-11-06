@@ -10,26 +10,12 @@ using LiteGame.Modules.Input;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 瞄准激光驱动（<see cref="BattleLaserDriver"/>，修订口径：**激光器装在武器上**）的
-    /// L2 EditMode 覆盖：束挂到武器挂载点（Weapon_Rifle/Muzzle）本地空间；**端点恒沿枪管前向**
-    /// （瞄准/开火语境不收敛准心，不读 AimPoint）；截停走 <c>SimRaycast</c> 单源（实体圆柱三维 +
-    /// 障碍折回同量纲 + 射程取最近）；可见性门（未对齐/死亡/被拦/未装备/不支持/**无挂载点**——
-    /// 灰盒无武器即无激光，诚实退化）。
-    ///
-    /// **夹具坐标系（易踩）**：本地视图**自带朝向**（<c>SimView</c> 按模型前沿 +Z 施加
-    /// <c>FacingRotation</c>，Yaw=0 时视图世界 yaw 已 90°），因此挂载点朝向一律用
-    /// <see cref="BuildMount"/> 的**世界 yaw** 表述（默认 90° ⇒ 前向 +X 且本地 +Z = 枪管轴）；
-    /// 用 <c>localRotation</c> 会两次相加得到世界 180°，射向与目标垂直、所有截停落空。
-    /// 真 prefab/真枪口的手感对位归 PlayMode/手测。
+    /// 瞄准激光驱动（<see cref="BattleLaserDriver"/>，修订口径：**激光器装在武器上**）的 L2 EditMode 覆盖：束挂到武器挂载点（Weapon_Rifle/Muzzle）本地空间。
     /// </summary>
     public sealed class BattleLaserEditModeTests : UnityTestBase
     {
         /// <summary>
-        /// **静态态隔离（每例前置复位）**：<see cref="LaserSightPolicy.Supports"/> 在
-        /// <c>TestModeRuntime.Current.Active</c> 置位时**绕过 def id 集合**直接返回快照开关——若前序用例
-        /// （含同夹具的测试模式用例、或任何触发 <c>DevStartupConfig.ApplySnapshotOrDefaults</c> 的路径）
-        /// 留下 Active=true，后续「不支持武器应隐藏」这类用例会拿到"支持"而被误判失败。
-        /// 故每例开工前把该静态快照复位到**非测试模式默认口径**（用例内自行置位的仍可覆盖）。
+        /// **静态态隔离（每例前置复位）**：<see cref="LaserSightPolicy.Supports"/> 在 <c>TestModeRuntime.Current.Active</c> 置位时**绕过 def 。
         /// </summary>
         [SetUp]
         public void ResetTestModeSnapshot()
@@ -72,9 +58,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>
-        /// 逐分量断言（含容差）。**不用 <c>Assert.AreEqual(Vector3, Vector3)</c>**——那是精确相等，
-        /// 三维求交链（归一化、InverseTransformPoint）必然产生浮点末位差异，会把语义正确的端点判成失败
-        /// （典型表现：期望与实得打印完全一样却仍红）。
+        /// 逐分量断言（含容差）。
         /// </summary>
         private static void AssertLocal(Vector3 actual, Vector3 expected, float tol, string msg = null)
         {
@@ -85,16 +69,6 @@ namespace LiteGame.Tests.EditMode
 
         /// <summary>
         /// 武器激光挂载点（本地视图下的 "Muzzle" 锚点），朝向按**世界 yaw** 给定（默认 90° = 前向 +X）。
-        ///
-        /// **为什么用 <c>transform.rotation</c> 而不是 <c>localRotation</c>**（坐标系陷阱）：
-        /// 本地视图**自带朝向**——<c>SimView</c> 按模型视觉前沿约定 +Z 施加 <c>FacingRotation</c>
-        /// （Sim Yaw=0 时视图世界 yaw 已是 90°）。若再叠一个 <c>localRotation</c>，两次旋转相加，
-        /// 传 90° 会得到世界 yaw 180°（前向 −Z）⇒ 射向与目标垂直、所有截停落空跑满射程。
-        /// 挂载点朝向必须以**世界**为准表述。
-        ///
-        /// **默认 90° 的意义**：使**本地 +Z = 枪管轴**（prefab <c>Weapon_Rifle/Muzzle</c> 的约定，
-        /// 枪管模式按"本地 +Z × 距离"写端点）。收敛/回退模式用 <c>InverseTransformPoint</c>，
-        /// 与挂载点朝向无关。
         /// </summary>
         private Transform BuildMount(GameObject localView, Vector3 localPos, float worldYawDeg = 90f)
         {
@@ -227,9 +201,6 @@ namespace LiteGame.Tests.EditMode
         public void 激光_方向随枪不追鼠标_无输入也出束()
         {
             // 两侧各一个目标；枪口（挂载点）转向谁就打谁——端点与瞄准输入无关。
-            // **两个子场景各自独立构造挂载点**（而非构造后改 rotation）：EditMode 下运行时改
-            // Transform 朝向不会即时反映到同帧的 forward 读取，"转向"必须在 Tick 前就位——
-            // 这与"美术转锚点即转向"一致（转的是 prefab 上的挂载点，不是运行期临时摆动）。
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map,
                 new Vector3(10f, 0f, 0f), new Vector3(-10f, 0f, 0f));
@@ -394,9 +365,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 激光_几何走CombatConfig_Geometry投影()
         {
-            // 侧向 1.2m 的目标：默认双柱（身体 0.45 / 爆头 0.32、爆头线下沿 ~1.4）打不中；
-            // Published 宽几何"爆头带下移到 0 + 爆头柱 1.5"才在 9.1m 处命中。两个方向各验一次：
-            // ① 宽几何 → 命中；② 复位默认几何 → 射程上限（视图只读 CombatConfig.Geometry 投影）。
+            // 侧向 1.2m 的目标：默认双柱（身体 0.45 / 爆头 0.32、爆头线下沿 ~1.4）打不中； Published 宽几何"爆头带下移到 0 + 爆头柱 1.5"才在 9.1m 处命中。
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map, new Vector3(10f, 0f, 1.2f));
             BuildMount(localView, new Vector3(0f, 1f, 0f));                    // 枪口 (0,1,0) 前向 +X

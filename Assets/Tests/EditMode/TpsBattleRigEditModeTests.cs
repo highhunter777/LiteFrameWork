@@ -10,11 +10,7 @@ using UnityEngine.SceneManagement;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// BattleRig 场景的 **TPS 结构守卫**（越肩 rig 形态防回潮）：双机轨道无遗留输入源（视角唯一写者＝
-    /// 相机服务）、POV 轴无输入源/不回正（视线由服务写）、双机带收臂件且忽略玩家自身碰撞、越肩近距形态
-    /// （水平幅 ≤ 5m——斜视角 12m 高位回潮即红）、主相机机位调参件在场（俯仰弧可配）。
-    /// **只断言结构不变量、不断言具体数值**——Inspector 调参（距离/肩偏/FOV/跟随/枢轴）自由，形态回退才红。
-    /// **场景所有权**：已加载则复用、不重复 Open/Close——重复句柄会把测试进程卡进场景保存死锁。
+    /// BattleRig 场景的 **TPS 结构守卫**（越肩 rig 形态防回潮）：双机轨道无遗留输入源（视角唯一写者＝ 相机服务）、POV 轴无输入源/不回正（视线由服务写）、双机带收臂件且忽略玩家自身碰撞。
     /// </summary>
     public sealed class TpsBattleRigEditModeTests
     {

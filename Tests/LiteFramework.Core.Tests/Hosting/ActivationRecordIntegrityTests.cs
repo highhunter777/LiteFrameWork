@@ -6,13 +6,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 激活记录完整性、序号与事务 ID（《热更与内容发布专项设计》§8"状态记录与文件清单带
-    /// **完整性保护、序号和可诊断事务 ID**"；"原子提交需由平台存储适配实现并测试写盘、中断、
-    /// 重命名和恢复，不能把普通覆盖写文件称为原子事务"）。
-    ///
-    /// 与 <see cref="ActivationTransactionStoreTests"/> 分工：那边验**恢复决策**（三态与回退），
-    /// 这里验**记录本身的受保护提交**——完整性盖章/校验、序号单调、事务 ID 贯穿、
-    /// 以及恢复表逐行的确定行为。
+    /// 激活记录完整性、序号与事务 ID（《热更与内容发布专项设计》§8"状态记录与文件清单带 **完整性保护、序号和可诊断事务 ID**"；"原子提交需由平台存储适配实现并测试写盘、中断、 重命名和恢复。）。
     /// </summary>
     public sealed class ActivationRecordIntegrityTests
     {
@@ -76,9 +70,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 完整性_半截但可解析的记录被判不可信()
         {
-            // §8 的核心场景：覆盖写中断留下的记录"还能解析"但内容不完整——
-            // 没有完整性保护时会被当作有效记录采用。
-            // 构造：完整记录含事务 ID 等非默认字段；截断版本丢了它们（反序列化回默认值）。
+            // §8 的核心场景：覆盖写中断留下的记录"还能解析"但内容不完整—— 没有完整性保护时会被当作有效记录采用。
             var full = new ActivationRecord
             {
                 ConfirmedReleaseId = "rel-a",
@@ -327,10 +319,6 @@ namespace LiteFramework.Tests
 
         /// <summary>
         /// 空值占位符是字面量 <c>"null"</c>——与空串 <c>""</c> 在摘要中可区分。
-        ///
-        /// 本用例的价值是**防止随手改写**：占位符/规范化规则的任何改动都会改变摘要
-        /// → 所有既有激活记录校验失效 → 用户丢已确认版本。若将来确实要改，
-        /// 必须接受一次全量失效并升 <c>SchemaVersion</c>。
         /// </summary>
         [Fact]
         public void 空值占位符_字面量null_改动会使既有记录失效()

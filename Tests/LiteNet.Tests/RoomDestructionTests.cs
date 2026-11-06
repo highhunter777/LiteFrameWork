@@ -10,12 +10,6 @@ namespace LiteNet.Tests
 {
     /// <summary>
     /// 终态房间销毁清理（《商业级通用服务端框架总设计》§42"drain 与房间销毁后清理归 R2"）。
-    ///
-    /// 语义：房间到达终态（Closed/Aborted）后，由宿主 <see cref="ServerHost.Pump"/> 销毁——
-    /// 先应用该房间当轮输出（结算入盒等），再从房间表移除、容量归还；同房号此后可**重建**（新实例）。
-    /// 销毁同时清理席位会话的路由字段，防止旧连接的迟到输入命中重建后的新房间席位。
-    /// 终态两源：对局收场（Running 全员离场/时限/杀限 → Closed）；**未开局即全员离场 → Aborted**
-    /// （无结果可结算——不收尾的未开局房会因 NextPlayerId 只增而永久占死房号与名额）。
     /// </summary>
     public sealed class RoomDestructionTests
     {

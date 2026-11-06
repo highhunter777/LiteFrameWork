@@ -8,9 +8,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 账号重入单点（M3-5c 恢复动作「重新登录」；《客户端依赖注入专项设计》§6.2）：
-    /// 登录失效后唯一路径 = ① 登出（令牌即弃）→ ② 离场（在途对局回 Main）→ ③ 回登录页；
-    /// 登录页已在场 = 幂等 no-op；取消 = 不动作。零引擎端口替身直测。
+    /// 账号重入单点（M3-5c 恢复动作「重新登录」；《客户端依赖注入专项设计》§6.2）： 登录失效后唯一路径 = ① 登出（令牌即弃）→ ② 离场（在途对局回 Main）→ ③ 回登录页。
     /// </summary>
     public sealed class AccountReentryTests
     {

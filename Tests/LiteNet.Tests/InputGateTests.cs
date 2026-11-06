@@ -7,12 +7,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 输入闸门单元用例（《M10实施指导》附「服务端审查」）：
-    /// 取帧口径、ack 处理、已消费帧拒绝、按键白名单——四条都是"服务器边界"行为，
-    /// 用假消息直接测 `InputGate`，不依赖网络与房间。
-    ///
-    /// 入参是纯数据 <see cref="ClientInputBatch"/>（Runtime 不见 proto）；跨层常量一致性由文末
-    /// "契约"组钉死（MaxFrames/MoveComponentLimit/VectorLengthSquaredLimit）。
+    /// 输入闸门单元用例（《M10实施指导》附「服务端审查」）： 取帧口径、ack 处理、已消费帧拒绝、按键白名单——四条都是"服务器边界"行为， 用假消息直接测 `InputGate`，不依赖网络与房间。
     /// </summary>
     public sealed class InputGateTests
     {
@@ -413,15 +408,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// **G4 契约（《客户端与服务端共享代码范围专项设计》§8.1）**：固定逻辑帧率下，
-        /// "1 秒"这类**按帧表达的时长**必须随 `TickRate` 走。
-        ///
-        /// 为什么需要：`ProtocolConstants.FullEveryFrames` 的注释写"60 帧 = 1s"，
-        /// 但它是**裸常量**——若把 `SimConfig.TickRate` 改成 30，全量兜底会静默变成 **0.5 秒**
-        /// （带宽翻倍、无人察觉），且没有任何东西会红。本用例就是那个"东西"。
-        ///
-        /// 断言口径：`FullEveryFrames` 必须是 `TickRate` 的**整数倍**，且倍数为 1 秒只出现一次
-        /// （即它确实表达一个整数秒）。两值同属 S0，但语义耦合是**设计事实**、编译期表达不出来。
+        /// **G4 契约（《客户端与服务端共享代码范围专项设计》§8.1）**：固定逻辑帧率下， "1 秒"这类**按帧表达的时长**必须随 `TickRate` 走。
         /// </summary>
         [Fact]
         public void 契约_全量兜底间隔必须与TickRate表达整数秒()
@@ -439,11 +426,6 @@ namespace LiteNet.Tests
 
         /// <summary>
         /// **G4 契约**：`InputGate.AllowedButtons`（S1）是 `SimInputFrame` 各按钮位（S0）的**并集复述**。
-        ///
-        /// 为什么需要：`AllowedButtons` 逐位罗列了 S0 的 9 个按钮常量。若 S0 **重命名/删除**其中一个，
-        /// 编译红的是 S1——**S0 侧（客户端）零保护**：客户端可以继续发一个服务端已不认识的位，
-        /// 表现为"输入静默被丢弃、玩家按键无反应"，而两端编译都过。
-        /// 本用例把"白名单 = 已知按键全集的子集"钉死，并为 S0 侧的改动建立回流信号。
         /// </summary>
         [Fact]
         public void 契约_按键白名单必须覆盖S0的全部可上报位()

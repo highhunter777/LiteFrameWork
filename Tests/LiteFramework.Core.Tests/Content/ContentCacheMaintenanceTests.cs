@@ -11,10 +11,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// M3-5c 恢复动作「清缓存」（《客户端依赖注入专项设计》§6.2 / 《热更与内容发布专项设计》§8）：
-    /// 受控内容缓存清理 = 先关内容运行时 → 删候选根（下载产物）→ 激活记录回退 builtin；
-    /// 内置包根不动、幂等、取消不产生副作用。真 <see cref="FileSystem"/> + 临时根，
-    /// 内容服务/激活 IO 用替身（不启 YooAsset、不落生产盘）。
+    /// M3-5c 恢复动作「清缓存」（《客户端依赖注入专项设计》§6.2 / 《热更与内容发布专项设计》§8）： 受控内容缓存清理 = 先关内容运行时 → 删候选根（下载产物）→ 激活记录回退 builtin； 内置包根不动。
     /// </summary>
     public sealed class ContentCacheMaintenanceTests : IDisposable
     {

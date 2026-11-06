@@ -11,11 +11,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// AppLifetime 桥用例（《商业级通用客户端框架总设计》§6.1 ClientHost 责任
-    /// "处理 OnApplicationPause/Focus/Quit、低内存……关闭前刷新设置、存档、遥测"）：
-    /// Unity 平台消息经 AppLifetime 转发 ClientHost；OnApplicationQuit 触发
-    /// "QuitIntent 收集 → 刷新钩子 → 逆序 ShutdownAsync"的优雅退出序列。
-    /// 假模块同步完成 → 桥内有界等待立即返回；挂死/异步善后的超时放行归平台宿主语义。
+    /// AppLifetime 桥用例（《商业级通用客户端框架总设计》§6.1 ClientHost 责任 "处理 OnApplicationPause/Focus/Quit、低内存……关闭前刷新设置、存档。）。
     /// </summary>
     public sealed class AppLifetimeEditModeTests : UnityTestBase
     {

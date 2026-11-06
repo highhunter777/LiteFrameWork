@@ -10,9 +10,7 @@ using LiteGame.Feedback;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 对局音效驱动（<see cref="BattleAudioDriver"/>）EditMode 覆盖：帧事件 → kind 到 clip 的路由矩阵、
-    /// 缺 clip 降级（null clip 静默跳过不抛）、Dispose 后不路由。路由计数为观察面
-    /// （播放本体归 AudioService 的组+代理模型——丢弃与抢占是其内建语义；EditMode 无音频输出，不播出断言）。
+    /// 对局音效驱动（<see cref="BattleAudioDriver"/>）EditMode 覆盖：帧事件 → kind 到 clip 的路由矩阵、 缺 clip 降级（null clip 静默跳过不抛）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class BattleAudioDriverEditModeTests

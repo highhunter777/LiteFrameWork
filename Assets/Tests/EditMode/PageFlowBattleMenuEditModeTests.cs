@@ -19,11 +19,7 @@ using LiteGame.Modules.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// HUD 批C 退场链：PageFlow 对局菜单接缝——对局中"ESC＝菜单"Back 策略（swap/restore/幂等）与
-    /// <see cref="PageFlow.OpenBattleSettings"/> 导航数据（battleExit 只经对局中入口产生——设置页
-    /// 退场钮门控依据）。真 PageFlow + 真导航/UIService（替身目录：设置页＝合成 form、非空
-    /// LuaPath 走探针逻辑记录导航数据）+ 真 LuaComponent（仅用 Env 建数据表）+ 真表反查
-    /// （Bridge.Data.ResolveUIFormId——生成页面目录单源）。对局视图/真 prefab 装配归 PlayMode/夜间。
+    /// HUD 批C 退场链：PageFlow 对局菜单接缝——对局中"ESC＝菜单"Back 策略（swap/restore/幂等）与 <see cref="PageFlow.OpenBattleSettings"/> 导航数。
     /// </summary>
     public sealed class PageFlowBattleMenuEditModeTests : UnityTestBase
     {

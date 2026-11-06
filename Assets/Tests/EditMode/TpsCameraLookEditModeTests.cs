@@ -6,9 +6,7 @@ using LiteGame.Modules.Camera;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 相机视角端口（<see cref="ICameraService.AddLookDelta"/> / LookYaw / LookPitch）的契约测试：
-    /// 增量累进、pitch 限位钳制（机制常量单源）、Reset 清视角态（硬切回默认）、
-    /// ADS 翻转不重置视角、关闭后静默 no-op。状态层契约——vcam 应用面归场景 rig 改造与实机矩阵。
+    /// 相机视角端口（<see cref="ICameraService.AddLookDelta"/> / LookYaw / LookPitch）的契约测试： 增量累进、pitch 限位钳制（机制常量单源）。
     /// </summary>
     public sealed class TpsCameraLookEditModeTests
     {

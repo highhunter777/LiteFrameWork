@@ -20,13 +20,7 @@ using LiteSync.Client;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 会话与对局上下文验收（全替身、零网络、零墙钟）：
-    /// - BattleClient 装配面：连接即 Join / 断线重连闭环 / 版本不符拒绝；
-    /// - BattleContext 编排面：StartGame 建 Sim、快照和解、本地实体对齐、
-    ///   Ended 恰好一次、Dispose 拆订阅 + Match Scope 清零（离场无 Match 残留的载体断言）。
-    /// 形态参照 .NET 侧 RoomClientReconnectTests（假 IClientTransport + 注入时钟）。
-    /// 分类口径：[Category(TestCategory.Contract)] 逐用例标注——Unity 测试框架自带 NUnit 3.5
-    /// **不含 TraitAttribute**（.NET 侧 L1 用的 3.13 才有），EditMode 一律用 Category（既有约定）。
+    /// 会话与对局上下文验收（全替身、零网络、零墙钟）。
     /// </summary>
     public sealed class BattleSessionEditModeTests : UnityTestBase
     {

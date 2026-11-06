@@ -4,9 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 权威射击 × 静态障碍遮挡（子弹不穿墙——判定单源 <see cref="SimRaycast"/>）：
-    /// 墙后目标不可命中（无 Damage/无 Hit——写 Fire 与 ObstacleHit）、矮盒恰在弹道高度带内挡弹、
-    /// 目标近于障碍仍正常命中、被截停不消耗 RngState、开火驻留窗照常置满。
+    /// 权威射击 × 静态障碍遮挡（子弹不穿墙——判定单源 <see cref="SimRaycast"/>）： 墙后目标不可命中（无 Damage/无 Hit——写 Fire 与 ObstacleHit）。
     /// </summary>
     public sealed class ShootingObstacleTests
     {
@@ -140,8 +138,6 @@ namespace LiteSim.Tests
         public void 射线偏离障碍_侧向通道照常命中()
         {
             // 墙只盖 z ∈ [-2,2]，目标在 z=5 通道外——斜向射线不穿墙但也不该被挡。
-            // 射线方向从**逻辑枪口**（本体 (0,0,0)、Yaw=0 ⇒ 枪口 (0.35,-0.2)）指向目标归一化——
-            // 墙挪到 x=8（近面 7.5）：射线在 z 出带（t≈5.35）时 x≈4.4，未及墙带即已穿出侧通道。
             var (world, shooter, _) = Pair();
             var map = new SimMapData();
             map.Obstacles[0] = new SimObstacle
@@ -162,10 +158,7 @@ namespace LiteSim.Tests
         [Fact]
         public void 逻辑枪口_右向偏移平移命中带_原点随朝向系()
         {
-            // 射手 Yaw=0（朝 +X，右手侧 = −Z）：逻辑枪口右偏 r ⇒ 射线向 −Z 平移 r——
-            // 目标位按"中心出射命中带 |z|<R"构造（余量 2cm）：
-            //   oldBand z=+(R−0.01)（中心出射命中[余量 1cm]；右偏后垂距 R−0.01+r > R ⇒ 漏）
-            //   newBand z=−(r+R−0.02)（中心出射垂距 r+R−0.02 > R 漏；右偏后垂距 R−0.02 ⇒ 擦中）
+            // 射手 Yaw=0（朝 +X，右手侧 = −Z）：逻辑枪口右偏 r ⇒ 射线向 −Z 平移 r—— 目标位按"中心出射命中带 |z|<R"构造（余量 2cm）： oldBand z=+(R−0.01)（中心出射命中[余量 1cm]。）。
             float r = CombatValues.Default.Geometry.MuzzleRight;
             float R = CombatValues.Default.Geometry.HitscanRadius;
             var world = new SimWorldState { RngState = 1UL };
@@ -193,8 +186,6 @@ namespace LiteSim.Tests
         public void 逻辑枪口_朝向翻转偏移镜像_偏移系随身体转()
         {
             // Yaw=π（朝 −X）：右向 = (sin π, −cos π) = +Z ⇒ 枪口 z = +r（镜像而非世界固定）。
-            // 打 −X：z=−(R−0.01)（中心出射命中[余量 1cm]；镜像右偏后垂距 R−0.01+r > R ⇒ 漏）；
-            // z=+(r+R−0.02)（中心出射漏；镜像右偏后垂距 R−0.02 ⇒ 擦中）。
             float r = CombatValues.Default.Geometry.MuzzleRight;
             float R = CombatValues.Default.Geometry.HitscanRadius;
             var world = new SimWorldState { RngState = 1UL };

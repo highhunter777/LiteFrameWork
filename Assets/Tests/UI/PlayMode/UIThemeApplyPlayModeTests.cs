@@ -14,11 +14,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 主题装配应用 PlayMode 用例（P2-3 B2 / AC4——总设计 §6.2「运行期只读解析」）：
-    /// ① 真页面（Page_Login 试点节点 Txt_Title 挂 UIStyleRef(color.brand.primary)）打开后
-    ///    装配期（PrepareForShow）被写为令牌现值；
-    /// ② ThemeProvider 未注入（null）＝降级保持 prefab 烘焙值、开页不抛。
-    /// 装配缝＝UIService ctor 形参 themeProvider → RunOpenAsync 赋值 form.ThemeProvider。
+    /// 主题装配应用 PlayMode 用例（P2-3 B2 / AC4——总设计 §6.2「运行期只读解析」）： ① 真页面（Page_Login 试点节点 Txt_Title 挂 UIStyleRef(color.brand。）)。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIThemeApplyPlayModeTests

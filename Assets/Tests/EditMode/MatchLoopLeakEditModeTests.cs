@@ -11,13 +11,7 @@ using LiteGame.Modules.Map;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 100 次 Match 循环无泄漏（《客户端架构重构演进路线图》§5 M2 退出条件）：
-    /// 每次循环走真装配件——<see cref="AccountSessionFactory"/> 建 Account 域 + 真 <see cref="BattleClient"/>
-    /// （假传输）+ <see cref="MatchSessionFactory"/> 建 Match 域 + <see cref="BattleSession"/> 聚合；
-    /// 断言每次离场后：根作用域无一占用、Match 服务域已释放、传输恰好释放一次、诊断读口已清
-    /// （M2 起诊断登记归会话，不随视图残留）。
-    ///
-    /// 这是会话/所有权层的泄漏面（句柄、订阅、作用域）；表现件（Unity 对象）的循环泄漏归 PlayMode 套件。
+    /// 100 次 Match 循环无泄漏（《客户端架构重构演进路线图》§5 M2 退出条件）： 每次循环走真装配件——<see cref="AccountSessionFactory"/> 建 Account 域 + 真 <s。
     /// </summary>
     public sealed class MatchLoopLeakEditModeTests
     {

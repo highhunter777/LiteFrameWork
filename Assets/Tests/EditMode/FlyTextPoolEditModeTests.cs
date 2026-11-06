@@ -9,8 +9,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 飘字池收编面（《对象池专项设计》§5）：借出面（模板克隆/激活/文本写入）EditMode 直测。
-    /// **归还路径走 UniTask.NextFrame（UI 轨）——EditMode 无 PlayerLoop 泵不动**，归还侧等价断言归
-    /// PlayMode（FeedbackSurface 面）与夜间 L2；本类只钉借出侧契约。
     /// </summary>
     public sealed class FlyTextPoolEditModeTests : UnityTestBase
     {

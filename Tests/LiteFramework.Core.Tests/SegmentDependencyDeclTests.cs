@@ -9,17 +9,6 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// 模块依赖声明守卫：`IClientSegmentGraph.DependsOn` 必须覆盖该模块实际消费（Require/Get）的产物面。
-    ///
-    /// 为什么需要：`DependsOn` 过去只是"注册序的可读副本"——漏写没有任何后果，因为 Host 只按注册序初始化。
-    /// 后果是**隐性反向依赖**（后段模块的产物被前段模块在运行期 Require）在启动期查不出来，
-    /// 只在首次真正执行到那段代码时才有行为（实例：UI 段曾懒取 FeedbackService 的确认实现）。
-    ///
-    /// 判据（静态，不编译模块实现）：模块 A 在 InitializeAsync 里 Require/Get 了类型 T，
-    /// 而 T 由模块 B 产出（`Put` 或 `RegisterInstance`，与 ClientContext 同一容器来源），则 B 必须在 A 的 DependsOn 里。
-    /// 解析不出产物类型的登记一律失败（不让"写个新形态就悄悄逃出治理"）。
-    ///
-    /// 允许表语义：`ExternalProducts` = 不由任何模块产出、而由框架装配面（ClientContext/ClientHost）提供的类型；
-    /// `Baseline` = 已知欠账，修好后必须删除对应行（否则本用例失败——欠账不许沉淀）。
     /// </summary>
     public sealed class SegmentDependencyDeclTests
     {

@@ -14,9 +14,6 @@ namespace LiteNet.Tests
 {
     /// <summary>
     /// Lobby 实例注册客户端（《Meta 服务专项设计》§7 实例注册/心跳；《上云测试专项设计》§5）。
-    ///
-    /// L1：伪造 <see cref="HttpMessageHandler"/>——断言**发送的载荷与鉴权头**（客户端与 Meta 端点
-    /// 的 JSON 契约由 L3 闭环用例再用真 HTTP 复验）与失败语义（不抛、计数、对局服务不受影响）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Unit)]
     public sealed class LobbyRegistrationClientTests

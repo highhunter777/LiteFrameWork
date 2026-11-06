@@ -10,10 +10,7 @@ using Xunit;
 namespace MetaServer.Tests
 {
     /// <summary>
-    /// 游客登录用例（<see cref="GuestLoginUseCase"/>）L1：《Meta 服务专项设计》§6.1/§5.3——
-    /// deviceId 唯一键 get-or-create 幂等、并发撞键重读收敛、字段边界 fail-closed、
-    /// 存储故障归 StoreUnavailable（端点映射 503）；编程错误如实上抛（分级纪律，与
-    /// ApplyMatchResultUseCase 同款）。存储用本工程内建双打（M0-c 同款纪律）。
+    /// 游客登录用例（<see cref="GuestLoginUseCase"/>）L1：《Meta 服务专项设计》§6.1/§5.3—— deviceId 唯一键 get-or-create 幂等、并发撞键重读收敛。
     /// </summary>
     public sealed class GuestLoginUseCaseTests
     {

@@ -5,9 +5,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 强制迁移与驻留看门狗直测（《状态机专项设计》§3.2/§6 验收）：
-    /// ForceState 绕准入不绕编程错误检查（重入/未注册/Start 前/OnLeave 窗口照抛）；
-    /// 看门狗超限强制迁移与计数、同帧条件边/挂起请求让位、抢占机目标绕准入、层级机最深活动态裁决。
+    /// 强制迁移与驻留看门狗直测（《状态机专项设计》§3.2/§6 验收）： ForceState 绕准入不绕编程错误检查（重入/未注册/Start 前/OnLeave 窗口照抛）； 看门狗超限强制迁移与计数。
     /// </summary>
     public sealed class ForceStateWatchdogTests
     {

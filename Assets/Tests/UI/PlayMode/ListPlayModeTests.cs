@@ -16,12 +16,6 @@ namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
     /// 列表真资源段 PlayMode 用例（§8.2 窗口复用在真实 PlayerLoop 下的滚动往返）。
-    ///
-    /// 与 EditMode 虚拟列表用例的差异：本组走**真 prefab**（ListScreen = 页面根 + VirtualList 模板，
-    /// 构建器确定性生成）+ **真实布局与滚动管线**（ScrollRect.onValueChanged → Update 窗口重算），
-    /// 且经 UIService 打开（壳的页面生命周期与列表控件在同一链路——U0 退出条件"列表可往返"的 PlayMode 段）。
-    ///
-    /// 「可扩展」接入示例的载体：ListScreen 页面新增只动构建器与测试目录条目——框架零改动。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class ListPlayModeTests

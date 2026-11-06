@@ -11,11 +11,7 @@ using MetaWire;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// MetaClient 契约面（请求形状 + 响应解析 + 失败分类）：真实 HTTP 传输（LocalHttpTestServer——
-    /// UnityWebRequest 的 TCP→HTTP 全链路，不是替身；先例同 HttpCandidateFetcherEditModeTests）。
-    ///
-    /// 异步用例用 [UnityTest] + IEnumerator（EditMode 无 PlayerLoop，SendWebRequest 的续延由
-    /// Test Framework 在帧间推进）；ToCoroutine 回传结果。JSON 形状与服务端 MetaServer.Contracts 对表。
+    /// MetaClient 契约面（请求形状 + 响应解析 + 失败分类）：真实 HTTP 传输（LocalHttpTestServer—— UnityWebRequest 的 TCP→HTTP 全链路，不是替身。）。
     /// </summary>
     public sealed class MetaClientEditModeTests : UnityTestBase
     {

@@ -9,9 +9,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// A3 生命周期守卫：HUD 取件成功但**未 Attach 即离场**（房间未开局 / 场景加载或相机门失败）时，
-    /// `BattleViewAssets.ClearReferences` 必须兜底销毁已实例化的 HUD 根件——否则残留全屏 Canvas。
-    /// 该路径在拆分前由 `BattleViewRig.Dispose` 的无条件 `_hudInstance` 销毁覆盖。
+    /// A3 生命周期守卫：HUD 取件成功但**未 Attach 即离场**（房间未开局 / 场景加载或相机门失败）时。
     /// </summary>
     public sealed class BattleViewAssetsEditModeTests
     {

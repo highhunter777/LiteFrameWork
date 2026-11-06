@@ -7,10 +7,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// CommandCenter 直测（《命令中心专项设计》§2/§3/§6 验收——机制件零直测不允许）：
-    /// 批1 核心（注册/唯一性/执行序/异常隔离/fail-fast/权限门两态/审计环/统计）
-    /// + 批2 读取面（发现面/审计读取）。
-    /// [Collection("CoreStatic")]：处理器异常路径写全局 Log（ErrorCount/Recent），与断言日志面的用例串行。
+    /// CommandCenter 直测（《命令中心专项设计》§2/§3/§6 验收——机制件零直测不允许）： 批1 核心（注册/唯一性/执行序/异常隔离/fail-fast/权限门两态/审计环/统计） + 批2 读取面（发现面。）。
     /// </summary>
     [Collection("CoreStatic")]
     public sealed class CommandCenterTests

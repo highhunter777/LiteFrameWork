@@ -9,11 +9,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 部署烙入读取件（《安卓平台适配》T4）：两条平台读取通道（桌面文件 / APK zip 条目）、
-    /// 进程内 memo（引导期三处消费点只读一次）、日志语义拆分（missing＝正常、read failed＝一次性 Warning）。
-    ///
-    /// Android 侧的真实读取发生在模拟器上（T8 首启判据），这里用**同一条 zip 读取实现** +
-    /// 临时 zip 文件覆盖其行为；平台分发本身只有一行 `#if`（本件在 R15 白名单内）。
+    /// 部署烙入读取件（《安卓平台适配》T4）：两条平台读取通道（桌面文件 / APK zip 条目）、 进程内 memo（引导期三处消费点只读一次）、日志语义拆分（missing＝正常。）。
     /// </summary>
     public sealed class DeployBakeEditModeTests
     {

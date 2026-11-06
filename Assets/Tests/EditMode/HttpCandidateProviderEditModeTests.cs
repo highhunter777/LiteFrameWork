@@ -15,14 +15,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// CDN 信封提供者（《热更与内容发布专项设计》§7 部署配置契约）。
-    ///
-    /// **真实传输**：本地 <see cref="LocalHttpTestServer"/> 走 UnityWebRequest 全链路（非替身）。
-    /// 结果语义对齐 <see cref="FileSystemCandidateProvider"/>：404 = 无候选；畸形信封 = 无候选；
-    /// **网络错/5xx = 抛出**（暂态）——"查不到"不得伪装成"没有"。
-    ///
-    /// **带签接受链**：夹具信封（真私钥签出，`scripts/gen-candidate.ps1` 生成）经 HTTP 取回 →
-    /// 解析 → <see cref="ReleaseManifestValidator"/> 全量校验（签名/预算/兼容/修订）——
-    /// 即"信封走 CDN"装配形态下的真实接受路径。
     /// </summary>
     public sealed class HttpCandidateProviderEditModeTests : UnityTestBase
     {

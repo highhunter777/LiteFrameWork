@@ -15,12 +15,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 关闭链健壮性（服务端审计新增批）：三件事——① 后台 HTTP 客户端的停止/释放竞态
-    /// （在途请求比停止等待长时，旧形态会在**存活线程**上释放停止位，线程回来后在已释放的
-    /// ManualResetEventSlim 上等 → <see cref="ObjectDisposedException"/> 杀进程）；
-    /// ② <see cref="ServerLoop.Stop"/> 如实返回"线程是否已退出"（旧形态丢弃 <c>Join</c> 结果，
-    /// 调用方会把仍在 <c>Pump</c> 的循环当作已停而继续释放）；③ 排空完成判据的既有语义不回退
-    /// （DrainComplete 改走注册表快照后仍按"所有在册房间终态"判定，见 <see cref="DrainTests"/>）。
+    /// 关闭链健壮性（服务端审计新增批）：三件事——① 后台 HTTP 客户端的停止/释放竞态 （在途请求比停止等待长时，旧形态会在**存活线程**上释放停止位。）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Unit)]
     public sealed class ShutdownChainTests
@@ -86,9 +81,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// 停止超时（在途请求未返回）时 Dispose 必须：**不抛**、**不释放停止位/HttpClient**，
-        /// 且放行请求后线程能自行退出——旧形态在这里释放停止位，线程回到循环后的 WaitStop 抛
-        /// ObjectDisposedException（后台线程未处理异常 = 测试宿主进程直接崩）。
+        /// 停止超时（在途请求未返回）时 Dispose 必须：**不抛**、**不释放停止位/HttpClient**， 且放行请求后线程能自行退出——旧形态在这里释放停止位。
         /// </summary>
         [Fact]
         public void 停止超时_不释放停止位_放行后在途线程安全退出()

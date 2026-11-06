@@ -9,11 +9,7 @@ using Xunit;
 namespace MetaServer.Tests
 {
     /// <summary>
-    /// Join Ticket 签发用例 + **跨端同源闭环**（《Meta 服务专项设计》§6.2/§7：
-    /// Meta 签发 → RoomServer 同 key 验签）。
-    ///
-    /// L1：纯逻辑 + 虚拟时钟；验签用房间端**真实** <see cref="HmacJoinTicketValidator"/>
-    /// （不是测试替身）——签发端形状漂移时本组必红。
+    /// Join Ticket 签发用例 + **跨端同源闭环**（《Meta 服务专项设计》§6.2/§7： Meta 签发 → RoomServer 同 key 验签）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class JoinTicketIssueUseCaseTests

@@ -7,9 +7,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// Base64Url 编解码单源用例（P2）：票据线格式（<see cref="JoinTicketFormat"/>）、访问令牌线格式
-    /// （Meta <c>AccessTokenFormat</c>）与重连票据（<c>ReconnectService</c>）三处此前各写一份实现，
-    /// 本组把"三条链共用同一实现"钉成事实（任何一处改回自带实现都会在这里露出来）。
+    /// Base64Url 编解码单源用例（P2）：票据线格式（<see cref="JoinTicketFormat"/>）。
     /// </summary>
     public sealed class Base64UrlTests
     {

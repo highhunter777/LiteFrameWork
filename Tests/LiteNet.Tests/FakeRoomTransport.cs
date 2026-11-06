@@ -7,11 +7,7 @@ using LiteNet.Transport;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 假传输：只实现窄端口 <see cref="IRoomTransport"/>（不碰 kcp2k）——同时验证"端口够不够用"
-    /// （若 ServerHost 用到端口外的东西，本类就编译不过，解耦度自证）。
-    ///
-    /// **namespace 级单一来源**：多个测试类共用它；若各持有私有副本，两份假件会各自漂移，
-    /// "端口够不够用"的自证便退化（谁编译不过都不再说明端口不够）。
+    /// 假传输：只实现窄端口 <see cref="IRoomTransport"/>（不碰 kcp2k）——同时验证"端口够不够用" （若 ServerHost 用到端口外的东西，本类就编译不过，解耦度自证）。
     /// </summary>
     internal sealed class FakeRoomTransport : IRoomTransport
     {

@@ -12,9 +12,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// U2 导航与模态栈（《UI框架总设计》§4.3 单写者串行/队列上限/等待超时/取消；
-    /// §6.2 模态优先 Back、模态射线遮蔽、输入协调组成输入）+ UIFx 原语中断复位（动画专项 §14 清单）。
-    /// 全替身（FakeCatalog/GateLoader/Unowned 租约）——零真资源依赖。
+    /// U2 导航与模态栈（《UI框架总设计》§4.3 单写者串行/队列上限/等待超时/取消； §6.2 模态优先 Back、模态射线遮蔽、输入协调组成输入）+ UIFx 原语中断复位（动画专项 §14 清单）。
     /// </summary>
     public sealed class UINavModalEditModeTests : UnityTestBase
     {

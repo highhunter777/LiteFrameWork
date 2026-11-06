@@ -10,11 +10,7 @@ using LiteGame.Feedback;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 战斗特效驱动（<see cref="BattleMuzzleFlashDriver"/> / <see cref="BattleImpactFxDriver"/>）的
-    /// L2 EditMode 覆盖：**假 VFX 服务**记录播放调用——
-    /// 火光：Fire 事件 → 武器挂点（`Weapon_Rifle/Muzzle`）跟随播放；非 Fire、无挂点、无槽位不播；
-    /// 命中特效：**本地造成的 Hit/Crit → 受击点世界位**（PlayAt）；承受/旁观/非命中不播；爆头放大；
-    /// Dispose 后不再播放。真实资源/观感归 PlayMode/手测（资源经构建器归置 `Assets/LiteGame/Modules/Battle/Content/FX/fx_*`）。
+    /// 战斗特效驱动（<see cref="BattleMuzzleFlashDriver"/> / <see cref="BattleImpactFxDriver"/>）的 L2 EditMode 覆盖：**假 VFX 服务*。
     /// </summary>
     public sealed class BattleCombatFxEditModeTests : UnityTestBase
     {

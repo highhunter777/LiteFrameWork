@@ -15,15 +15,7 @@ using LiteGame.Feedback;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 对局准心驱动的 L2 EditMode 覆盖：**位置恒屏心**（TPS——画布中心系原点；位置契约由
-    /// TpsCrosshairCenterEditModeTests 钉住）、
-    /// 形态切换（本地预测态 Aiming 位 → Hip/Ads 两组）、散布张开（有效散布角 → 整体缩放，
-    /// 腰射 > 瞄准、未装备回基线——满张倍率按 tbcrosshair 武器行，未装备/缺行回落防御默认）、
-    /// **连发临时张开/后坐**（本地 Fire 帧事件逐发累加、钳上限、停火按回正速率衰减；后坐冲量
-    /// 上跳并入位置、指数回弹）、可见性与系统光标（上下文门被拦 → 藏准心还光标；
-    /// 本地表现未建 → 整体隐藏；Dispose 恢复光标）；**表值=防御默认值守卫**（tbcrosshair id=0 行
-    /// 与 CrosshairFeel.Default 同值——错表/漂移即红）。位置与光标走注入位——EditMode 无鼠标/画布依赖，确定性。
-    /// 真场景与真鼠标的手感对位（含连发/后坐幅度定档——GM 面板「准心调参」滑杆）归 PlayMode/手测；构建器幂等另由 run_script 验收。
+    /// 对局准心驱动的 L2 EditMode 覆盖：**位置恒屏心**（TPS——画布中心系原点；位置契约由 TpsCrosshairCenterEditModeTests 钉住）。
     /// </summary>
     public sealed class BattleCrosshairEditModeTests : UnityTestBase
     {

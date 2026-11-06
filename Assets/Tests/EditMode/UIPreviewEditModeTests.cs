@@ -14,9 +14,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// UI 制作主线守卫（《UI编辑器工具专项设计》§8）：
-    /// 预览场景存在且被收集规则排除、脚手架模板根契约齐备、页面名校验、Hub 入口收口、
-    /// 工作台入口已退役（防回引）。
+    /// UI 制作主线守卫（《UI编辑器工具专项设计》§8）： 预览场景存在且被收集规则排除、脚手架模板根契约齐备、页面名校验、Hub 入口收口、 工作台入口已退役（防回引）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class UIPreviewEditModeTests

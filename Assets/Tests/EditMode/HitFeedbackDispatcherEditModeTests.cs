@@ -9,10 +9,7 @@ using LiteGame.Feedback;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 命中分发器（<see cref="HitFeedbackDispatcher"/>）的 L2 EditMode 覆盖（《命中反馈与伤害数字专项设计》批A）：
-    /// 并列订阅 <see cref="SimView.EventSink"/>（静默门之后）、上下文解析（槽位/位置/数值/本地角色三档）、
-    /// 注册序转发、摘订阅语义。事件一律走真链交付（写入缓冲 → <c>SimView.OnFrameEvents</c> → 清空）——
-    /// 静默门去重机制本身由 SimView 用例把守，此处只钉分发面。
+    /// 命中分发器（<see cref="HitFeedbackDispatcher"/>）的 L2 EditMode 覆盖（《命中反馈与伤害数字专项设计》批A）： 并列订阅 <see cref="SimView.EventSi。
     /// </summary>
     public sealed class HitFeedbackDispatcherEditModeTests : UnityTestBase
     {

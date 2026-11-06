@@ -10,12 +10,7 @@ using RoomServer.Runtime;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 本地服回执字段面契约（离线隔离开发档）：真服/本地服的 JoinAck/StartGame 构造已收进
-    /// <c>RoomServer.Application.HandshakePacker</c> 单源——本用例在**本地服 wire 面**钉住
-    /// "字段真的发出来了"（曾缺 IsOwner/ExpectedPlayers/MatchId/Match 一族：两端手抄、只在一端补，
-    /// 且本地服照常工作掩盖真服断点的镜像问题）。对端钉子：.NET 侧 HandshakePackerTests
-    /// （packer 单元面）＋ RoomExpectedPlayersTests/OwnerStartHostTests/MatchRulesClosureTests（真服集成面）。
-    /// 分类口径：EditMode 用 Category（Unity NUnit 3.5 无 TraitAttribute，既有约定）。
+    /// 本地服回执字段面契约（离线隔离开发档）：真服/本地服的 JoinAck/StartGame 构造已收进 <c>RoomServer.Application.HandshakePacker</c> 单源——本用例在**本地。
     /// </summary>
     public sealed class LocalServerHandshakeEditModeTests : UnityTestBase
     {

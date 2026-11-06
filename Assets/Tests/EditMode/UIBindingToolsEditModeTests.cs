@@ -12,11 +12,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 绑定标记工具（UI 工具链步 3，《UI编辑器工具专项设计》§2.1）的引擎面覆盖：
-    /// 前缀组合（§9.5）、改名计划的同文联动（§9.1）、批量换前缀、重名挡在应用前、
-    /// 应用落位（深度序——父子同批不互踩）、引用点扫描（§9.2 改名联动清单）、
-    /// 生成物 hash（§2.1.5：稳定/敏感/嵌套根独立/记录-校验闭环 + 规则接入校验核心）。
-    /// 窗口是引擎之上的 IMGUI 窗口壳——此处只做绑定/建树的冒烟，交互面属手测。
+    /// 绑定标记工具（UI 工具链步 3，《UI编辑器工具专项设计》§2.1）的引擎面覆盖： 前缀组合（§9.5）、改名计划的同文联动（§9.1）、批量换前缀、重名挡在应用前、 应用落位（深度序——父子同批不互踩）。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIBindingToolsEditModeTests

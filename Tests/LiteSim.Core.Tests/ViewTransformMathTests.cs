@@ -6,10 +6,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 表现变换纯函数验收（《联机战斗演示专项设计》§2.4 C3 / 《M11实施指导》"插值/衰减抽成纯函数
-    /// （ViewTransformMath，无引擎依赖）→ 进 Tests/LiteSim.Core.Tests（L1 覆盖）"）：
-    /// 这些数学过去只能靠肉眼验证，现按 L1 钉死——插值端点与单调性、yaw 最短弧、衰减的帧率无关性与
-    /// 收敛性、硬切判据边界、平面距离。
+    /// 表现变换纯函数验收（《联机战斗演示专项设计》§2.4 C3 / 《M11实施指导》"插值/衰减抽成纯函数 （ViewTransformMath。））。
     /// </summary>
     public sealed class ViewTransformMathTests
     {

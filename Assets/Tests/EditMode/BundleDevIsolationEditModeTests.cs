@@ -7,11 +7,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 出包 dev 件隔离（A6 接线守卫）：收集清单不得落在 dev 目录，且每个包必须使用工程忽略规则
-    /// （`/Editor/` 等编辑器资源由规则排除）。构建期另有
-    /// <see cref="BuiltinBundleBuildInvoker"/> 对**实际构建报告**逐资源核对（本套件钉配置面）。
-    ///
-    /// 收集清单经 SerializedObject 读取：测试程序集不反向依赖 YooAsset.Editor，字段名与序列化面同源。
+    /// 出包 dev 件隔离（A6 接线守卫）：收集清单不得落在 dev 目录，且每个包必须使用工程忽略规则 （`/Editor/` 等编辑器资源由规则排除）。
     /// </summary>
     public sealed class BundleDevIsolationEditModeTests
     {

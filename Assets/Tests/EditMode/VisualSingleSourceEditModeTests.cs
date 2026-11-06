@@ -8,12 +8,7 @@ using LiteFramework.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 视觉单一来源（《UI框架总设计》§7）：运行时代码不得构建用户可见视觉，
-    /// 一律取 `Assets/LiteGame/Modules/UI/Content/Screens|Widgets` 模板。
-    ///
-    /// 本用例是该规则的**可执行载体**（《UI制作规范》§8"资产静态检查"；
-    /// 《UI测试开发专项设计》§4.2"每个规则至少一个合法正例和一个违规负例"）：
-    /// 合成负例证明规则真会失败，再对真实代码面扫描。
+    /// 视觉单一来源（《UI框架总设计》§7）：运行时代码不得构建用户可见视觉， 一律取 `Assets/LiteGame/Modules/UI/Content/Screens|Widgets` 模板。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class VisualSingleSourceEditModeTests : LiteTesting.Unity.UnityTestBase

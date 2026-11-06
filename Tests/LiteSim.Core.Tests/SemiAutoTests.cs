@@ -4,10 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 半自动击发边沿门用例（《游戏业务系统总设计》§5 击发模式）：
-    /// <c>fire_mode = semi</c>（<see cref="WeaponDef.Automatic"/> = false）——按住只发一发；
-    /// 击发沿消费与冷却独立（冷却内按压同样消费沿、按住不放冷却到点不自动补发）；
-    /// 松开帧重臂；自动武器整段旁路。armed 状态的 checksum 层级见 SimLayoutContractTests。
+    /// 半自动击发边沿门用例（《游戏业务系统总设计》§5 击发模式）： <c>fire_mode = semi</c>（<see cref="WeaponDef.Automatic"/> = false）——按住只发一发。
     /// </summary>
     public sealed class SemiAutoTests
     {

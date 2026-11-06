@@ -4,10 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 切枪状态机用例（《游戏业务系统总设计》§5 切枪）：ButtonSwitchWeapon 边沿 → 选中槽
-    /// 公共面翻面 + 目标槽 Switching 锁定（EquipEndFrame 到帧解除）→ Ready；
-    /// 首切满弹装备、弹药保持、换弹打断、拒绝面（同槽/切枪中/无定义行/死亡）。
-    /// 装载面（tb_weapon.slot → 槽位默认映射）由 <see cref="WeaponTableTests"/>（LiteNet 侧）钉。
+    /// 切枪状态机用例（《游戏业务系统总设计》§5 切枪）：ButtonSwitchWeapon 边沿 → 选中槽 公共面翻面 + 目标槽 Switching 锁定（EquipEndFrame 到帧解除）→ Ready。
     /// </summary>
     public sealed class WeaponSwitchTests
     {

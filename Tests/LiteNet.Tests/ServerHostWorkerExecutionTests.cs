@@ -14,13 +14,7 @@ using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// Worker 执行形态（《商业级通用服务端框架总设计》§8.2"hash(roomId) % workerCount 决定房间归属、
-    /// 一个 Worker 顺序驱动多个 RoomActor、每个 RoomActor 仍是单线程"）：
-    /// 房间命令与快照广播在归属 Worker 上执行，产出经 Mailbox Outbound lane 回传宿主应用/发送；
-    /// 宿主只做 Transport IO、准入与回传应用。
-    ///
-    /// 与 <see cref="ServerHostMailboxRoutingTests"/>（宿主 owner 消费）的分工：那组钉宿主单线程消费语义；
-    /// 本组钉"执行 owner 换成 Worker"后的等价语义与回传边界。
+    /// Worker 执行形态（《商业级通用服务端框架总设计》§8.2"hash(roomId) % workerCount 决定房间归属、 一个 Worker 顺序驱动多个 RoomActor。）。
     /// </summary>
     public sealed class ServerHostWorkerExecutionTests
     {
@@ -46,10 +40,7 @@ namespace LiteNet.Tests
             new JoinRequest { RoomId = roomId, Token = "tok", BuildHash = ServerHost.ServerBuildHash });
 
         /// <summary>
-        /// 冗余窗输入（真实客户端形态）：Frames[0] 对应 <paramref name="baseFrame"/>，向后连续
-        /// <paramref name="count"/> 帧同值。闸门按"服务器当前帧+1"在窗内取帧——
-        /// 单帧包在"读帧号与执行之间有推进"时会因基帧不在窗内被整条判 OutOfRange，
-        /// 冗余窗正是协议对竞态的处置方式。
+        /// 冗余窗输入（真实客户端形态）：Frames[0] 对应 <paramref name="baseFrame"/>，向后连续 <paramref name="count"/> 帧同值。
         /// </summary>
         private static byte[] InputWindow(int baseFrame, int count, float moveX)
         {
@@ -74,8 +65,6 @@ namespace LiteNet.Tests
 
         /// <summary>
         /// 只等待（不 Pump）：用于断言 Worker 侧已入盒命令的执行效果。
-        /// 不 Pump 就不再投递新 Tick——否则服务器帧会以测试循环的速度飞跑，
-        /// 按"当前帧+1"构造的输入在执行时必然已被判过期（帧号纪律，非缺陷）。
         /// </summary>
         private static void WaitWorker(Func<bool> predicate, string message, int timeoutMs = 5000)
         {
@@ -141,8 +130,6 @@ namespace LiteNet.Tests
             PumpUntil(host, () => h.t.LastStartGame(1) != null && h.t.LastStartGame(2) != null, "两端应收到 StartGame");
 
             // 输入：Worker 执行进闸门（宿主不再执行 Runtime 命令）。
-            // 冗余窗：基帧 = 当前帧+4（容忍窗内）——不 Pump 的等待期间服务器至多再推进一帧；
-            // 闸门要求"包基帧 ≥ 执行时服务器帧+1"（否则整条按已消费帧拒绝，帧号纪律非缺陷）。
             long acceptedBefore = started.Gate.AcceptedCount;
             h.t.RaiseData(1, InputWindow(started.AuthSim.Frame + 4, 4, 0.5f));
             WaitWorker(() => started.Gate.AcceptedCount > acceptedBefore,
@@ -309,11 +296,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// 在途 Join 的断线竞态窗：Join 已由 Worker 执行（席位在 Runtime 落位）、PlayerAdmitted
-        /// 尚在 Outbound lane 未被宿主应用——此刻会话 RoomId 仍为 null，<c>OnTransportDisconnected</c>
-        /// 无处路由断线命令。宿主应用回传时必须把"发起连接已断"的 PlayerAdmitted 当**迟到 Join**处理
-        /// （释放孤儿席位 + 回滚动态预留），否则该席位永无 Disconnect 到达（Runtime 视为在线）：
-        /// 未开局房永驻（名额/房号恒占）、对局中全员离场收尾失效。
+        /// 在途 Join 的断线竞态窗：Join 已由 Worker 执行（席位在 Runtime 落位）、PlayerAdmitted 尚在 Outbound lane 未被宿主应用——此刻会话 RoomId 仍为 null。
         /// </summary>
         [Fact]
         public void Worker执行_在途Join遇断线_孤儿席位释放_房间收尾销毁()

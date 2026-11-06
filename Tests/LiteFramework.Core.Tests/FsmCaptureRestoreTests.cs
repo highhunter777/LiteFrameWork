@@ -6,10 +6,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 快照与恢复直测（《状态机专项设计》§3.4/§6 验收）：
-    /// Hooks 回调序（层级机深→浅退/浅→深进、平面机 Leave→Enter）、Silent 零回调与浮点按位、
-    /// 两模式清挂起、恢复栈随快照往返、层级机历史与精确路径恢复（不重展开）、非法时机抛、
-    /// Silent 确定性重放（回滚后重放与连续运行逐位一致）。
+    /// 快照与恢复直测（《状态机专项设计》§3.4/§6 验收）： Hooks 回调序（层级机深→浅退/浅→深进、平面机 Leave→Enter）、Silent 零回调与浮点按位、 两模式清挂起、恢复栈随快照往返。
     /// </summary>
     public sealed class FsmCaptureRestoreTests
     {

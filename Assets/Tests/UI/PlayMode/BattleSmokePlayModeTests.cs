@@ -12,24 +12,7 @@ using LiteGame.Modules.Settings;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// **对局全链冒烟**（批 2 · A12）：Boot.unity 起服 → 流程到 <see cref="ProcedureId.Main"/> →
-    /// 开发桥 <see cref="TestModeRuntime.RequestEnter"/> 进本地测试房 → 核对"视图组已建 + HUD 根件/准心 +
-    /// 开火后四路表现（准心脉冲/音效 voice/世界 VFX/伤害数字）＋越肩几何" → <see cref="TestModeRuntime.RequestExit"/>
-    /// 离场 → **只对容器级服务与工厂**断言（LastCreated == null、计数 ≤2s 轮询归零）。
-    ///
-    /// **为什么必须有它**：L1 只钉静态结构与守卫；"装配序改了是否还能起服、进局、开火、离场"只有真跑一次才知道
-    /// ——批 1/2 反复出现的失效模式正是"分段全绿、整链断在时序"（模块段数/相机段位置/视图组注册落点）。
-    ///
-    /// **执行载体三段式**（判据见验收 A12）：
-    /// ① harness＝加载 Boot.unity 起服（ClientHost 全链 + 本地测试房），流程机经
-    ///    <see cref="GameEntry.TakeContainer"/> 解析后轮询 Started 且 Current == Main；
-    /// ② rig 存取口＝<see cref="IBattleViewGroupFactory.LastCreated"/>（返回 <see cref="IBattleViewGroup"/>，
-    ///    用例向下转型 internal 的 <see cref="BattleViewRig"/>，friend 见 Modules/Battle/AssemblyInfo.cs）；
-    /// ③ 观测面＝IsBuilt / Hud.Root / Hud.Crosshair / ShotPulseCount / VoiceCount /
-    ///    VfxService.ActiveCount / BattleDamageNumberDriver.ActiveCount。
-    ///
-    /// **开火不是绕过输入**：走 <see cref="TestModeRuntime.AutoHeadshot"/>（开发叠加层把设备源换成
-    /// "锁最近敌人头部带 + 持续开火"的自瞄源）——它不改判定，只等价于"玩家把准心压在头上"。
+    /// **对局全链冒烟**（批 2 · A12）：Boot.unity 起服 → 流程到 <see cref="ProcedureId.Main"/> → 开发桥 <see cref="TestModeRuntime.Requ。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class BattleSmokePlayModeTests
@@ -218,11 +201,9 @@ namespace LiteGame.Tests.UI.PlayMode
 
         // ---- 断言细节 ----
 
-        /// <summary>越肩几何：相机位于角色**右**后方——肩偏角 ∈ [15°,45°]、水平距离 ∈ [1.5,4.0]m、
-        /// 相机高度高于胸口 ≤ 1.0m（胸口参照 <see cref="CombatConfig.Geometry.HeadHitLine"/>，与命中柱同源）。
-        /// **参照系 = 相机视线水平轴**（不是角色 transform.forward：角色 prefab 的模型朝向轴属美术约定，
-        /// 实测该角色 view 的 forward 为 +X，拿它当"身后"会把 20° 肩偏读成 155°）。
-        /// **容差就是判据**：场景 vcam 的 FollowOffset 可调，本断言判的是"确实是越肩机位而不是正后/头顶/贴脸"。</summary>
+        /// <summary>
+        /// 越肩几何：相机位于角色**右**后方——肩偏角 ∈ [15°,45°]、水平距离 ∈ [1.5,4.0]m。
+        /// </summary>
         private static void AssertOverShoulderGeometry(BattleViewRig rig)
         {
             Camera camera = Camera.main;
@@ -242,9 +223,7 @@ namespace LiteGame.Tests.UI.PlayMode
             var flat = new Vector3(delta.x, 0f, delta.z);
             float horizontal = flat.magnitude;
 
-            // 参照系用**相机视线水平轴**而不是角色 transform.forward：角色 prefab 的模型朝向轴属美术资产约定
-            // （实测该角色 view 的 forward 为 +X），拿它当"身后"方向会把 20° 的肩偏读成 155°。
-            // 越肩机位的可判据定义＝"相机在角色身后、且相对视线轴横向偏出 15~45°"：
+            // 参照系用**相机视线水平轴**而不是角色 transform.forward：角色 prefab 的模型朝向轴属美术资产约定 （实测该角色 view 的 forward 为 +X），拿它当"身后"方向会把 20° 的肩偏读成 155°。
             Vector3 viewForward = new Vector3(camera.transform.forward.x, 0f, camera.transform.forward.z).normalized;
             var behindAxis = -viewForward;
             var rightAxis = new Vector3(viewForward.z, 0f, -viewForward.x);   // cross(up, viewForward)

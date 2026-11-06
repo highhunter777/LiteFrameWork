@@ -6,9 +6,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 激活事务存储用例（C1-⑩：《热更与内容发布专项设计》§8——Confirmed/Candidate/PendingActivation
-    /// 三态记录与中断恢复决策）：启动回退已确认版本（持久化、计数有上限）、确认单调推进、
-    /// 损坏/缺失记录回内置、ActiveGeneration 反映 Confirmed。内存假 IO——不落盘。
+    /// 激活事务存储用例（C1-⑩：《热更与内容发布专项设计》§8——Confirmed/Candidate/PendingActivation 三态记录与中断恢复决策）：启动回退已确认版本（持久化、计数有上限）、确认单调推进。
     /// </summary>
     public sealed class ActivationTransactionStoreTests
     {

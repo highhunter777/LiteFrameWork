@@ -10,10 +10,7 @@ using Xunit;
 namespace MetaServer.Tests
 {
     /// <summary>
-    /// 结算端点的**功能关闭路径**（无真实存储的宿主）：拒绝相应功能而非回退假存储——
-    /// 稳定 503 <c>profile.disabled</c>（《Meta 服务专项设计》§10、《上云测试》批A）。
-    ///
-    /// L3（Integration trait）：真 Kestrel + 真回环 HTTP；真存储全链见 MetaServer.Integration.Tests。
+    /// 结算端点的**功能关闭路径**（无真实存储的宿主）：拒绝相应功能而非回退假存储—— 稳定 503 <c>profile.disabled</c>（《Meta 服务专项设计》§10、《上云测试》批A）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class SettlementHttpTests

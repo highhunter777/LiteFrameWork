@@ -7,16 +7,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// Session 域边界守卫（Session/Battle 解耦 · A1/A2）：会话域只做账号/连接/传输，对局运行归 Battle——
-    /// Session 代码区不得直接构造或持有 Battle 具体类型（<c>BattleContext</c>/<c>BattleClient</c>/
-    /// <c>GameplayMatchIdentity</c>），跨域只经 <c>Modules/Battle/Abstractions</c> 端口
-    /// （<c>IBattleClient</c>/<c>IBattleClientFactory</c>/<c>IAccountRuntime</c>）。
-    ///
-    /// 为什么需要：A1 前 <c>AccountSessionFactory</c> 直接 <c>new BattleClient</c>、<c>RoomSessionFace</c>
-    /// 直接包装 <c>BattleClient</c>——Session 与 Battle 的实现细节编译期耦合，改战斗结构必动会话。
-    /// 守卫只扫**代码区**（注释/字符串里的类型名不算引用，文档可以解释历史）；
-    /// 具体类型匹配用 <c>\b</c> 词界，避免 <c>IBattleClient</c>/<c>IBattleRun</c> 等端口名误命中。
-    /// A1 过渡期允许 2 个待迁文件；A2 搬迁后白名单清空（本文件即“Session 域零具体类型”终态守卫）。
+    /// Session 域边界守卫（Session/Battle 解耦 · A1/A2）：会话域只做账号/连接/传输。
     /// </summary>
     public sealed class SessionBoundaryTests
     {

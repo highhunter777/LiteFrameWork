@@ -10,10 +10,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 排行口径一致性：局内排行榜（<see cref="BattleRankboardDriver"/>，每帧从活世界读）
-    /// 与结算页（<see cref="ResultRanking"/>，从冻结结果读）必须给出**同一条全序与同一套名次**——
-    /// 两处共用 <see cref="BattleRankPolicy"/>；本用例用同一批玩家从两条入口各算一次并逐格比对，
-    /// 防"各写一份排序"在同分边界漂移。
+    /// 排行口径一致性：局内排行榜（<see cref="BattleRankboardDriver"/>，每帧从活世界读） 与结算页（<see cref="ResultRanking"/>。）。
     /// </summary>
     public sealed class BattleRankingConsistencyEditModeTests : UnityTestBase
     {

@@ -14,11 +14,7 @@ using LiteGame.Modules.Config;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 地图投影双路径对账（《地图数据专项设计》§9/批4）：**服务端直读盘**（<see cref="ServerMapLoader"/>）与
-    /// **客户端装载面**（`cfg.Tables` → <see cref="MapTableProjection"/>）从同一份 `tbmap.bytes` 投影出
-    /// 同一张判定图——digest 相等且 == 首图快照夹具 <see cref="TestMaps.Arena01"/> 的摘要锚
-    /// （Arena01 56×56 再缩批实烘值 `83d63d5c44f77893`；改场景重烘后须同步夹具/本锚）。
-    /// 另钉 fail-fast：缺表拒载、行内 digest 不符拒载（篡改字节）、缺图房间拒构（D22 必填注入）。
+    /// 地图投影双路径对账（《地图数据专项设计》§9/批4）：**服务端直读盘**（<see cref="ServerMapLoader"/>）与 **客户端装载面**（`cfg.Tables` → <see cref="Map。）。
     /// </summary>
     public sealed class MapProjectionTests
     {
@@ -96,9 +92,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 篡改表字节_行内digest不符_拒载()
         {
-            // 篡改**首图行内 content_digest 串**（ASCII 可见于字节流）：Luban 解析仍成功、内容摘要已不符——
-            // 行内 content_digest 与复算不等，投影必须拒（"map.json→bytes→投影"链路走样检测）。
-            // 注记：不再用"尾部翻一位"——tbmap 已是多图（每图一文件，行序＝文件序），尾部字节属最后一张图。
+            // 篡改**首图行内 content_digest 串**（ASCII 可见于字节流）：Luban 解析仍成功、内容摘要已不符—— 行内 content_digest 与复算不等，投影必须拒（"map.json→bytes→投影"链路走样检测）。
             string path = Path.Combine(RepoRoot(), "Assets", "GameData", "Config", "Map", "tbmap.bytes");
             byte[] bytes = File.ReadAllBytes(path);
             byte[] digestAscii = System.Text.Encoding.ASCII.GetBytes("83d63d5c44f77893");

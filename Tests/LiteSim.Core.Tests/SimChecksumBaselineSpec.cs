@@ -5,9 +5,6 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// Sim checksum 基线规格（《M8 实施指导》§2.6/§3 校验基线组）——**唯一的真值源**。
-    /// .NET 侧记录基线文件（Baselines/SimChecksum.txt）；Unity 侧（沙盒/M11）用同一场景
-    /// 跑同一套运算逐位对账（v3 下为预测质量保障，降级不阻断）。
-    /// 场景固定：2 玩家 + 5 靶标，随机脚本输入（外部 SimRng，不碰世界 RngState），3000 逻辑帧。
     /// </summary>
     public static class SimChecksumBaselineSpec
     {

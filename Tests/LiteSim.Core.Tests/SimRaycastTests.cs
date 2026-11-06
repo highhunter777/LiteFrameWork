@@ -4,9 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 射线判定单源用例（<see cref="SimRaycast"/>——射击障碍遮挡与瞄准激光共用的几何件）：
-    /// 盒/圆求交、y 区间闸（含端点）、起点在形状内、身后、平行轴、取最近、射程外出局。
-    /// 纯几何、零引擎；结果 t 与原 ShootingSystem 内联式逐位同源（实体侧）。
+    /// 射线判定单源用例（<see cref="SimRaycast"/>——射击障碍遮挡与瞄准激光共用的几何件）： 盒/圆求交、y 区间闸（含端点）、起点在形状内、身后、平行轴、取最近、射程外出局。
     /// </summary>
     public sealed class SimRaycastTests
     {

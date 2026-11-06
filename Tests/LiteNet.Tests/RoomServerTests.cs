@@ -13,10 +13,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// RoomServer 验收用例（《M10 实施指导》§2.5/2.6）：
-    /// Join 信令（buildHash 拒绝与放行/房主开局 StartGame）/ 输入两层校验（非法帧号丢弃）/ 权威循环推帧
-    /// （真实输入驱动状态变化）/ 掉线沿用不停帧。全部 .NET 侧闭环（同运行时红线，M9 决策⑩）。
-    /// 形态：ServerHost 同进程内嵌 + 真实 KCP UDP 客户端（127.0.0.1 回环）。
+    /// RoomServer 验收用例（《M10 实施指导》§2.5/2.6）： Join 信令（buildHash 拒绝与放行/房主开局 StartGame）/ 输入两层校验（非法帧号丢弃）/ 权威循环推帧 （真实输入驱动状态。）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public class RoomServerTests : IDisposable
@@ -31,9 +28,7 @@ namespace LiteNet.Tests
         public RoomServerTests() => _host = new ServerHost(new KcpTransportServer(), new RoomConfig { Map = TestMaps.Greybox(), Port = 0 }, map: TestMaps.Greybox());
 
         /// <summary>
-        /// 房间容量由配置决定：
-        /// 4 人房（demo §9 验收形态）可满员、第五人被拒；席位/实体表/输入门/回溯环随配置定容。
-        /// 此举把"容量写死"的隐患钉在用例上——将来有人改回常量即红。
+        /// 房间容量由配置决定： 4 人房（demo §9 验收形态）可满员、第五人被拒；席位/实体表/输入门/回溯环随配置定容。
         /// </summary>
         [Fact]
         public void 房间容量_由配置决定_四人房满员且第五人被拒()

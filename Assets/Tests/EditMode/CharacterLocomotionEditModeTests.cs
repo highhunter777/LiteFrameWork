@@ -14,9 +14,7 @@ using UnityEngine.Playables;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 角色移动动画首版（《动画模块专项设计》直 Clip 主路径：片段清单供片 + Animator 后端 Manual
-    /// PlayableGraph；Driver = 视图速度 → 移动语义）。真资源（prefab 无控制器、片源＝片段清单）驱动，
-    /// 缺包克隆 Ignore 跳过（灰盒视图无绑定组件 → 驱动不建播放器的降级由真机冒烟覆盖）。
+    /// 角色移动动画首版（《动画模块专项设计》直 Clip 主路径：片段清单供片 + Animator 后端 Manual PlayableGraph；Driver = 视图速度 → 移动语义）。
     /// </summary>
     public sealed class CharacterLocomotionEditModeTests : UnityTestBase
     {
@@ -220,10 +218,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 分层_基础层权重必须落地_关键骨骼姿态确实推进()
         {
-            // 回归守卫：`AnimationLayerMixerPlayable` 的层 0 权重**默认是 0**，不显式置 1 时基础层
-            // 整体不输出——通道在播、时间在走、IsChannelActive 全绿，角色姿态却停在默认姿势。
-            // 相对差断言在缺陷态下两边同坏仍成立，故此处断言两件**绝对事实**：
-            // 混合器真值权重、以及手骨逐帧确实在变。
+            // 回归守卫：`AnimationLayerMixerPlayable` 的层 0 权重**默认是 0**，不显式置 1 时基础层 整体不输出——通道在播、时间在走、IsChannelActive 全绿，角色姿态却停在默认姿势。
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
             var animator = go.GetComponentInChildren<Animator>(true);
@@ -702,9 +697,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(0.5f * started.Length, started.Time, 0.02f, "起点必须落在归一化位置");
             startPlayer.Dispose();
 
-            // ③ 无 humanoid Avatar → 无叠加层 Mask：不声明 OverlayChannel（叠加层能力位），Overlay 显性拒绝——
-            //    覆盖层（Override）不需 Mask，任何 rig 都声明 OverrideChannel（分层模式）
-            //    （直 Clip 模型：裸 Animator 经清单供片——能力面与片源解耦，不再借控制器）
+            // ③ 无 humanoid Avatar → 无叠加层 Mask：不声明 OverlayChannel（叠加层能力位），Overlay 显性拒绝—— 覆盖层（Override）不需 Mask。
             var goNoAvatar = Scope.CreateGameObject("NoAvatarAnimator");
             var bareAnimator = goNoAvatar.AddComponent<Animator>();
 

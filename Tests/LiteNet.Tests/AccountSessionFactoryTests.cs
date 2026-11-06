@@ -10,11 +10,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// Account 会话工厂 L1 直测（《客户端依赖注入专项设计》§6/DI-3）：
-    /// <see cref="AccountSessionFactory"/> 与 <see cref="BattleClient"/> 以**源链接**进本工程
-    /// （零引擎依赖——测真工厂非复制品）；假 IClientTransport + 真 ServiceContainer/ClientScope。
-    /// 验收口径 = DI-3 的 .NET 半边："进房、离场（取消/失败）后再进房，均无旧局对象残留"。
-    /// Match 半边（BattleContext，依赖 SimView）归 Unity 面/DI-4。
+    /// Account 会话工厂 L1 直测（《客户端依赖注入专项设计》§6/DI-3）： <see cref="AccountSessionFactory"/> 与 <see cref="BattleClient"/> 以**。
     /// </summary>
     public sealed class AccountSessionFactoryTests
     {

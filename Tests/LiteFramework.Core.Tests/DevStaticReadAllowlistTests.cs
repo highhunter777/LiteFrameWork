@@ -7,10 +7,6 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// I5/I6 守卫（《客户端架构重构演进路线图》§3.4）：<c>TestModeRuntime</c> 直读**只减不增**。
-    ///
-    /// M0 允许存量直读（基线表），但新文件一律失败——经过 <c>IDevSession</c> 端口才是默认路径。
-    /// 按**文件**做基线（而非逐站点）是刻意的：存量点位分散在 14 个文件里，逐站点表会随改写漂移，
-    /// 文件级基线足够拦住"新代码又去摸静态"。
     /// </summary>
     public sealed class DevStaticReadAllowlistTests
     {

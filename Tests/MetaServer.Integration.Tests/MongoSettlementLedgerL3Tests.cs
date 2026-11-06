@@ -11,11 +11,7 @@ using Xunit;
 namespace MetaServer.IntegrationTests
 {
     /// <summary>
-    /// 结算账本真存储 L3（《框架先行》§5-5"只做 fake 存储不能证明重启恢复"、Meta 专项 §14 L3 行
-    /// "唯一 Ledger 与事务重试"、样例⑤"实际持久化确认 → 重复请求/故障 → 进程恢复"）。
-    ///
-    /// 与 L1（SettlementPersistenceTests，替身验语义）的分工：此处验证**存储端事实**——
-    /// 唯一索引兜底、事务原子边界、介质比进程活得久。
+    /// 结算账本真存储 L3（《框架先行》§5-5"只做 fake 存储不能证明重启恢复"、Meta 专项 §14 L3 行 "唯一 Ledger 与事务重试"、样例⑤"实际持久化确认 → 重复请求/故障 → 进程恢复"）。
     /// </summary>
     [Collection("Mongo")]
     [Trait(TestTrait.Category, TestCategory.Integration)]

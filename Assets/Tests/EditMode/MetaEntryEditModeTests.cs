@@ -12,13 +12,7 @@ using MetaWire;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 批C-③ 联机入口编排链（《上云测试专项设计》§2 客户端闭环）：
-    /// ① fail-closed——未配置 Meta 基址时登录/进房/查询显性失败（不连任何地址、不发 Request）；
-    /// ② 登录态缓存与门禁（未登录不得换票）；
-    /// ③ 换票成功 = 票据地址解析 + Request(Match, MetaJoin) 精确移交（走现有 Join 管道）；
-    /// ④ 票据地址不可解析 = 确定性失败、零 Request；
-    /// ⑤ Bridge.meta 门面回调契约（恰好一次、ok 首参、失败 reason 不含原文、行形状手工展开）；
-    /// ⑥ 传输工厂 -envelope.key 注入优先（非法键 fail-fast 抛——密钥配错当场暴露，不静默回落）。
+    /// 批C-③ 联机入口编排链（《上云测试专项设计》§2 客户端闭环）： ① fail-closed——未配置 Meta 基址时登录/进房/查询显性失败（不连任何地址、不发 Request）。
     /// </summary>
     public sealed class MetaEntryEditModeTests : UnityTestBase
     {

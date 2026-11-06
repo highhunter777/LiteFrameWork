@@ -8,10 +8,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 局内排行榜驱动的 L2 EditMode 覆盖（排行榜批——FFA "比分"＝击杀）：镜像与本地 Id 构造注入，
-    /// 确定性驱动。钉住：全序排序（Kills 降序 → EntityId 升序，第一名在最左）、同分不抖、脏位（值不变不写）、
-    /// 自己格高亮唯一、人数 &lt; 8 尾部格隐藏、非参赛实体不计入、`Txt_Score` 仅 Team 模式显示、Dispose 格归位。
-    /// 真场景观感归 PlayMode/手测；prefab 结构（8 格预置）另由结构守卫。
+    /// 局内排行榜驱动的 L2 EditMode 覆盖（排行榜批——FFA "比分"＝击杀）：镜像与本地 Id 构造注入， 确定性驱动。
     /// </summary>
     public sealed class BattleRankboardEditModeTests : UnityTestBase
     {

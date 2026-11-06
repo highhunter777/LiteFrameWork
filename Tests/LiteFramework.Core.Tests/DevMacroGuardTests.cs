@@ -6,11 +6,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 开发宏边界（《客户端架构重构演进路线图》§4.8/§4.11 7）：
-    /// <c>DEVELOPMENT_BUILD</c> / <c>LITEFRAMEWORK_DEBUG</c> 只允许出现在 `LiteGame.Dev`。
-    ///
-    /// M3-1 建立存量基线（只减不增）→ M3-6b 逐段收紧 → **6b-4 清零转纯 hard fail**：
-    /// 产品程序集（LiteFramework/LiteGame 非 Dev/LiteFramework/LiteView）出现任何一处即失败，无允许表。
+    /// 开发宏边界（《客户端架构重构演进路线图》§4.8/§4.11 7）： <c>DEVELOPMENT_BUILD</c> / <c>LITEFRAMEWORK_DEBUG</c> 只允许出现在 `LiteGame.Dev`。
     /// </summary>
     public sealed class DevMacroGuardTests
     {

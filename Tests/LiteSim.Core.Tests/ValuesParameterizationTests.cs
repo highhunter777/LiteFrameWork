@@ -4,9 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 技术债 #1 根治证明（《待办总览》§7.2 #1）：玩法数值按**实例**参数化——
-    /// 自定义值经参数直达机制（SimStep/系统），全程不触碰任何全局读口；
-    /// 无串行集、无 finally 还原（对比旧"静态装载面"用例形态：`ServerTableLoadTests` 原串行集已拆除）。
+    /// 技术债 #1 根治证明（《待办总览》§7.2 #1）：玩法数值按**实例**参数化—— 自定义值经参数直达机制（SimStep/系统），全程不触碰任何全局读口； 无串行集。
     /// </summary>
     public sealed class ValuesParameterizationTests
     {
@@ -35,8 +33,6 @@ namespace LiteSim.Tests
         {
             var world = WorldWithSpawn(100, out long id);
             // 限速档**独立于** MoveSpeed：moveSpeed 给 7.5（默认 5），aim_move_speed 给 2.5。
-            // 旧式口径 MoveSpeed × 0.5（=3.75）已随表化退役——现直落最终速度，
-            // 代价是调 move_speed 不再带动限速档——本用例即钉这条语义（见 CombatValues.AimMoveSpeed）。
             var values = new CombatValues(7.5f, -20f, 100f, 25, 1, 100, 2.5f, 60, CombatGeometry.Default);
             var inputs = new[] { new SimInputFrame { EntityId = id, MoveX = 1f, Buttons = SimInputFrame.ButtonAim } };
 

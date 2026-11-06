@@ -6,12 +6,7 @@ using StjKind = System.Text.Json.JsonValueKind;
 namespace LiteFramework.Core.Tests.Meta
 {
     /// <summary>
-    /// L1 侧的独立 <see cref="IJsonCodec"/> 实现（System.Text.Json，不依赖 Newtonsoft）：
-    /// 证明"契约编解码只认端口"这一抽象成立，且行为不依赖某个库的默认值。
-    ///
-    /// 类型化路径直接用 `JsonSerializerDefaults.Web`（camelCase + 大小写不敏感 + 允许字符串读数字），
-    /// 与运行时 Newtonsoft 的契约设置口径对齐；严格节点路径在解析时**物化**成不可变树。
-    /// 本类只服务 L1 用例。
+    /// L1 侧的独立 <see cref="IJsonCodec"/> 实现（System.Text.Json，不依赖 Newtonsoft）： 证明"契约编解码只认端口"这一抽象成立，且行为不依赖某个库的默认值。
     /// </summary>
     internal sealed class StjJsonCodec : IJsonCodec
     {

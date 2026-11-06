@@ -7,10 +7,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// Unity 侧 IEEE 基线对账（《测试开发方案》§7.2 缺口 b / §9 验收②③；《M7 实施指导》§2.6）。
-    ///
-    /// 断言"**Unity 运行时与 .NET 的浮点路径逐位一致**"——这是跨运行时一致性的直接证据，
-    /// 也是 L2 门禁里"数值层"那一环（v3 定位下它不再是正确性前提，但决定预测/和解质量）。
-    /// 探针与基线均为单一来源：<see cref="IeeeProbe"/>（LiteSim 内）+ `Tests/…/Baselines/IeeeBaseline.txt`（.NET 记录）。
     /// </summary>
     public sealed class IeeeBaselineEditModeTests : UnityTestBase
     {
@@ -23,10 +19,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>
-        /// 运算链（10k 步）跨运行时**必须逐位一致**——B 方案（自研 software sqrt，
-        /// 纯整数/位运算 + 正确舍入）的兑现点。
-        ///
-        /// 硬判据：一旦有人绕过 `SimMath.Sqrt` 直接用 BCL `Math.Sqrt`，它立刻红。
+        /// 运算链（10k 步）跨运行时**必须逐位一致**——B 方案（自研 software sqrt， 纯整数/位运算 + 正确舍入）的兑现点。
         /// </summary>
         [Test]
         [Category(TestCategory.Contract)]

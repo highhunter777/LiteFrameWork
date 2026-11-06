@@ -13,10 +13,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// **可替换性验证**（《状态同步实施方案》§4.6）：
-    /// `ServerHost` 现在只依赖窄端口 <see cref="IRoomTransport"/>——本用例用**假的传输实现**
-    /// 跑通"装配 → 连接 → Join → 满员开局"全链路，证明换传输框架确实只需新写适配器 + 装配一行，
-    /// 而不是嘴上说可替换（假件也能跑，才是真的解耦）。
+    /// **可替换性验证**（《状态同步实施方案》§4.6）： `ServerHost` 现在只依赖窄端口 <see cref="IRoomTransport"/>——本用例用**假的传输实现** 跑通"装配 → 连接 → Jo。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class ServerHostTransportTests
@@ -250,14 +247,7 @@ namespace LiteNet.Tests
     }
 
     /// <summary>
-    /// Join 票据接缝**接入真实准入路径**的端到端用例（《框架先行》§5-4"运行时票据验证接口与
-    /// 非法票据测试"；§6"真实网络链应经过**与运行时一致的验证器**"）。
-    ///
-    /// <see cref="JoinTicketValidatorTests"/> 验的是验证器本身的判断；本组验的是
-    /// **ServerHost 真的在用它**——若只在旁边放个验证器、Join 路径仍只看非空 token，
-    /// 前一组依然全绿而接缝形同虚设。
-    ///
-    /// 走假传输 <see cref="FakeRoomTransport"/>：不碰 kcp2k，纯命令面闭环。
+    /// Join 票据接缝**接入真实准入路径**的端到端用例（《框架先行》§5-4"运行时票据验证接口与 非法票据测试"；§6"真实网络链应经过**与运行时一致的验证器**"）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class JoinTicketAdmissionTests

@@ -9,14 +9,6 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// 公开/私有面**编译期边界守卫**（第二档）。
-    ///
-    /// **为什么需要**：该边界原本只写在注释里，而注释会漂移——实证两例：
-    /// ① <c>EntitySlot.FireStanceFrames</c> 的注释长期写"私有面"，而 proto（<c>fire_stance_frames=19</c>）
-    ///    与 <c>ComputePublicChecksum</c> 都表明它早已公共化；<c>SimChecksum</c> 内部两处注释互相矛盾。
-    /// ② <c>CorpseFrames</c> 曾"注释说公共面、wire 却没字段"→ 客户端重建恒 0 → 尸体期内每帧假和解。
-    ///
-    /// 本类把边界钉成**可执行的断言**：标注（<see cref="StateLayerAttribute"/>）与
-    /// 行为（两套 checksum）必须一致，任何一侧漂移即红。
     /// </summary>
     public class StateLayerContractTests
     {
@@ -89,10 +81,7 @@ namespace LiteSim.Tests
         [Fact]
         public void EntitySlot_字段清单与标注面显式对账_防静默漏标()
         {
-            // 快照契约的字段清单（契约冻结）。新增字段必须在此登记并同时打标注——
-            // 本断言的存在意义就是"逼后来者做一次有意识的决定"，而不是默默加个字段。
-            // SemiFireArmed = Internal（半自动击发沿——输入历史可推导：不上 wire、进全量口径，
-            // FaceExitTurning 同款先例）。
+            // 快照契约的字段清单（契约冻结）。
             string[] expected = {
                 "Id", "Pos", "Vel", "Yaw", "Hp", "Flags",
                 "Shield", "Kills", "Deaths", "SelectedWeapon",
@@ -113,8 +102,6 @@ namespace LiteSim.Tests
         public void 公共面字段清单_与公开私有边界文档一致()
         {
             // 公共面的**权威清单**（与 proto SlotDelta 的字段一一对应）。
-            // proto 侧对账在 LiteNet 的 SnapshotCodecTests（本工程不引 LiteNet）——
-            // 这里锁定 LiteSim 侧那一半，两侧各守一半、合成完整闭环。
             string[] publicFields = {
                 "Id", "Pos", "Vel", "Yaw", "Hp", "Flags",
                 "Shield", "Kills", "Deaths", "SelectedWeapon",

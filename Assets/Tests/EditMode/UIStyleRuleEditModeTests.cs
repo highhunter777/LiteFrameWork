@@ -14,9 +14,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 样式族两规则（工具链设计 §6.2「样式」/§8.1 漂移报告）：颜色 token 对账与文字档对账——
-    /// 规则复用 <c>UIStyleTool</c>/<c>UITextStyleTool</c> 的对账单源（本夹具同时钉「规则只投影、不复制第二份阈值/遍历」）。
-    /// 合成 prefab 落临时目录注入；真实面基线（颜色漂移/未标记计数）由全量校准门禁承担。
+    /// 样式族两规则（工具链设计 §6.2「样式」/§8.1 漂移报告）：颜色 token 对账与文字档对账—— 规则复用 <c>UIStyleTool</c>/<c>UITextStyleTool</c> 的对账单源（本夹具同。）。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIStyleRuleEditModeTests

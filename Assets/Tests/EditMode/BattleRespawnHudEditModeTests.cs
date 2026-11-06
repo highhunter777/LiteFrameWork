@@ -11,11 +11,7 @@ using LiteGame.Feedback;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 死亡/复活 HUD 驱动的 L2 EditMode 覆盖（阵亡批）：镜像与本地判据走**构造注入**（免构造 SimView——
-    /// 与面板驱动同款），确定性驱动。钉住：阵亡显隐、倒计时**整秒脏位**（同秒不写、跨秒才写）、
-    /// 复活收起并清归属、**归属只吃 Death×我阵亡**且带占位名（与排行榜共用身份序号单源）、
-    /// 保护角标开关（**端点不含**）、未对齐整体收起、Dispose 幂等。
-    /// 真场景观感（字号/落位/金色壳）归 PlayMode/手测。
+    /// 死亡/复活 HUD 驱动的 L2 EditMode 覆盖（阵亡批）：镜像与本地判据走**构造注入**（免构造 SimView—— 与面板驱动同款），确定性驱动。
     /// </summary>
     public sealed class BattleRespawnHudEditModeTests : UnityTestBase
     {

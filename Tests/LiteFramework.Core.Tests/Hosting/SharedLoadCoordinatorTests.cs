@@ -8,10 +8,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// SharedLoadCoordinator 用例（C1-⑧：《商业级通用客户端框架总设计》§8.2 SharedLoad
-    /// + 《热更与内容发布专项设计》§7 取消语义）：并发合并、失败穿透、单人取消不取消共享任务、
-    /// 全员取消弃置与迟到结果不复活、引用计数末位卸载、Dispose 释放面。
-    /// 全部用 UniTaskCompletionSource 定向续延（无真实时钟/线程调度依赖）。
+    /// SharedLoadCoordinator 用例（C1-⑧：《商业级通用客户端框架总设计》§8.2 SharedLoad + 《热更与内容发布专项设计》§7 取消语义）：并发合并、失败穿透、单人取消不取消共享任务。
     /// </summary>
     public sealed class SharedLoadCoordinatorTests
     {

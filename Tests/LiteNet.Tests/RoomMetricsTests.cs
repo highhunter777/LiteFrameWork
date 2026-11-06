@@ -13,12 +13,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// /metrics 零依赖出口用例（R4 第一批：《服务端总设计》§11.2 "出口 /metrics 走 Prometheus"——
-    /// RoomServer 侧低成本文本出口，同 MetaServer Ops 先例）。钉住：
-    /// ①FormatMetrics 与周期行计数**同源对账**（读面同名，肉眼可核）；
-    /// ②只出进程级累计计数 + 房间数 gauge（高基数字段红线不破）；
-    /// ③metrics_port 配置三态（缺省 0=关闭 / 显式 / 越界拒）；
-    /// ④HTTP 出口语义（GET /metrics 200、其余 404、Dispose 后不可达）。
+    /// /metrics 零依赖出口用例（R4 第一批：《服务端总设计》§11.2 "出口 /metrics 走 Prometheus"—— RoomServer 侧低成本文本出口，同 MetaServer Ops 先例）。
     /// </summary>
     public sealed class RoomMetricsTests
     {

@@ -12,10 +12,6 @@ namespace MetaServer.Tests
 {
     /// <summary>
     /// 配置范围校验与 Options 装配（《Meta 服务专项设计》§10）。
-    ///
-    /// L1：纯逻辑 + DI 装配，不起监听。
-    ///
-    /// 本文件钉住配置校验在启动路径上的拦截（见 <see cref="非法配置_ValidateOnStart拒绝启动"/>）。
     /// </summary>
     public sealed class MetaConfigTests
     {
@@ -387,8 +383,6 @@ namespace MetaServer.Tests
 
         /// <summary>
         /// §12"启动失败必须返回非零退出码，不能带默认错配置继续运行"。
-        ///
-        /// 此用例确保非法配置**在启动路径上**被拦下（校验对象必须与实际使用实例一致）。
         /// </summary>
         [Fact]
         [Trait(TestTrait.Category, TestCategory.Contract)]
@@ -420,8 +414,6 @@ namespace MetaServer.Tests
 
         /// <summary>
         /// §10 配置来源必须真正生效。
-        ///
-        /// 配置必须经 `IOptions&lt;MetaConfig&gt;` 读——那才是实际生效的那一份。
         /// </summary>
         [Fact]
         [Trait(TestTrait.Category, TestCategory.Contract)]

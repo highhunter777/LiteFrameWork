@@ -9,11 +9,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// UI 校验核心（《UI编辑器工具专项设计》§4）的 L2 EditMode 覆盖：规则端口形状、报告契约
-    /// （<c>{ruleId,severity,asset,node,message,fixHint}</c>）、"未接入族显式列出"、正负例。
-    ///
-    /// §4 硬要求："每条硬规则提供正例与违规负例"——本用例用合成上下文喂正/负例，
-    /// 不断言真实代码面（真实面由 <see cref="VisualSingleSourceEditModeTests"/> 守）。
+    /// UI 校验核心（《UI编辑器工具专项设计》§4）的 L2 EditMode 覆盖：规则端口形状、报告契约 （<c>{ruleId,severity,asset,node,message,fixHint}</c>）。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIValidationEditModeTests

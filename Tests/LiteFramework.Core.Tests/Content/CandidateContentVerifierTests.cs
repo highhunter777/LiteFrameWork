@@ -6,9 +6,6 @@ namespace LiteFramework.Tests
 {
     /// <summary>
     /// 候选内容校验（《热更与内容发布专项设计》§7 逐文件校验 / §5 原始字节摘要）。
-    ///
-    /// **本类覆盖的是信任链的执行侧**：设计 §7 要求"文件通过完整性校验后才进入资源/Lua 解析与执行"，
-    /// 而 <see cref="ReleaseManifestValidator"/> 只校验描述的字段形态、从不读字节。
     /// </summary>
     public sealed class CandidateContentVerifierTests
     {

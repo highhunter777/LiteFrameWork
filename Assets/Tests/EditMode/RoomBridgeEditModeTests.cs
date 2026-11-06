@@ -8,12 +8,7 @@ using LiteSync.Client;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// <see cref="RoomBridge"/>（Bridge.room 房间会话门面）语义守卫——真 LuaFunction 回调 + fake 会话端口
-    /// （IMetaClient 先例同形——门面语义不依赖真 BattleClient；静态门面经 env.Global.Set 注入
-    /// 测试全局，与生产 BindGlobals 同委托形，不走 CS 反射访问）：
-    /// 回放双序（装订即回放／订阅即回放——页面先于 JoinAck 打开的竞态消解）、订阅替换语义、
-    /// 无会话显性降级、被拒恰一次回调、会话摘除作废在途回调与推送、房规模拉取（未绑会话归零）。
-    /// 实例门面：每个用例新建，TearDown 重置订阅（防跨用例污染）。
+    /// <see cref="RoomBridge"/>（Bridge.room 房间会话门面）语义守卫——真 LuaFunction 回调 + fake 会话端口 （IMetaClient 先例同形——门面语义不依赖真 Bat。）。
     /// </summary>
     public sealed class RoomBridgeEditModeTests : UnityTestBase
     {

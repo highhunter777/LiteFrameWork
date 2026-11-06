@@ -10,9 +10,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 样式工具步 4（《UI编辑器工具专项设计》§3）的 L2 覆盖：文字档基线表（§3.1 数字）、
-    /// 按标记精确应用（TMP/UGUI 双组件映射 + 幂等）、对账三类（未标记/属性漂移/引用失效）、
-    /// 扫描根注入缝。合成临时 prefab 喂工具——真实资产面的对账基线由菜单首跑登记（手测）。
+    /// 样式工具步 4（《UI编辑器工具专项设计》§3）的 L2 覆盖：文字档基线表（§3.1 数字）、 按标记精确应用（TMP/UGUI 双组件映射 + 幂等）、对账三类（未标记/属性漂移/引用失效）、 扫描根注入缝。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UITextStyleEditModeTests

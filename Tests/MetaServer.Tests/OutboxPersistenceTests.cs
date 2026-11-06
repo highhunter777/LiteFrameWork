@@ -7,11 +7,7 @@ using Xunit;
 namespace MetaServer.Tests
 {
     /// <summary>
-    /// 持久 Outbox 端语契约（Meta 专项 §10 优雅关闭第 3 步"刷新 Outbox 到持久介质；未提交项
-    /// 保持可重试状态"、§11.3、§14 L3 行"进程重启后 Outbox 恢复"的 L1 语义面）。
-    ///
-    /// §11.2"任何队列、缓存、票据窗口与重试缓冲都必须有显式容量与清理策略"——
-    /// 有界与显式拒绝在此验证；**介质持久性本身归 L3 真 Mongo 容器验证**。
+    /// 持久 Outbox 端语契约（Meta 专项 §10 优雅关闭第 3 步"刷新 Outbox 到持久介质；未提交项 保持可重试状态"、§11.3、§14 L3 行"进程重启后 Outbox 恢复"的 L1 语义面）。
     /// </summary>
     public sealed class OutboxPersistenceTests
     {

@@ -14,12 +14,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// Worker 执行形态的**真实传输**段（《商业级通用服务端框架总设计》§8.2）：
-    /// 与 <see cref="ServerHostWorkerExecutionTests"/>（假传输、纯命令面）的分工是——
-    /// 那组钉"执行 owner 换成 Worker + 回传边界"的语义；本组钉该形态在**真 KCP + 真客户端**
-    /// 下同样成立（回传 → 宿主编码发送 → 客户端实收）。
-    ///
-    /// 装配即生产入口形态：<c>mailboxRouting + workerExecution</c>（<see cref="Program"/> 同款）。
+    /// Worker 执行形态的**真实传输**段（《商业级通用服务端框架总设计》§8.2）： 与 <see cref="ServerHostWorkerExecutionTests"/>（假传输。）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class WorkerExecutionContextTests : IDisposable

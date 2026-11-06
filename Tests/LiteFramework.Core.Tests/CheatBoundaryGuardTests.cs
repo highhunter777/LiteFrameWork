@@ -7,9 +7,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 信任边界守卫（《GM 与调试工具分层设计》§1.1）：
-    /// 开发作弊/调试实现只允许住 `LiteGame.Dev`；产品程序集只能经 `IDevSession`/`ILocalTestHooks` 端口。
-    /// 代码级直读（含 `TestModeRuntime.*`/`DebugKernel.*`/`SimTestRules.*`）一律失败。
+    /// 信任边界守卫（《GM 与调试工具分层设计》§1.1）： 开发作弊/调试实现只允许住 `LiteGame.Dev`；产品程序集只能经 `IDevSession`/`ILocalTestHooks` 端口。
     /// </summary>
     public sealed class CheatBoundaryGuardTests
     {

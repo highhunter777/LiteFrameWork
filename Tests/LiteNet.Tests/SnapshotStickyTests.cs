@@ -6,9 +6,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 快照差分的关键状态粘滞（P1 血量/复活同步）与活体位图判定：
-    /// - Hp/死亡/复活等一次性变化在变化后 1s 内重复下发（丢一包也不会等到全量兜底）；
-    /// - 活体数不变但位图变化（一死一生）必须转全量，不能被"数量相等"骗过。
+    /// 快照差分的关键状态粘滞（P1 血量/复活同步）与活体位图判定。
     /// </summary>
     public sealed class SnapshotStickyTests
     {

@@ -17,17 +17,7 @@ using LiteFramework;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 页面状态语义 PlayMode 用例（《框架先行》§4 包③退出条件"…**暂停**…可验证"；
-    /// 《UI测试开发专项设计》§4.3"状态断言至少包括 Covered/Paused/Visible"）。
-    ///
-    /// 覆盖两件 EditMode 测不到的事：
-    /// - **暂停**：`Pause` 后 OnPause 回调、且 **OnUpdate 停止派发**（§8.1"分级驱动：OnUpdate 仅 Active 态"）；
-    ///   `Resume` 走 OnShow（`UIFormState.Paused` 注释："恢复走 OnShow"）。
-    /// - **覆盖**：**另一页**全屏打开 → 本页 Covered → OnCover；关闭后者 → OnReveal。
-    ///   同层全屏触发的是 **Replace**（入库/出库），必须是**跨层**才走 Covered 语义——故 BaselineA 在
-    ///   layer 0、BaselineB 在 layer 2（见 `#uiform` 表）。
-    ///
-    /// 真实资源：真 Lua（`Baseline` 无 LuaPath，用空路径降级）+ 真 prefab + 真转场。
+    /// 页面状态语义 PlayMode 用例（《框架先行》§4 包③退出条件"…**暂停**…可验证"； 《UI测试开发专项设计》§4.3"状态断言至少包括 Covered/Paused/Visible"）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class UIStatePlayModeTests
@@ -38,8 +28,6 @@ namespace LiteGame.Tests.UI.PlayMode
         private sealed class StaticCatalog : IPageCatalog
         {
             // 非空 LuaPath：本用例走 **resolver 注入**（类层计数替身，不落盘、不建 LuaEnv）。
-            // 空 LuaPath 会被 ResolveLogic 短路成 NullUIFormLogic（"无业务逻辑的展示面"口径，
-            // 那条路径由 FeedbackSurface 用例覆盖），此处要的是可计数的逻辑层。
             private const string InjectedLogicPath = "Tests.CountingLogic";
 
             private readonly Dictionary<int, PageDefinition> _rows = new Dictionary<int, PageDefinition>();

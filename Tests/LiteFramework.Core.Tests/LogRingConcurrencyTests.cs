@@ -8,8 +8,6 @@ namespace LiteFramework.Tests
 {
     /// <summary>
     /// M1-3 守卫：日志环形缓冲的**并发写 + 并发枚举**不得撕裂。
-    /// 读侧来自 Unity 的 <c>logMessageReceivedThreaded</c> 回调链（任意线程），写侧在主线程；
-    /// 修复前 `_ring/_start/_count` 无锁，枚举期间滚出条目会读到错位/越界。
     /// </summary>
     public sealed class LogRingConcurrencyTests
     {

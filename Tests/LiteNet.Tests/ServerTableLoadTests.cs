@@ -14,16 +14,7 @@ using LiteGame.Modules.Config;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 玩法数值链路守卫（《玩法数值与Luban配置专项设计》）：
-    ///
-    /// 1. **表 → 默认值一致**：`CombatValues.Default` 的兜底值必须等于表值——否则表没生成/没装载时
-    ///    两端在同一份表下算出不同结果（隐形的行为分叉，最难查）。
-    /// 2. **服务端解析**（`ServerTableLoader.Parse`，bytes 形态）：正常 / 截断 / 缺行 → 抛（fail-fast，
-    ///    不静默兜底）。
-    /// 3. **装载产出实例**：`LoadTableBytes` 返回的表行经 `ToValues()` 产出 <see cref="CombatValues"/>
-    ///    实例（技术债 #1：不再回填全局——实例由装配方显式传递，`HostAssembly.Inputs` 必填卡"丢弃返回值"）。
-    ///
-    /// 注：**本类不触碰任何全局面**（技术债 #1 根治后无串行集/还原需求——数值一律经实例传递）。
+    /// 玩法数值链路守卫（《玩法数值与Luban配置专项设计》）。
     /// </summary>
     public sealed class ServerTableLoadTests
     {
@@ -83,10 +74,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// 装载链路钉：装载与传递是同一契约的两半——`LoadTableBytes` 返回的表行经 `ToValues()` 产出的
-        /// 实例必须等于表值（服务端装配经 `HostAssembly.Inputs.CombatValues` 必填传入；缺此钉则
-        /// "装载产物被丢弃"会表现为跑默认值而握手照常通过——表数据进 buildHash 两端同变）。
-        /// 与用例①合围：本用例卡"装载产物 = 表值"，用例①卡"默认值 = 表值"。
+        /// 装载链路钉：装载与传递是同一契约的两半——`LoadTableBytes` 返回的表行经 `ToValues()` 产出的 实例必须等于表值（服务端装配经 `HostAssembly.Inputs.CombatValue。）。
         /// </summary>
         [Fact]
         public void 装载产出实例_字段与表值一致()
@@ -105,9 +93,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// 正式服装载链路必须携带表几何（B11/B14）：旧 `ServerCombatValues.ToValues()` 曾回落
-        /// `CombatGeometry.Default`，表改了几何不会进权威判定——本用例改表字节的体半径，验证
-        /// `Parse → ToValues` 逐字节传递而非默认兜底。
+        /// 正式服装载链路必须携带表几何（B11/B14）：旧 `ServerCombatValues.ToValues()` 曾回落 `CombatGeometry.Default`。
         /// </summary>
         [Fact]
         public void 装载产出实例_几何来自表列而非默认兜底()

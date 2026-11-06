@@ -9,13 +9,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 受控 API <c>SetInteractable</c> 的三解析面：<c>Selectable</c> → <see cref="UIWidget"/> →
-    /// <see cref="IUIInteractable"/>（控件库封装件透传 inner 控件）。
-    ///
-    /// 存在理由：封装件（下拉/滑条/开关/输入框）**不是** Selectable，BindNode 登记的是封装件本身——
-    /// 没有第三面时"对局中禁用显示类下拉"会在 Selectable/UIWidget 两处落空并抛
-    /// 「无 Selectable / UIWidget 组件」，整页 OnShow 中断（局内 ESC 开设置页时实测即此形态）。
-    /// 同时守住 fail-fast：既不是 Selectable、也不是控件、也没实现接口的目标仍须抛。
+    /// 受控 API <c>SetInteractable</c> 的三解析面：<c>Selectable</c> → <see cref="UIWidget"/> → <see cref="IUIInteractable"/>。
     /// </summary>
     [Category(LiteTesting.TestCategory.Unit)]
     public sealed class UIBindIndexInteractableEditModeTests

@@ -7,14 +7,6 @@ namespace LiteFramework.Tests
 {
     /// <summary>
     /// IContentService 的 fake 实现（C1-⑤ 接缝批：契约冻结 + 失败注入夹具；C1-⑧ 补内容代次键维度）。
-    /// 真实实现归 YooAsset 适配层；本类服务三件事：
-    /// ① L1 契约测试（租约对称/引用计数/代次隔离/失败语义）②消费方（UIService/VFX 等）接缝验证 ③失败注入演示。
-    ///
-    /// 语义：
-    /// - (代次, location) → 资产的映射由 <see cref="Register{T}"/> 预登记；未登记的 location 抛
-    ///   KeyNotFoundException（fail-fast）；不同代次 = 不同资源（同 location 不同代不共享登记）。
-    /// - 失败注入：<see cref="InjectFailure"/> 命中的 (代次, location)，AcquireAsync 抛注入的异常（原样上抛）。
-    /// - ShutdownAsync：释放全部未释放租约（逆序）+ 幂等。
     /// </summary>
     public sealed class FakeContentService : IContentService
     {

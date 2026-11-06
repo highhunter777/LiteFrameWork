@@ -5,12 +5,7 @@ using RoomServer.Application;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 隔离测试签发者（《框架先行》§6"身份签发可用隔离测试发行者，但真实网络链应经过与运行时
-    /// **一致的验证器**"；Meta 专项 §6.2"由 Meta 私钥签发，RoomServer 用本地公钥验签"）。
-    ///
-    /// **本类只演 Meta 侧签发**，不复制线格式——组装与签名都走
-    /// <see cref="JoinTicketFormat"/>（与验证器同一份形状规则）。若另写一份拼串，
-    /// 签发端漂移时验证端仍然绿——那正是"测试测的不是它声称测的东西"。
+    /// 隔离测试签发者（《框架先行》§6"身份签发可用隔离测试发行者，但真实网络链应经过与运行时 **一致的验证器**"；Meta 专项 §6.2"由 Meta 私钥签发，RoomServer 用本地公钥验签"）。
     /// </summary>
     internal sealed class TestTicketIssuer
     {

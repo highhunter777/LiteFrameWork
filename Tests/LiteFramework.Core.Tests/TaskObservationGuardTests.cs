@@ -6,16 +6,12 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 任务观测与异常边界（《客户端架构重构演进路线图》§4.10）：
-    /// M3-5 起 <c>.Forget()</c> **必须带观测**（产品代码禁裸调用，统一走 <c>TaskObservation.ForgetLogged</c>）；
-    /// <c>SafeCall</c> 只允许外部回调边界文件（清单外即红）。
+    /// 任务观测与异常边界（《客户端架构重构演进路线图》§4.10）： M3-5 起 <c>.Forget()</c> **必须带观测**（产品代码禁裸调用。）。
     /// </summary>
     public sealed class TaskObservationGuardTests
     {
         /// <summary>
-        /// SafeCall 的合法边界（§4.10：只允许外部回调边界——Lua 回调、Unity/框架消息、UI 逻辑回调、
-        /// 调度器回调、表现降级）。**文件即边界**：不在表里的文件出现 SafeCall 即红；表内计数只减不增。
-        /// 业务路径不得用 catch-all 吞可恢复错误。
+        /// SafeCall 的合法边界（§4.10：只允许外部回调边界——Lua 回调、Unity/框架消息、UI 逻辑回调、 调度器回调、表现降级）。
         /// </summary>
         private static readonly Dictionary<string, int> SafeCallBoundaries = new Dictionary<string, int>(StringComparer.Ordinal)
         {

@@ -9,15 +9,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests.Meta
 {
     /// <summary>
-    /// 客户端成功响应 DTO 的**反射契约守卫**（《Meta 服务专项设计》§5.2 严格性四件之一）：
-    ///
-    /// - 每个 DTO 的每个公开属性必须显式归入 **必填** 或 **可选**——新增属性不分类即红；
-    /// - 必填属性从样例 JSON 中删除后，解析必须判 <see cref="MetaFailureKind.InvalidResponse"/>；
-    /// - 可选属性删除后仍可解析（默认值合法）。
-    ///
-    /// 范围 = <see cref="MetaJson"/> 消费的客户端成功响应 DTO。错误体 `MetaError` 是 best-effort
-    /// （code 缺失仍可按 HTTP 状态码分支），`InstanceRegisterResponse` 归 RoomServer 侧消费，
-    /// 两者不在本守卫范围。
+    /// 客户端成功响应 DTO 的**反射契约守卫**（《Meta 服务专项设计》§5.2 严格性四件之一）。
     /// </summary>
     public sealed class MetaWireContractTests
     {

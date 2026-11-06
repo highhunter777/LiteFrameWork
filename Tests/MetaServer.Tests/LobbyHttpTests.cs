@@ -16,11 +16,7 @@ using Xunit;
 namespace MetaServer.Tests
 {
     /// <summary>
-    /// Lobby HTTP 端到端（《Meta 服务专项设计》§7、《上云测试专项设计》§2）：
-    /// 实例注册 → 容量分配 → Join Ticket 签发 → **房间端验证器验签**闭环。
-    ///
-    /// L3：真实 Kestrel + 真实回环 HTTP（技法同 <see cref="MetaHostTests"/>）；验签用房间端真实
-    /// <see cref="HmacJoinTicketValidator"/>——HTTP 载荷与票据格式的联合契约在此钉死。
+    /// Lobby HTTP 端到端（《Meta 服务专项设计》§7、《上云测试专项设计》§2）： 实例注册 → 容量分配 → Join Ticket 签发 → **房间端验证器验签**闭环。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class LobbyHttpTests
@@ -565,9 +561,7 @@ namespace MetaServer.Tests
         [Fact]
         public async Task 房间公共投影_真令牌_载荷含实例与等待中房明细()
         {
-            // 房间列表批的**玩家可见**面（`/lobby/rooms/public`）：Bearer = 玩家访问令牌（与票据签发同
-            // 凭据类别），载荷 = 与实例面 `/lobby/rooms` **同源**的 ProjectRooms 投影（含 address/buildHash
-            // ——玩家进房要用，房明细行＝挑房的 roomId/mapId/相位/在座）。本用例把该链的 HTTP 半边钉死。
+            // 房间列表批的**玩家可见**面（`/lobby/rooms/public`）：Bearer = 玩家访问令牌（与票据签发同 凭据类别）。
             await using MetaHostFixture host = await StartLobbyHostAsync();
             using var http = new HttpClient();
             string key = Convert.ToBase64String(InstanceKey);

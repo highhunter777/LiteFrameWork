@@ -14,9 +14,7 @@ using Xunit;
 namespace MetaServer.IntegrationTests
 {
     /// <summary>
-    /// 宿主装配接真存储的端到端 L3（Meta 专项 §14 L3"真实 HTTP + Mongo 测试容器"、
-    /// 框架先行 §6 末条"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"）。
-    /// 走 <see cref="MetaHost.Build"/>——测试与生产共用同一装配路径。
+    /// 宿主装配接真存储的端到端 L3（Meta 专项 §14 L3"真实 HTTP + Mongo 测试容器"、 框架先行 §6 末条"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"）。
     /// </summary>
     [Collection("Mongo")]
     [Trait(TestTrait.Category, TestCategory.Integration)]
@@ -169,8 +167,6 @@ namespace MetaServer.IntegrationTests
                                       + "\"SettlementType\":\"s\",\"ExpectedRevision\":0,\"Delta\":1}";
 
             // (a) **默认（= 生产形态）**：样例链路整体不存在——路由 404。
-            //     断言的是"链路不在"，而不是"链路在但报 503"：后者会让生产暴露一个非业务面
-            //     （P3"样例链路出生产构建"）。
             WebApplication offApp = MetaHost.Build(Array.Empty<string>(),
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {

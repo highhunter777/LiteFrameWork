@@ -8,12 +8,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 域边界守卫（批 2 起生效）：业务域必须**竖向自持**——`Modules/Battle/` 收拢战斗的判定/表现/UI，
-    /// 不存在横向的 `Modules/View`、`Modules/Presentation`；业务端口住 `Modules/Battle/Abstractions/`，
-    /// 业务域内子目录按**职责**命名（禁 `View`/`Presentation`/`Domain`/`Logic`）。
-    ///
-    /// 为什么需要：这三个横向目录把本属战斗的东西（HUD/Fx/音频/Rig/Look/SimView/动画）收在共享层，
-    /// 业务系统无法自持自己的 UI 与表现；目录名一旦回潮，"新增业务域 = 目录 + 段 + Abstractions"就会失效。
+    /// 域边界守卫（批 2 起生效）：业务域必须**竖向自持**——`Modules/Battle/` 收拢战斗的判定/表现/UI， 不存在横向的 `Modules/View`、`Modules/Presentation`。
     /// </summary>
     public sealed class DomainBoundaryTests
     {
@@ -132,8 +127,6 @@ namespace LiteFramework.Core.Tests
 
         /// <summary>
         /// `LiteGame.Core` 准入章程：**只放跨域共享契约 + 纯计算**（域自持业务端口仍住 `Modules/<域>/Abstractions/`），按类别分目录。
-        /// 常量/资源标识归共享常量面 `LiteGame.Shared`（那里只有生成物与路径常量），不放这里——
-        /// Core 一旦"什么都收"，就会退化成杂物抽屉，而它是 fan-in 最高的产品程序集。
         /// </summary>
         // Strategy = 配置侧生产、战斗/表现/Lua 侧共读的**不可变策略事实**（规则/排行/伤害数字参数），
         // 不是战斗业务端口（业务端口仍住 Modules/Battle/Abstractions）。
@@ -158,8 +151,6 @@ namespace LiteFramework.Core.Tests
 
         /// <summary>
         /// 战斗包图守卫：叶子子模块不得依赖装配包 `Setup/`——那会形成包级回边。
-        /// 历史：`Combat/BattleFeedbackAssembler` 持 `Setup/BattleViewAssets`，与 `Setup → Combat` 构成 2 环；
-        /// `BattleViewAssets` 下移域根破环，本条守卫防再生。
         /// </summary>
         [Fact]
         public void 战斗叶子子模块不得引用装配包()

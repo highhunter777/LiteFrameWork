@@ -6,10 +6,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 五层 Scope 树生命周期用例（《商业级通用客户端框架总设计》§6.2 作用域表 + G1 退出条件
-    /// "资源/场景/UI 循环后引用和订阅回基线"）：
-    /// Root/Account/Match/Scene/UI 五层建树、父取消级联全部子孙、子 Dispose 独立、
-    /// 每层 LIFO、兄弟互不影响、泄漏断言（OwnedCount 归零）。
+    /// 五层 Scope 树生命周期用例（《商业级通用客户端框架总设计》§6.2 作用域表 + G1 退出条件 "资源/场景/UI 循环后引用和订阅回基线"）： Root/Account/Match/Scene/UI 五层建树。
     /// </summary>
     public sealed class ClientScopeTreeTests
     {

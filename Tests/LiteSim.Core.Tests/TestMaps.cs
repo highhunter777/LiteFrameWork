@@ -3,11 +3,7 @@ using LiteSim;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 测试地图夹具（测试侧单源）：灰盒值域与旧 `StandardBattleMap` **逐值一致**（该方法已随批4 退役；
-    /// 本夹具承接其测试场景角色）
-    /// （±100 边界 / 围墙 ±69 厚 2 高 20 / 测试方块 (5,0,0) / 16 网格出生点）——
-    /// 供 L1 用例在该方法退役后继续以同一地图驱动断言；构建走 <see cref="SimMapBuilder"/>（越界/NaN fail-fast）。
-    /// LiteNet.Tests 经 csproj 源链接共编本文件（同一份夹具）。
+    /// 测试地图夹具（测试侧单源）：灰盒值域与旧 `StandardBattleMap` **逐值一致**（该方法已随批4 退役。）。
     /// </summary>
     internal static class TestMaps
     {
@@ -28,13 +24,7 @@ namespace LiteSim.Tests
         }
 
         /// <summary>
-        /// 首图 Arena01 快照夹具（与 `Luban/Data/Map/map_arena01.json` 实烘产物逐值一致）：52 件代理
-        /// （四点旋转对称布局，注释名＝场景对象名；条目序＝烘焙输出序=名 Ordinal）+ 16 出生点 + 边界 ±28。
-        /// 两端投影对账（tbmap.bytes 投影 == 本快照）用之；锚定摘要见 TestMapsTests。
-        /// **紧凑档**：内场 56×56——中庭 12 件保原尺寸，象限/外围按 28/68 收拢、中轴按 0.29；
-        /// 外圈出生 ±25、内圈 ±22（最小掩体净距 8.24m、最外圈离墙 3m）。
-        /// **围墙压低**：四面 `wall_bound_*` 高 20→0.5m（追尾相机在玩家后方，20m 墙会挡住下半场角色；
-        /// 四面统一保对称）。改场景重烘须联动本夹具。
+        /// 首图 Arena01 快照夹具（与 `Luban/Data/Map/map_arena01.json` 实烘产物逐值一致）：52 件代理 （四点旋转对称布局，注释名＝场景对象名。）。
         /// </summary>
         public static SimMapData Arena01()
         {
@@ -104,10 +94,7 @@ namespace LiteSim.Tests
         }
 
         /// <summary>
-        /// 训练场快照夹具（多图批冻结：与 `Luban/Data/Map/map_training_ground.json` 实烘产物逐值一致）：
-        /// 8 件代理（种子布点；注释名＝场景对象名，条目序＝烘焙输出序=名 Ordinal）+ 16 出生点（半径 22 环）
-        /// + 边界 ±50。多图批两端投影对账（tbmap 行 2 投影 == 本快照）用之；锚定摘要见 TestMapsTests。
-        /// **改训练场布点（改场景重烘）必须联动更新本夹具**（同 Arena01 口径）。
+        /// 训练场快照夹具（多图批冻结：与 `Luban/Data/Map/map_training_ground.json` 实烘产物逐值一致）： 8 件代理（种子布点；注释名＝场景对象名。）。
         /// </summary>
         public static SimMapData TrainingGround()
         {

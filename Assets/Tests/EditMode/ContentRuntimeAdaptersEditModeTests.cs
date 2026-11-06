@@ -10,14 +10,7 @@ using LiteGame.Modules.Composition;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 内容运行时适配（《热更与内容发布专项设计》§7"下载、候选校验与容量"）：
-    /// <see cref="FileSystemCandidateFileSource"/>（候选文件读取）、
-    /// <see cref="LocalDirectoryCandidateFetcher"/>（本地候选清点）、
-    /// <see cref="UnavailableDiskSpaceProbe"/>（空间不可知的 fail-closed）、
-    /// <see cref="WriteProbeDiskSpaceProbe"/>（生产装配的空间余量链：DriveInfo → 写探针回退）。
-    ///
-    /// 同时覆盖 <see cref="FileSystem"/> 的字节/递归 API ——
-    /// LiteGame 层零 System.IO，候选文件（含二进制）必须走 FileSystem 通道。
+    /// 内容运行时适配（《热更与内容发布专项设计》§7"下载、候选校验与容量"）： <see cref="FileSystemCandidateFileSource"/>（候选文件读取）。
     /// </summary>
     public sealed class ContentRuntimeAdaptersEditModeTests : UnityTestBase
     {
@@ -230,10 +223,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 空间探测_卷不可用_按不可知处理()
         {
-            // 探针只报**相对**目录所在卷的余量；"探不到"的正确触发是 DriveInfo 不可用
-            // （平台不支持 / 卷未就绪），而非"目录不存在"——不存在目录仍与 RootPath 同卷，
-            // 返回真实余量才是正确行为（目录会被写入侧自动创建，见 _files.WriteProbe）。
-            // 这里断言"绝不抛、且返回值属于 {正数, -1}"这一真实契约。
+            // 探针只报**相对**目录所在卷的余量；"探不到"的正确触发是 DriveInfo 不可用 （平台不支持 / 卷未就绪），而非"目录不存在"——不存在目录仍与 RootPath 同卷， 返回真实余量才是正确行为（目录会被写入侧自动创建，见 _files.WriteProbe）。
             var probe = new DriveInfoSpaceProbe("no_such_dir_yet", _files);
             long available = probe.GetAvailableBytes();
 
@@ -244,9 +234,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 空间探测_写探针回退_桌面给可用下界()
         {
-            // 生产装配（ContentSegment）用的是"DriveInfo → 写探针回退"链：桌面必须给出可用值
-            // （精确值或写探针下界），绝不能是 -1——否则空间预检 fail-closed 会让热更链在 Player 上整体不可用
-            // （实测 IL2CPP Player 的 DriveInfo 拿不到卷余量）。小上限避免测试期大额写入。
+            // 生产装配（ContentSegment）用的是"DriveInfo → 写探针回退"链：桌面必须给出可用值 （精确值或写探针下界）。
             var probe = new WriteProbeDiskSpaceProbe(ReleaseLayout.CandidateRootRelative,
                 probeCapBytes: 8L * 1024 * 1024, files: _files);
             long available = probe.GetAvailableBytes();
@@ -481,14 +469,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(ReleaseRejectReason.InvalidEntry, runner.LastRejectReason);
         }
 
-        // ---- 真签名候选的接受路径（《框架先行》样例①"验签/下载段"）------------------
-        //
-        // 上面三条 `编排端到端_*` 用的是 `AlwaysOkVerifier`——**信任关被短路**，
-        // 故它们证明的是"编排能跑通"，证明不了"真签名能被接受"。
-        // 下面这条把验签器换成**内置锚点**，并让候选来自**真信封**（发布私钥签出、已入库），
-        // 从而覆盖「真信封 → 信任关 → 下载 → 校验 → 健康 → 激活」的完整贯通。
-        //
-        // 不依赖私钥：验签只需公钥，而公钥在内置锚点 ContentTrustAnchors 里。
+        // ---- 真签名候选的接受路径（《框架先行》样例①"验签/下载段"）------------------ 上面三条 `编排端到端_*` 用的是 `AlwaysOkVerifier`——**信任关被短路**， 故它们证明的是"编排能跑通"，证明不了"真签名能被接受"。
 
         /// <summary>真信封夹具的声明内容——必须与签名时的字节**完全一致**（摘要会核对）。</summary>
         private static readonly (string path, string content)[] FixtureFiles =
@@ -580,8 +561,6 @@ namespace LiteGame.Tests.EditMode
                 trustedKeys.AsResolver());
 
             // 已被确认的版本必须在被拒前后**不变**。
-            // 注意 `ActivationRecord.ConfirmedReleaseId` 的**初值是 "builtin"**（不是 null）——
-            // 断言 null 会失败；正确的性质是"未被改写"。
             string confirmedBefore = store.Current.ConfirmedReleaseId;
             PatchRunResult r = runner.RunAsync().GetAwaiter().GetResult();
 
@@ -591,12 +570,7 @@ namespace LiteGame.Tests.EditMode
                 "被拒的候选不得改写已确认版本");
         }
 
-        // ---- 两版本更新对照（§6 反回退：同一发布的两个修订走真实信任链）----------------
-        //
-        // 上面两组钉的是单版本：真签名接受、篡改拒绝。本组补**两版本对照**——
-        // 修订 1 与修订 2 都在真实信任链（内置锚点验签）上跑，且「确认修订基线」跨启动
-        // 从持久记录读回：新修订放行、旧修订重放被拒、被拒不得改写已确认。
-        // 两个夹具同为 rel-fixture-001（修订 1/2），均发布私钥签出、只含公钥可验数据。
+        // ---- 两版本更新对照（§6 反回退：同一发布的两个修订走真实信任链）---------------- 上面两组钉的是单版本：真签名接受、篡改拒绝。
 
         private const string FixtureV1 = "Assets/Tests/EditMode/Fixtures/signed-candidate.json";
         private const string FixtureV2 = "Assets/Tests/EditMode/Fixtures/signed-candidate-v2.json";

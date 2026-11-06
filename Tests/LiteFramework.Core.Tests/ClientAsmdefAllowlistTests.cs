@@ -8,11 +8,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 客户端程序集引用边（《客户端架构重构演进路线图》§4.2/§4.11 1）：
-    /// 每条边必须在 arch/units.json 内；未登记的新边、反向边、跨层边一律失败。
-    /// 允许表是**架构契约**——新增引用必须先改表并说明理由，不能靠“能编过”默认放行。
-    /// 框架侧按角色分四件（Core/Services/Adapters/Hosting，B1 切框架）：边表按件登记；
-    /// Services 不得引 Adapters/Hosting，Adapters 不得引 Hosting；产品模块不得引框架 Adapters。
+    /// 客户端程序集引用边（《客户端架构重构演进路线图》§4.2/§4.11 1）： 每条边必须在 arch/units.json 内；未登记的新边、反向边、跨层边一律失败。
     /// </summary>
     public sealed class ClientAsmdefAllowlistTests
     {

@@ -13,11 +13,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 结算 Outbox 文件语义 L3（《商业级通用服务端框架总设计》§11.3"本地持久 Outbox"、
-    /// §12 优雅关闭第 4 步"刷新 Outbox 到持久介质"）。真实临时文件——重启恢复＝介质比进程活得久。
-    ///
-    /// **边界**：此处证明的是"冻结事实不因进程退出而丢、重启可重放"；提交管道（后台服务重试发送
-    /// Profile.Apply）由后续环节承担。
+    /// 结算 Outbox 文件语义 L3（《商业级通用服务端框架总设计》§11.3"本地持久 Outbox"、 §12 优雅关闭第 4 步"刷新 Outbox 到持久介质"）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class SettlementOutboxFileTests
@@ -358,11 +354,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// P0-1 回归：**入盒（权威循环线程）与标记/取待提交（提交后台线程）并发**——
-        /// 全类曾零锁裸并发（<c>_entries/_seen/_completed/_stream</c>），是服务端唯一会造成真实介质损坏的缺陷。
-        /// 断言面：① 无异常（裸并发下 <c>List</c>/<c>HashSet</c> 结构损坏或枚举中改动必抛）；
-        /// ② 每条入盒都被接纳（无莫名 Duplicate/Failed）；③ 全部标记后待提交面归零；
-        /// ④ **日志行无坏行**（并发追加若无临界区会出现交错半行——重启装载即报坏行）。
+        /// P0-1 回归：**入盒（权威循环线程）与标记/取待提交（提交后台线程）并发**—— 全类曾零锁裸并发（<c>_entries/_seen/_completed/_stream</c>）。
         /// </summary>
         [Fact]
         public void 并发入盒与标记_无结构损坏_账目自洽_日志无坏行()

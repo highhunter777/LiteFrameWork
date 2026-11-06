@@ -8,12 +8,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 房间服务器配置用例（《商业级通用服务端框架总设计》§429"端口、Worker 数、**房间容量**…均有
-    /// 范围校验"；§520/§600"不把估算值写死为事实""不在设计阶段虚构固定房间数"）。
-    ///
-    /// 本组钉住的是**配置错误必须响亮地失败**：坏文件/坏字段/越界一律抛，不静默兜底——
-    /// 兜底会让配置错误变成线上的隐形分叉（与 <see cref="ServerTableLoader"/> 同一口径）。
-    /// combat 内联分区不受支持（玩法数值走 .bytes 表，见 ServerTableLoadTests）。
+    /// 房间服务器配置用例（《商业级通用服务端框架总设计》§429"端口、Worker 数、**房间容量**…均有 范围校验"；§520/§600"不把估算值写死为事实""不在设计阶段虚构固定房间数"）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class RoomServerConfigTests
@@ -324,9 +319,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// P0-2：<c>expected_players</c> 的上界必须**等于内核容量**（<see cref="PendingInputRing.MaxPlayerCapacity"/>，
-        /// 单 uint 有效位图宽度）——两侧曾各自写死（配置 1..64 / 内核 1..32），33+ 席位配置让
-        /// RoomRuntime 构造抛异常并窜上权威循环线程。上界单源后，越界配置在**装载期**即拒。
+        /// P0-2：<c>expected_players</c> 的上界必须**等于内核容量**（<see cref="PendingInputRing.MaxPlayerCapacity"/>。）。
         /// </summary>
         [Fact]
         public void 单房间人数超内核容量_装载期拒绝_边界值合法()

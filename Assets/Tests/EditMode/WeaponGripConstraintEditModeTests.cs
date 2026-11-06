@@ -9,12 +9,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 持枪约束（换弹上半身叠加期间武器骨跟随持枪手）EditMode 用例：真角色 prefab +
-    /// grip.bin 真实装载的 <see cref="WeaponGripCatalog"/>（期望值不手抄常量）+ 真片段，走生产路径
-    /// （后端分层图 → 动画 Evaluate → 约束覆写）。
-    ///
-    /// **断言口径一律绝对事实**（期望位姿由跟随骨变换乘烘焙偏移的解析式算出，不用相对比较）——
-    /// 相对断言在历史缺陷（武器脱手悬空）上曾全绿放行。
+    /// 持枪约束（换弹上半身叠加期间武器骨跟随持枪手）EditMode 用例：真角色 prefab + grip.bin 真实装载的 <see cref="WeaponGripCatalog"/>（期望值不手抄常量）+ 真片段。
     /// </summary>
     public sealed class WeaponGripConstraintEditModeTests : UnityTestBase
     {

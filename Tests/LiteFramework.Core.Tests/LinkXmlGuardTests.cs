@@ -8,10 +8,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// link.xml（IL2CPP 防裁表）守卫：每个 <c>assembly/@fullname</c> 必须命中真实存在的
-    /// 程序集名（Assets 与 Packages 两处的 asmdef name 字段）。程序集拆分/改名后旧名残留
-    /// 表内＝静默失锚（裁剪档位提升或 DI 按类型注册启用时才显影）——本用例把"表内名字真实"
-    /// 钉成可执行判据，防整类陈旧。
+    /// link.xml（IL2CPP 防裁表）守卫：每个 <c>assembly/@fullname</c> 必须命中真实存在的 程序集名（Assets 与 Packages 两处的 asmdef name 字段）。
     /// </summary>
     public sealed class LinkXmlGuardTests
     {

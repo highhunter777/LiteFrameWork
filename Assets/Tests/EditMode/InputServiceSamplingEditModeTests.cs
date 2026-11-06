@@ -9,9 +9,7 @@ using LiteGame.Modules.Input;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 输入采样帧边界（A6）：同一渲染帧内重复调用 <see cref="InputService.SampleOnRenderFrame"/>
-    /// 是追帧/多 procedure 步进的正常形态，**不得吞掉本帧已产生、尚未上行的结论**；
-    /// 清标记的唯一时机是 <see cref="InputService.TryTakeForSend"/>（上行消费）。
+    /// 输入采样帧边界（A6）：同一渲染帧内重复调用 <see cref="InputService.SampleOnRenderFrame"/> 是追帧/多 procedure 步进的正常形态，**不得吞掉本帧已产生。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class InputServiceSamplingEditModeTests

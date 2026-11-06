@@ -10,8 +10,6 @@ namespace MetaServer.Tests
 {
     /// <summary>
     /// Lobby 实例注册表（《Meta 服务专项设计》§7 实例注册/容量驱动分配/drain 协同；§13 有界要求）。
-    ///
-    /// L1：纯逻辑 + 虚拟时钟——心跳超时不用 sleep，时钟推进即刻可断言。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Unit)]
     public sealed class LobbyRegistryTests

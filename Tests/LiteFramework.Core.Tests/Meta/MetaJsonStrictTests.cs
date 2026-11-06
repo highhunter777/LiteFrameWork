@@ -7,15 +7,6 @@ namespace LiteFramework.Core.Tests.Meta
 {
     /// <summary>
     /// Meta 契约的 L1 直测（零引擎零第三方）：反射反序列化 + 必填校验 + 失败分类。
-    ///
-    /// 钉住的性质：
-    /// <list type="bullet">
-    /// <item>2xx 但缺必填字段 / 根不是对象 / 坏 JSON → <see cref="MetaFailureKind.InvalidResponse"/>；</item>
-    /// <item>非 2xx → Rejected 且状态码与 code 可分支；</item>
-    /// <item>请求体由共享 DTO 序列化而来（字段名口径与两端一致），特殊字符不破坏 JSON。</item>
-    /// </list>
-    /// 类型转换的宽松性不再是本层的判据（形状由共享 DTO 在编译期单源；未知字段由
-    /// `MissingMemberHandling.Error` 在运行时拦截，见 EditMode 用例）。
     /// </summary>
     public sealed class MetaJsonStrictTests
     {

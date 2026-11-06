@@ -7,11 +7,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// SafeArea 接收器四形态（《UI框架总设计》§7"SafeArea 作用于可交互内容容器，背景可铺满；
-    /// 处理分辨率、方向和安全区变化。测试至少覆盖常规横屏、超宽屏、刘海、窗口缩放"）。
-    ///
-    /// 形态经 <see cref="ISafeAreaStrategy"/> 注入缝注入（设备无关的确定性验证——
-    /// 桌面编辑器无真实刘海，策略缝是"处理安全区变化"的可测面）；模板契约跑真 prefab。
+    /// SafeArea 接收器四形态（《UI框架总设计》§7"SafeArea 作用于可交互内容容器，背景可铺满； 处理分辨率、方向和安全区变化。）。
     /// </summary>
     public sealed class SafeAreaEditModeTests : UnityTestBase
     {

@@ -20,11 +20,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// UI 系统 P2-2 守卫（《UI 编辑器工具链专项设计》§3.1/§3.5/§3.6）：
-    /// 起页（基线复制/根契约/安全区归属/原子清理）、草稿契约（formId=0/批量/漂移/diff 口径）、
-    /// 登记（契约门槛/表核验回滚/代码生成链/清单状态/缓存策略/契约刷新/hash 规则/端口注入失败）、
-    /// 工作台（可用性/能力/事件/保存冲突/焦点重载）。
-    /// 测试只碰临时表副本与 Assets/Tests 下的临时面；真实表/清单/hash/契约在夹具起止做字节核对。
+    /// UI 系统 P2-2 守卫（《UI 编辑器工具链专项设计》§3.1/§3.5/§3.6）： 起页（基线复制/根契约/安全区归属/原子清理）、草稿契约（formId=0/批量/漂移/diff 口径）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class UIPageScaffoldRegisterEditModeTests

@@ -10,14 +10,7 @@ using LiteFramework.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 结构守卫（构建器产物钉住——防"顺手改坏/接线漂移"）：
-    /// ① Hud_Battle——菜单角组"单独开射线"不变量（§0 事件隔离：根组不拦射线、全树唯一
-    /// GraphicRaycaster 在 Cot_Settings、其 CanvasGroup ignoreParentGroups、唯一 raycastTarget=菜单钮；
-    /// 引用件 _settingsButton 接线）；② Page_Settings——退场钮在位、缺省隐藏、BindName 同文（§9.1）；
-    /// ③ Page_Room——房主开局钮在位、缺省隐藏（房主事实回放才显）、BindName 同文；
-    /// ④ Page_Lobby——创房钮在位、BindName 同文、三钮并排；⑤ Hud_Battle 排行榜——8 格预置、引用件齐备、零新射线；
-    /// ⑥ Hud_Battle 弹药读出——当前弹匣/剩余备弹/分隔符三件在位且引用件已接、零新射线。
-    /// 直接读 prefab 资产（不实例化——结构与接线是资产事实）。
+    /// 结构守卫（构建器产物钉住——防"顺手改坏/接线漂移"）： ① Hud_Battle——菜单角组"单独开射线"不变量（§0 事件隔离：根组不拦射线、全树唯一 GraphicRaycaster 在 Cot_Settings。）。
     /// </summary>
     public sealed class BattleHudMenuEditModeTests : UnityTestBase
     {

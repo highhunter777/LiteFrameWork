@@ -7,17 +7,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// Join 票据验证接缝用例（《框架先行》§5-4"没有真实登录业务时也不能省略运行时的票据验证接口
-    /// 与非法票据测试"；§6"真实网络链应经过与运行时一致的验证器"）。
-    ///
-    /// **覆盖矩阵**取自《服务端总设计》§16 安全测试清单"Join/Reconnect Ticket **过期、篡改、重放和密钥轮换**"
-    /// 与商业门槛 §595"篡改、过期、重放 Ticket **全部拒绝**"。
-    ///
-    /// **纯 L1**：零 Socket/零墙钟/零文件——时钟由用例经 <see cref="JoinContext.NowMs"/> 手排，
-    /// 故"过期"与"时钟回拨"可确定性构造（若验证器自读系统时钟，本组用例根本写不出来）。
-    ///
-    /// 签发方是隔离测试发行者 <see cref="TestTicketIssuer"/>，但它与验证器**共用同一份线格式**
-    /// （<see cref="JoinTicketFormat"/>）——验的是验证器的判断，不是两份实现的巧合一致。
+    /// Join 票据验证接缝用例（《框架先行》§5-4"没有真实登录业务时也不能省略运行时的票据验证接口 与非法票据测试"；§6"真实网络链应经过与运行时一致的验证器"）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class JoinTicketValidatorTests

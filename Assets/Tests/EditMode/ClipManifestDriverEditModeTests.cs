@@ -10,11 +10,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 去 AC 主路径收口（《动画模块专项设计》§4 片源载体裁决 + §7 灰盒放开）：片段清单 SO
-    /// （键→Clip 显式引用）装配期逐键 RegisterClip、Profile 绑定全覆盖校验（校验后才放行播放）、
-    /// 无控制器视图（直 Clip 模型）的驱动全链（机 Start 即提交 MoveBlend 落位——不依赖默认姿态位）。
-    /// 片段与清单全程序化构造，不依赖美术资产（真角色 prefab + 控制器便利源由
-    /// <see cref="CharacterLocomotionEditModeTests"/> 覆盖）。
+    /// 去 AC 主路径收口（《动画模块专项设计》§4 片源载体裁决 + §7 灰盒放开）：片段清单 SO （键→Clip 显式引用）装配期逐键 RegisterClip、Profile 绑定全覆盖校验（校验后才放行播放）。
     /// </summary>
     public sealed class ClipManifestDriverEditModeTests : UnityTestBase
     {

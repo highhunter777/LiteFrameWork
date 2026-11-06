@@ -13,10 +13,7 @@ using LiteFramework.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 死亡叶与帧锁定（die2 一次性·非循环，播完停末帧）：
-    /// 真资源机器级用例（真 Profile + 真清单供片 + 层次机），缺包克隆 Ignore 跳过（同移动动画先例）。
-    /// 判据：①进叶播 Die2 到 Completed；②完成后恒驻 Dead 叶（不重发/不退根/不降权——句柄不变、
-    /// Override 保持、Base 不回流）；③死亡裁决压制开火（窗内死亡 → 强制迁移且不回退）。
+    /// 死亡叶与帧锁定（die2 一次性·非循环，播完停末帧）： 真资源机器级用例（真 Profile + 真清单供片 + 层次机），缺包克隆 Ignore 跳过（同移动动画先例）。
     /// </summary>
     public sealed class DeathAnimEditModeTests : UnityTestBase
     {

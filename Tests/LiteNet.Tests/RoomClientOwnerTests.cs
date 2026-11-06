@@ -7,10 +7,7 @@ using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 房主位协议态（开房裁决 owner 位 + 房主迁移续批）：<see cref="RoomClient.IsOwner"/> 是
-    /// UI"开始对局"按钮归属的**唯一事实源**——JoinAck.IsOwner 定初值（重连重进同源刷新——
-    /// 迁移后旧主不夺回），OwnerChanged 广播按"新房主席位 == 本机席位"重算。
-    /// 全假传输驱动（喂编码包——与重连测试件同形态）。
+    /// 房主位协议态（开房裁决 owner 位 + 房主迁移续批）：<see cref="RoomClient.IsOwner"/> 是 UI"开始对局"按钮归属的**唯一事实源**——JoinAck.IsOwner 定初值（重。）。
     /// </summary>
     public sealed class RoomClientOwnerTests
     {

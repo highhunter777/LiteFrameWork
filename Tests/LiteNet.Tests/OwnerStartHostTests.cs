@@ -8,10 +8,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 房主提前开局·宿主全链用例（开房裁决：**开房者 = 首入座者**）：
-    /// StartMatchRequest 信令 → 会话/席位映射 → RoomCommand.StartEarly → Runtime owner 判定 →
-    /// StartGame 广播；拒绝经 StartMatchResponse 回发起者。FakeRoomTransport 逐包级（同 DrainTests 形态）；
-    /// Runtime 直测（未满开局/缺席实体/中途拒加入）见 <see cref="OwnerStartEarlyTests"/>。
+    /// 房主提前开局·宿主全链用例（开房裁决：**开房者 = 首入座者**）： StartMatchRequest 信令 → 会话/席位映射 → RoomCommand.StartEarly → Runtime owner 判定。
     /// </summary>
     public sealed class OwnerStartHostTests
     {

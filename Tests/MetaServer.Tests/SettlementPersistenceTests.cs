@@ -8,12 +8,7 @@ using Xunit;
 namespace MetaServer.Tests
 {
     /// <summary>
-    /// 结算账本接缝契约（《框架先行》§5-5"存储与幂等"、服务端总设计 §11.2/§11.3、
-    /// Meta 专项 §14 L1 行"幂等键语义；revision CAS 冲突路径"）。
-    ///
-    /// 走 <see cref="SettlementSampleUseCase"/>（样例⑤的命令消费者）——测的是交付物，
-    /// 不是另起的旁路。L1 验证**端口语义**；介质持久性/并发兜底归 L3 真 Mongo 容器
-    /// （§5-5"只做 fake 存储不能证明重启恢复"）。
+    /// 结算账本接缝契约（《框架先行》§5-5"存储与幂等"、服务端总设计 §11.2/§11.3、 Meta 专项 §14 L1 行"幂等键语义；revision CAS 冲突路径"）。
     /// </summary>
     public sealed class SettlementPersistenceTests
     {

@@ -11,12 +11,7 @@ using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 无头客户端（M10 验收 harness；M10 决策⑥ 全量预测形态）：
-    /// RoomClient（网络面）+ RollbackSim（全量预测/和解，惰性建——StartGame.Seed 下发后与服务器同构建世界）。
-    ///
-    /// 和解（决策⑥ 全量预测形态）：远端玩家输入客户端未知（沿用零）→ 权威与预测必分叉 → 每次快照
-    /// OnAuthoritativeSnapshot 恢复权威 + 重放本地历史 → 不发散（有界偏差）。和解率 = "权威与预测差异率"
-    /// （全量预测形态下预期偏高属机制正确，《M10 实施指导》决策⑥）。
+    /// 无头客户端（M10 验收 harness；M10 决策⑥ 全量预测形态）： RoomClient（网络面）+ RollbackSim（全量预测/和解，惰性建——StartGame.Seed 下发后与服务器同构建世界）。
     /// </summary>
     public sealed class HeadlessClient : IDisposable
     {
@@ -67,9 +62,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// 重连恢复（§9.3 步骤 3~5）：权威全量重建持久镜像 → 和解本地预测到该帧 → 宣告恢复完成
-        /// （CompleteRestore——服务器收到前抑制本席位增量广播）。输入历史不重放：镜像即恢复终点帧，
-        /// 后续权威循环从该帧继续。
+        /// 重连恢复（§9.3 步骤 3~5）：权威全量重建持久镜像 → 和解本地预测到该帧 → 宣告恢复完成 （CompleteRestore——服务器收到前抑制本席位增量广播）。
         /// </summary>
         private void OnReconnectResponse(Proto.ReconnectResponse response)
         {

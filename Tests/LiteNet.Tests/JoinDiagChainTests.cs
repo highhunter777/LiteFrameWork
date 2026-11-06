@@ -17,19 +17,7 @@ using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// **全链诊断样例**（《框架先行建设与业务接入专项设计》§8 准入项「可诊断」：
-    /// "一次注入失败可关联 Build/内容、事务、会话/房间并定位阶段"——证据类型：受控日志/错误码/诊断产物）。
-    ///
-    /// 形态：真 <see cref="ServerHost"/> + 真 KCP 客户端（装置同 <see cref="MultiRoomTransportTests"/>），
-    /// **一次注入** = 客户端携错误 buildHash 进房（版本红线）。断言四件事：
-    /// ① **阶段定位**：服务端记录 stage=<see cref="DiagStage.Build"/>、code=<see cref="DiagCode.JoinRejectedBuildHash"/>；
-    /// ② **两端关联**：客户端进房记录与①②**同键**（<see cref="DiagTrace.JoinKey"/> 单源构造）；
-    /// ③ **内容/事务关联**：客户端记录 detail 里带真实 <see cref="ActivationTransactionStore"/> 的事务 ID，
-    ///    与事务面记录（<see cref="DiagCode.ActivationFailed"/>）互相可指认；
-    /// ④ **诊断产物**：环境变量 <c>LITETEST_ARTIFACTS</c> 存在时把全量记录落盘（一行一条，稳定格式）。
-    ///
-    /// 边界（如实）：内容/事务面的**生产接线点**是组合根（客户端为内容模块/PatchRunner；本样例即组合根），
-    /// Core 只暴露 <see cref="IDiagRecordSink"/> 端口——生产装配随 L2 核证批补充。
+    /// **全链诊断样例**（《框架先行建设与业务接入专项设计》§8 准入项「可诊断」： "一次注入失败可关联 Build/内容、事务、会话/房间并定位阶段"——证据类型：受控日志/错误码/诊断产物）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class JoinDiagChainTests : IDisposable
@@ -179,9 +167,7 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// 在全局诊断环里找**本样例注入**的记录：<see cref="DiagTrace"/> 是进程级静态环（容量 64），
-        /// 其它真实传输用例类并行运行时也会写同码记录（各 xunit 类并行）——因此必须按**注入标记**
-        /// （错误的 buildHash / 本样例的 txn）过滤，否则会取到别的用例的记录（跨类串读）。
+        /// 在全局诊断环里找**本样例注入**的记录：<see cref="DiagTrace"/> 是进程级静态环（容量 64）。
         /// </summary>
         private static DiagEvent Find(string code, string marker)
             => DiagTrace.Recent.First(e => e.Code == code

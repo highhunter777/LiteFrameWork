@@ -15,20 +15,6 @@ namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
     /// 场景与表现 PlayMode 用例（《框架先行》§6 样例③）。
-    ///
-    /// 设计侧要求（原文）：
-    /// - 贯通链路：**真资源场景 → 测试角色 → 动画/特效/音效 → 卸载**
-    /// - 必测失败：**世界/UI 暂停**、动画打断、**重复归还**、加载后 Owner 已退出、卸载中仍有租约
-    /// - 范围限制：用**显式样例指令**驱动动作，不把动画完成作为玩法判定
-    ///
-    /// **本组覆盖**：**真资源场景加载**、**音效段**、**世界/UI 分域暂停**；`AudioService` 的独立 PlayMode 载体。
-    ///
-    /// **为什么必须是 PlayMode**：本组要的正是 EditMode 给不了的——时钟由**真实 PlayerLoop** 驱动
-    /// （`PlayModeTicker`，与生产 `GameEntry.Update` 同语义）、真实场景的加载/卸载、
-    /// 真实 `AudioSource` 状态。**不手动泵 Tick**：那正是 PlayMode 相对 EditMode 的意义所在。
-    ///
-    /// **一条纪律**：本组只钉**同步可判定**的契约。凡是依赖"某帧之后 `AudioSource.isPlaying`
-    /// 才翻真"之类的断言一律不写——那是时序抽奖，会随机器负载忽绿忽红。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class SceneAndPresentationPlayModeTests
@@ -92,9 +78,6 @@ namespace LiteGame.Tests.UI.PlayMode
         public IEnumerator 暂停_世界时钟停走_UI时钟不受影响()
         {
             // 分域时钟的核心判据：世界暂停时 UI 时钟必须照走——否则暂停菜单自己的动效会冻住。
-            // 时钟由 PlayModeTicker 经真实 PlayerLoop 驱动（非测试手泵）——这是本组用 PlayMode 的理由。
-            // **判据用 Now 而非 ScaledDelta 的绝对值**：GameClock 的 ScaledDelta 在暂停帧仍为 0，
-            // 但断言它等于 0 会依赖"恰好落在某帧之后"，故以 Now 的**不增长**为准（时间戳语义）。
             yield return null;
             yield return null;
 
@@ -122,9 +105,7 @@ namespace LiteGame.Tests.UI.PlayMode
         [UnityTest]
         public IEnumerator 暂停_世界停走时_其下游表现冻结()
         {
-            // 分域时钟的**下游效果**：VFX 到期按 `_clock.Now` 推算（VfxService 注释"到期回收不依赖
-            // 粒子回调——按世界时钟推算"）。世界停走 → Now 不动 → 到期扫描不推进。
-            // 这条比"时钟数值"更接近设计说的"世界/UI 暂停"要验的东西。
+            // 分域时钟的**下游效果**：VFX 到期按 `_clock.Now` 推算（VfxService 注释"到期回收不依赖 粒子回调——按世界时钟推算"）。
             var world = _scope.CreateGameObject("ClockFxWorld").transform;
             var pool = _scope.CreateGameObject("ClockFxPool");
             _vfx = new VfxService(SyncLoader, _world, new VfxCatalog(),
@@ -256,10 +237,7 @@ namespace LiteGame.Tests.UI.PlayMode
             var scene = new SceneService();
             Assert.IsFalse(scene.IsLoaded(TestScene), "初始未加载");
 
-            // **用 Additive 而非 Single**：PlayMode 用例跑在 Unity 测试框架自己的场景里，
-            // 而 Single 模式会销毁当前所有场景——把测试场景一并干掉；且当它是**唯一**已加载场景时
-            // `SceneManager.UnloadSceneAsync` 返回 null，YooAsset 抛
-            // "Failed to unload scene"（Single 且为唯一已加载场景时）。Additive 不碰测试场景，语义也够验"真资源加载/卸载"。
+            // **用 Additive 而非 Single**：PlayMode 用例跑在 Unity 测试框架自己的场景里， 而 Single 模式会销毁当前所有场景——把测试场景一并干掉。
             var load = scene.LoadAdditiveAsync(TestScene);
             yield return Wait(load, 30f);
             Assert.AreEqual(UniTaskStatus.Succeeded, load.Status, "场景加载未成功（faulted 会在此抛出真实异常）");
@@ -361,9 +339,6 @@ namespace LiteGame.Tests.UI.PlayMode
         public IEnumerator 租约_同location共享一份_卸载后归还且拒绝再取()
         {
             // 《框架先行》§6 样例③ 必测失败项「（卸载中）仍有租约」的落点。
-            // 载体是 `PrefabLeaseCache`——**装配层的租约归属方**（表现域只持引用，释放归它）。
-            // 用**真 `IContentService`**（YooAssetContentService → AssetService 真资源链路），
-            // 不是替身：租约的引用计数语义只有真链路才成立。
             var content = new YooAssetContentService(new FileSystem(new UnityPathProvider(), new NewtonsoftJsonSerializer()));
             var init = content.InitializeAsync();
             yield return Wait(init, 60f);

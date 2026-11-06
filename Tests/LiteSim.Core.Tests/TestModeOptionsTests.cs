@@ -7,11 +7,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 测试模式开关写口用例（《GM 与调试工具分层设计》§1：TestModeOptions=开关唯一写点+副作用收口，
-    /// TestModeRuntime=运行时快照+请求桥+爆头跨局待用值）。两件零引擎依赖按源链接纳入 L1；
-    /// 被测面是全局静态——开测前复位（程序集串行纪律见 <see cref="TestParallelization"/>，历史动因正是
-    /// TestMode/TestModeRuntime 一族静态）。副作用口径：InfiniteAmmo/BotInfiniteHp 仅测试模式（Active 门）武装，
-    /// 非测试模式一律不写运行态。
+    /// 测试模式开关写口用例（《GM 与调试工具分层设计》§1：TestModeOptions=开关唯一写点+副作用收口， TestModeRuntime=运行时快照+请求桥+爆头跨局待用值）。
     /// </summary>
     public sealed class TestModeOptionsTests
     {

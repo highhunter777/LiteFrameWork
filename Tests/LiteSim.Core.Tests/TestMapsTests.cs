@@ -4,9 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 地图夹具自检（<see cref="TestMaps"/>）：首图 Arena01 与训练场快照的合法性（数量/边界/出生点不落障碍内）
-    /// ＋摘要口径锚（== 对应 `Luban/Data/Map/*.json` 实烘产物 content_digest——双路对账：夹具按布局表独立
-    /// 手推的值与烘焙器采样场景的值必须同 digest；改场景重烘后须联动本锚）。
+    /// 地图夹具自检（<see cref="TestMaps"/>）：首图 Arena01 与训练场快照的合法性（数量/边界/出生点不落障碍内） ＋摘要口径锚（== 对应 `Luban/Data/Map/*.json` 实烘产物。）。
     /// </summary>
     public sealed class TestMapsTests
     {

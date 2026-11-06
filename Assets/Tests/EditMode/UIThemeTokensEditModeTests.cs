@@ -7,8 +7,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 令牌源（`UIStyleTokens.json`，schema 2.0）：解析、校验与规范文本/指纹。
-    /// 《UI 编辑器工具链专项设计》§8.1「令牌源：JSON → 生成 UIThemeAsset」；schema 见
-    /// `Docs/设计文档/客户端/UI系统/UIStyleTokens.schema.json`。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIThemeTokensEditModeTests

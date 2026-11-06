@@ -6,15 +6,6 @@ namespace LiteFramework.Tests
 {
     /// <summary>
     /// 层级状态机（HSM）`HierarchicalStageMachine&lt;TId, TReq&gt;`。
-    /// 覆盖：建树校验 / enter-exit-update 顺序 / LCA 跨层降升 / 降层不重跑祖先 / 浅深历史 /
-    /// 显式目标优先 / 冒泡 / H10 的 7 条传统语义 / 异常中断 / 与 flat 的行为对拍。
-    ///
-    /// 测试用树（多根）：
-    /// <code>
-    ///   Boot(叶)   Main(复合, initial=Lobby, Shallow)   Error(叶)
-    ///                ├ Lobby(叶)  ├ Match(叶)  └ Battle(复合, initial=Ongoing, Deep)
-    ///                                                ├ Ongoing(叶)  └ Result(叶)
-    /// </code>
     /// </summary>
     public sealed class HierarchicalStageMachineTests
     {

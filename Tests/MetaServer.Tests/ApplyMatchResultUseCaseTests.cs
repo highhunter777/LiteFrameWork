@@ -9,10 +9,7 @@ using Xunit;
 namespace MetaServer.Tests
 {
     /// <summary>
-    /// 对局结算落库用例（<see cref="ApplyMatchResultUseCase"/>）L1：《Meta 服务专项设计》§8.2
-    /// 结算链 Profile.Apply 半边——验证 → 逐玩家幂等落账 → 类型化终态。
-    /// 幂等双维度/追加模式/故障矩阵的端口级用例见 <see cref="SettlementPersistenceTests"/>；
-    /// 本组钉**用例编排面**：fan-out、形状边界、Unconfirmed 收敛、conflict 透传。
+    /// 对局结算落库用例（<see cref="ApplyMatchResultUseCase"/>）L1：《Meta 服务专项设计》§8.2 结算链 Profile.Apply 半边——验证 → 逐玩家幂等落账 → 类型化终态。
     /// </summary>
     public sealed class ApplyMatchResultUseCaseTests
     {

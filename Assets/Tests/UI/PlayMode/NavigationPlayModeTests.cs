@@ -17,17 +17,7 @@ using LiteFramework;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 导航真资源段 PlayMode 用例（§6.1 Go/Back/Replace 三操作的真链路 +
-    /// §6.3 输入锁"接受转场即生效、恢复为协调者计算值"）。
-    ///
-    /// 覆盖 EditMode 测不到的两件事：
-    /// - **覆盖栈语义**：Go 保留下层页（新页覆盖其上），Back 关顶页即"返回"——多步往返在真实
-    ///   层级组/统一排序/转场并发下成立（EditMode 是替身栈）；
-    /// - **转场锁时序**：<see cref="ObservingTransition"/> 在策略执行的**第一帧**记录
-    ///   interactable——锁在阶段 OnEnter 已生效（"接受即锁，不等策略开始"），完成由 Runner 收尾
-    ///   按协调者恢复——这依赖真实 PlayerLoop 驱动 UITransitionRunner。
-    ///
-    /// 页面：Tmp_UITestPage（真 Lua 测试载体）+ BaselineA/B（空 LuaPath 展示面——ResolveLogic 短路降级）。
+    /// 导航真资源段 PlayMode 用例（§6.1 Go/Back/Replace 三操作的真链路 + §6.3 输入锁"接受转场即生效、恢复为协调者计算值"）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class NavigationPlayModeTests
@@ -35,10 +25,7 @@ namespace LiteGame.Tests.UI.PlayMode
         private const int PageMain = 9001;   // Tmp_UITestPage：真 Lua 测试载体
         private const int PageA = 10;     // BaselineA：展示面（空 LuaPath）
         private const int PageB = 20;     // BaselineB：展示面
-        // **层级语义**：前进页 A/B 必须与底页 Main **跨层**（1 vs 0）——
-        // Go 的"覆盖栈语义"（旧页保留转 Covered）只在跨层成立；若配成同层全屏，
-        // UIService 按组内契约"复用_同组已有全屏_判定Replace"关闭底页，
-        // "Go 不关下层"即假红。A/B 同层（1）表达 Replace 的"替换当前记录"位置语义。
+        // **层级语义**：前进页 A/B 必须与底页 Main **跨层**（1 vs 0）—— Go 的"覆盖栈语义"（旧页保留转 Covered）只在跨层成立；若配成同层全屏， UIService 按组内契约"复用_同组已有全屏_判定Replace"关闭底页。
 
         private sealed class StaticCatalog : IPageCatalog
         {

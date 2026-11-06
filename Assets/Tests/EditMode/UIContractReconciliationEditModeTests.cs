@@ -14,9 +14,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 契约族补全面（工具链设计 §6.2「契约」+ §5.2）：漂移对账（重生成逐字节比较，含手改检出）、
-    /// 引用对账（未消费/越界）、文本双写，以及生成器的清单维护字段投影与 events[] 应用。
-    /// 漂移用例走真实 Page_Login（生成器路径守卫辖内）；引用/双写用合成清单+合成契约+合成 Lua 注入。
+    /// 契约族补全面（工具链设计 §6.2「契约」+ §5.2）：漂移对账（重生成逐字节比较，含手改检出）、 引用对账（未消费/越界）、文本双写，以及生成器的清单维护字段投影与 events[] 应用。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIContractReconciliationEditModeTests

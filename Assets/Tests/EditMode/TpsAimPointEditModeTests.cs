@@ -8,10 +8,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 采集侧瞄准解算的 TPS 契约（第三人称屏心射线）：AimPoint 由相机**屏心射线**解算（不依赖
-    /// 鼠标屏幕位）；射线无地面交（瞄天）与地面交点超程都落到**射程截断点**——与服务器
-    /// InputGate 距离闸（HitscanRange×1.1）口径兼容（截断后 |P−射手| 恒在闸内），
-    /// 消灭"瞄天开火 = 无点非法帧 / 超程整帧丢弃（含 Move）"两类丢帧。
+    /// 采集侧瞄准解算的 TPS 契约（第三人称屏心射线）：AimPoint 由相机**屏心射线**解算（不依赖 鼠标屏幕位）。
     /// </summary>
     public sealed class TpsAimPointEditModeTests : UnityTestBase
     {

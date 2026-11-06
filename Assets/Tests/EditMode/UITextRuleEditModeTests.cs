@@ -12,9 +12,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 文本族四规则（工具链设计 §6.2「文本」）：key 存在性（LTextKeyRef 与 Lua SetTextKey* 两路）、
-    /// 占位符使用、语言列完整、富文本白名单。表数据面走 <c>LTextSeed</c> 注入（合成条目），
-    /// Lua 面经规则构造器注入扫描根；真实表正例由全量校准门禁承担。
+    /// 文本族四规则（工具链设计 §6.2「文本」）：key 存在性（LTextKeyRef 与 Lua SetTextKey* 两路）、 占位符使用、语言列完整、富文本白名单。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UITextRuleEditModeTests

@@ -7,10 +7,6 @@ namespace MetaServer.Tests
 {
     /// <summary>
     /// 字段边界校验单源用例（P2）：规则「非空白 + UTF-8 字节上限」与上限表值一起钉住。
-    ///
-    /// 本组的存在理由：该规则此前在 6 处以两种口径手写（4 处按 UTF-8 字节、2 处按字符数），
-    /// 而**按字符数在多字节输入下形同虚设**（40 个汉字 = 40 字符但 120 字节）——
-    /// 下面第一条用例就是那个判别式。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class FieldValidationTests

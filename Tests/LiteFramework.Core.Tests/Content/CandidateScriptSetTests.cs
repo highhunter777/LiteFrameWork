@@ -5,10 +5,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 候选脚本集合（《热更与内容发布专项设计》§10"从固定文件清单构建不可变脚本集合 →
-    /// 检查依赖/语法/导出/Bridge 能力"里**可静态做**的部分；§7"同步 require 的依赖必须完整预载"）。
-    ///
-    /// 真实语法/执行/Bridge 能力检查需 Lua VM，不属本类范围。
+    /// 候选脚本集合（《热更与内容发布专项设计》§10"从固定文件清单构建不可变脚本集合 → 检查依赖/语法/导出/Bridge 能力"里**可静态做**的部分；§7"同步 require 的依赖必须完整预载"）。
     /// </summary>
     public sealed class CandidateScriptSetTests
     {

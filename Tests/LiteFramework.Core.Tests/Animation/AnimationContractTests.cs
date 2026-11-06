@@ -6,9 +6,7 @@ using Xunit;
 namespace LiteFramework.Tests.Animation
 {
     /// <summary>
-    /// 动画播放契约验收（《动画模块专项设计》§13 L1 行"Resolver、覆盖顺序、通道提交、Handle 代次、
-    /// 终态与事件去重的纯规则 | 失败不抢占；终态恰好一次；旧请求无写入权；容量受限"）。
-    /// 全替身后端、零引擎——本层不碰 Animator/PlayableGraph。
+    /// 动画播放契约验收（《动画模块专项设计》§13 L1 行"Resolver、覆盖顺序、通道提交、Handle 代次、 终态与事件去重的纯规则 | 失败不抢占；终态恰好一次；旧请求无写入权；容量受限"）。
     /// </summary>
     public sealed class AnimationContractTests
     {
@@ -379,10 +377,7 @@ namespace LiteFramework.Tests.Animation
         [Fact]
         public void 终态_哈希相撞的不同句柄不互认()
         {
-            // 同一播放器内可构造哈希相撞对（换代×序号跨轴）：(P,G=1,S=1) 与 (P,G=3,S=67)——
-            // PlayerId 项相消后 31^1 == 93^67 == 30。终态表键＝句柄本体（结构化 Equals 判等），
-            // 相撞只落同桶不相认；旧形态以混合哈希 int 当键——后到句柄会被"已终态"误判，
-            // Stop 被吞、OnTerminal 不发（哈希是分布函数，不是身份）。
+            // 同一播放器内可构造哈希相撞对（换代×序号跨轴）：(P,G=1,S=1) 与 (P,G=3,S=67)—— PlayerId 项相消后 31^1 == 93^67 == 30。
             var backend = new FakeBackend();
             var player = new AnimationPlayer(backend, Profile());
 

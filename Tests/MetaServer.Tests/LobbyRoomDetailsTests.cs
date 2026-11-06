@@ -6,10 +6,7 @@ using Xunit;
 namespace MetaServer.Tests
 {
     /// <summary>
-    /// 房间明细投影用例（房间列表批）：注册带明细 → 投影直映；未上报（null）保持兼容语义；
-    /// 越界上报（明细数超 maxRooms / phase 越界 / roomId 无效）装载期拒并回显字段名。
-    /// phase 闸与内核 MatchPhase 枚举同源（源链接共编）：非终态值域 Created..Settling 接受，
-    /// 终态（Closed/Aborted）与枚举外值拒绝——内核新增相位时本用例随枚举更新。
+    /// 房间明细投影用例（房间列表批）：注册带明细 → 投影直映；未上报（null）保持兼容语义； 越界上报（明细数超 maxRooms / phase 越界 / roomId 无效）装载期拒并回显字段名。
     /// </summary>
     public sealed class LobbyRoomDetailsTests
     {
@@ -93,10 +90,7 @@ namespace MetaServer.Tests
             Assert.Equal(InstanceRegistry.RegisterResult.InvalidFields, registry.Register(badPhase, out reason));
             Assert.Equal("rooms[0].phase", reason);
 
-            // 终态相位（6 = MatchPhase.Closed / 7 = Aborted）：契约"终态不报"——房间侧读面已过滤，
-            // Meta 侧为防御面仍拒。**相位值用字面量**：MatchPhase 双程序集共编同名（源链接），
-            // 测试不得直接命名（CS0433，先例见本工程 csproj 注释）；生产侧单源绑定在
-            // InstanceRegistry 编译期（引枚举派生），不依赖本用例。
+            // 终态相位（6 = MatchPhase.Closed / 7 = Aborted）：契约"终态不报"——房间侧读面已过滤， Meta 侧为防御面仍拒。
             var terminal = Base("inst-terminal");
             terminal.Rooms = new List<RoomReport> { new RoomReport { RoomId = "A", Phase = 6 } };
             Assert.Equal(InstanceRegistry.RegisterResult.InvalidFields, registry.Register(terminal, out reason));

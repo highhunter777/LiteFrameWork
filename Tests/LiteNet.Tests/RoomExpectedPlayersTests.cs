@@ -10,15 +10,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// **开房参数批：房间人数选择**——建房路径的期望人数来源、校验与权威回执：
-    ///
-    /// - 人数来源优先级：**票据盖章值 ＞ 房间模板 `expected_players`**（0 = 未指定＝按模板）；
-    /// - 请求人数越界（超出内核席位容量 <see cref="PendingInputRing.MaxPlayerCapacity"/>）→
-    ///   **拒绝建房**（不静默钳制——钳出来的房不是玩家要的房）；
-    /// - 既有房间以**房事实**为准：请求人数不参与判定（回执把房事实交给客户端定容）；
-    /// - **JoinAck.ExpectedPlayers = 房事实**（客户端据此定容预测世界与输入模板——权威回执面）。
-    ///
-    /// 形态：<see cref="FakeRoomTransport"/> 逐包级（同 <see cref="RoomMapSelectionTests"/> 形态，无真实 socket）。
+    /// **开房参数批：房间人数选择**——建房路径的期望人数来源、校验与权威回执。
     /// </summary>
     public sealed class RoomExpectedPlayersTests
     {

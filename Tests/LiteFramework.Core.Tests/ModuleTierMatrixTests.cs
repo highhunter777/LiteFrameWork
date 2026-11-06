@@ -9,11 +9,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// B3 模块发行登记守卫：arch/units.json 是「模块 → tier（base/script/data）→ 收集组」
-    /// 与「改什么 → 发什么」矩阵的单源；本用例把它拉进 L1（CI），防止登记与真实模块/收集组漂移。
-    /// scripts/content/module-tiers.json 是模型生成的只读镜像（旧表保留一个版本周期）。
-    /// B4-4c 追加：收集组路径必须落在归属模块的 <c>Content/</c> 下（顶层例外逐条给依据），
-    /// 并校验收集路径真实存在——Sound 曾漂在 <c>Assets/Sound</c> 而登记归属 Shared，此类漂移由本用例拦住。
+    /// B3 模块发行登记守卫：arch/units.json 是「模块 → tier（base/script/data）→ 收集组」 与「改什么 → 发什么」矩阵的单源；本用例把它拉进 L1（CI）。
     /// </summary>
     public sealed class ModuleTierMatrixTests
     {

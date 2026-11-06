@@ -7,10 +7,7 @@ using UnityEngine.InputSystem.LowLevel;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// DevHotkey 文本收集契约：控制字符（退格 '\b'/回车 '\n'）不得进文本缓冲——
-    /// 真实 Windows 键路里退格伴随 WM_CHAR('\b') 文本事件，收进去会与 Backspace
-    /// 键删除相互抵消（F12 控制台"删不掉字符"缺陷的根因）；两后端同口径（旧 Input
-    /// 路径的 c ≥ ' ' 过滤）。经 InputSystem 合成事件驱动（真实输入管线，非直调）。
+    /// DevHotkey 文本收集契约：控制字符（退格 '\b'/回车 '\n'）不得进文本缓冲—— 真实 Windows 键路里退格伴随 WM_CHAR('\b') 文本事件。
     /// </summary>
     public sealed class DevHotkeyEditModeTests
     {
@@ -45,9 +42,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 退格键边沿_经状态事件可见()
         {
-            // wasPressedThisFrame 依赖动态帧循环：编辑器在后台时不推进该标志，
-            // InputSystem.Update() 也不刷新——后台跑必红，属环境非缺陷（语义由前台/PlayMode 验）。
-            // 判据用 isApplicationActive（Application.isFocused 在后台仍为 true，不可用作守卫）。
+            // wasPressedThisFrame 依赖动态帧循环：编辑器在后台时不推进该标志， InputSystem.Update() 也不刷新——后台跑必红，属环境非缺陷（语义由前台/PlayMode 验）。
             if (!UnityEditorInternal.InternalEditorUtility.isApplicationActive)
                 Assert.Ignore("编辑器在后台：wasPressedThisFrame 无动态帧循环");
 

@@ -7,11 +7,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// TransitionTable 直测（《状态机专项设计》§3.1/§3.5/§6 验收）：
-    /// 事件边先于 sink（命中消费）、声明序首个命中、守卫短路（静默回退原语义）、
-    /// 条件边不覆盖手动请求、Any 边、Start 封板、构造期 fail-fast（重入/未注册）；
-    /// §3.5 深校验（可达性告警/时长死底告警）。
-    /// 平面机与层级机两机同判例。
+    /// TransitionTable 直测（《状态机专项设计》§3.1/§3.5/§6 验收）： 事件边先于 sink（命中消费）、声明序首个命中、守卫短路（静默回退原语义）、 条件边不覆盖手动请求、Any 边。
     /// </summary>
     [Collection("CoreStatic")]   // 深校验用例断言 Log.Recent（全局静态）
     public sealed class TransitionTableTests

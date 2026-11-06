@@ -12,13 +12,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 真角色资产校验（模型只用 CombatGirlsCharacterPack，主要动画也用该包）。
-    ///
-    /// **视图形态＝直 Clip 模型**：prefab 只挂 <see cref="LiteAnimator"/>（RequireComponent
-    /// 自动补 Animator、Avatar 由组件持有下发），**不挂控制器**——片源走片段清单
-    /// （`CombatGirlsAnimationProfile.ClipManifestPath`，键单源在 Profile）。
-    ///
-    /// 资源包按仓库政策不入 VCS（.gitignore"第三方素材包不入库"）——**缺包克隆 Ignore 跳过**
-    /// （对局走 SimView 灰盒兜底，由既有用例覆盖）；有包机器全量校验。
     /// </summary>
     public sealed class CharacterAssetEditModeTests : UnityTestBase
     {
@@ -109,11 +102,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 收集器_Characters组覆盖运行时目录()
         {
-            // 期望值从**单源**推：运行时角色 prefab（`CombatGirlsAnimationProfile.ViewPrefabPath`）所在目录
-            // 必须被 Characters 组收集——否则角色进不了内容包。不硬编码目录字面量，prefab 换位置时断言跟着走。
-            //
-            // 收集组为单条 `Assets/LiteGame/Modules/Battle/Content/Characters`（运行时 prefab 所在目录）；模型/动画依赖在
-            // `CombatGirlsCharacterPack` 内由 **YooAsset 依赖链自动收集**（见组描述），本用例断言 prefab 目录。
+            // 期望值从**单源**推：运行时角色 prefab（`CombatGirlsAnimationProfile.ViewPrefabPath`）所在目录 必须被 Characters 组收集——否则角色进不了内容包。
             string expectedDir = System.IO.Path.GetDirectoryName(CombatGirlsAnimationProfile.ViewPrefabPath)
                 .Replace('\\', '/');
 

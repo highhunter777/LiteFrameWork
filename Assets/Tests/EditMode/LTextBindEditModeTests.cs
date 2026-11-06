@@ -10,11 +10,7 @@ using LiteFramework.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// LText 控件接入（《UI框架总设计》§9"语言变更刷新本地化组件…不重跑 OnShow、不重新订阅按钮、
-    /// 不重发业务请求"）。
-    ///
-    /// 核心断言：**语言一切，已绑定 key 的控件文本自动更新**——这是 §9 与"每次切语言重建整页"
-    /// 的分界；以及**未绑 key 的控件不受影响**（刷新面必须精确）。
+    /// LText 控件接入（《UI框架总设计》§9"语言变更刷新本地化组件…不重跑 OnShow、不重新订阅按钮、 不重发业务请求"）。
     /// </summary>
     public sealed class LTextBindEditModeTests : UnityTestBase
     {

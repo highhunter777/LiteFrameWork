@@ -9,12 +9,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 退出条件用例（《商业级通用服务端框架总设计》§16）：
-    /// **RoomRuntime 在无 Socket、无 Sleep、无文件的纯 L1 测试中完整跑一局 + 重连。**
-    ///
-    /// 时间只从 <see cref="RoomCommand.Tick"/> 命令进入（虚拟毫秒由用例手排，零真实等待）；
-    /// 输入经 <see cref="ClientInputBatch"/> 纯数据；输出为纯事件族——全程不触传输/编码/文件/墙钟
-    /// （Runtime 纯化由 L0 纪律扫描 R11 把守，见 DisciplineScannerTests）。
+    /// 退出条件用例（《商业级通用服务端框架总设计》§16）： **RoomRuntime 在无 Socket、无 Sleep、无文件的纯 L1 测试中完整跑一局 + 重连。
     /// </summary>
     public sealed class RoomRuntimeReconnectTests
     {

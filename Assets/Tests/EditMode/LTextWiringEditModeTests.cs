@@ -15,21 +15,13 @@ using LiteGame.Modules.Config;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 批C-② LText 生产装配链（《UI框架总设计》§9 文本链 + 《上云测试页面层级设计》§10"BindLocale 注入待办"收口）：
-    /// ① LTextCatalog 真表投射（tbltext 行 → zh-CN/en 双 locale 目录）；② 表内 key 命名全过 LTextKey（表源守卫）；
-    /// ③ LocalizationService 真目录行为（Get/Format/切语言/缺 key 开发期显 [key]）；
-    /// ④ UIBindBase 经 ILocaleBound 接受注入——OnInit 建索引后 BindLocale 即 SetTextKey 可用、
-    /// OnInit 前注入为 no-op（Empty 守卫）；⑤ LuaBehaviourAdapter 实现 ILocaleBound（页面级
-    /// 全链验收走 PlayMode/夜间——索引面行为由 LTextBindEditModeTests 既有 11 例钉住）。
+    /// 批C-② LText 生产装配链（《UI框架总设计》§9 文本链 + 《上云测试页面层级设计》§10"BindLocale 注入待办"收口）： ① LTextCatalog 真表投射（tbltext 行 → zh-CN/。）。
     /// </summary>
     public sealed class LTextWiringEditModeTests : UnityTestBase
     {
-        /// <summary>表源现役键数（增删文案键须同批核对本值——《上云测试页面层级设计》§8 总表 + 批C 增补；
-        /// 批C-④ 增 `UI.Lobby.ListFailed`（41 → 42）；批C-⑥ 增 `UI.Result.Rank`（42 → 43）；
-        /// HUD 批C 退场链增 `Common.Confirm/Cancel`、`UI.Settings.Exit/ExitConfirmTitle/ExitConfirmMessage`（43 → 48）；
-        /// 创房批增 `UI.Lobby.CreateRoom/Creating/CreateFailed`（48 → 51）；**工作台批增 `UI.Settings.ExitWorkbench` 未同步计数（HEAD 即有红，本批顺带校正）**；开房参数批增 `UI.Lobby.Map/Players/PlayersOption`（52 → 55）；战绩独立页批增 `UI.Records.Empty`（55 → 56）；
-        /// 设置分组批（《设置系统专项设计》§7.5）增 23 键：页签 5、显示/控制/常规标签 10、选项 6、
-        /// `Common.On/Off` 与 `UI.Settings.FollowPreset`（56 → 79）。</summary>
+        /// <summary>
+        /// 表源现役键数（增删文案键须同批核对本值——《上云测试页面层级设计》§8 总表 + 批C 增补； 批C-④ 增 `UI.Lobby.ListFailed`（41 → 42）。）。
+        /// </summary>
         private const int ExpectedKeyCount = 79;
 
         private static cfg.Tables LoadRealTables()

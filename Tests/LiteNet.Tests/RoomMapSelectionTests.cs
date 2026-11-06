@@ -12,16 +12,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// **多图批：房间地图选择**（《地图数据专项设计》多图批）——建房路径的行键来源、校验与权威回执：
-    ///
-    /// - 行键来源优先级：**票据盖章值 ＞ 房间模板 `map_id` ＞ 宿主默认图**；
-    /// - 模板与票据各持非 0 且不等 = 策略冲突 → **拒绝进房**（不静默取其一）；
-    /// - 请求行键缺当地图（目录抛）→ 拒绝进房（fail-closed，不回落默认图）；
-    /// - 缺多图目录（单图宿主）+ 请求行键 &gt;0 → 拒绝（配置缺失显式化）；
-    /// - 既有房间以**房事实**为准：票据请求非 0 且不一致 → 拒绝进房；
-    /// - **JoinAck.MapId = 房事实**（客户端据此选表行与场景——权威回执面）。
-    ///
-    /// 形态：<see cref="FakeRoomTransport"/> 逐包级（同 <see cref="OwnerStartHostTests"/> 形态，无真实 socket）。
+    /// **多图批：房间地图选择**（《地图数据专项设计》多图批）——建房路径的行键来源、校验与权威回执。
     /// </summary>
     public sealed class RoomMapSelectionTests
     {

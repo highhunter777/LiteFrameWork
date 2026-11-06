@@ -11,9 +11,7 @@ using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 席位实时面（席位实时面批）：房间内核对名单变化的产出（<see cref="SeatsChanged"/>——进房/断线/
-    /// 恢复完成时全量快照）、协议往返（<c>RoomSeats</c>）、以及 <see cref="RoomClient"/> 的缓存与事件
-    /// （房主位测试件同形态：全假传输喂编码包）。
+    /// 席位实时面（席位实时面批）：房间内核对名单变化的产出（<see cref="SeatsChanged"/>——进房/断线/ 恢复完成时全量快照）、协议往返（<c>RoomSeats</c>）。
     /// </summary>
     public sealed class RoomSeatsTests
     {

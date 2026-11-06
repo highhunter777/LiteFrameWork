@@ -9,17 +9,7 @@ using LiteGame.Modules.Config;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 限速数值表化守卫：tb_combatnum 两列 <c>aim_move_speed</c> / <c>fire_stance_frames</c>
-    /// 落表后，把"表 ↔ 兜底默认 ↔ 服务端装载链"
-    /// 三面钉在一起——形状与 <see cref="WeaponTableTests"/> 同源（技术债 #1 的实例纪律）。
-    ///
-    /// 钉的判据：
-    /// ① <b>表 = 兜底默认</b>——<see cref="CombatValues.Default"/> 是表未装载时的灰盒兜底，
-    /// 漂移即本类红（否则没装载时跑的测试全用兜底值，漂移不可见）。
-    /// ② <b>表 = 服务端装载链产物</b>——同一次装载的数值行。
-    /// ③ <b>窗长 byte 边界</b>——窗长落进 <c>EntitySlot.FireStanceFrames</c>（<c>public byte</c>，
-    /// 且进公共快照/双口径 checksum/proto），越界会在强转处静默截断；装载闸门
-    /// （<c>SimConfigMapper.Validate</c>）已 fail-fast，此处钉住默认面不越界。
+    /// 限速数值表化守卫：tb_combatnum 两列 <c>aim_move_speed</c> / <c>fire_stance_frames</c> 落表后。
     /// </summary>
     public sealed class CombatValuesTableTests
     {

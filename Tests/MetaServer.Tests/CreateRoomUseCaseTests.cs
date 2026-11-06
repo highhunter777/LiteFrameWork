@@ -9,10 +9,7 @@ using Xunit;
 namespace MetaServer.Tests
 {
     /// <summary>
-    /// 创建房间用例（房主开局批）：**出号唯一性**（对照注册表投影 + 保留集）、签发复用
-    /// （票据经房间端**真实**验签器——签发端形状漂移本组必红）、失败语义（无容量/版本不符）。
-    /// 出号经 <see cref="CreateRoomUseCase"/> 注入缝注序列——确定性，不依赖真随机。
-    /// 断言消息以注释携带（xUnit v2 的 Equal/StartsWith 无 message 重载）。
+    /// 创建房间用例（房主开局批）：**出号唯一性**（对照注册表投影 + 保留集）、签发复用 （票据经房间端**真实**验签器——签发端形状漂移本组必红）、失败语义（无容量/版本不符）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class CreateRoomUseCaseTests

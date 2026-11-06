@@ -11,10 +11,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 生成分区（§5"校验/生成"）的逻辑面覆盖：生成根查找三态（根上 / 子物体 / 无 —— 无＝路径 B 未启用，
-    /// 面板显式说明而不报错）、生成物 hash 的**记录-校验闭环**（面板"生成并记录"与
-    /// <c>ui.binding-hash</c> 规则的收口契约）。
-    /// **不调 <see cref="BindGenerator"/>**：生成会写码文件并触发域重载，属窗口手测面；此处钉被复用的查询与对账面。
+    /// 生成分区（§5"校验/生成"）的逻辑面覆盖：生成根查找三态（根上 / 子物体 / 无 —— 无＝路径 B 未启用， 面板显式说明而不报错）。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIComposeGenerateEditModeTests

@@ -15,27 +15,7 @@ using LiteFramework.Animation;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 样例③ **单链贯通**（《框架先行》§6 样例③）：
-    /// **真资源场景 → 测试角色 → 动画/特效/音效 → 卸载**，一条用例走完全程。
-    ///
-    /// **与分段覆盖的分工**：`SceneAndPresentationPlayModeTests` 逐段钉故障矩阵；
-    /// 本组钉的是**它们能串起来**——单段绿而整链断，是分段测试看不见的失效模式。
-    ///
-    /// ── 素材可复现性（**如实标注，勿当成"真美术资源"**）─────────────────────────
-    /// 设计原文的"测试角色/特效/音效"在本仓库的既定政策下**不是美术资产**：
-    /// `Assets/{Art,Model,Animation,FX}`、`Assets/LiteGame/Modules/Shared/Content/Sound` 与 `CombatGirlsCharacterPack` **均不入库**
-    /// （`环境恢复指南` §3 第 5 条：demo 内容不入库；176MB 角色包由用户选择不入 VCS）。
-    /// 故本组用**干净检出上必然存在**的素材走完整链：
-    /// - **场景**：`Assets/Scenes/Boot.unity`（入库）
-    /// - **角色**：引擎基本体（**灰盒形态**——测试自带的合成加载器产胶囊替身，"能看见、能朝向"；
-    ///   不是伪装成美术方案）
-    /// - **动画**：`AnimatorAnimationBackend` 需真控制器（属角色包，不入库）→ 本组**不接动画**，
-    ///   改用**特效实例的生命周期**代表"播放中的表现"
-    /// - **特效**：引擎基本体经 `VfxService` 的真管线（池/表/时钟/归还）
-    /// - **音效**：`AudioClip.Create` 运行时合成（不依赖入库的 Sound 库）
-    ///
-    /// 这条链证明的是**串联与卸载正确**，不是"真美术资源下的表现效果"——后者需入库素材，
-    /// 属 VCS 政策取舍（`环境恢复指南` §3），本组不冒充。
+    /// 样例③ **单链贯通**（《框架先行》§6 样例③）： **真资源场景 → 测试角色 → 动画/特效/音效 → 卸载**，一条用例走完全程。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class SampleTripleChainPlayModeTests
@@ -96,9 +76,7 @@ namespace LiteGame.Tests.UI.PlayMode
             load.GetAwaiter().GetResult();
 Assert.IsTrue(scene.IsLoaded(TestScene), "①真场景应已加载");
 
-            // ═══ ② 测试角色（灰盒形态：引擎基本体，见类注释的素材说明）═══
-            // 加载口注入灰盒产生器——**不冒充真资源**：资产目录（Assets/Model 等）本就不入库，
-            // 干净检出上唯一必然可用的"角色"就是引擎基本体（GreyboxEntity 同款形态）。
+            // ═══ ② 测试角色（灰盒形态：引擎基本体，见类注释的素材说明）═══ 加载口注入灰盒产生器——**不冒充真资源**：资产目录（Assets/Model 等）本就不入库， 干净检出上唯一必然可用的"角色"就是引擎基本体（GreyboxEntity 同款形态）。
             var entity = new EntityService((loc, ct) => SyncLoader(loc, ct));
             var stageRoot = _scope.CreateGameObject("ChainStage").transform;
 

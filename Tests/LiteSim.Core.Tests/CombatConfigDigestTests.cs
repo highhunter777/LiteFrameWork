@@ -5,13 +5,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 玩法数据身份摘要用例（《商业级通用服务端框架总设计》§5 P0-5：configHash 必须是规范化 SHA-256——
-    /// 跨进程一致、文化无关、随输入变化；禁止 GetHashCode 进入协议。
-    ///
-    /// **现行口径**：摘要输入 = 判定面**表字节**（固定顺序 + 逐表内容 SHA-256）
-    /// 与本局规则位——不再是 <see cref="CombatValues"/> 的投影字段；"表一字节改动即身份变"由本组钉住。
-    /// 纪律：**不改写全局 CombatConfig 装载状态**——测试类并行跑，改静态值与基线用例竞态；
-    /// 输入敏感性的验证走字节级入口（不构造真表）。
+    /// 玩法数据身份摘要用例（《商业级通用服务端框架总设计》§5 P0-5：configHash 必须是规范化 SHA-256—— 跨进程一致、文化无关、随输入变化；禁止 GetHashCode 进入协议。）。
     /// </summary>
     public sealed class CombatConfigDigestTests
     {

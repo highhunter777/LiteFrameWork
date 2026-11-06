@@ -12,13 +12,7 @@ using LiteGame.Feedback;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 伤害数字驱动（<see cref="BattleDamageNumberDriver"/>，《命中反馈与伤害数字专项设计》批B；批C 扩
-    /// 顶点渐变/逐档材质）的 L2 EditMode 覆盖：本地造成/承受过滤（旁观不产实例）、档位色（承受染红/
-    /// 造成白/爆头独立成条、顶点渐变四角）、逐档材质调色板（按档取材质/无调色板不碰底件）、
-    /// 合并窗口（同目标**同档**二连击一条实例·文本累计；爆头/普通分离）、预算淘汰（超限不静默丢）、
-    /// 到期收口（释放归池、复用不新建）、受击点锚定（不随实体视图移动；视图消失无影响）。
-    /// 路由/上下文解析由 HitFeedbackDispatcherEditModeTests 把守——此处直喂上下文。
-    /// 时钟：FakeClock 拨针推进（世界钟口径——寿命/合并窗走 IWorldClock，变速/暂停语义内建）。
+    /// 伤害数字驱动（<see cref="BattleDamageNumberDriver"/>，《命中反馈与伤害数字专项设计》批B。）。
     /// </summary>
     public sealed class BattleDamageNumberEditModeTests : UnityTestBase
     {
@@ -92,10 +86,7 @@ namespace LiteGame.Tests.EditMode
                 driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, Vector3.zero));
                 driver.OnHitFeedback(Hit(self, 0, botA, 25, HitLocalRole.Received, Vector3.zero));
 
-                // **必须先 Tick 再读色/字号**：档位色与字号是**账本**（Active 渐变四色、FontSize），
-                // 驱动每帧 Tick 才把它们刷到 TMP 组件（BattleDamageNumberDriver.Tick 末段）。
-                // 不 Tick 就读组件，读到的是 TMP 默认白 + 默认字号 ⇒ 断言会把正确的承受档判成白色。
-                // 批C 起颜色走**顶点渐变四角**（colorGradient；`.color` 平色为底件未开渐变时的兜底）。
+                // **必须先 Tick 再读色/字号**：档位色与字号是**账本**（Active 渐变四色、FontSize）， 驱动每帧 Tick 才把它们刷到 TMP 组件（BattleDamageNumberDriver.Tick 末段）。
                 driver.Tick();
 
                 Color causedTop = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).colorGradient.topLeft;

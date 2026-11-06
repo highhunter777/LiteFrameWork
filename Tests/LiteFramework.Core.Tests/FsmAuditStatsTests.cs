@@ -7,9 +7,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 统计与诊断面直测（《状态机专项设计》§4/§6 验收）：审计环（容量/Kind = Manual/Auto/Resume/Forced/Restore、
-    /// 旧→新序、last-wins 覆盖不记录）、per-stage StageInfo（进入次数/累计驻留）、计数（拒绝/Auto 边命中/
-    /// Resume 成功）、ExportGraph DOT 内容、Snapshot 增量键。
+    /// 统计与诊断面直测（《状态机专项设计》§4/§6 验收）：审计环（容量/Kind = Manual/Auto/Resume/Forced/Restore、 旧→新序、last-wins 覆盖不记录）。
     /// </summary>
     public sealed class FsmAuditStatsTests
     {

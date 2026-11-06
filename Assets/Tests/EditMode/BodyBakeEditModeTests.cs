@@ -9,14 +9,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 身位几何三方对账守卫（防"美术改 CC 忘重烘"）：prefab 的 CharacterController ≡
-    /// 判定几何表 `#combatgeom` 的 <c>body_radius</c>/<c>hitscan_height</c> ≡ 入库夹具
-    /// <see cref="BakeTargets.BodyCcFixturePath"/>（半径+高，0 容差）。三处任一漂移即红，
-    /// 重跑烘焙工具箱「身位圆柱」页即绿。
-    ///
-    /// **背景**：身位几何的单源 = `Player(Rifle).prefab` 的 CC，经 <c>BodyCylinderBaker</c> 写入表与夹具；
-    /// 判定面装载 `#combatgeom` 进 <see cref="CombatValues.Geometry"/>，地图烘焙用夹具做出生点校验。
-    /// CC 是美术可调面——改了 prefab 不重跑工具，三方就会分叉。
+    /// 身位几何三方对账守卫（防"美术改 CC 忘重烘"）：prefab 的 CharacterController ≡ 判定几何表 `#combatgeom` 的 <c>body_radius</c>/<c>hitscan_h。
     /// </summary>
     public sealed class BodyBakeEditModeTests
     {

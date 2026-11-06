@@ -9,16 +9,6 @@ namespace MetaServer.IntegrationTests
 {
     /// <summary>
     /// Mongo 测试夹具（Meta 专项 §14 L3"真实 HTTP + Mongo 测试容器"）。
-    ///
-    /// 环境解析（依次）：
-    /// 1. `MONGO_TEST_URI` 环境变量（CI 显式指定，不依赖 docker）；
-    /// 2. 本机 `127.0.0.1:27017` 探活；
-    /// 3. docker：启动既有 `litegame-mongo` 容器（不存在则创建——单节点副本集 mongo:8.0；
-    ///    事务要求副本集，单机模式跑不了 §14 的事务重试用例）；
-    /// 4. 全部不可达 → <see cref="Available"/> = false，用例 <c>Assert.Skip</c> 显式跳过
-    ///    （跳过必须被记录看见，不得静默假绿）。
-    ///
-    /// 每个夹具实例独立数据库（GUID 命名）——用例互不污染；Dispose 时 drop。
     /// </summary>
     public sealed class MongoFixture : IAsyncLifetime
     {
@@ -31,8 +21,6 @@ namespace MetaServer.IntegrationTests
 
         /// <summary>
         /// 本夹具创建过的全部数据库名（Dispose 时统一清理）。
-        /// xunit **每个用例新建测试类实例**——用例在构造器里取独立库名即得用例级隔离
-        /// （同集合串行执行，互不污染）。
         /// </summary>
         private readonly System.Collections.Generic.List<string> _databases =
             new System.Collections.Generic.List<string>();

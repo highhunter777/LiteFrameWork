@@ -9,9 +9,6 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// B2 契约可见性守卫：跨模块类型只认 Abstractions/（共享契约在 LiteGame.Core、共享常量在 Modules/Shared）。
-    /// 判据：一个类型被另一个顶层模块引用时，其定义必须落在
-    /// Modules/&lt;域&gt;/Abstractions/、Modules/Shared/ 或已迁入的 LiteGame/Core/；
-    /// 否则必须登记在只减不增的 allowlist（当前是域实现件/共享部署件，登记原因与去处）。
     /// </summary>
     public sealed class CrossModuleContractLocationTests
     {
@@ -104,9 +101,7 @@ namespace LiteFramework.Core.Tests
         }
 
         /// <summary>
-        /// B2 同步面：Tests/** 的 &lt;Compile Include&gt; 源链接逐条核销——目标文件必须仍然存在
-        /// （端口迁移/目录搬动后死链会让 L1 在“找不到源文件”处静默换路径或构建失败）。
-        /// 通配链接只校验目录存在（如 WeakNet/*.cs 的整组源链接）。
+        /// B2 同步面：Tests/** 的 &lt;Compile Include&gt; 源链接逐条核销——目标文件必须仍然存在 （端口迁移/目录搬动后死链会让 L1 在“找不到源文件”处静默换路径或构建失败）。
         /// </summary>
         [Fact]
         public void 测试源码链接必须指向现存文件()

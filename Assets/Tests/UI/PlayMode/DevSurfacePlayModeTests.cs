@@ -12,19 +12,7 @@ using LiteGame.Modules.Dev;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// **6b 装配搬迁的 PlayMode 冒烟**（M3-6b 收尾补测）：验证开发面整件迁入 `LiteGame.Dev` 后，
-    /// 真实 Play 会话里仍然"绑得上、建得出、按得动"。
-    ///
-    /// 覆盖三段（EditMode 测不到的部分）：
-    /// 1. **钩子在位**：`BeforeSceneLoad` 的 `DevHooks.Bind` 在 PlayMode 真跑过——`DevHooks.Current`
-    ///    非空、会话实现是开发版（`IsDevelopmentBuild`）、诊断端口有实现；
-    /// 2. **自创建面齐全**：`AfterSceneLoad` 的 DevHud / DebugConsole / DebugPanel 自建入口
-    ///    （搬迁后仍在 Dev 程序集）在无 `GameEntry` 的空场景也会出现——证明装配与引导解耦；
-    /// 3. **真实按键**：F1 经 InputSystem 真事件驱动 `DevHud.Visible` 往返——证明热键链
-    ///    （DevHotkey → PlatformKeyInput 无宏能力）在 Play 帧循环里成立，不是只有 EditMode 直调可过。
-    ///
-    /// **不做**：不启动 `GameEntry` 全链（配置/内容/Lua 装配属端到端批次，冒烟只钉开发面本身）；
-    /// 不冒充"点了 UI 按钮"——F1/F3 是键盘入口，模拟的是真键盘状态事件（红线 13 的真实输入路径）。
+    /// **6b 装配搬迁的 PlayMode 冒烟**（M3-6b 收尾补测）：验证开发面整件迁入 `LiteGame.Dev` 后， 真实 Play 会话里仍然"绑得上、建得出、按得动"。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class DevSurfacePlayModeTests

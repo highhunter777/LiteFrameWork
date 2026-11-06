@@ -8,9 +8,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 相机瞄准混合门用例（ADS 相机抖动治理——频繁点按不再重启相机混合的输入侧语义）。
-    /// 纯 C# 确定性状态机（dt 全部注入、不读时钟）；**黄金值走生产调用链**：
-    /// <see cref="CameraAimBlendDriver"/> → <see cref="ICameraService.SetAiming"/>，不直接断言私有常量。
-    /// 宽度取相机域单源 <see cref="CameraBlendDefaults.AimBlendSeconds"/>（Brain DefaultBlend 0.3s）。
     /// </summary>
     public sealed class CameraAimBlendEditModeTests
     {
@@ -106,11 +103,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>
-        /// 黄金值（生产路径）：固定输入序列，经 <see cref="CameraAimBlendDriver"/> 观察
-        /// <see cref="ICameraService.SetAiming"/> 的翻转帧。改名前由旧门在同一序列下录制；
-        /// 改名/把 0.3s 常量移入相机域后同一断言不改仍绿。
-        ///
-        /// 序列（dt = 0.1s）：第 0~1 帧按住、第 2 帧起松开 → 第 4 帧落；第 10 帧再按 1 帧 → 第 14 帧落。
+        /// 黄金值（生产路径）：固定输入序列，经 <see cref="CameraAimBlendDriver"/> 观察 <see cref="ICameraService.SetAiming"/> 的翻转帧。
         /// </summary>
         [Test]
         public void 黄金值_固定输入序列_SetAiming翻转时刻保持()

@@ -16,10 +16,6 @@ namespace LiteNet.Tests
 {
     /// <summary>
     /// 房间广播 / E1 背压 / 重连服务 用例（《M10实施指导》§2.7/§2.8 + §3"E1 背压"/"E3 加固"组）。
-    ///
-    /// 改由 <see cref="RoomRuntime"/> 命令面驱动（Join/Tick/ClientInput）+ App 层
-    /// <see cref="SnapshotPipeline"/> 广播（假传输——用 pipeline.SendTo 捕获出站包），
-    /// 不依赖 KCP 与真实网络（那部分由 RoomServerTests 的 loopback 用例覆盖）。
     /// </summary>
     public sealed class RoomBroadcastTests
     {
@@ -155,8 +151,6 @@ namespace LiteNet.Tests
             var (room, capture, s1, s2, pipeline) = BuildStartedRoom();
 
             // 各玩家私有运行态不同（弹药数——只应出现在本人的快照里，业务总设计 §1 禁泄漏）。
-            // **已装备形态**（State=Ready——否则武器系统的懒装备会按默认步枪重铺满弹，覆盖本种子；
-            // 真实对局里开局懒装备之后就是该形态，换弹后的弹药数才有差异面）。
             room.AuthSim.Weapons[0 * SimConfig.WeaponSlotsPerEntity].MagAmmo = 30;
             room.AuthSim.Weapons[0 * SimConfig.WeaponSlotsPerEntity].State = WeaponSlotState.Ready;
             room.AuthSim.Weapons[1 * SimConfig.WeaponSlotsPerEntity].MagAmmo = 8;
@@ -220,9 +214,6 @@ namespace LiteNet.Tests
             int tierAfterAck = s1.BackpressureTier;
 
             // 恢复需要连续达标 2s（120 帧）→ 跑够时间。
-            // P0 起快照分层携带比赛状态 + 本人私有面（每包约 +60B）——单次 ack 后队列会重新积压，
-            // "只 ack 一次就静默恢复"的经济性不再成立；真实客户端每输入包都带 ack_snapshot（§4.5），
-            // 对齐真实反馈节奏：每步 ack 最新已发送帧（重复 ack 由验证层幂等忽略）→ 水位维持低位 → 恢复可观测
             for (int i = 0; i < ProtocolConstants.RecoverHoldMillis * SimConfig.TickRate / 1000 + 5; i++)
             {
                 Step(room, pipeline, 1);

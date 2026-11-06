@@ -6,11 +6,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 回执字段面契约（<see cref="HandshakePacker"/>——真服/本地服共用的 JoinAck/StartGame 单源）：
-    /// 本地服回执曾缺 IsOwner/ExpectedPlayers/MatchId/Match 一族（两端手抄、只在一端补——输入面
-    /// P0-3 已单源，回执面同型问题在此收口）。本用例在**单点**钉住"哪些字段必须进回执"；
-    /// 两端集成面另各有钉子（真服：RoomExpectedPlayersTests/OwnerStartHostTests/MatchRulesClosureTests；
-    /// 本地服：EditMode 侧 LocalServerHandshakeEditModeTests）——proto 加字段时三处同批改，漏改即红。
+    /// 回执字段面契约（<see cref="HandshakePacker"/>——真服/本地服共用的 JoinAck/StartGame 单源）： 本地服回执曾缺 IsOwner/ExpectedPlayers/MatchI。
     /// </summary>
     public sealed class HandshakePackerTests
     {

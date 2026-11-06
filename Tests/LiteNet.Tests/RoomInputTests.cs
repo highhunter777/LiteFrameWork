@@ -9,10 +9,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 房间输入消费用例（《M10实施指导》附「服务端审查」）：
-    /// 关注"输入进到房间之后"的语义——多人同 tick 开火是否都记回溯、超前 ack 是否仍推进。
-    ///
-    /// 改由 <see cref="RoomRuntime"/> 命令面驱动（Join/Tick/ClientInput），不起网络。
+    /// 房间输入消费用例（《M10实施指导》附「服务端审查」）： 关注"输入进到房间之后"的语义——多人同 tick 开火是否都记回溯、超前 ack 是否仍推进。
     /// </summary>
     public sealed class RoomInputTests
     {
@@ -71,9 +68,7 @@ namespace LiteNet.Tests
             int serverFrame = room.AuthSim.Frame;
             EntitySlot before = SlotOf(room, 0);
 
-            // 现场实测形态：客户端预测领先 6 帧（本包最新帧 = 服务器当前帧 + 6），
-            // 窗口锚在"服务器当前帧 + 1"（未确认段）。修复前（固定"最近 4 帧"窗口）所需帧
-            // 落在窗外 → 整包被判"越界"丢弃 → 输入链锁死、客户端按快照频率回滚不停。
+            // 现场实测形态：客户端预测领先 6 帧（本包最新帧 = 服务器当前帧 + 6）， 窗口锚在"服务器当前帧 + 1"（未确认段）。
             var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
             for (int i = 0; i < 6; i++)
                 frames[i] = new SimInputFrame { MoveX = i == 5 ? 1f : 0f };   // 帧 serverFrame+1 在窗内最旧槽

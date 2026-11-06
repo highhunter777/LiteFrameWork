@@ -14,18 +14,7 @@ using LiteFramework;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 反馈面真资源用例（《框架先行》§4 包③退出条件"真 Lua/Prefab/动画资源组合运行，
-    /// 取消、暂停、复用、卸载可验证"；《UI测试开发专项设计》§4.3 PlayMode 界面行为）。
-    ///
-    /// **本组存在的理由**：真 prefab + 真转场链路是替身掩盖不了的一面（AOT/Lua 面尤其）——
-    /// 必须真资源验证。
-    ///
-    /// 与 EditMode 版的区别（都是硬约束）：
-    /// - 加载走 **YooAsset 编辑器模拟模式**（`AssetService.InitAsync` 的 `#if UNITY_EDITOR` 分支
-    ///   在 PlayMode 下同样成立）——不引 `AssetDatabase`，本程序集才能在 Player 测试构建里链接；
-    /// - 等待走 UnityTest 原生 `[UnityTest] + IEnumerator + yield`，**不是显式泵 Tick**
-    ///   （PlayMode 有真实 PlayerLoop，这正是 EditMode 需要泵的原因）；
-    /// - 清理用 <see cref="PlayModeTestScope.DisposeAsync"/>（销毁要等帧末落地，"关闭 ≠ 清理完成"）。
+    /// 反馈面真资源用例（《框架先行》§4 包③退出条件"真 Lua/Prefab/动画资源组合运行， 取消、暂停、复用、卸载可验证"；《UI测试开发专项设计》§4.3 PlayMode 界面行为）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class FeedbackSurfacePlayModeTests
@@ -182,9 +171,7 @@ namespace LiteGame.Tests.UI.PlayMode
         }
 
         /// <summary>
-        /// 确认缝（批 3 · A14）：<see cref="ConfirmDialogRouter"/> 绑定真实现后，经
-        /// <c>FeedbackService.ConfirmAsync → DialogService</c> 弹真 prefab，选确认返回 true。
-        /// 与 Lua 门面用例（<c>UIConfirmApiEditModeTests</c>）分工：那条钉回调语义，这条钉**真资源返回链**。
+        /// 确认缝（批 3 · A14）：<see cref="ConfirmDialogRouter"/> 绑定真实现后。
         /// </summary>
         [UnityTest]
         public IEnumerator 确认框_路由器绑定Feedback_真资源选确认返回true()

@@ -16,20 +16,7 @@ using LiteFramework;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 环境重建 / 循环计数 / 诊断关联 PlayMode 用例（三块准入项证据的 UI 侧载体）：
-    ///
-    /// - **DevReload 环境重建段**（§10.2）：复刻《UI总设计》钉死的顺序——全关 → `DropAllLogic` →
-    ///   env.Dispose → 新 env/重 require → 重新打开。断言**缓存实例接管新逻辑**：复用不重建 GameObject，
-    ///   新逻辑来自新 env（旧 env 已 Dispose——若复用路径触碰旧 LuaFunction 必抛"死环境"异常）。
-    ///   这正是 `DropAllLogic`（"env 重建前清旧引用"）在真实复用路径上的验证——
-    ///   EditMode 无法验证"env 死亡时点"（无真 LuaEnv）。
-    ///
-    /// - **循环计数**（准入项「资源与缓存稳定」的 UI 侧证据，§12.1"只验证最终状态不够，需断言
-    ///   回调次数、引用/订阅数量"）：同页开关 10 次——租约恰好一次（缓存复用不增长）、OnShow 计数
-    ///   逐次递增、无第二实例。
-    ///
-    /// - **诊断关联**（准入项「可诊断」，§4.1"回调异常必须有 formId、阶段和内容版本"）：
-    ///   注入 OnInit 失败 → 类型化 `UIOpenException{InitFailed}` 携带 formId 与阶段描述、回滚对称。
+    /// 环境重建 / 循环计数 / 诊断关联 PlayMode 用例（三块准入项证据的 UI 侧载体）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class EnvRebuildPlayModeTests
@@ -176,10 +163,6 @@ namespace LiteGame.Tests.UI.PlayMode
             // 该错误会以“未处理 Error 日志”被 TestRunner 判红；产品诊断断言仍走 Log.Recent。
             LogAssert.ignoreFailingMessages = true;
             // 注入 OnInit 失败（诊断样例：一次注入失败必须可定位——formId、阶段、回滚状态）。
-            // **断言通道（踩坑记录）**：SafeCall 走 LiteFramework.Log（环形缓冲 + ErrorCount，
-            // helper 未注入时不桥接 UnityEngine 日志）——LogAssert 看不到它。可诊断断言用
-            // **产品诊断面**：ErrorCount 增量 + Recent 缓冲内容（含 formId/阶段/异常类型与内容），
-            // 与 EditMode 先例（UIU0EditModeTests 的 ErrorCount 口径）一致。
             int errBefore = LiteFramework.Log.ErrorCount;
 
             _env.DoString(@"

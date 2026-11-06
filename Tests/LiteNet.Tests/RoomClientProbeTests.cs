@@ -8,9 +8,7 @@ using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 应用层 RTT/丢包探针（ping/丢包批）：<see cref="RoomClient.Quality"/> 由 1Hz Unreliable 探针
-    /// （client_time = 发送时刻，服务器原样回显）推断——回声配对算 RTT，滚动窗口未回声占比算丢包。
-    /// 全假传输 + 虚拟时钟驱动（与房主位测试件同形态）。
+    /// 应用层 RTT/丢包探针（ping/丢包批）：<see cref="RoomClient.Quality"/> 由 1Hz Unreliable 探针 （client_time = 发送时刻。）。
     /// </summary>
     public sealed class RoomClientProbeTests
     {

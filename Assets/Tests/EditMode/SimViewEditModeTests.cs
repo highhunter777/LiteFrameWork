@@ -12,14 +12,7 @@ using LiteGame.Spatial;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 表现视图验收（全替身、零网络、零资源包）：
-    /// - SimView：槽位镜像增删、远端快照插值、本地预测跟随与和解衰减、硬切、**事件静默门**去重；
-    /// - EntityViewMap：按槽位索引、按 prefab 分池复用、回收计数回落（泄漏断言）。
-    ///
-    /// 纯数学（插值/衰减/硬切判据）在 L1（Tests/LiteSim.Core.Tests/ViewTransformMathTests）——本类只验
-    /// 引擎侧接线与生命周期。**输入服务**（上下文门/帧边界门/采样节流）同在 L1
-    /// （Tests/LiteSim.Core.Tests/InputServiceTests）——设备源的相机换算属本层，但需真实 Input 状态，
-    /// 由夜间 L2 与 Player 冒烟覆盖。
+    /// 表现视图验收（全替身、零网络、零资源包）。
     /// </summary>
     public sealed class SimViewEditModeTests : UnityTestBase
     {
@@ -380,9 +373,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(200, view.SilenceUntilFrame, "回滚推进更远的闸门");
         }
 
-        // ---- 相机（端口）：SimView 只把本地表现位置喂给 ICameraService ----
-        // 真实实现（CinemachineCameraService）属 Platform.Unity 适配器：它要场景里的虚拟相机与
-        // CinemachineBrain，归 PlayMode/Player 验证；本层用替身钉住**契约**（喂什么位置、何时开始）。
+        // ---- 相机（端口）：SimView 只把本地表现位置喂给 ICameraService ---- 真实实现（CinemachineCameraService）属 Platform.Unity 适配器：它要场景里的虚拟相机与 CinemachineBrain。
 
         [Test]
         public void 相机_跟随本地表现位置_按渲染帧喂给相机端口()

@@ -121,14 +121,6 @@ namespace LiteNet.Tests
 
         /// <summary>
         /// **公共面字段全覆盖的 wire 往返守卫**（反射驱动，不逐字段手写）。
-        ///
-        /// 上面那条用例是逐字段断言的——**加字段忘了同步 codec 时它不会红**
-        /// （没有对应断言）。CorpseFrames 当初正是这样漏掉的：公共 checksum 覆盖它、
-        /// <c>SlotDelta</c> 却没有该字段，客户端重建恒 0 ⇒ 尸体期内每帧假和解。
-        ///
-        /// 本用例遍历 <see cref="EntitySlot"/> 上所有标注为 Public 的字段，
-        /// 逐个扰动后经 ToDelta→FromDelta 往返，断言值必须原样回来。
-        /// 新增公共面字段若漏改 codec，这里立刻失败。
         /// </summary>
         [Fact]
         public void 公共面字段_逐字段wire往返_漏同步codec即红()
@@ -200,9 +192,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 尸体期_经wire往返后公共口径checksum不变_否则尸体期内每帧假和解()
         {
-            // 回归用例：corpse_frames 未进 wire 时，客户端 FromDelta 重建的 CorpseFrames 恒 0，
-            // 而 ComputePublicChecksum 混入该字段 ⇒ 尸体期 180 帧内权威 checksum 与本地预测值
-            // 结构性不等 ⇒ RollbackSim.OnAuthoritativeSnapshot 每帧判为不符 → 假和解 + 重放。
+            // 回归用例：corpse_frames 未进 wire 时，客户端 FromDelta 重建的 CorpseFrames 恒 0。
             var s = BuildWorld();
             s.Frame = 7;                                       // 公共口径 checksum 含 Frame——两端须同帧号
             int dead = 0;

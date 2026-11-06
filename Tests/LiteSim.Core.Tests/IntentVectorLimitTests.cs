@@ -6,11 +6,6 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// 意图向量闸门边界守卫（<see cref="IntentVectorLimit"/>）的 L1 覆盖。
-    ///
-    /// 钉的契约：设备源归一化后的浮点舍入可能把长度平方落在 1+1ulp——服务器 <c>InputGate</c> 按
-    /// "长度平方 &gt; 1f 整帧拒收"（R0-P0-3 数值边界），落在 +1ulp 一侧即每帧被拒、权威端按空输入
-    /// 执行（"移不动/橡皮筋"的根因）。守卫只收贴限舍入噪声、不改写界内值、不掩盖大幅越界
-    /// （那是设备源实现缺陷，应由闸门拒收暴露）。
     /// </summary>
     public class IntentVectorLimitTests
     {

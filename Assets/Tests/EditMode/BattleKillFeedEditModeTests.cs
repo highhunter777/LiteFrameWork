@@ -12,11 +12,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 全局击杀提示的 L2 EditMode 覆盖（击杀提示批）：
-    /// ① <see cref="PublicCombatFeed"/>——首份快照/重连不重播、重复重发去重、新条入队、Reset 复位；
-    /// ② <see cref="BattleKillFeedDriver"/>——多条堆叠、行格式（"你"/"玩家{k}"/"玩家{v} 阵亡"）、
-    /// 武器图标按装备槽取图、驻留到时回收（计时走 <see cref="UIAnimationClock"/> 可控假件）。
-    /// 真场景观感（字号/落位）归 PlayMode/手测。
+    /// 全局击杀提示的 L2 EditMode 覆盖（击杀提示批）： ① <see cref="PublicCombatFeed"/>——首份快照/重连不重播、重复重发去重、新条入队、Reset 复位。
     /// </summary>
     public sealed class BattleKillFeedEditModeTests : UnityTestBase
     {

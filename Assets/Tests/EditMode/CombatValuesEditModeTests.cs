@@ -13,13 +13,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 客户端玩法数值链路（《玩法数值解耦审查与Luban表设计》§4）：
-    /// 直接按 `ConfigService` 的同一路径与同一 loader 建 `cfg.Tables` → 取 `Tbcombatnum` 单行 →
-    /// 与 `CombatConfig` 的运行时值比对。**验的是真实数据链路**（bin 文件存在且能被 Luban 解析），
-    /// 而不是"代码里写了个数"。
-    ///
-    /// 为什么不复用 `ConfigService.LoadAsync`：它走 YooAsset 异步 + 流程前置，EditMode 里拉不起来；
-    /// 这里用同一份 `TableDataFiles` 清单直读磁盘，等价且更快（清单一致性由第二个用例保证）。
+    /// 客户端玩法数值链路（《玩法数值解耦审查与Luban表设计》§4）： 直接按 `ConfigService` 的同一路径与同一 loader 建 `cfg.Tables` → 取 `Tbcombatnum` 单行 → 与 。
     /// </summary>
     public sealed class CombatValuesEditModeTests : UnityTestBase
     {

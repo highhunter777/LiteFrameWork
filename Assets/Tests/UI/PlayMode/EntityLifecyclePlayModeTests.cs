@@ -15,16 +15,6 @@ namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
     /// 实体服务对象级故障段（准入项「生命周期收敛」Entity 段——对齐 VFX/动画/租约同族口径）。
-    ///
-    /// 依据：《框架先行建设与业务接入专项设计》§5 接缝 1（谁创建、谁取消、谁等待清理、谁释放资源）、
-    /// §6 样例③「加载后 Owner 已退出」。此前 Entity 的故障面只有 EditMode 契约钉
-    /// （PresentationLifecycleEditModeTests：作用域取消/重复归还/关闭面/挂接级联——替身加载口），
-    /// 缺**真池实例 + 确定性在途窗口**下的对象级故障：关闭后在途真取消、关闭后拒绝新实体、
-    /// 加载完成时服务已关闭的幽灵复活、加载中宿主已退出、加载中 Hide 竞态。
-    ///
-    /// **为什么必须是 PlayMode**：在途窗口要真实帧推进（yield 数帧）才能确定性打开——
-    /// EditMode 没有 PlayerLoop，同步加载口永远测不到竞态/取消语义。
-    /// 池根注入测试作用域（PlayMode 下自建根会 DontDestroyOnLoad 跨用例驻留——对象级卫生）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class EntityLifecyclePlayModeTests
@@ -91,9 +81,7 @@ namespace LiteGame.Tests.UI.PlayMode
         [UnityTest]
         public IEnumerator 实体_加载完成时服务已关闭_不实例化不留幽灵()
         {
-            // loader **不观察**取消令牌：取消后仍会完成——钉服务级收尾复查（不依赖 loader 纪律，
-            // 同 VfxService「inst.Cancelled || IsShutdown」口径）。若无复查，加载完成会经池
-            // 实例化并把幽灵实体登记在已关闭的壳上。
+            // loader **不观察**取消令牌：取消后仍会完成——钉服务级收尾复查（不依赖 loader 纪律， 同 VfxService「inst.Cancelled || IsShutdown」口径）。
             EntityService service = NewService(ObliviousSlowLoader);
             UniTask<EntityHandle> load = service.ShowAsync("ent_oblivious");
             yield return Null();

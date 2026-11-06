@@ -6,12 +6,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// ObjectPool 高级化直测（《对象池专项设计》§3/§6）——与基线套件 ObjectPoolTests（初始提交随库，
-    /// §2 继承基线 20 例）分文件并存：
-    /// - §3 高级化：PoolEviction（DropNewest 默认与 EvictOldest 队首淘汰）、TrimExpired 按龄收缩
-    ///   （消费方驱动零时钟）、validateOnAcquire 借出验证（先于 onGet/OnSpawn）、统计追加（PoolHits/Evicted/Invalidated）；
-    /// - §3.5 兼容红线：默认参数下与基线行为逐位一致（DropNewest/不收缩/无验证）。
-    /// [Collection("CoreStatic")]：异常回滚路径写全局 Log（ErrorCount/Recent），与断言日志面的用例串行。
+    /// ObjectPool 高级化直测（《对象池专项设计》§3/§6）——与基线套件 ObjectPoolTests（初始提交随库， §2 继承基线 20 例）分文件并存。
     /// </summary>
     [Collection("CoreStatic")]
     public sealed class ObjectPoolAdvancedTests

@@ -9,8 +9,6 @@ namespace LiteFramework.Tests
 {
     /// <summary>
     /// 原生 Unity 协程纪律：业务 Unity 层只能使用可取消 UniTask。
-    /// 第三方 UniTask/xLua 源码、Lua coroutine 以及 Core 的集合枚举不在扫描范围内。
-    /// 规则匹配前先剔除注释——注释里提到禁用 API 不算违规。
     /// </summary>
     public sealed class NativeCoroutineDisciplineTests
     {

@@ -7,10 +7,6 @@ namespace LiteNet.Tests
 {
     /// <summary>
     /// 托管 AES-GCM 回退（<see cref="ManagedAesGcmCipher"/>）与平台 <see cref="AesGcm"/> 的**逐位互通**对账。
-    ///
-    /// 为什么是硬契约：Unity Mono 运行时没有平台 AEAD 实现（安全信封会回退到托管实现），而服务端跑在
-    /// .NET 8 的平台 <c>AesGcm</c> 上——两端必须在同密钥/同 nonce/同 AAD 下产出相同的密文与标签，
-    /// 否则握手后第一个数据包就解不开。本组用例即该契约的守卫。
     /// </summary>
     public sealed class ManagedAesGcmCipherTests
     {

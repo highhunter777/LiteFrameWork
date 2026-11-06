@@ -17,13 +17,7 @@ using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// M10 无头对跑验收组（§9 M10 验收行）：
-    /// RoomServer（同进程内嵌，真实 UDP 回环）+ 2 无头客户端（各自独立 UDP 连接）。
-    ///
-    /// - 短对跑（L1 默认）：30s——帧号稳定推进/双端收快照/和解链路通/不发散。
-    /// - 5 分钟全量对跑：**环境变量 M10_LONGRUN=1 门控**（L1 默认 skip；夜间/手动跑）。
-    /// - 决策⑥ 形态注记：全量预测下远端输入未知 → 和解频发属机制正确（和解率=权威/预测差异率）；
-    ///   通过条件 = 快照覆盖兜底**不发散不崩盘** + 帧号稳定推进。
+    /// M10 无头对跑验收组（§9 M10 验收行）： RoomServer（同进程内嵌，真实 UDP 回环）+ 2 无头客户端（各自独立 UDP 连接）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.EndToEnd)]
     public class HeadlessRunTests : IDisposable

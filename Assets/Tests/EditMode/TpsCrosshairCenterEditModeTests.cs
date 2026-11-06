@@ -7,9 +7,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// TPS 准心位置契约：准心恒钉**屏心**（画布中心系原点），不再跟随鼠标屏幕位——
-    /// 指针锁定形态下鼠标只驱动相机（AddLookDelta），"屏幕光标位"语义整体退役。
-    /// 散布/后坐（随命中反馈并入 localPosition）不在此面——既有 BattleCrosshairEditModeTests 覆盖。
+    /// TPS 准心位置契约：准心恒钉**屏心**（画布中心系原点），不再跟随鼠标屏幕位—— 指针锁定形态下鼠标只驱动相机（AddLookDelta），"屏幕光标位"语义整体退役。
     /// </summary>
     public sealed class TpsCrosshairCenterEditModeTests : UnityTestBase
     {

@@ -10,9 +10,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 颜色令牌引用的编辑期应用（P2-3 B2 / AC3、AC6-③）：`UIStyleRefApplier` refs 段（按声明写值/幂等/报告/
-    /// 未知令牌不猜色）＋迁移段（widget 状态色最近匹配填 token、不命中不填）＋裸值段跳过已声明节点。
-    /// 扫描目录注入临时目录（真实面不落盘）。
+    /// 颜色令牌引用的编辑期应用（P2-3 B2 / AC3、AC6-③）：`UIStyleRefApplier` refs 段（按声明写值/幂等/报告/ 未知令牌不猜色）＋迁移段（widget 状态色最近匹配填 token。）。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIStyleRefEditModeTests

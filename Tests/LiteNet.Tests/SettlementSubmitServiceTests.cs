@@ -17,10 +17,6 @@ namespace LiteNet.Tests
 {
     /// <summary>
     /// 结算提交管道（《上云测试专项设计》§2）：Outbox → Meta 幂等端点 → 完成标记/重试/重启续投。
-    ///
-    /// L1：伪造 <see cref="HttpMessageHandler"/> 断言**发送载荷与完成语义**（真 HTTP 闭环见
-    /// MetaServer 集成用例）；Outbox 用真实文件实装（临时日志）——提交管道的进度语义全在
-    /// 日志里，替身会掩盖这层。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class SettlementSubmitServiceTests

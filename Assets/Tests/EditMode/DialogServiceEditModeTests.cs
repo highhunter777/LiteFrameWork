@@ -12,12 +12,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// Dialog 服务（《UI框架总设计》§4.3"ShowDialogAsync 返回确认/取消/关闭原因，支持有界队列、
-    /// 优先级、互斥组和 Scope 取消。重复断线/错误弹窗按键合并，不无限堆叠"）。
-    ///
-    /// 全替身（FakeCatalog + 同步加载器 + 代码建 UIDialog 假件）——零真资源依赖。
-    /// **测试形态对齐 UINavModalEditModeTests 的已验证泵动模式**：等待一律经 Await 泵双服务 Tick，
-    /// 不在用例里裸 await。
+    /// Dialog 服务（《UI框架总设计》§4.3"ShowDialogAsync 返回确认/取消/关闭原因，支持有界队列、 优先级、互斥组和 Scope 取消。）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class DialogServiceEditModeTests : UnityTestBase

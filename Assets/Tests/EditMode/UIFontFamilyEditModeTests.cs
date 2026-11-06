@@ -7,14 +7,7 @@ using TMPro;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 字体族接线与覆盖（《UI框架总设计》§9"字体作为字体族和 fallback 链配置"；
-    /// 制作规范 §7"按所支持语言检查缺字"）。
-    ///
-    /// 字体族单源 = TMP Settings（默认字体 + 全局 fallback 链）；本套件钉住两件事：
-    /// ①配置契约——NotoSansSC-Regular 挂全局 fallback 且图集为 Dynamic/多图集
-    /// （Static 图集遇未预烘焙字符即缺字，Dynamic 才具备 fallback 的"缺字动态补"能力）；
-    /// ②代表文本覆盖——逐字符按"主字体 → fallback 逐级"判定（与 TMP 运行时同序）。
-    /// 代表文本语料在此内联；全量文本表覆盖检查由文本表侧落库流程负责。
+    /// 字体族接线与覆盖（《UI框架总设计》§9"字体作为字体族和 fallback 链配置"； 制作规范 §7"按所支持语言检查缺字"）。
     /// </summary>
     public sealed class UIFontFamilyEditModeTests
     {

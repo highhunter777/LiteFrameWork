@@ -5,9 +5,7 @@ using LiteSync.Client;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 网络调试组件（<see cref="NetworkDebug"/>）的契约：无对局空态 / 动作拒绝原因稳定 /
-    /// 相位判定（断线仅 Connected·Restoring；重连仅 SuspectedLost——其余相位交还自动重连链）。
-    /// 真会话动作归 Play 面核证（会话客户端需要真传输，不在 EditMode 造假体）。
+    /// 网络调试组件（<see cref="NetworkDebug"/>）的契约：无对局空态 / 动作拒绝原因稳定 / 相位判定（断线仅 Connected·Restoring。）。
     /// </summary>
     public sealed class NetworkDebugEditModeTests
     {

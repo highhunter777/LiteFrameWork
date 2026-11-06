@@ -137,13 +137,7 @@ namespace LiteFramework.Tests
         }
 
         /// <summary>
-        /// MetaServer 的 R11 边界登记（《Meta 服务专项设计》§3.2/§4.2）：
-        /// 模块/契约层受纯化把守，宿主装配层（Kestrel/IO/Console）按 §12 合法豁免。
-        ///
-        /// 排除按**目录段前缀**匹配（<c>IsUnderExcludedRoot</c>），故 <c>MetaServer/Host</c>
-        /// 只排 <c>Host/</c> 子目录、不误伤将来的 <c>Hosting/</c>。
-        /// 真实源码是否干净由上面的"零违规"用例证明；本用例钉的是**登记意图**，
-        /// 避免后续误把宿主层扫进去或误把模块层排除掉。
+        /// MetaServer 的 R11 边界登记（《Meta 服务专项设计》§3.2/§4.2）： 模块/契约层受纯化把守，宿主装配层（Kestrel/IO/Console）按 §12 合法豁免。
         /// </summary>
         [Fact]
         public void 纪律_MetaServer_登记为受守根_仅宿主层豁免()
@@ -362,10 +356,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_R12_已接入真实扫描目标_且目标路径存在()
         {
-            // **防"静默失效"**：本文件里 R6/R10 的两个 LiteGame 扫描目标可能因路径写错
-            // （如 `Assets/LiteGame/Scripts/Runtime/...`，实际无 `Scripts/`）**空扫**——
-            // 规则写了但从未生效，且没有任何东西会红。
-            // 故此处同时钉两件事：①R12 在 GameRules 里；②每个目标根**目录真实存在**。
+            // **防"静默失效"**：本文件里 R6/R10 的两个 LiteGame 扫描目标可能因路径写错 （如 `Assets/LiteGame/Scripts/Runtime/...`，实际无 `Scripts/`）**空扫**—— 规则写了但从未生效，且没有任何东西会红。
             var gameTarget = System.Array.Find(
                 Tools.DisciplineScan.ScanTargets.Default,
                 t => t.Root == "Assets/LiteGame");
@@ -415,12 +406,9 @@ namespace LiteFramework.Tests
                 + string.Join(", ", unregistered));
         }
 
-        /// <summary>D2 守卫（《客户端与服务端共享代码范围专项设计》§3）：客户端 asmdef 引服务端程序集，
-        /// 必须落在 <c>DevHostMayReferenceServerAssemblies</c> 登记目录里。
-        ///
-        /// 原因：框架件若无条件引用两个 RoomServer 程序集，唯一消费者却是一个开发面文件
-        /// （进程内本地服）→ 两个服务端程序集进**所有** Player 构建。`ProcedureMatch` 的 `#if`
-        /// 只挡调用点、挡不住 asmdef 引用（引用是程序集级的）。</summary>
+        /// <summary>
+        /// D2 守卫（《客户端与服务端共享代码范围专项设计》§3）：客户端 asmdef 引服务端程序集， 必须落在 <c>DevHostMayReferenceServerAssemblies</c> 登记目录里。
+        /// </summary>
         [Fact]
         public void 纪律_D2_客户端引服务端程序集必须在调试宿主档位内()
         {
@@ -473,12 +461,9 @@ namespace LiteFramework.Tests
             Assert.True(problems.Count == 0, string.Join(" | ", problems));
         }
 
-        /// <summary>D1 守卫（《客户端与服务端共享代码范围专项设计》§3）：服务端宿主工程的
-        /// `ProjectReference` **不得**指向客户端面（`LiteFramework`/`LiteGame`/`LiteFramework`/`LiteView`
-        /// ——View 用**程序集名**作标记，目录无关：住 `Assets/LiteView`）。
-        ///
-        /// 本用例把它钉成判据，
-        /// 防止日后有人图方便让宿主直接引客户端件（那会让"服务端只依赖 S0/S1/S2"从规则退化成习惯）。</summary>
+        /// <summary>
+        /// D1 守卫（《客户端与服务端共享代码范围专项设计》§3）：服务端宿主工程的 `ProjectReference` **不得**指向客户端面（`LiteFramework`/`LiteGame`/`LiteFramewor。）。
+        /// </summary>
         [Fact]
         public void 纪律_D1_服务端宿主不得依赖客户端面()
         {
@@ -536,8 +521,6 @@ namespace LiteFramework.Tests
         public void 纪律_R12_边界目录内_对应适配器import放行()
         {
             // **每个边界只放行它对应的那一个适配器**——不是"边界目录里什么都能 import"。
-            // 适配器在 `Adapters/` 层；框架侧在 `Packages/com.litegame.framework/Runtime/{Services,Framework}/`，
-            // Lua 桥归 `Assets/LiteGame/Adapters/LuaBridge/`（目录一变规则就红，本用例即其表现）。
             Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Adapters/YooAsset/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Adapters/XLua/Lua/C.cs",

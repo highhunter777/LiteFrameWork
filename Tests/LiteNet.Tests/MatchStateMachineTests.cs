@@ -8,10 +8,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// Match 状态机用例（《商业级通用服务端框架总设计》§9.1）：
-    /// 迁移表合法性、非法迁移拒绝、超时策略（等待/对局时限）、全员离场收尾、
-    /// Finishing 冻结摘要 + SettlementReady + 幂等关闭。
-    /// 全部纯 L1（无 Socket/Sleep/文件/墙钟——时间由 Tick 命令注入）。
+    /// Match 状态机用例（《商业级通用服务端框架总设计》§9.1）： 迁移表合法性、非法迁移拒绝、超时策略（等待/对局时限）、全员离场收尾、 Finishing 冻结摘要 + SettlementReady + 幂等关闭。
     /// </summary>
     public sealed class MatchStateMachineTests
     {

@@ -4,12 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 武器系统（《游戏业务系统总设计》§5 武器系统方案；tb_weapon 表驱）：
-    /// 懒装备（首生/复活自动装备默认步枪满弹）、射速节拍（<c>ceil(TickRate×60/rpm)</c> 整数帧）、
-    /// 弹匣扣减与打空、换弹（时长/弹药转移/换弹中不可开火/半满规避）、**打空自动换弹**（末发同帧进入）、
-    /// 武器门在一切副作用之前。切枪见 <see cref="WeaponSwitchTests"/>、半自动见 <see cref="SemiAutoTests"/>、
-    /// 散布/多弹丸见 <see cref="SpreadShootingTests"/>。
-    /// **未装备实体**（直调 ShootingSystem 的旧形态）不经武器门——由既有用例回归覆盖。
+    /// 武器系统（《游戏业务系统总设计》§5 武器系统方案；tb_weapon 表驱）： 懒装备（首生/复活自动装备默认步枪满弹）、射速节拍（<c>ceil(TickRate×60/rpm)</c> 整数帧）、 弹匣扣减与打空。
     /// </summary>
     public sealed class WeaponSystemTests
     {
@@ -225,9 +220,7 @@ namespace LiteSim.Tests
             WeaponDef def = WeaponConfig.Default;
             var fire = Fire(id);
 
-            // ① 按住 10s（600 帧）：480rpm ⇒ 每 8 帧一发；30 发打空（232 帧）→ **自动换弹**（打空即补），
-            //    364 帧完成同帧续射第二梭（364..596）→ 第 60 发打空再入自动换弹。
-            //    帧内两梭正好跨自动换弹窗：600 帧末仍处第二次换弹（ReloadEndFrame=596+132=728）。
+            // ① 按住 10s（600 帧）：480rpm ⇒ 每 8 帧一发；30 发打空（232 帧）→ **自动换弹**（打空即补）， 364 帧完成同帧续射第二梭（364..596）→ 第 60 发打空再入自动换弹。
             for (int f = 0; f < 600; f++)
             {
                 world.Frame = f;

@@ -10,10 +10,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// GM 场景命令用例（《GM 与调试工具分层设计》§2 场景操作命令化批）：命令族/处理器/注册面按
-    /// 源链接纳入 L1（见 csproj 链接组注释）。钉住：四命令派发到对应服务操作、带参命令空 location
-    /// 拒绝且不派发、GmOnly 注册过权限门（release 语义零派发）、发现面/注销器对称、审计进环。
-    /// SceneService 真实现（YooAsset 适配器）归 L2——本测试用替身只记调用。
+    /// GM 场景命令用例（《GM 与调试工具分层设计》§2 场景操作命令化批）：命令族/处理器/注册面按 源链接纳入 L1（见 csproj 链接组注释）。
     /// </summary>
     public sealed class GMSceneCommandTests
     {

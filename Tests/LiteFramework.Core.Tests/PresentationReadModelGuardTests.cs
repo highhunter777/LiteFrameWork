@@ -6,13 +6,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 表现层读模型守卫（《客户端架构重构演进路线图》§3.5 接缝 2 / §4.11 第 8 条 / M2 退出条件）：
-    /// <c>App/Presentation/Hud</c> 的 HUD 驱动只经 <see cref="LiteGame.IBattleReadModel"/> 取事实，
-    /// 不得直读 <c>SimWorldState</c> 的槽位/武器数组布局。唯一例外是适配器
-    /// <c>BattleReadModel.cs</c>——它把 Sim 布局翻译成事实，是"唯一翻译点"。
-    ///
-    /// 与 <see cref="DevStaticReadAllowlistTests"/> 同款文件级基线：M2 已把阵亡/复活与击杀提示
-    /// 迁到读模型，基线从此固定为 1 个文件（只减不增）。
+    /// 表现层读模型守卫（《客户端架构重构演进路线图》§3.5 接缝 2 / §4.11 第 8 条 / M2 退出条件）： <c>App/Presentation/Hud</c> 的 HUD 驱动只经 <see cref="L。
     /// </summary>
     public sealed class PresentationReadModelGuardTests
     {

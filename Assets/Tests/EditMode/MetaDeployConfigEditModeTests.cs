@@ -5,9 +5,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 联机入口部署配置解析（纯函数面——命令行 → <see cref="MetaEntryConfig"/>）。
-    /// 语义锚点：**未配置 Meta 基址 = 联机入口显性拒绝**（HasMeta=false，消费端不连任何地址）；
-    /// 非法值静默保持默认（部署参数不是攻击面——令牌/票据效力由服务端验签把守，
-    /// 但也不让它让启动失败）；信封密钥空 = 不注入（回落环境变量口，由装配侧裁决）。
     /// </summary>
     public sealed class MetaDeployConfigEditModeTests
     {

@@ -9,11 +9,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 候选 Lua 动态验证（《热更与内容发布专项设计》§10）。
-    ///
-    /// **本文件的核心价值是证明"受控验证环境"真的受控**：
-    /// §10 硬要求"验证环境不得绑定正式全局 Bridge 注册表，不得打开 UI、订阅正式事件、
-    /// 发业务网络请求或写存档"。沙箱若只是名义上的（比如仍能 `CS.UnityEngine...` 或 `io.open`），
-    /// 那候选脚本就有了任意文件/网络/反射能力——这些用例正是钉住这一点的回归卡。
     /// </summary>
     public sealed class CandidateLuaValidatorEditModeTests : UnityTestBase
     {
@@ -201,9 +196,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 沙箱_日志桥无副作用桩_模块顶层可执行()
         {
-            // 真实候选包的 main.lua 顶层有 log.info 冒烟锚点：桩保证"模块可装载可执行"可达；
-            // 桩非正式 Bridge 注册表（无 UI/事件/网络/存档副作用），§10 隔离面不受影响。
-            // 契约是**可调用**而非 Lua 函数类型——xLua 委托在 Lua 侧不为 type 'function'（正式 BindLog 同形状）。
+            // 真实候选包的 main.lua 顶层有 log.info 冒烟锚点：桩保证"模块可装载可执行"可达； 桩非正式 Bridge 注册表（无 UI/事件/网络/存档副作用），§10 隔离面不受影响。
             CandidateScriptSet set = SetOf(new ScriptEntry("m", "lua/m.lua"));
             var bytes = BytesOf(("lua/m.lua",
                 "assert(type(log) == 'table')\n" +

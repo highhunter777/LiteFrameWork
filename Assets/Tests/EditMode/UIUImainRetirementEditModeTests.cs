@@ -13,10 +13,7 @@ using LiteGame.Modules.Shared;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// UIMain 退役守卫（《UI 系统 UIMain 退役》方案 AC1/AC2/AC3）：
-    /// 页面清单不再含样例页、LuaKeys 不再产 UIMain、启动锚迁到 Page_Login、main.lua 去样例页、
-    /// 测试载体归位到 Tmp_UITestPage/Tests.UITestPage；常驻壳判据仍拒 UIMain。
-    /// 先红：实施前这些断言全部指向目标态，故失败于“目标态尚未落地”，不是编译/环境错误。
+    /// UIMain 退役守卫（《UI 系统 UIMain 退役》方案 AC1/AC2/AC3）： 页面清单不再含样例页、LuaKeys 不再产 UIMain、启动锚迁到 Page_Login、main.lua 去样例页。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIUimainRetirementEditModeTests

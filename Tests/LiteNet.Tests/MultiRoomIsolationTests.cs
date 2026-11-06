@@ -11,12 +11,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 多房间隔离与动态建房（《框架先行》§6 样例④"**使用至少两个独立房间验证隔离**"、
-    /// §8 准入项「联机宿主闭环」"…**两房间隔离**…通过"；《服务端总设计》§6"一个 roomId
-    /// 只能映射一个独立 RoomActor"、§514"多房间并发时一个慢客户端或过载房间不拖累其他房间"）。
-    ///
-    /// **本组存在的理由**：光有 <see cref="ServerHost.TryGetRoom"/> 不算数，必须证明**状态真的分家**：
-    /// 席位互不可见、帧号各自推进、房间参数互不串用、关一个房间不影响另一个。
+    /// 多房间隔离与动态建房（《框架先行》§6 样例④"**使用至少两个独立房间验证隔离**"、 §8 准入项「联机宿主闭环」"…**两房间隔离**…通过"。）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class MultiRoomIsolationTests

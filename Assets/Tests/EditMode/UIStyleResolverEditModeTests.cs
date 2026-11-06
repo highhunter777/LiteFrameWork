@@ -10,9 +10,7 @@ using UIThemePaths = LiteGame.EditorTools.UI.UIThemePaths;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 令牌解析核心单源（P2-3 B2 / AC1）：`UIStyleResolver`（LiteFramework.UI）从生成物 SO 读令牌；
-    /// 编辑器 `UITokenCatalog` 与其同源；命中阈值单源驻 resolver。
-    /// 《UI 系统总设计》§6.1「运行时通过 UIStyleResolver 解析，不读 JSON」。
+    /// 令牌解析核心单源（P2-3 B2 / AC1）：`UIStyleResolver`（LiteFramework.UI）从生成物 SO 读令牌； 编辑器 `UITokenCatalog` 与其同源。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIStyleResolverEditModeTests

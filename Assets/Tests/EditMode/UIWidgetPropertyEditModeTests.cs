@@ -8,9 +8,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 受控属性白名单（《UI编辑器工具专项设计》§5"受控属性"）覆盖：标注成员才进行集、
-    /// 接线引用字段不进面、非自有程序集（UGUI 契约件）组件不产行、值型归类（最小集 + 未支持显式列）、
-    /// 真实模板资产面回归。
+    /// 受控属性白名单（《UI编辑器工具专项设计》§5"受控属性"）覆盖：标注成员才进行集、 接线引用字段不进面、非自有程序集（UGUI 契约件）组件不产行、值型归类（最小集 + 未支持显式列）、 真实模板资产面回归。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIWidgetPropertyEditModeTests

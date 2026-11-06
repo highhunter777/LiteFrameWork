@@ -11,10 +11,7 @@ using LiteFramework.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 焦点协调者（《UI框架总设计》§6.2"焦点保存/恢复、键盘/手柄 Submit/Cancel 和平台返回统一处理"；
-    /// U2-⑦）。焦点事实单源 = EventSystem 选择；用例自建裸 EventSystem 并经解析缝注入
-    /// （<c>EventSystem.current</c> 在 EditMode 不更新——实测；实例选择簿记可用）。
-    /// 键盘/手柄导航与 Submit/Cancel 由 InputSystemUIInputModule 默认动作集在运行期驱动（实机验证）。
+    /// 焦点协调者（《UI框架总设计》§6.2"焦点保存/恢复、键盘/手柄 Submit/Cancel 和平台返回统一处理"； U2-⑦）。
     /// </summary>
     public sealed class UIFocusEditModeTests : UnityTestBase
     {

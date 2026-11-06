@@ -5,9 +5,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 会话生命周期用例（《商业级通用服务端框架总设计》§9.2）：
-    /// SessionManager 容量上限与周期清理、ReconnectService 时钟注入/容量、重绑后新会话水位归零
-    /// （旧连接 ACK 状态不复活）。纯 L1，无 Socket/墙钟。
+    /// 会话生命周期用例（《商业级通用服务端框架总设计》§9.2）： SessionManager 容量上限与周期清理、ReconnectService 时钟注入/容量、重绑后新会话水位归零 （旧连接 ACK 状态不复活）。
     /// </summary>
     public sealed class SessionLifecycleTests
     {

@@ -11,10 +11,7 @@ using LiteFramework.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 远端开火火光（公共开火面）的 L2 EditMode 覆盖：
-    /// ① <see cref="PublicCombatFeed"/>——首份快照/重连不重播、重复重发去重、新条入队、Reset 复位；
-    /// ② <see cref="BattleRemoteMuzzleFlashDriver"/>——他人开火落其枪口挂点播放、本地开火不双闪、
-    /// 视图缺位/无挂点静默退化、Dispose 后静默。真实资源/观感归 PlayMode/手测。
+    /// 远端开火火光（公共开火面）的 L2 EditMode 覆盖： ① <see cref="PublicCombatFeed"/>——首份快照/重连不重播、重复重发去重、新条入队、Reset 复位。
     /// </summary>
     public sealed class BattleRemoteFireEditModeTests : UnityTestBase
     {

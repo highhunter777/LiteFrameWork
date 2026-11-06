@@ -7,13 +7,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 流程段边界守卫（批 5 · A24）：应用壳只编排，不得直引战斗/联机的内部件——
-    /// 对局经 <c>IBattleRun</c>/<c>IBattleRunFactory</c>，进房经 <c>IMatchJoin</c>，联机入口经
-    /// <c>IAccountSessionControl</c>/<c>IMetaConfigFacts</c>/<c>IAppFlow</c> 端口。
-    ///
-    /// 为什么需要：A24 前 <c>ProcedureBattle</c> 直接构造/持有 <c>BattleClient</c>/<c>BattleContext</c>，
-    /// <c>ProcedureMatch</c> 直接泵 <c>BattleClient</c>——流程与战斗内部件编译期耦合，改战斗结构必动流程。
-    /// 本守卫只扫**代码区**（注释里出现类型名不算引用，文档可以解释历史）。
+    /// 流程段边界守卫（批 5 · A24）：应用壳只编排，不得直引战斗/联机的内部件—— 对局经 <c>IBattleRun</c>/<c>IBattleRunFactory</c>。
     /// </summary>
     public sealed class ProcedureBoundaryTests
     {

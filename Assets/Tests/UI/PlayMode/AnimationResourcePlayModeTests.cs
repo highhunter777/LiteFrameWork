@@ -16,17 +16,7 @@ using LiteFramework.UI;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 动画资源组合 PlayMode 用例（《框架先行》§4 包③退出条件"真 Lua/Prefab/**动画资源**组合运行，
-    /// 取消、暂停、复用、**卸载**可验证"）。
-    ///
-    /// **按资源可用性分流断言**——`CombatGirlsCharacterPack` 当前未入库（176MB，用户选择不入 VCS），
-    /// 所以干净检出上真角色不可用。两条分支都必须**各自成立**：
-    /// - 有包：真角色 prefab（**直 Clip 形态**：挂绑定组件、无控制器）经真加载链路实例化 →
-    ///   清单登记供片 → 动画后端就位；
-    /// - 无包：驱动**明确跳过**（不建播放器、不报错）——无绑定组件的灰盒视图由驱动层跳过、
-    ///   表现为无动画而非报错的记录契约，值得断言而非跳过。
-    ///
-    /// 这不是放宽断言：`Assert.Ignore` 会让整个用例在干净检出上消失，而降级行为本身是要验的。
+    /// 动画资源组合 PlayMode 用例（《框架先行》§4 包③退出条件"真 Lua/Prefab/**动画资源**组合运行， 取消、暂停、复用、**卸载**可验证"）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class AnimationResourcePlayModeTests
@@ -133,10 +123,6 @@ namespace LiteGame.Tests.UI.PlayMode
         public IEnumerator 动画打断_真资源下同通道替换_旧播放得Interrupted且通道归新播放()
         {
             // 《框架先行》§6 样例③ 必测失败项「**动画打断**」。
-            //
-            // **与 L1 的分工**：`AnimationContractTests` 已在**纯契约**层覆盖
-            // 「同通道替换_旧播放得Interrupted」；本组要的是**真控制器/真资源**下同一条语义成立——
-            // 那是 EditMode 与替身都给不了的（真 Animator 通道、真状态切换）。
             GameObject prefab = null;
             yield return LoadAvatar(p => prefab = p);
 

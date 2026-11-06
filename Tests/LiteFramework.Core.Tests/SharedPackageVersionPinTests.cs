@@ -7,9 +7,7 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 共享包版本单源守卫：服务端宿主的 <c>LiteGame.*</c> PackageReference 必须写**精确版本字面量**
-    /// （L0 依赖扫描禁浮动/属性版本），且必须等于 <c>SharedPackages.props</c> 的
-    /// <c>&lt;LiteGameSharedVersion&gt;</c>——否则本地 feed 里的包与引用方版本号会悄悄分叉。
+    /// 共享包版本单源守卫：服务端宿主的 <c>LiteGame.*</c> PackageReference 必须写**精确版本字面量** （L0 依赖扫描禁浮动/属性版本）。
     /// </summary>
     public sealed class SharedPackageVersionPinTests
     {

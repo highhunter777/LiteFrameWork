@@ -10,15 +10,7 @@ using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// `RoomClient` 输入冗余与生命周期：
-    ///
-    /// 1. **冗余窗口是真历史且锚"未确认段"**：包内带 frame、frame−1、frame−2…，每帧**各自的内容**，
-    ///    下界锚在"最近快照帧 + 1"——服务器已广播确认的帧不再重复携带；丢一包仍能从后续包补帧。
-    /// 2. **开火位随帧保留**：Buttons 属于各自那一帧。
-    /// 3. **退订**：Dispose 后传输事件不再回调 RoomClient（用假传输验，不碰真实网络）。
-    /// 4. **不接管传输所有权**：Dispose 不释放注入的传输。
-    ///
-    /// 另含编码复用路径（`PacketWriter`）的正确性：与 `PacketCodec.Encode` 逐字节一致。
+    /// `RoomClient` 输入冗余与生命周期。
     /// </summary>
     public sealed class RoomClientInputTests
     {

@@ -9,13 +9,7 @@ using UnityEngine.Rendering;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// Android 平台工程设置四件套（《安卓平台适配》批一）：后端/架构、脚本宏、方向、
-    /// 包名与网络、图形 API 与纹理压缩、默认质量档、帧率档。
-    ///
-    /// 这些设置只存在于 `ProjectSettings/*.asset`，改错不会编译失败、也不会在桌面表现——
-    /// 只有真机首启/上架时才暴露。故把它们钉成可执行断言：设置漂移即 L2 红。
-    /// 脚本宏不在本件重复断言（唯一真源是 `scripts/gate/toolchain.json` 的 platformDefines，
-    /// 由 `toolchain.py check` 校验）。
+    /// Android 平台工程设置四件套（《安卓平台适配》批一）：后端/架构、脚本宏、方向、 包名与网络、图形 API 与纹理压缩、默认质量档、帧率档。
     /// </summary>
     public sealed class AndroidPlatformSettingsEditModeTests
     {

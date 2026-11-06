@@ -11,10 +11,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 转场编排层验收（《UI扩展能力设计》§1.5.7 七条）。
-    ///
-    /// 为什么能在 EditMode 跑：<see cref="UIForm"/> 的构造器是 public（只需一个 GameObject），
-    /// 且全部用例用 `UniTask.CompletedTask` 假策略 → `await` 内联完成，**全程 Tick(dt) 驱动、零 PlayerLoop 依赖**。
-    /// 状态机本身的迁移语义（last-wins / 帧末 Advance / 重入抛）由 L1 的 StageMachineTests 钉住，此处只验编排层。
     /// </summary>
     public sealed class UITransitionEditModeTests : UnityTestBase
     {
@@ -57,10 +53,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>
-        /// 造一个界面实例。**Canvas/CanvasGroup 必须在 GameObject 构造器里预建**——
-        /// EditMode 下 `AddComponent&lt;Canvas&gt;()` 后立刻访问 `renderMode` 会抛
-        /// MissingComponentException（native 组件未就绪），UIForm 的补齐分支会踩到。
-        /// 实例由 `UnityTestBase.Scope` 在 TearDown 统一销毁。
+        /// 造一个界面实例。
         /// </summary>
         private UIForm MakeForm(int id, bool fullScreen = false)
         {
@@ -363,9 +356,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(TransitionId.Idle, runner.Phase);
         }
 
-        // ---- ⑦ 真实策略（FadeSlideTransition）的复位与终态 ----
-        // 本仓 DOTween 的 Kill(true) **既不跳终值也不派发回调**，故真实策略的取消路径必须显式复位；
-        // 本组钉住复位与终态。
+        // ---- ⑦ 真实策略（FadeSlideTransition）的复位与终态 ---- 本仓 DOTween 的 Kill(true) **既不跳终值也不派发回调**，故真实策略的取消路径必须显式复位； 本组钉住复位与终态。
 
         [Test]
         [Category(TestCategory.Contract)]
@@ -419,9 +410,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 真实策略_页面被回收_壳主动取消并收尾_不白等超时()
         {
-            // 回归卡：本仓 DOTween 1.3.030 的 OnKill **不触发**（Kill(false) 与 KillOnDisable 均无回调），
-            // 页面在转场中被回收时任务会悬着——须由壳感知 Recycled/Disposed 主动取消，
-            // 立刻收尾、如实报 Cancelled、策略复位。
+            // 回归卡：本仓 DOTween 1.3.030 的 OnKill **不触发**（Kill(false) 与 KillOnDisable 均无回调）， 页面在转场中被回收时任务会悬着——须由壳感知 Recycled/Disposed 主动取消， 立刻收尾。
             var form = MakeForm(1);
             form.CanvasGroup.alpha = 0f;
 
@@ -434,8 +423,6 @@ namespace LiteGame.Tests.EditMode
             Assert.Less(form.CanvasGroup.alpha, 1f, "尚未到终值");
 
             // 页面被回收（缓存淘汰/低内存路径）：走真实迁移序列 Loading → Active → Closing → Recycled。
-            // internal 成员在 EditMode 程序集不可见，用反射直调——与既有用例调用 AnimatedImage 的
-            // OnEnable/Update 同一口径（EditMode 不派发引擎消息时的既定做法）。
             Invoke(form, "PrepareForShow");                    // Loading → Ready 前置
             typeof(UIForm).GetProperty("State")?.SetValue(form, UIFormState.Active);
             Invoke(form, "EnterClosing");

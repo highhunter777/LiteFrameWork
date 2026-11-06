@@ -6,8 +6,6 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 部署配置解析（纯函数面——命令行 → <see cref="ContentCdnConfig"/>）。
-    /// 语义锚点：**未配置 = 本地信封通道**（现行为不变）；非法值静默保持默认
-    /// （部署参数不是攻击面——验签兜底，但也不让它让启动失败）。
     /// </summary>
     public sealed class ContentDeployConfigEditModeTests
     {

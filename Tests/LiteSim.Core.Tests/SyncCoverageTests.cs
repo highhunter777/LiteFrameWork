@@ -8,17 +8,7 @@ using LiteSync.Snapshot;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// **同步覆盖度守卫**（第三档）：每个进同步的状态字段，都必须"三处一致"——
-    /// ① 有 <see cref="StateLayerAttribute"/> 表态；② 进了全量 checksum；③ 公共面还须进公共 checksum。
-    ///
-    /// **为什么用扰动法而不是代码生成器**：本工程真正的问题是"**漏改**"（改了字段却忘了同步
-    /// checksum / proto / 差分器），而不是"手写太慢"。生成器要设计清单 DSL、把 5 个文件改成生成物，
-    /// 工期与风险远超收益；而**扰动法直接验证结果**——把字段改成非默认值，看两套 checksum 是否按
-    /// 预期变化。它抓的错与生成器完全相同，成本低一个数量级。
-    ///
-    /// **实证价值**：<c>CorpseFrames</c> 曾"注释说公共面、wire 却没有"→ 尸体期内每帧假和解；
-    /// 第二档的守卫当场抓出 <c>StatusSlotData</c> 三字段漏标。本类是同一思路的系统化版本：
-    /// 覆盖**全部**参与同步的结构体与数组，而不只是 <see cref="EntitySlot"/>。
+    /// **同步覆盖度守卫**（第三档）：每个进同步的状态字段，都必须"三处一致"—— ① 有 <see cref="StateLayerAttribute"/> 表态；② 进了全量 checksum。
     /// </summary>
     public class SyncCoverageTests
     {
@@ -41,8 +31,6 @@ namespace LiteSim.Tests
         public void 生成物_覆盖全部标注字段_防漏跑生成器()
         {
             // 第三档的收口断言：每个标了 [StateLayer] 的字段都必须能经生成物影响 checksum。
-            // 若有人加了字段却忘记跑 gen-sync-code.ps1，这里当场红——
-            // 而不是等到线上出现"某字段分叉但和解不报"。
             AssertAllAnnotatedFieldsAffectFull(typeof(EntitySlot), "Entities");
             AssertAllAnnotatedFieldsAffectFull(typeof(WeaponRuntime), "Weapons");
             AssertAllAnnotatedFieldsAffectFull(typeof(ActionRuntime), "Actions");

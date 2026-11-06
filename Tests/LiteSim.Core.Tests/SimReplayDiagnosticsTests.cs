@@ -6,13 +6,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 确定性回放与分歧定位（<see cref="SimRunRecord"/> / <see cref="SimReplayRunner"/> /
-    /// <see cref="SimWorldDiff"/>）用例。
-    ///
-    /// **这套用例锁定的是"可调试性"本身**：分歧发生时能定到帧号、指到字段。
-    /// 此前这类问题只能靠断点跟长运算链（<c>SimMath</c> 里 1-ulp 那条实测即如此）。
-    /// 断言分三层：① 同输入必同结论；② 人为注入分歧能被定到**准确的帧**；
-    /// ③ 差异报告能指出**准确的字段**（不能只报"某处不同"）。
+    /// 确定性回放与分歧定位（<see cref="SimRunRecord"/> / <see cref="SimReplayRunner"/> / <see cref="SimWorldDiff"/>）用例。
     /// </summary>
     public class SimReplayDiagnosticsTests
     {

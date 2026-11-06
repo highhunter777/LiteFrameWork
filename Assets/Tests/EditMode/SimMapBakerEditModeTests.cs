@@ -7,12 +7,7 @@ using LiteGame.Modules.Map;
 namespace LiteGame.Tests.EditMode
 {
         /// <summary>
-        /// 地图烘焙器（<see cref="SimMapBaker"/>，《地图数据专项设计》§6 规则）的 L2 EditMode 覆盖：
-        /// 采集值语义（Box/Sphere/yaw90 交换）、失败面 fail-fast（Mesh/旋转/未知 surface/出生点数量/
-        /// **出生点落障碍内、离障碍小于身位半径与越界**（多图批/新图通用闸）/**边界标记缺省未赋值**、
-        /// 边界）、确定性（重复采集逐字节一致）、超上限截断＋丢弃报告。
-        /// 合成根喂正/负例，不动真实场景。
-        /// 实烘对账（Arena01/训练场产物 == 夹具快照 TestMaps.*）由 run_script 取证＋L1 夹具锚把守。
+        /// 地图烘焙器（<see cref="SimMapBaker"/>，《地图数据专项设计》§6 规则）的 L2 EditMode 覆盖： 采集值语义（Box/Sphere/yaw90 交换）。
         /// </summary>
         [Category(LiteTesting.TestCategory.Contract)]
         public sealed class SimMapBakerEditModeTests

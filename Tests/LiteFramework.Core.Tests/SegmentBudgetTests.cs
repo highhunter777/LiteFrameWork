@@ -7,15 +7,6 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// 装配段形态守卫：装配段必须"就地"住进所属单位目录（`Modules/&lt;单位&gt;/&lt;单位&gt;Segment.cs`）。
-    ///
-    /// 为什么需要：装配段曾在 `App/Bootstrap/Modules/`、功能域又在 `Modules/`——两处同名"模块"
-    /// 导致"模块内实现只与自己有关"无法成为可校验的不变量；`ContainerModule.Assemble` 曾经 152 行，
-    /// 是"装配根冒充功能模块"的直接证据。
-    ///
-    /// 判据：
-    /// - `App/Bootstrap/Modules/` 不存在；
-    /// - `Modules/**` 至少 18 个 `*Segment.cs`；
-    /// - `Modules/**` 下不得出现 `*Composition.cs` / `*Module.cs`（后缀唯一，见规范 09 §2）。
     /// </summary>
     public sealed class SegmentBudgetTests
     {

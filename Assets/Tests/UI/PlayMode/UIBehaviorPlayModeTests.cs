@@ -18,14 +18,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 行为族 PlayMode 用例（工具链设计 §6.2「行为」——执行面＝PlayMode 真实生命周期）：
-    /// ① **复用视觉残留**：池化复用前 PrepareForShow 复位面（CanvasGroup alpha/interactable/blocksRaycasts +
-    /// anchoredPosition 回基线）——脏化后关再开必须全复位；
-    /// ② **语言切换**：OnLocaleChanged 只重写静态文案（LTextKeyRef 绑定），不重跑 OnShow（《UI 逻辑 API 参考》
-    /// 「语言切换只重写 key 绑定，不重跑 OnShow、不重发业务请求」）；
-    /// ③ **模态射线穿透**：顶层登记模态打开期间，视觉下方页面 blocksRaycasts=false（UIModalStack「模态有真实
-    /// 射线遮罩」），模态关闭恢复——射线打不到底层。
-    /// 其余行为例（列表重绑/取消/转场输入锁）已有夹具（List/LuaPage/Navigation PlayModeTests），本组只补缺口。
+    /// 行为族 PlayMode 用例（工具链设计 §6.2「行为」——执行面＝PlayMode 真实生命周期）： ① **复用视觉残留**：池化复用前 PrepareForShow 复位面（CanvasGroup alpha/。）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class UIBehaviorPlayModeTests

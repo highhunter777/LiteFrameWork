@@ -10,8 +10,6 @@ namespace LiteGame.Tests
 {
     /// <summary>
     /// 根位移数据产物（rootmotion.bin）的 L1 装载契约：格式解析/校验/摘要与编码往返。
-    /// 数据单源是 .bin 字节（服务端不加载 AnimationClip），本用例在内存里构造最小产物，
-    /// 不依赖 Unity 侧烘焙产物文件。
     /// </summary>
     public class RootMotionDataTests
     {

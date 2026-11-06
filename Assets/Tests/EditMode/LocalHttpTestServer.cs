@@ -7,14 +7,7 @@ using LiteFramework.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// EditMode 测试用**本地 HTTP 监听**（真实传输载体，替"外部 CDN"）——
-    /// 走 UnityWebRequest 的 TCP→HTTP 全链路，不是替身：能抓到替身测试断言不了的
-    /// 传输层与 PlayerLoop 依赖问题。异步用例仍须 [UnityTest] + IEnumerator
-    /// （EditMode 无 PlayerLoop，SendWebRequest 的续延由 Test Framework 在帧间推进）。
-    ///
-    /// 路由按路径字典应答；**未注册路径一律 404**（与真实 CDN"无该资源"同语义）。
-    /// <see cref="RouteFlaky"/> 支持"前 N 次请求回 500 后成功"——重试/换源语义的故障注入锚点；
-    /// <see cref="HitCount"/> 供断言"实际尝试了几次"（重试上限/确定性失败即止的验证依据）。
+    /// EditMode 测试用**本地 HTTP 监听**（真实传输载体，替"外部 CDN"）—— 走 UnityWebRequest 的 TCP→HTTP 全链路。
     /// </summary>
     public sealed class LocalHttpTestServer : IDisposable
     {

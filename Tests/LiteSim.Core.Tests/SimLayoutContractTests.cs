@@ -6,10 +6,7 @@ using LiteSync.Snapshot;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 第一批布局契约（《M8 实施指导》§2.1 验收 + §3"布局契约"组）：
-    /// 用反射把"世界状态无引用类型字段"钉死——任何人往 SimWorldState 里加 List/class 成员，
-    /// M9 的快照就会静默共享同一块内存（§7 风险 1），此测试当场暴露。
-    /// 详尽的槽位/Id/确定性用例属第二批（§2.6），此处只放布局 + 常量对账 + 分配闭环冒烟。
+    /// 第一批布局契约（《M8 实施指导》§2.1 验收 + §3"布局契约"组）： 用反射把"世界状态无引用类型字段"钉死——任何人往 SimWorldState 里加 List/class 成员。
     /// </summary>
     public class SimLayoutContractTests
     {
@@ -52,10 +49,6 @@ namespace LiteSim.Tests
         public void 开火窗_公共面_全量与公共口径都必变()
         {
             // 开火驻留窗是**改写 Vel 的判定输入**（瞄准 ∨ 开火态 → 限速）——进全量 checksum。
-            // 开火窗**公共化**（fire_stance_frames=19）——客户端预测/回滚重放必须能从快照重建窗，
-            // 缺失 ⇒ 窗内限速/朝向分叉 ⇒ 逐快照纠偏＝橡皮筋（"不开火也移不动"）。
-            // ⇒ 公共口径**必含**：窗变 ⇒ 公共 checksum 必变（差分基线/和解锚点同步覆盖——防漏发静默分叉）。
-            // 离场转向标记（FaceExitTurning）保持**私有面**——可由窗+输入在重放中重推导，不占协议字段号。
             var world = new SimWorldState { RngState = 1UL };
             world.Spawn(new EntitySlot { Hp = 100 }, out int slot);
 
@@ -86,9 +79,7 @@ namespace LiteSim.Tests
             Assert.True(public1 == SimChecksum.ComputePublicChecksum(world),
                 "离场转向标记不进公共口径（可由窗+输入重推导——不占协议字段号）");
 
-            // 半自动击发沿（SemiFireArmed）：与离场转向标记同款 Internal 层——进全量口径（重放对账
-            // 逐位一致：armed 由输入历史派生、参与 TryConsumeShot 判定），不进公共口径（客户端
-            // 重建不了他人扳机态，进比对口径只会制造永假和解）。
+            // 半自动击发沿（SemiFireArmed）：与离场转向标记同款 Internal 层——进全量口径（重放对账 逐位一致：armed 由输入历史派生、参与 TryConsumeShot 判定），不进公共口径（客户端 重建不了他人扳机态，进比对口径只会制造永假和解）。
             uint full2 = SimChecksum.ComputeStateChecksum(world);
             uint public2 = SimChecksum.ComputePublicChecksum(world);
 

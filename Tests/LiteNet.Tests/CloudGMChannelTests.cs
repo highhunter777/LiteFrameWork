@@ -9,10 +9,7 @@ using LiteSim.Tests;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 云端运维（GM）通道（《云端GM通道专项设计》§7 验收）：三件事——
-    /// ① **前置拒绝**（房间/席位不存在 ⇒ 不入队）；② **队列语义**（HTTP 线程只入队，权威循环才执行）；
-    /// ③ **只复用既有房间命令**（本用例不新增命令种类 ⇒ BuildHash 不变 ⇒ 客户端不需重打包）。
-    /// 端点本身的 HTTP/密钥面在云上实测（本机绑端口受权限影响，不进 L1）。
+    /// 云端运维（GM）通道（《云端GM通道专项设计》§7 验收）：三件事—— ① **前置拒绝**（房间/席位不存在 ⇒ 不入队）；② **队列语义**（HTTP 线程只入队，权威循环才执行）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class CloudGMChannelTests

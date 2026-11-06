@@ -8,11 +8,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 统一取消链用例（C1-⑦：《商业级通用客户端框架总设计》§4 原则 4"所有跨帧异步必须绑定 CancellationToken"
-    /// + §6.1 根取消源 + §C1 退出条件"启动任一阶段取消或失败都能回到确定状态"）：
-    /// - 流程阶段 CTS 链接宿主根令牌：根取消级联在途阶段；离场取消语义不变；根已取消时新进阶段立即观察到。
-    /// - ClientHost 关闭先行取消根令牌（模块关闭前）；ShutdownAsync 与 InitializeAsync 并发时初始化中止并回滚。
-    /// 全部纯逻辑（fake 模块 + UniTaskCompletionSource 定向续延），无真实时钟/Sleep。
+    /// 统一取消链用例（C1-⑦：《商业级通用客户端框架总设计》§4 原则 4"所有跨帧异步必须绑定 CancellationToken" + §6.1 根取消源 + §C1 退出条件"启动任一阶段取消或失败都能回到确定状态"）。
     /// </summary>
     public sealed class ProcedureCancelTests
     {
@@ -107,9 +103,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 阶段_被外部Request打断_阶段令牌取消而根令牌未取消_照卸判据可辨()
         {
-            // 判据前提（收尾"卸不卸场景"分流用 RootToken 而非本阶段令牌）：本阶段令牌被
-            // OnLeave 取消有两条来源——① 宿主关闭（根级联）② 外部 Request 打断（主动离场同形）。
-            // 后者不是关闭、容器仍在运行 ⇒ 场景必须照卸；只有①该跳过。两令牌的取值把二者分开。
+            // 判据前提（收尾"卸不卸场景"分流用 RootToken 而非本阶段令牌）：本阶段令牌被 OnLeave 取消有两条来源——① 宿主关闭（根级联）② 外部 Request 打断（主动离场同形）。
             var rootCts = new CancellationTokenSource();
             var a = new RecordingStage(rootCts.Token);
             var b = new RecordingStage(rootCts.Token);

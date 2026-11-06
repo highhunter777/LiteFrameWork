@@ -10,11 +10,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// LTextLabel 打字机（U2-⑤d；《UI框架总设计》§9"打字机为表现行为，关闭/语言变化取消旧任务；
-    /// 不改变业务数据"）。
-    ///
-    /// 全部用外部 Tick 驱动（AutoTick=false——单驱动者纪律），步进确定性无帧依赖；
-    /// 富文本用标签配平断言（中间态不得出现半截标签）。
+    /// LTextLabel 打字机（U2-⑤d；《UI框架总设计》§9"打字机为表现行为，关闭/语言变化取消旧任务； 不改变业务数据"）。
     /// </summary>
     public sealed class LTextTypewriterEditModeTests : UnityTestBase
     {

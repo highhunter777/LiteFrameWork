@@ -11,13 +11,6 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// 同步层拆分与判定参数化（批 7 · LiteSim 参数装载）的红测：UT-04~UT-12。
-    ///
-    /// **基线可编译**：对尚不存在的 <c>CombatGeometry</c> 一律走反射/类型名比较，不写强类型引用；
-    /// 对尚未落地的表接入/静态读清理走**文件文本断言**。因此当前基线的失败形态是
-    /// <see cref="Xunit.Sdk.XunitException"/>（断言失败），不是编译错误。
-    ///
-    /// 规格：<c>.workflow/active/sync-and-sim-params/test-plan.md</c>（UT 编号一一对应）。
-    /// 施工后同一批用例应转绿；不得以删用例或弱断言换绿。
     /// </summary>
     public sealed class SyncAndSimGeometryContractTests
     {

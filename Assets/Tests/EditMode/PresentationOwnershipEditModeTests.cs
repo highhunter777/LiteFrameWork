@@ -16,12 +16,7 @@ using LiteFramework;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 表现域所有权与时钟用例：
-    /// ① PrefabLeaseCache——共享租约、ReleaseAll 归零、释放后拒绝（UI-05 同源问题的表现域落点）；
-    /// ② AudioService StopAll/Shutdown——总线全局停止与释放面（§6.2/§12.3 预算基线面）；
-    /// ③ UIAnimationClock/DotweenUIClockDriver——DOTween Manual 轨按 UIClock 派发（暂停即停）+ 轨隔离，
-    ///    AnimatedImage 走 UIClock 步进（《动画模块专项设计》§1 裁决"SetUpdate(true) ≠ UIClock"）。
-    /// 时序：UTCS 定向续延 + 手动 Tick；不依赖 PlayerLoop/YooAsset。
+    /// 表现域所有权与时钟用例： ① PrefabLeaseCache——共享租约、ReleaseAll 归零、释放后拒绝（UI-05 同源问题的表现域落点）。
     /// </summary>
     public sealed class PresentationOwnershipEditModeTests : UnityTestBase
     {
@@ -157,9 +152,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>
-        /// 轨隔离：<c>ManualUpdate</c> 只推进 <see cref="UpdateType.Manual"/> 轨——
-        /// Normal/Late/Fixed 轨的既有 Tween 不受影响。这是 UIClock 接管"只动 UI 轨"的前提；
-        /// 若此用例失败，说明 DOTween 版本语义变化，UIAnimationClock 的接线口径须重新评估。
+        /// 轨隔离：<c>ManualUpdate</c> 只推进 <see cref="UpdateType.Manual"/> 轨—— Normal/Late/Fixed 轨的既有 Tween 不受影响。
         /// </summary>
         [Test]
         public void 动效时钟_Manual轨只推进Manual_引擎轨不受影响()

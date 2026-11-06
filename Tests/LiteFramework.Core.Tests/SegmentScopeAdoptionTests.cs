@@ -8,10 +8,6 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// M1 收尾债守卫：模块资源必须登记进 <c>SegmentContext.Scope</c>（路线图 §4.3）。
-    ///
-    /// 这些模块持有自己创建的可释放资源（设备源/命令注册/主题租约/表现服务/Lua 宿主）——
-    /// 未登记 scope 时，初始化中途失败会漏放（Host 只对成功模块调用 ShutdownAsync）。
-    /// 守卫按文件检查"装配期有 Scope.Register"：删除登记或新增同类模块漏登记即红。
     /// </summary>
     public sealed class SegmentScopeAdoptionTests
     {

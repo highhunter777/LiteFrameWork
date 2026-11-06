@@ -4,10 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 瞄准态口径验收（《角色状态与动作专项设计》§7 的 **Sim 侧半边**）：
-    /// **限速**（ADS 期间移动上限 = 走路档）、**朝向派生**（TPS 默认：AimPoint 有效即朝准星；
-    /// 无效才回退移动方向；两者都没有则保持）、**标志位**（<see cref="EntityFlags"/> 每帧从输入位覆写）、
-    /// **预测保留**（连续意图位在预测帧存活——"本地举枪不闪断"的 Sim 侧保证）。纯规则、零引擎。
+    /// 瞄准态口径验收（《角色状态与动作专项设计》§7 的 **Sim 侧半边**）： **限速**（ADS 期间移动上限 = 走路档）、**朝向派生**（TPS 默认：AimPoint 有效即朝准星； 无效才回退移动方向。）。
     /// </summary>
     public sealed class AimStateTests
     {

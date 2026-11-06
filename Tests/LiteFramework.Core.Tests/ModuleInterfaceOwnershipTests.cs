@@ -9,14 +9,6 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// 接口自持守卫：Core 套件与 Modules 域的 `public interface` 必须住所属模块的 `Abstractions/`。
-    ///
-    /// 为什么需要：接口与实现同目录会让"模块只经端口交互"退化成文件约定——实现件被谁直接引用
-    /// 无法从路径看出，适配器与业务件也会顺手把契约留在自己身边。先把端口位置钉死，域矩阵与
-    /// asmdef 允许表才有稳定的引用目标。
-    ///
-    /// **例外：实现件接缝**（规范 04 §6.8 R-D）。签名里直接引用实现类型（如 `BattleContext`、
-    /// `MatchSession`）的接口不是端口——它进契约包会让契约反向依赖实现，故住实现件内并在此登记。
-    /// 判据：被登记的接口必须**只在实现件之间**使用；一旦被别的域消费，就必须改签名后搬回 `Abstractions/`。
     /// </summary>
     public sealed class ModuleInterfaceOwnershipTests
     {
