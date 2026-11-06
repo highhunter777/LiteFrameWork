@@ -5,7 +5,7 @@
 > 日期：2026-10-30
 > 定位：回答"一局还剩多少时间"这件事如何从权威逻辑帧轴变成 `Hud_Battle` 上的一行 `mm:ss`——数据语义、真值源、显示状态机、刷新纪律、prefab 形态与验收判据。
 > 不做的事：不定义赛制（时长/击杀上限/复活与保护期归 `MatchRules` 与房间模板配置）；不做开局倒计时、等待期倒计时、加时赛；不做低时音效/脉冲动效（归 §12 扩展）；不改协议与公共快照字段（`MatchStateDelta` 既有 `timer` 承载）；不决定字体与配色的美术定稿（制作侧/TA 定档，本文只给约束与语义档位）。
-> 冲突裁决：数据语义以 `Packages/com.litegame.sim/Scripts/Pipeline/SimMatchRuntime.cs`（`MatchStateData`）、`Packages/com.litegame.sim/Systems/MatchSystem.cs` 为准；HUD 装配与刷新纪律以 [UI 系统总设计](UI系统总设计.md#ch-hud) §8 与 `Assets/LiteGame/Modules/Presentation/Hud/**` 现行代码为准；制作硬规则以[规范 05 UI 制作](../../../规范/05-UI制作.md)为准。
+> 冲突裁决：数据语义以 `Packages/com.litegame.sim/Scripts/Pipeline/MatchStateData.cs`、`Packages/com.litegame.sim/Systems/MatchSystem.cs` 为准；HUD 装配与刷新纪律以 [UI 系统总设计](UI系统总设计.md#ch-hud) §8 与 `Assets/LiteGame/Modules/Presentation/Hud/**` 现行代码为准；制作硬规则以[规范 05 UI 制作](../../../规范/05-UI制作.md)为准。
 > 关联：[UI 系统总设计](UI系统总设计.md) · [UI 命名与控件词表参考](UI命名与控件词表参考.md) · [规范 05 UI 制作](../../../规范/05-UI制作.md) · [说明 05 Sim 与战斗判定](../../../说明/05-Sim与战斗判定.md) · [说明 07 联机全栈参考](../../../说明/07-联机全栈参考.md) · 施工状态归 `Docs/施工进度/`
 
 ## 1. 需求与口径
