@@ -10,6 +10,8 @@ namespace LiteFramework
     /// </summary>
     public sealed class ServiceContainer : IServiceContainer, IModuleStats, IDisposable
     {
+        // ---- 状态与构造 ----。
+
         private sealed class Entry
         {
             public Type Interface;
@@ -23,23 +25,39 @@ namespace LiteFramework
         }
 
         private readonly Dictionary<Type, Entry> _entries = new();
+
         private readonly List<Entry> _order = new();
+
         private IReadOnlyList<ITickable> _tickables = Array.Empty<ITickable>();
+
         private IReadOnlyList<IModuleStats> _stats = Array.Empty<IModuleStats>();
+
         private readonly HashSet<Type> _building = new();
+
         private readonly List<Type> _chain = new();
+
         private readonly List<IDisposable> _owned = new();
+
         private readonly ClientScope _ownershipScope;
+
         private readonly ServiceContainer _parent;
+
         private readonly string _scopeName;
+
         private Type[] _tickOrder;
+
         private bool _sealed;
+
         private bool _disposed;
 
         public bool IsSealed => _sealed;
+
         public bool IsDisposed => _disposed;
+
         public IReadOnlyList<ITickable> Tickables => _tickables;
+
         public IReadOnlyList<IModuleStats> Stats => _stats;
+
         public IReadOnlyList<Exception> DisposeFailures => _ownershipScope.DisposeFailures;
 
         /// <summary>创建 Root 容器；子容器只能由 CreateScope 创建，向父域读取 Singleton。</summary>
@@ -57,6 +75,8 @@ namespace LiteFramework
             _ownershipScope = parent._ownershipScope.CreateChild(_scopeName);
             parent._ownershipScope.Register(this);
         }
+
+        // ---- 日常 API：注册 / 解析 / 作用域 ----。
 
         public void Register<TInterface, TImpl>(ServiceLifetime lifetime = ServiceLifetime.Singleton) where TImpl : TInterface
         {
@@ -108,25 +128,6 @@ namespace LiteFramework
             return new ServiceContainer(this, name);
         }
 
-        private void ValidateLifetime(ServiceLifetime lifetime)
-        {
-            if (lifetime != ServiceLifetime.Singleton && lifetime != ServiceLifetime.Scoped && lifetime != ServiceLifetime.Transient)
-                throw new ArgumentOutOfRangeException(nameof(lifetime));
-            if (_parent == null && lifetime == ServiceLifetime.Scoped)
-                throw new InvalidOperationException("Root 容器不能注册 Scoped 服务——请先 CreateScope(Account/Match)");
-        }
-
-        private void Add(Entry entry)
-        {
-            ThrowIfRegistrationClosed();
-            if (_entries.ContainsKey(entry.Interface))
-                throw new InvalidOperationException($"重复注册:{entry.Interface.Name}——同类型只能有一个装配来源");
-            if (_parent != null && _parent.CanResolve(entry.Interface))
-                throw new InvalidOperationException($"父域已注册:{entry.Interface.Name}——子域不得覆盖 Root 服务");
-            _entries.Add(entry.Interface, entry);
-            _order.Add(entry);
-        }
-
         public T Resolve<T>() => (T)Resolve(typeof(T));
 
         public bool TryResolve<T>(out T service)
@@ -152,79 +153,54 @@ namespace LiteFramework
             return false;
         }
 
-        private object Resolve(Type type)
+        // ---- 装配收口：帧驱动 / 密封 / 释放 / 统计 ----。
+
+        public void SetTickOrder(params Type[] serviceTypes)
         {
-            ThrowIfDisposed();
-            EnsureFactoryDependency(type);
-            if (!_entries.TryGetValue(type, out var entry))
-            {
-                if (_parent != null) return _parent.Resolve(type);
-                throw new InvalidOperationException($"未注册的服务:{type.Name}——请在客户端装配模块显式注册");
-            }
-            EnsureLifetimeCapture(type, entry);
-            if (entry.Lifetime != ServiceLifetime.Transient && entry.Constructed) return entry.Instance;
-            if (!_building.Add(type))
-                throw new InvalidOperationException($"循环依赖: {FormatChain(_chain, type)}");
-            _chain.Add(type);
-            try
-            {
-                object instance = entry.Factory != null ? entry.Factory(this) : Construct(entry);
-                if (instance == null) throw new InvalidOperationException($"工厂返回空服务:{type.Name}");
-                // 先登记所有权：驱动契约拒绝新对象时，失败回滚仍能释放它。
-                Own(instance);
-                ThrowIfDisposed();
-                EnsureTickPlanned(entry, instance);
-                if (entry.Lifetime != ServiceLifetime.Transient)
-                {
-                    entry.Instance = instance;
-                    entry.Constructed = true;
-                }
-                RebuildDiscovery();
-                return instance;
-            }
-            finally
-            {
-                _chain.RemoveAt(_chain.Count - 1);
-                _building.Remove(type);
-            }
+            ThrowIfRegistrationClosed();
+            if (serviceTypes == null) throw new ArgumentNullException(nameof(serviceTypes));
+            var copy = (Type[])serviceTypes.Clone();
+            ValidateTickOrder(copy);
+            _tickOrder = copy;
+            RebuildDiscovery();
         }
 
-        private void EnsureFactoryDependency(Type type)
+        public void Seal()
         {
-            if (_chain.Count > 0)
-            {
-                var caller = _entries[_chain[_chain.Count - 1]];
-                if (caller.Factory != null && Array.IndexOf(caller.Dependencies, type) < 0)
-                    throw new InvalidOperationException($"工厂依赖未声明:{caller.Interface.Name} → {type.Name}");
-            }
+            ThrowIfRegistrationClosed();
+            Validate();
+            _sealed = true;
         }
 
-        private void EnsureLifetimeCapture(Type type, Entry dependency)
+        public void Dispose()
         {
-            if (_chain.Count == 0) return;
-            Entry caller = _entries[_chain[_chain.Count - 1]];
-            if (caller.Lifetime == ServiceLifetime.Singleton && dependency.Lifetime == ServiceLifetime.Scoped)
-                throw new InvalidOperationException($"生命周期越域捕获:{caller.Interface.Name}(Singleton) → {type.Name}(Scoped)——短生命周期不能进入长生命周期");
+            if (_disposed) return;
+            _disposed = true;
+            _ownershipScope.Dispose();
+            _owned.Clear();
+            _tickables = Array.Empty<ITickable>();
+            _stats = Array.Empty<IModuleStats>();
+            _entries.Clear();
+            _order.Clear();
+            _tickOrder = null;
         }
 
-        private bool CanResolve(Type type)
+        public string StatsName => "DI";
+
+        public void Snapshot(Dictionary<string, string> into)
         {
-            return _entries.ContainsKey(type) || (_parent != null && _parent.CanResolve(type));
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
+            int built = 0;
+            foreach (var entry in _order) if (entry.Constructed) built++;
+            into["注册数"] = _entries.Count.ToString();
+            into["已构造"] = built.ToString();
+            into["Tickable"] = _tickables.Count.ToString();
+            into["已密封"] = _sealed ? "是" : "否";
+            into["已释放"] = _disposed ? "是" : "否";
+            into["释放异常"] = DisposeFailures.Count.ToString();
         }
 
-        private object Construct(Entry entry)
-        {
-            PrepareConstructor(entry);
-            var parameters = entry.Ctor.GetParameters();
-            var args = new object[parameters.Length];
-            for (int i = 0; i < parameters.Length; i++) args[i] = Resolve(parameters[i].ParameterType);
-            try { return entry.Ctor.Invoke(args); }
-            catch (TargetInvocationException error)
-            {
-                var inner = error.InnerException ?? error;
-                throw new InvalidOperationException($"构造抛异常:{entry.Impl.Name}({inner.Message})", inner);
-            }
-        }
+        // ---- 校验与不变量（装配期） ----。
 
         /// <summary>只遍历声明图；构造和工厂均不执行。</summary>
         public void Validate()
@@ -268,45 +244,12 @@ namespace LiteFramework
             complete.Add(type);
         }
 
-        private bool TryFindEntry(Type type, out Entry entry)
+        private void ValidateLifetime(ServiceLifetime lifetime)
         {
-            if (_entries.TryGetValue(type, out entry)) return true;
-            if (_parent != null) return _parent.TryFindEntry(type, out entry);
-            entry = null;
-            return false;
-        }
-
-        private static void PrepareConstructor(Entry entry)
-        {
-            if (entry.Ctor != null) return;
-            Type impl = entry.Impl;
-            if (impl.IsAbstract || impl.IsInterface)
-                throw new InvalidOperationException($"实现类型不能构造:{impl.Name}");
-            ConstructorInfo best = null;
-            int max = -1;
-            bool ambiguous = false;
-            foreach (var ctor in impl.GetConstructors(BindingFlags.Instance | BindingFlags.Public))
-            {
-                int count = ctor.GetParameters().Length;
-                if (count > max) { max = count; best = ctor; ambiguous = false; }
-                else if (count == max) ambiguous = true;
-            }
-            if (best == null) throw new InvalidOperationException($"无公共构造函数:{impl.Name}");
-            if (ambiguous) throw new InvalidOperationException($"构造函数歧义:{impl.Name} 有多个 {max} 参公共构造");
-            entry.Ctor = best;
-            var parameters = best.GetParameters();
-            entry.Dependencies = new Type[parameters.Length];
-            for (int i = 0; i < parameters.Length; i++) entry.Dependencies[i] = parameters[i].ParameterType;
-        }
-
-        public void SetTickOrder(params Type[] serviceTypes)
-        {
-            ThrowIfRegistrationClosed();
-            if (serviceTypes == null) throw new ArgumentNullException(nameof(serviceTypes));
-            var copy = (Type[])serviceTypes.Clone();
-            ValidateTickOrder(copy);
-            _tickOrder = copy;
-            RebuildDiscovery();
+            if (lifetime != ServiceLifetime.Singleton && lifetime != ServiceLifetime.Scoped && lifetime != ServiceLifetime.Transient)
+                throw new ArgumentOutOfRangeException(nameof(lifetime));
+            if (_parent == null && lifetime == ServiceLifetime.Scoped)
+                throw new InvalidOperationException("Root 容器不能注册 Scoped 服务——请先 CreateScope(Account/Match)");
         }
 
         private void ValidateTickOrder(Type[] plan)
@@ -354,6 +297,142 @@ namespace LiteFramework
                 throw new InvalidOperationException($"驱动服务未编排:{entry.Interface.Name}");
         }
 
+        private void EnsureFactoryDependency(Type type)
+        {
+            if (_chain.Count > 0)
+            {
+                var caller = _entries[_chain[_chain.Count - 1]];
+                if (caller.Factory != null && Array.IndexOf(caller.Dependencies, type) < 0)
+                    throw new InvalidOperationException($"工厂依赖未声明:{caller.Interface.Name} → {type.Name}");
+            }
+        }
+
+        private void EnsureLifetimeCapture(Type type, Entry dependency)
+        {
+            if (_chain.Count == 0) return;
+            Entry caller = _entries[_chain[_chain.Count - 1]];
+            if (caller.Lifetime == ServiceLifetime.Singleton && dependency.Lifetime == ServiceLifetime.Scoped)
+                throw new InvalidOperationException($"生命周期越域捕获:{caller.Interface.Name}(Singleton) → {type.Name}(Scoped)——短生命周期不能进入长生命周期");
+        }
+
+        private void ThrowIfRegistrationClosed()
+        {
+            ThrowIfDisposed();
+            if (_sealed) throw new InvalidOperationException("容器已密封——装配完成后一切注册均拒绝");
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(ServiceContainer));
+        }
+
+        private static string FormatChain(List<Type> chain, Type requested)
+        {
+            var text = new StringBuilder();
+            foreach (Type type in chain) text.Append(type.Name).Append(" → ");
+            return text.Append(requested.Name).ToString();
+        }
+
+        private bool TryFindEntry(Type type, out Entry entry)
+        {
+            if (_entries.TryGetValue(type, out entry)) return true;
+            if (_parent != null) return _parent.TryFindEntry(type, out entry);
+            entry = null;
+            return false;
+        }
+
+        // ---- 内部实现：解析 / 构造 / 发现 / 所有权 ----。
+
+        private object Resolve(Type type)
+        {
+            ThrowIfDisposed();
+            EnsureFactoryDependency(type);
+            if (!_entries.TryGetValue(type, out var entry))
+            {
+                if (_parent != null) return _parent.Resolve(type);
+                throw new InvalidOperationException($"未注册的服务:{type.Name}——请在客户端装配模块显式注册");
+            }
+            EnsureLifetimeCapture(type, entry);
+            if (entry.Lifetime != ServiceLifetime.Transient && entry.Constructed) return entry.Instance;
+            if (!_building.Add(type))
+                throw new InvalidOperationException($"循环依赖: {FormatChain(_chain, type)}");
+            _chain.Add(type);
+            try
+            {
+                object instance = entry.Factory != null ? entry.Factory(this) : Construct(entry);
+                if (instance == null) throw new InvalidOperationException($"工厂返回空服务:{type.Name}");
+                // 先登记所有权：驱动契约拒绝新对象时，失败回滚仍能释放它。
+                Own(instance);
+                ThrowIfDisposed();
+                EnsureTickPlanned(entry, instance);
+                if (entry.Lifetime != ServiceLifetime.Transient)
+                {
+                    entry.Instance = instance;
+                    entry.Constructed = true;
+                }
+                RebuildDiscovery();
+                return instance;
+            }
+            finally
+            {
+                _chain.RemoveAt(_chain.Count - 1);
+                _building.Remove(type);
+            }
+        }
+
+        private object Construct(Entry entry)
+        {
+            PrepareConstructor(entry);
+            var parameters = entry.Ctor.GetParameters();
+            var args = new object[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++) args[i] = Resolve(parameters[i].ParameterType);
+            try { return entry.Ctor.Invoke(args); }
+            catch (TargetInvocationException error)
+            {
+                var inner = error.InnerException ?? error;
+                throw new InvalidOperationException($"构造抛异常:{entry.Impl.Name}({inner.Message})", inner);
+            }
+        }
+
+        private static void PrepareConstructor(Entry entry)
+        {
+            if (entry.Ctor != null) return;
+            Type impl = entry.Impl;
+            if (impl.IsAbstract || impl.IsInterface)
+                throw new InvalidOperationException($"实现类型不能构造:{impl.Name}");
+            ConstructorInfo best = null;
+            int max = -1;
+            bool ambiguous = false;
+            foreach (var ctor in impl.GetConstructors(BindingFlags.Instance | BindingFlags.Public))
+            {
+                int count = ctor.GetParameters().Length;
+                if (count > max) { max = count; best = ctor; ambiguous = false; }
+                else if (count == max) ambiguous = true;
+            }
+            if (best == null) throw new InvalidOperationException($"无公共构造函数:{impl.Name}");
+            if (ambiguous) throw new InvalidOperationException($"构造函数歧义:{impl.Name} 有多个 {max} 参公共构造");
+            entry.Ctor = best;
+            var parameters = best.GetParameters();
+            entry.Dependencies = new Type[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++) entry.Dependencies[i] = parameters[i].ParameterType;
+        }
+
+        private bool CanResolve(Type type)
+        {
+            return _entries.ContainsKey(type) || (_parent != null && _parent.CanResolve(type));
+        }
+
+        private void Add(Entry entry)
+        {
+            ThrowIfRegistrationClosed();
+            if (_entries.ContainsKey(entry.Interface))
+                throw new InvalidOperationException($"重复注册:{entry.Interface.Name}——同类型只能有一个装配来源");
+            if (_parent != null && _parent.CanResolve(entry.Interface))
+                throw new InvalidOperationException($"父域已注册:{entry.Interface.Name}——子域不得覆盖 Root 服务");
+            _entries.Add(entry.Interface, entry);
+            _order.Add(entry);
+        }
+
         private void RebuildDiscovery()
         {
             var tickables = new List<ITickable>();
@@ -383,58 +462,6 @@ namespace LiteFramework
             foreach (T current in list) if (ReferenceEquals(current, instance)) return false;
             list.Add(instance);
             return true;
-        }
-
-        public void Seal()
-        {
-            ThrowIfRegistrationClosed();
-            Validate();
-            _sealed = true;
-        }
-
-        private void ThrowIfRegistrationClosed()
-        {
-            ThrowIfDisposed();
-            if (_sealed) throw new InvalidOperationException("容器已密封——装配完成后一切注册均拒绝");
-        }
-
-        private void ThrowIfDisposed()
-        {
-            if (_disposed) throw new ObjectDisposedException(nameof(ServiceContainer));
-        }
-
-        private static string FormatChain(List<Type> chain, Type requested)
-        {
-            var text = new StringBuilder();
-            foreach (Type type in chain) text.Append(type.Name).Append(" → ");
-            return text.Append(requested.Name).ToString();
-        }
-
-        public void Dispose()
-        {
-            if (_disposed) return;
-            _disposed = true;
-            _ownershipScope.Dispose();
-            _owned.Clear();
-            _tickables = Array.Empty<ITickable>();
-            _stats = Array.Empty<IModuleStats>();
-            _entries.Clear();
-            _order.Clear();
-            _tickOrder = null;
-        }
-
-        public string StatsName => "DI";
-        public void Snapshot(Dictionary<string, string> into)
-        {
-            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
-            int built = 0;
-            foreach (var entry in _order) if (entry.Constructed) built++;
-            into["注册数"] = _entries.Count.ToString();
-            into["已构造"] = built.ToString();
-            into["Tickable"] = _tickables.Count.ToString();
-            into["已密封"] = _sealed ? "是" : "否";
-            into["已释放"] = _disposed ? "是" : "否";
-            into["释放异常"] = DisposeFailures.Count.ToString();
         }
     }
 }
