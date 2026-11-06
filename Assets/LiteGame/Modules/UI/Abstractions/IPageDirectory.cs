@@ -4,11 +4,7 @@ using LiteFramework.UI;
 namespace LiteGame.Modules.UI
 {
     /// <summary>
-    /// 页面目录端口（UI 域产出，实现＝生成物 <see cref="UIPageCatalog"/>）：壳契约
-    /// <see cref="IPageCatalog"/>（按 id 取件）＋ 目录查询面（全量行 / lua_path 反查）。
-    ///
-    /// 为什么需要：流程段要"按 lua_path 寻址页面"与"取全部页面定义"，但页面目录本体归 UI 域。
-    /// 流程段与 Lua 桥只经本口取目录事实，不直取生成物类型——目录换生成形态时不改消费方。
+    /// 页面目录端口（UI 域产出，实现＝生成物 UIPageCatalog）：壳契约 IPageCatalog（按 id 取件）＋ 目录查询面（全量行 / lua_path 反查）。
     /// </summary>
     public interface IPageDirectory : IPageCatalog
     {

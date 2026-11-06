@@ -109,7 +109,7 @@ namespace LiteGame
         public void Inject(IWorldClock world, IUIClock ui, EventBus events, CommandCenter commands)
         {
             _world = world; _ui = ui; _events = events; _commands = commands;
-            // GM 示范命令（§6/批2 消费端闭环）：发现面据此列命令，不硬编码清单；重注入先注销
+            // GM 示范命令（§6/批2 消费端闭环）：发现面据此列命令，不硬编码清单；重注入先注销。
             _gmCommandRegistration?.Dispose();
             if (_commands != null)
                 _gmCommandRegistration = _commands.Register(new GMResetClockHandler(this),

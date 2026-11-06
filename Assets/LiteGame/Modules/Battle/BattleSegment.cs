@@ -12,13 +12,8 @@ using LiteGame.Modules.Settings;
 
 namespace LiteGame
 {
-    /// <summary>⑫ 战斗域装配段：战斗自持的表现内核（租约缓存/实体/声音/世界 VFX）。
-    /// 加载口统一绑 <see cref="PrefabLeaseCache"/>（租约持有，避免悬空引用）；Shutdown 释放面
-    /// （音频全局停止 + 租约归零）。
-    ///
-    /// **相机不在这里**：主相机与相机服务由 ② <see cref="CameraSegment"/> 产出
-    /// （`CinemachineCameraService` 属 `Adapters.Unity`，该程序集反向引用本域，本段不认实现）。
-    /// 表现内核只被战斗与设置装配消费，归战斗域自持——它不再住共享的"表现层"。
+    /// <summary>
+    /// ⑫ 战斗域装配段：战斗自持的表现内核（租约缓存/实体/声音/世界 VFX）。
     /// </summary>
     public sealed class BattleSegment : IClientSegment, IClientSegmentGraph
     {
@@ -69,7 +64,7 @@ namespace LiteGame
             context.Put(_vfxService);
             context.Put<IVfxService>(_vfxService);               // 接口键（HUD/消费方只经端口取；与具体键同实例）
             context.Put<IBattleCommands>(new BattleCommands(context.Require<CommandCenter>()));   // 流程→战斗的命令端口
-            // 根位移摘要登记口：装配期单实例；对局装载 rootmotion.bin 成功时写入摘要（身份面经端口读）
+            // 根位移摘要登记口：装配期单实例；对局装载 rootmotion.bin 成功时写入摘要（身份面经端口读）。
             var rootMotionDigest = new RootMotionDigestHolder();
             context.Put(rootMotionDigest);
             context.Put<IRootMotionContentDigest>(rootMotionDigest);
@@ -88,9 +83,9 @@ namespace LiteGame
             context.Put<IMatchSessionFactory>(matchSessions);
             context.Put<IBattleRunFactory>(new BattleRunFactory(
                 matchSessions, context.Require<IDevSession>(), _devDiagnostics?.Invoke()));
-            // 结算摘要端口：冻结结果 → 结算页排行行表（全序/名次与局内排行榜同一实现）——流程只认端口
+            // 结算摘要端口：冻结结果 → 结算页排行行表（全序/名次与局内排行榜同一实现）——流程只认端口。
             context.Put<ISettlementSummary>(new SettlementSummary(() => strategy().Rank));
-            // 视图组工厂：战斗域自持的装配点（流程只认端口；每局再注入 account 作用域/开发叠加层/传送分发）
+            // 视图组工厂：战斗域自持的装配点（流程只认端口；每局再注入 account 作用域/开发叠加层/传送分发）。
             context.Put<IBattleViewGroupFactory>(new BattleViewGroupFactory(
                 content, context.Require<IInputService>(), context.Require<ICameraService>(),
                 _vfxService, context.Require<IWorldClock>(), _audio, context.Require<CommandCenter>(),

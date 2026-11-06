@@ -6,14 +6,7 @@ using LiteSim;
 namespace LiteGame
 {
     /// <summary>
-    /// 判定参数调参面（`#combatgeom` 13 列）：把 <see cref="SimParamsOverrides"/> 实例暴露成滑杆
-    /// （Group = 判定参数）。写入只进覆写实例（不落盘、不进摘要）；`Default` 取当前已发布几何
-    /// （<see cref="CombatConfig.Geometry"/>，**只读展示**，不是写源）。
-    ///
-    /// **生效时机**：对局中改不生效——覆写只在**每局进房时点**求值一次
-    /// （<c>SimParamsActivation</c>；门要求本地测试模式 ∧ 本地传输），本局内不再合并；
-    /// 要进正式数值须经编辑器 <c>SimParamsExporter</c> 落表，再跑 Luban/buildHash，下一局按新表生效。
-    /// 覆写实例由装配根注入；null（发布形态/未装配）时本组不注册。
+    /// 判定参数调参面（`#combatgeom` 13 列）：把 SimParamsOverrides 实例暴露成滑杆 （Group = 判定参数）。
     /// </summary>
     public sealed class SimParamsDebugTunables : IDebugTunableProvider
     {
@@ -66,7 +59,7 @@ namespace LiteGame
                 Group = GroupName,
                 Label = label,
                 Kind = DebugTunableKind.Float,
-                // 沙箱参数：调试期有效、不落盘、不进摘要/重放（覆写只服务本地测试模式的调参试验）
+                // 沙箱参数：调试期有效、不落盘、不进摘要/重放（覆写只服务本地测试模式的调参试验）。
                 Scope = DebugTunableScope.Sandbox,
                 Default = defaultValue,
                 Min = min,

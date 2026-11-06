@@ -6,11 +6,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame
 {
     /// <summary>
-    /// 准心手感参数（tbcrosshair 表行的运行时投影——纯 View 表现域：不进判定面摘要、不进 BuildHash
-    /// 闭包，单端热更不换联机身份）：静态满张倍率 + 连发临时张开（每发增量/总上限）+ 每发后坐冲量。
-    /// 行键 = 武器定义 Id（每把武器一行，行完整性由 ConfigService.ValidateCandidate 钉）。
-    /// <see cref="Default"/> 为**表缺行/无表装配的防御回落**（与表 id=0 行同值——EditMode 表守卫
-    /// 钉两者一致，同 <c>WeaponConfig.DefaultRifle</c> 先例：错表炸装载，运行期回落不猜）。
+    /// 准心手感参数（tbcrosshair 表行的运行时投影——纯 View 表现域：不进判定面摘要、不进 BuildHash 闭包，单端热更不换联机身份）：静态满张倍率 + 连发临时张开（每发增量/总上限）+ 每发后坐冲量。
     /// </summary>
     public readonly struct CrosshairFeel
     {
@@ -40,11 +36,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 准心手感投影（装配层投影件——与 LTextCatalog 同层）：<c>cfg.Tables.Tbcrosshair</c> 行
-    /// → 武器定义 Id → <see cref="CrosshairFeel"/>。**惰性投影**（MapProvider 同口径：装配期表未装载，
-    /// 首次 <see cref="TryGet"/> 才读 <see cref="IConfigService.Tables"/>——未装载即访问由其抛）。
-    /// 缺行 → false（调用方回落 <see cref="CrosshairFeel.Default"/>）；行值域合法性闸在
-    /// ConfigService.ValidateCandidate（错表炸 Preload，不在此重验）。
+    /// 准心手感投影（装配层投影件——与 LTextCatalog 同层）：cfg.Tables.Tbcrosshair 行 → 武器定义 Id → CrosshairFeel。
     /// </summary>
     public sealed class CrosshairFeelProfile
     {
@@ -79,10 +71,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 准心手感的**实时调参面**（<c>GripTuning</c> 同族——GM 面板「准心调参」滑杆实时覆写，不落盘、
-    /// 不进任何判定/快照面）：覆写优先于表值/机制常量，复位（&lt; 0）即回表值。**仅开发三宏内存在**
-    /// （release 随宏编译剥离、恒用表值/常量）；实机定档后把拖定值写回 tbcrosshair 表源与
-    /// <see cref="BattleCrosshairDriver"/> 机制常量。
+    /// 准心手感的**实时调参面**（GripTuning 同族——GM 面板「准心调参」滑杆实时覆写，不落盘、 不进任何判定/快照面）：覆写优先于表值/机制常量，复位（&lt）。
     /// </summary>
     public static class CrosshairTuning
     {

@@ -5,10 +5,6 @@ namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 显示设置的值域与换算（显示模式 / 垂直同步 / 窗口尺寸 / 分辨率字符串），单源。
-    ///
-    /// 分辨率以 <c>"宽x高"</c> 字符串存档（不带刷新率）：刷新率随显示器走，存进去反而在换显示器时
-    /// 变成"匹配不上的死值"。<see cref="WindowWidth"/>/<see cref="WindowHeight"/> 是"未指定分辨率"时
-    /// 窗口模式的默认尺寸。
     /// </summary>
     public static class DisplayOptions
     {

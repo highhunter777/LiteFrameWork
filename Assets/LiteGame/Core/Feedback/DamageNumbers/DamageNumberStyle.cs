@@ -59,18 +59,7 @@ namespace LiteGame.Feedback.DamageNumbers
     }
 
     /// <summary>
-    /// 常量表初版（样式编辑器落地前的唯一单源）：**造成=白、爆头=亮红、承受=暗砖红、承受暴击=深红**；
-    /// 每档带**顶→底渐变**（顶亮底暗）＋**材质档键**（逐档描边/光晕材质，见调色板）。
-    /// 暴击档放大字号并带抖动（见 <see cref="DamageNumberMotion"/>）。旁观档落造成色兜底（驱动已滤，
-    /// 不构成第二事实源）。按值分带缩放单独可测。
-    ///
-    /// **爆头取红（玩家口径"爆头飘字要红"，批C 复核保留）**：<see cref="CausedCritRed"/> 用**亮红**
-    /// （顶色近纯红、绿分量低、顶亮度显著高于承受档），与 <see cref="ReceivedRed"/> 的**暗砖红**靠
-    /// "明度 + 字号 + 抖动 + 红光晕材质"四维识别。**代价须知**：红被爆头与承受两档共用，敌我维度不靠
-    /// 颜色单独区分。若后续要完全解耦，应把承受档迁到另一色相（如青/紫）——须单独裁决。
-    ///
-    /// **渐变取值口径**（批C）：顶亮底暗（光源在上，DNP Gold 同向）；颜色语义（白/亮红/暗砖/深红）
-    /// 两端一致不换色相，渐变为同色系明度差。
+    /// 常量表初版（样式编辑器落地前的唯一单源）：**造成=白、爆头=亮红、承受=暗砖红、承受暴击=深红**。
     /// </summary>
     public sealed class DamageNumberStyleResolver : IDamageNumberStyleResolver
     {
@@ -114,9 +103,7 @@ namespace LiteGame.Feedback.DamageNumbers
     }
 
     /// <summary>
-    /// 伤害数字四档样式 + 按值分带（纯数据、零引擎）：<c>battlestrategy</c> 表 <c>damage.style.*</c> /
-    /// <c>damage.value_scale.*</c> 行的不可变投影。缺行由装配点回落
-    /// <see cref="DamageNumberStyleResolver"/> 的常量档；本结构只做参数校验与解析。
+    /// 伤害数字四档样式 + 按值分带（纯数据、零引擎）：battlestrategy 表 damage.style.* / damage.value_scale.* 行的不可变投影。
     /// </summary>
     public readonly struct DamageNumberStyleProfile
     {

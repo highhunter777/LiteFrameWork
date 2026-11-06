@@ -5,13 +5,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 响应必填校验（反射反序列化之后的一步）。
-    ///
-    /// **为什么需要**：反序列化只保证"能构造"，不保证"字段有值"——服务端少发一个字段，
-    /// 属性就是 null/0，客户端会带着空值继续跑并在更远处炸。这里把"缺必填"变成
-    /// <see cref="MetaFailureKind.InvalidResponse"/>（确定错误态，重试无效），与既有失败分类一致。
-    ///
-    /// **新增 DTO 字段时必须同步归类**——`MetaWireContractTests` 会反射遍历客户端成功响应 DTO 的
-    /// 每个属性，要求显式归入“必填/可选”；必填缺失即判非法，新增属性未分类即红。
     /// </summary>
     internal static class MetaWireValidator
     {

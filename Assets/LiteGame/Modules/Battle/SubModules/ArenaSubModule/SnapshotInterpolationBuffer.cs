@@ -6,9 +6,7 @@ using LiteGame.Spatial;
 namespace LiteGame
 {
     /// <summary>
-    /// 远端快照 jitter buffer 与渲染帧推进（《状态同步专项设计》§6.2）：
-    /// 快照按帧号有序入缓冲，渲染帧按 tick 频率匀速前进并封顶"最新快照 − 渲染延迟"；
-    /// 当前后两份快照生命更替或间距超阈值时硬切，避免把复活/传送播成穿墙滑行。
+    /// 远端快照 jitter buffer 与渲染帧推进（《状态同步专项设计》§6.2）： 快照按帧号有序入缓冲，渲染帧按 tick 频率匀速前进并封顶"最新快照 − 渲染延迟"。
     /// </summary>
     internal sealed class SnapshotInterpolationBuffer
     {

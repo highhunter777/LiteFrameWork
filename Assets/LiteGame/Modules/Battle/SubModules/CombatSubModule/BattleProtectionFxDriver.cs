@@ -5,15 +5,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 出生保护壳驱动（FX 域；**金色**半透明包裹壳，`fx_spawn_protection`）：保护期内把壳件**跟随对应
-    /// 角色视图根**显隐——保护态 = `Frame &lt; InvulnerableUntilFrame`（**端点不含**；**仅成功开火**取消、
-    /// 超时自然结束——口径同 HUD 面，单源）。
-    ///
-    /// - **按槽位一壳**：本地与远端玩家都显示（保护态读口由调用方注入——本地预测态/远端权威快照）；
-    /// - 壳件**挂 `_viewRoot`**（**不挂角色视图**——角色视图会回池复用，父子绑定会把壳留给别的实体）；
-    /// - 位姿每帧跟随（**仅保护期内写**）；视图缺失 → 诚实不显示（不造第二视觉源）；
-    /// - 缺件（壳 prefab 未取）→ 驱动不构造（取件处已警告降级）；壳按需惰性实例化。
-    /// - 测试注：保护态/视图查询/壳工厂走构造注入——EditMode 确定性驱动。
+    /// 出生保护壳驱动（FX 域）。
     /// </summary>
     public sealed class BattleProtectionFxDriver : IDisposable
     {
@@ -74,7 +66,7 @@ namespace LiteGame
                 GameObject view = _viewOf(slot);
                 if (view == null)
                 {
-                    // 无视图（灰盒/未建/AOI 缺省）：不造第二视觉源
+                    // 无视图（灰盒/未建/AOI 缺省）：不造第二视觉源。
                     if (shell != null && shell.activeSelf) shell.SetActive(false);
                     continue;
                 }

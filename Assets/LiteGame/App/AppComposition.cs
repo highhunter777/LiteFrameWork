@@ -15,22 +15,13 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// **应用组合根**（两副职责，都只在这一个文件里）：
-    /// ① 适配器的**唯一创建点**——new 只出现在本文件（相机/输入/配置服务的工厂委托，GameEntry 注入给各段）；
-    /// ② <see cref="ComposeAfter"/>——**全部模块成功后、装配面密封前**的跨域装订：Lua 门面/模态/身份/输入拦截/
-    /// 注册表回填/开发装饰/帧驱动序/密封。
-    ///
-    /// 为什么必须有它：适配器程序集反向引用域程序集（Adapters.Unity → Modules.Input/Modules.Camera、
-    /// Adapters.Luban → Modules.Config），段一旦自己 new 就成环；跨域连线放进任何一段都会让"段式装配"
-    /// 退化成大段。**本类是装配点不是业务段**——段内仍不许跨域连线。
-    ///
-    /// 方法体预算：类 ≤400 行、方法 ≤80 行（SegmentBudgetTests）——装订按域拆成小方法。
+    /// **应用组合根**（两副职责，都只在这一个文件里）： ① 适配器的**唯一创建点**——new 只出现在本文件（相机/输入/配置服务的工厂委托，GameEntry 注入给各段）。
     /// </summary>
     internal sealed class AppComposition
     {
         private IDisposable _devDecoration;      // 开发装配装饰句柄（GM/弱网/调试内核；null = 发布形态）
 
-        // ---- Lua 桥三注册表：**本文件是唯一 new 点**（UI 段/填充器/回填服务/门面绑定共用同一批实例）----
+        // ---- Lua 桥三注册表：**本文件是唯一 new 点**（UI 段/填充器/回填服务/门面绑定共用同一批实例）----。
         private readonly UILuaRegistry _uiRegistry = new UILuaRegistry();
         private readonly ContentLuaRegistry _contentRegistry = new ContentLuaRegistry();
         private readonly StrategyLuaRegistry _strategyRegistry = new StrategyLuaRegistry();
@@ -41,7 +32,7 @@ namespace LiteGame
         /// 装配期测试模式尚未开启，在这里求门恒假）。</summary>
         private readonly SimParamsOverrides _simParamsOverrides = new SimParamsOverrides();
 
-        // ---- ① 适配器工厂（new 唯一出现处；GameEntry 注入给各段）----
+        // ---- ① 适配器工厂（new 唯一出现处；GameEntry 注入给各段）----。
 
         /// <summary>配置服务（表投影）：字节通道经内容租约（代次/引用统一，提取即释放源资产）。
         /// 装载期不接覆写合并口（传 null）：覆写合并已下移到进房时点，
@@ -103,7 +94,7 @@ namespace LiteGame
             => (config, lua, pages) => new RegistryFiller(config, pages.All, lua,
                 _uiRegistry, _contentRegistry, _strategyRegistry);
 
-        // ---- ② 组合根（ClientHost.ComposeRoot 驱动）----
+        // ---- ② 组合根（ClientHost.ComposeRoot 驱动）----。
 
         /// <summary>跨域装订：模块全部成功后执行一次；登记资源进本窗口作用域（关闭时先于模块释放）。
         /// 末步是装配面密封——此后运行期不再接受新增登记。</summary>
@@ -136,7 +127,7 @@ namespace LiteGame
             Bridge.BindUIService(context.Require<UIService>());
             Bridge.BindNavigation(context.Require<UINavigationController>());
             Bridge.BindBattle(() => config.Strategy.ToLuaFacts());   // B3b 事实与对局消费同源（策略表投影）；缺行回落默认
-            // 注册表接口键（Lua 门面/回填/工具只经端口取；与具体键同实例）
+            // 注册表接口键（Lua 门面/回填/工具只经端口取；与具体键同实例）。
             context.Services.RegisterInstance<IUILuaRegistry>(_uiRegistry);
             context.Services.RegisterInstance<IContentLuaRegistry>(_contentRegistry);
             context.Services.RegisterInstance<IStrategyLuaRegistry>(_strategyRegistry);

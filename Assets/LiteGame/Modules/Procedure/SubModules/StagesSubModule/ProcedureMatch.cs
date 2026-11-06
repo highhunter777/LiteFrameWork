@@ -9,17 +9,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 进房流程：创建 **Account Scope** → 连接 + Join（经 <see cref="IMatchJoin"/> 端口）→ JoinAck 即移交 Battle。
-    /// **本阶段不加载对局场景组**——场景组的加载与卸载都归 <see cref="ProcedureBattle"/>
-    /// （开局入场时加载；《地图数据专项设计》加载链修订）。
-    ///
-    /// 身份口径：真 KCP 路径**只接受 Meta 签发的票据**；开发/编辑器/开发包唯一的免票据入口是
-    /// 本地测试模式（进程内 `Room-Test`，不经过 Socket/票据）。**正式构建缺真实身份依赖时
-    /// 直接拒绝进房**（确定错误态，不悄悄退回 fake——见 <see cref="RunAsync"/> 门禁）。
-    /// 握手身份经 <see cref="IdentityContext"/> 注入会话工厂（两端同源——不一致服务端拒绝进房）。
-    ///
-    /// 所有权：Account Scope 在本阶段创建；正常路径随 <see cref="ProcedureArgs"/> 移交 Battle
-    /// （离场收尾在 Battle，关闭序见 <see cref="ProcedureBattle"/>）；本阶段失败/取消则就地 Dispose。
+    /// 进房流程：创建 **Account Scope** → 连接 + Join（经 IMatchJoin 端口）→ JoinAck 即移交 Battle。
     /// </summary>
     public sealed class ProcedureMatch : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
@@ -46,10 +36,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 驱动传输泵（**本阶段必需的**，不是可选优化）：KCP 的 cookie 握手与后续收发全靠
-        /// <c>TickIncoming/TickOutgoing</c> 轮询推进——不泵就永远连不上，Join 也永远发不出去。
-        /// 泵挂在本阶段的 <see cref="OnUpdate"/> 上：阶段生命周期 = 泵的生命周期，
-        /// 迁移进 Battle 后由对局运行端口接续（不会双泵）。
+        /// 驱动传输泵（**本阶段必需的**，不是可选优化）：KCP 的 cookie 握手与后续收发全靠 TickIncoming/TickOutgoing 轮询推进——不泵就永远连不上，Join 也永远发不出去。
         /// </summary>
         public override void OnUpdate(IStageHost<ProcedureId, ProcedureArgs> m, float elapseSeconds)
         {
@@ -90,7 +77,7 @@ namespace LiteGame
             string host, int port, string roomId, string token, bool testRoom)
         {
             IAccountSession account = null;
-            // 进房等待场（窗口⑤——不定态；可空 = 测试装配）：开场即阻断，JoinAck/失败/取消三路收口
+            // 进房等待场（窗口⑤——不定态；可空 = 测试装配）：开场即阻断，JoinAck/失败/取消三路收口。
             LaunchLoading.Begin(_feedback, "正在进入房间…");
             // 加载面 Back（阻断期取消）必须能打断进房等待：服务只给取消信号，被门控操作自行响应
             // （《通用加载页设计》§3）；不接这个令牌，ESC 会被消费但 JoinAck 仍等到超时。

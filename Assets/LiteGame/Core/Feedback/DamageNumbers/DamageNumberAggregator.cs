@@ -40,11 +40,7 @@ namespace LiteGame.Feedback.DamageNumbers
     }
 
     /// <summary>
-    /// 伤害数字聚合器（纯逻辑件——《命中反馈与伤害数字专项设计》§4.2）：同 **(目标, 角色, 爆头档)**
-    /// 在 <see cref="DamageNumberMotion.MergeWindowSeconds"/> 窗口内的命中**累加成一条**（连击合并——
-    /// DNP Combination 的自研对应物）；窗口外命中起新条目。**爆头档进键**（用户口径）：爆头与普通
-    /// 各成一条互不合并（爆头只并爆头、普通只并普通）——旧"暴击粘滞"（普通条目被暴击命中后整条升级）
-    /// 已废除：打头再打身体不会把身体那发染红。**零引擎、时钟注入**（驱动喂 now）——L1 源链接直测。
+    /// 伤害数字聚合器（纯逻辑件——《命中反馈与伤害数字专项设计》§4.2）：同 **(目标, 角色, 爆头档)** 在 DamageNumberMotion.MergeWindowSeconds 窗口内的命中**累加成一条**。
     /// </summary>
     public sealed class DamageNumberAggregator
     {
@@ -97,9 +93,6 @@ namespace LiteGame.Feedback.DamageNumbers
 
         /// <summary>
         /// 纯判定：此刻该键的命中**会不会并入既有条目**（键在册且距最后活动 ≤ 窗口）。
-        /// 与 <see cref="MergeOrSpawn"/> 的分支判据同源（单一口径），供调用方在**真正合并之前**
-        /// 预知"将起新条目"，以便先收口上一代条目——驱动用它避免同键覆盖导致旧实例失去跟踪
-        /// （旧实例漏了淡出推进 ⇒ 永久残留 + 池泄漏）。**无副作用**：不改时钟、不改账面。
         /// </summary>
         public bool WillMerge(long targetId, HitLocalRole role, bool crit, double now)
             => _entries.TryGetValue((targetId, role, crit), out Entry e) && now - e.LastMergeAt <= _mergeWindow;
@@ -123,9 +116,7 @@ namespace LiteGame.Feedback.DamageNumbers
         }
 
         /// <summary>
-        /// 淡出到期键收集（驱动 Tick 调）：最后活动距今 ≥ 注入的淡出终点（缺省
-        /// <see cref="DamageNumberMotion.FadeEndSeconds"/>）的条目键入列。聚合器只裁决，不做释放——
-        /// 实例释放与 <see cref="Remove"/> 归驱动。
+        /// 淡出到期键收集（驱动 Tick 调）：最后活动距今 ≥ 注入的淡出终点（缺省 DamageNumberMotion.FadeEndSeconds）的条目键入列。
         /// </summary>
         public void CollectExpired(double now, List<(long TargetId, HitLocalRole Role, bool Crit)> expired)
         {

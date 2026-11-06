@@ -12,9 +12,7 @@ using LiteGame.Modules.Input;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局**视图本体装配器**：<see cref="SimView"/>（镜像/插值/静默门/相机服务）→ 移动动画驱动 →
-    /// 瞄准激光 → 出生保护壳。视图根与 prefab 归调用方（离场由 rig 销毁视图根）；
-    /// 驱动实例归本件，按相位拆除（移动动画先于视图本体；激光/保护壳随视图根）。
+    /// 对局**视图本体装配器**：SimView（镜像/插值/静默门/相机服务）→ 移动动画驱动 → 瞄准激光 → 出生保护壳。
     /// </summary>
     internal sealed class BattleViewSceneAssembler
     {
@@ -40,7 +38,7 @@ namespace LiteGame
                 camera: camera);
             context.AttachView(View);
 
-            // 动画 Profile：表单源（读口行 → 按模型族装载——缺行/坏行在装配期显性失败）
+            // 动画 Profile：表单源（读口行 → 按模型族装载——缺行/坏行在装配期显性失败）。
             var animationProfile = AnimationProfileLoader.FromRows(
                 AnimationProfileConfig.Rows, CombatGirlsAnimationProfile.ModelFamily);
             Locomotion = new CharacterLocomotionDriver(View, animationProfile,
@@ -67,7 +65,7 @@ namespace LiteGame
                 Log.Warning($"激光束 prefab 缺 LineRenderer——瞄准激光降级:{BattleViewAssets.LaserSightPrefab}", LogTag.Battle);
                 return;
             }
-            // 本局规则随装配注入（爆头带覆写随动；驱动不读 ILocalTestHooks 静态读口）
+            // 本局规则随装配注入（爆头带覆写随动；驱动不读 ILocalTestHooks 静态读口）。
             Laser = new BattleLaserDriver(View, input, context.Sim, context.Map, line, context.MatchRules, dev);
             Log.Info("laser-attached", LogTag.Battle);
         }

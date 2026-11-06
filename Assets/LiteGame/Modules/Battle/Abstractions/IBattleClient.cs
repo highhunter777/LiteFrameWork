@@ -5,12 +5,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局会话客户端端口（Battle 消费面）：<see cref="BattleContext"/>/<see cref="BattleInputPipeline"/>/
-    /// 房间会话门面只经本口驱动与观测会话——具体实现（KCP 传输 + <see cref="RoomClient"/> 相位机）归
-    /// <see cref="BattleClient"/>，且只能经 <see cref="IBattleClientFactory"/> 构造（会话域不再 `new`）。
-    ///
-    /// **成员＝实际调用面的并集**（不加不用的成员）：<see cref="Client"/> 是**过渡逃生口**——事件订阅/
-    /// 席位/快照帧等既有调用面尚直挂 <see cref="RoomClient"/>，后续网络端口化批次把它收敛进本口。
+    /// 对局会话客户端端口（Battle 消费面）：BattleContext/BattleInputPipeline/ 房间会话门面只经本口驱动与观测会话——具体实现（KCP 传输 + RoomClient 相位机）归 Bat。
     /// </summary>
     public interface IBattleClient : IDisposable
     {

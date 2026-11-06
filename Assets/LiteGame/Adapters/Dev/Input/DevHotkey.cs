@@ -12,11 +12,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 开发工具热键/文本输入门面（开发装配层）：键位名与 UI 语义在这层，
-    /// 实际键盘读取走平台能力 <see cref="PlatformKeyInput"/>——R12 禁 App/Dev 直接 import InputSystem。
-    ///
-    /// 本类只在 `LiteGame.Dev` 编译（开发装配层约束），发布包无此面；
-    /// 平台层 <c>PlatformKeyInput</c> 无开发宏，但发布构建没有调用点（消费者全在本程序集）。
+    /// 开发工具热键/文本输入门面（开发装配层）：键位名与 UI 语义在这层， 实际键盘读取走平台能力 PlatformKeyInput——R12 禁 App/Dev 直接 import InputSystem。
     /// </summary>
     public static class DevHotkey
     {

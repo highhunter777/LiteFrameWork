@@ -9,25 +9,7 @@ using LiteSim;
 namespace LiteGame.Modules.Battle.Arena
 {
     /// <summary>
-    /// 根位移数据产物（`rootmotion.bin`）的只读装载结果：逐动作的烘焙位移增量（契约见
-    /// <see cref="RootMotionEntry"/>）。**数据单源是 .bin 文件本身**——服务端与客户端共享同一份字节，
-    /// 不再经生成代码（`.g.cs`）分发。
-    ///
-    /// **二进制格式**（全部小端；无时间戳/无环境相关字段——同输入重烘逐字节一致）：
-    /// <c>magic</c> 4 字节 ASCII "RMO1" → <c>formatVersion</c> int32 → <c>tickRate</c> int32
-    /// → <c>entryCount</c> int32 → 逐条：<c>actionId</c> int32、<c>motionVersion</c> int32、
-    /// <c>sampleCount</c> int32、<c>directionPolicy</c>/<c>movementPolicy</c>/<c>cancelPolicy</c> 各 1 字节、
-    /// <c>yPeakMm</c> int32、2×<c>sampleCount</c> 个 int16 平面增量（X/Z 交错，毫米）、
-    /// <c>sampleCount</c> 个 int16 偏航（厘度）。
-    ///
-    /// **版本策略**：仅在不兼容布局变更时 <see cref="FormatVersion"/> +1；装载器拒绝未知版本
-    /// （fail-fast，不做兼容回退——旧数据必须重烘）。
-    ///
-    /// **装载校验**（失败统一 <see cref="InvalidDataException"/>）：magic / 版本 / <c>tickRate</c> 必须等于
-    /// <see cref="SimConfig.TickRate"/> / <c>entryCount</c> 上限 / 逐条 <c>sampleCount ≥ 1</c> 且样本字节不越界
-    /// / 策略字节在已定义范围内 / <c>actionId</c> 严格升序且唯一 / 全量消费无尾随字节。
-    ///
-    /// **无静态可变字段、无静态缓存实例、无"默认烘焙值"常量**——默认值唯一来源是 .bin 文件本身。
+    /// 根位移数据产物（`rootmotion.bin`）的只读装载结果：逐动作的烘焙位移增量（契约见 RootMotionEntry）。
     /// </summary>
     public sealed class RootMotionCatalog
     {

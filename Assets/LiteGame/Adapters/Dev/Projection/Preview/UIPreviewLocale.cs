@@ -9,10 +9,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame
 {
     /// <summary>
-    /// 预览语言构建器（P2-3 B3）：tbltext **文件直载**（`TableLayout.Files` 含 `UI/tbltext`、
-    /// `LTextCatalog.Build(cfg.Tables)` 纯函数——与 <see cref="ConfigTableFileSource"/> 共用全表字节模式）
-    /// 构建 <see cref="ILocalizationService"/>，驱动布局档中/英/伪本地化切换；不经内容服务全链。
-    /// 失败返回 null（调用方降级：key 显 `[key]` 并在矩阵报告标注）。
+    /// 预览语言构建器（P2-3 B3）：tbltext **文件直载**（`TableLayout.Files` 含 `UI/tbltext`。）。
     /// </summary>
     public static class UIPreviewLocale
     {

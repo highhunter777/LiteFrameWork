@@ -5,13 +5,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 伤害数字逐档材质调色板（《命中反馈与伤害数字专项设计》§4.4 批C）：<see cref="DamageNumberTier"/>
-    /// 四档 → 材质（黑描边 + 软影 + 按档光晕；**面部颜色不进材质**——_FaceColor 保持白，颜色归样式
-    /// 顶点渐变四角，驱动逐帧写）。
-    ///
-    /// **构造即完整**——任一档为 null 属装配错误（fail-fast）。"四档不齐"的降级裁决在装配点
-    /// （<c>ProcedureBattle</c>：任缺则**整组不注入**，飘字退回底件默认材质）——不存在部分档位的
-    /// 混合观感（那会让"为什么这发没光晕"变成不可解释的随机）。
+    /// 伤害数字逐档材质调色板（《命中反馈与伤害数字专项设计》§4.4 批C）：DamageNumberTier 四档 → 材质（黑描边 + 软影 + 按档光晕）。
     /// </summary>
     public sealed class DamageNumberMaterialSet
     {

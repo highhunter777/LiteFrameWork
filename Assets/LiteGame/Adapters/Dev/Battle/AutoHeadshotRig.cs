@@ -9,19 +9,7 @@ namespace LiteGame
 {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
     /// <summary>
-    /// **爆头链路自动验证件**（测试模式诊断，release 整段剥离；GM 面板现场开关）。
-    ///
-    /// **做什么**：把设备源换成自动瞄准源——每帧锁定<b>最近的非自身活体</b>，把 <c>AimPoint</c> 压到它
-    /// <b>头部带中心</b>（[HeadHitLine, HitscanHeight] 的中点），并<b>持续按住开火</b>
-    /// （限速由权威侧的开火驻留窗自然处理，<b>不</b>绕过它）。于是每次开火都应判为爆头——用来在
-    /// <b>真实对局</b>里端到端验证「采集侧上报 AimPoint → 协议 → InputGate 校验 → 回溯 →
-    /// 爆头判定 → Crit 事件 → 飘字」整条链。
-    ///
-    /// **为什么需要**：L1 只覆盖 Sim 与协议层；采集侧上报、InputGate 距离闸、回溯补判这三段
-    /// 只有真跑起来才验得到。长时间不出现爆头即说明某一环没把 AimPoint 送到位。
-    ///
-    /// **不改任何判定**：只替换<b>输入源</b>（<see cref="IIntentSource"/>），等价于"玩家把准心压在头上"。
-    /// 无可选目标时退化为空意图，不会乱打。
+    /// **爆头链路自动验证件**（测试模式诊断，release 整段剥离）。
     /// </summary>
     public sealed class AutoHeadshotRig : IHitFeedbackConsumer
     {
@@ -67,9 +55,7 @@ namespace LiteGame
                     float dx = e.Pos.X - localPos.X;
                     float dz = e.Pos.Z - localPos.Z;
                     float d2 = dx * dx + dz * dz;
-                    // **近身目标跳过**：贴到几乎同格时，枪口→头顶的方向会退化成"正上方"，
-                    // 射线朝天打空（实测 Aim=(0,1,0)、零命中）。玩家贴脸时应选远处目标；
-                    // 无合格目标时宁可不打，也不朝天放空枪。
+                    // **近身目标跳过**：贴到几乎同格时，枪口→头顶的方向会退化成"正上方"， 射线朝天打空（实测 Aim=(0,1,0)、零命中）。
                     if (d2 < MinTargetRange * MinTargetRange) continue;
                     if (d2 < bestD2) { bestD2 = d2; best = i; }
                 }
@@ -79,26 +65,24 @@ namespace LiteGame
                 TargetId = t.Id;
 
                 // 瞄准点 = 目标正上方**头部带中心**（带内正中 ⇒ 不贴边界，容错最大）。
-                // **AimPoint 单口径**（《固定斜视角射击方案专项设计》§3）：朝向（Yaw）与弹道方向
-                // 都由服务端/预测两端自本点派生——本件只产点，不再构造方向（方向字段已退役）。
                 float headY = CombatConfig.Geometry.HeadHitLine
                     + (CombatConfig.Geometry.HitscanHeight - CombatConfig.Geometry.HeadHitLine) * 0.5f;
                 float px = t.Pos.X;
                 float py = t.Pos.Y + headY;
                 float pz = t.Pos.Z;
 
-                // 与本体/枪口重合时点退化（无方向可用）——让出本帧（不打）
+                // 与本体/枪口重合时点退化（无方向可用）——让出本帧（不打）。
                 float ax = px - localPos.X;
                 float ay = py - (localPos.Y + CombatConfig.Geometry.MuzzleHeight);
                 float az = pz - localPos.Z;
                 if (ax * ax + ay * ay + az * az <= 1e-6f) return new IntentSample(frame);
 
-                // **AimPoint = 爆头判定的直接输入**（服务端从枪口指向它求交，并按它的 Y 判爆头）
+                // **AimPoint = 爆头判定的直接输入**（服务端从枪口指向它求交，并按它的 Y 判爆头）。
                 frame.AimPointX = px;
                 frame.AimPointY = py;
                 frame.AimPointZ = pz;
 
-                // 持续开火：限速/驻留窗由权威侧判定（InputSystem 读 ButtonFire 置窗），本件不绕过
+                // 持续开火：限速/驻留窗由权威侧判定（InputSystem 读 ButtonFire 置窗），本件不绕过。
                 frame.Buttons = SimInputFrame.ButtonFire;
 
                 HasTarget = true;
@@ -142,7 +126,7 @@ private readonly AutoAimHeadshotSource _source;
         public void Disable()
         {
             if (!Active) return;
-            // 还原键鼠源（可能已随对局易主为 null —— 此时只落回"无源"形态，不越权改流程）
+            // 还原键鼠源（可能已随对局易主为 null —— 此时只落回"无源"形态，不越权改流程）。
             if (_input != null && _input.Source == _source) _input.SetSource(_original);
             Active = false;
             Debug.Log($"[AutoHeadshot] 已关闭（累计爆头 {_critCount} 次 / 命中 {_hitCount} 次）");

@@ -4,24 +4,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 俯仰瞄准姿态（第三人称自由视角的**姿态覆写器**）：把上半身（人形 <see cref="HumanBodyBones.Chest"/>
-    /// 骨）按相机 pitch 前俯/后仰，并把同一世界旋转镜像到**根级枪骨**——枪骨
-    /// <c>root/add_weapon_r</c> 不是 Chest 的子级，只转胸不转枪会"手随胸走、枪留在原地"（俯仰错位）。
-    /// aim up/down 素材批（Overlay 上半身混合）落地后退役为素材驱动。
-    ///
-    /// **归属**：视图表现编排，不属动画播放机制（同 <see cref="WeaponGripConstraint"/>——不碰后端/
-    /// 通道仲裁/状态机）。约束对象与槽位同生共死（驱动器建槽时建、释放时弃）。
-    ///
-    /// **写时序（唯一写者契约）**：必须在驱动帧的**动画 Evaluate 之后**调用（播放器 Tick 之后）——
-    /// 写前骨旋转即本帧动画值，前乘俯仰偏置；每帧写、退出即停写——不改持久状态，动画下一帧自然接管。
-    ///
-    /// **世界系前乘**：骨世界旋转前乘"绕角色右轴的俯仰旋转"——人形 Chest 骨局部轴随 Rig 而异，
-    /// 角色右轴是唯一稳定参照（角色根由视图按 Sim yaw 摆位）。枪骨用同一旋转绕 Chest 枢轴做刚体
-    /// 位移（保持动画自身的枪位/后坐相对姿态，不覆盖成固定持枪偏移）。
-    ///
-    /// **骨解析**：Chest 走 <see cref="Animator.GetBoneTransform"/>（人形映射——任意人形 Rig 零路径常量）；
-    /// 枪骨走 <see cref="WeaponGripCatalog.WeaponPath"/>（与持枪约束同一数据产物）。缺 Chest → <see cref="IsValid"/>
-    /// false 的显性失败面；缺枪骨只影响镜像（胸仍转）。
+    /// 俯仰瞄准姿态（第三人称自由视角的**姿态覆写器**）：把上半身（人形 HumanBodyBones.Chest 骨）按相机 pitch 前俯/后仰。
     /// </summary>
     public sealed class AimPitchPostureDriver
     {

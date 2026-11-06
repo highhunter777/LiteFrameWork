@@ -20,10 +20,7 @@ namespace LiteGame
     public sealed class GMUnloadAdditiveSceneCommand : ICommand { public string Location; }
 
     /// <summary>
-    /// GM 场景命令处理器（带参+异步形态——《GM 与调试工具分层设计》§2 场景操作命令化批）：
-    /// 场景加载机制验证的四操作经 <see cref="ISceneService"/> 执行，操作结果进命令审计环
-    /// （"刚才动了哪个场景"可查）。处理器异常由 SendAsync 隔离为 HandlerFault（本处理器不自裹 try——
-    /// 与处理器作者代码缺陷的框架契约一致）；<see cref="OperationCanceledException"/> 透传归调用方。
+    /// GM 场景命令处理器（带参+异步形态——《GM 与调试工具分层设计》§2 场景操作命令化批）： 场景加载机制验证的四操作经 ISceneService 执行，操作结果进命令审计环 （"刚才动了哪个场景"可查）。
     /// </summary>
     public sealed class GMSceneCommandHandler :
         IAsyncCommandHandler<GMLoadSingleSceneCommand>,

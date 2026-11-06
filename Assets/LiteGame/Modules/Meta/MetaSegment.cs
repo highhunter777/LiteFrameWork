@@ -22,7 +22,7 @@ namespace LiteGame
 
         public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
         {
-            // 联机部署三源注入（-meta.url/-envelope.key——命令行 > 包内 deploy.args 烙入 > 默认；单次快照）
+            // 联机部署三源注入（-meta.url/-envelope.key——命令行 > 包内 deploy.args 烙入 > 默认；单次快照）。
             MetaEntryConfig deploy = MetaDeployConfig.Load(Environment.GetCommandLineArgs(), _deployBake.ReadArgs());
             context.Put<MetaEntryConfig>(deploy);
 
@@ -38,7 +38,7 @@ namespace LiteGame
                 accountDeviceId,
                 deploy.MetaUrl,
                 context.Require<IdentityContext>());
-            // 云端测试房：模板/口令随部署注入（开发者本地才有；测试者包不带 ⇒ 建不了云端测试房）
+            // 云端测试房：模板/口令随部署注入（开发者本地才有；测试者包不带 ⇒ 建不了云端测试房）。
             metaEntry.ConfigureTestRoom(deploy.RoomTemplate, deploy.RoomGmKey);
             context.Put(metaEntry);
             // 端口面：账号重入只认控制端口、流程主阶段只认部署事实端口（流程不直引具体联机入口）。

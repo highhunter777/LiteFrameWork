@@ -22,7 +22,7 @@ namespace LiteGame
                 }
                 catch (Exception)
                 {
-                    // 该字体文件不可读/格式不支持：尝试下一个
+                    // 该字体文件不可读/格式不支持：尝试下一个。
                 }
             }
             return null;

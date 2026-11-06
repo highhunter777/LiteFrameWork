@@ -5,8 +5,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 单个槽位的武器相关约束三件套（持枪 / 俯仰 / 枪口对齐）。
-    /// 三者都消费 `grip.bin` 的骨路径与偏移（<see cref="WeaponGripCatalog"/> 单源）：
-    /// catalog 缺失 = 数据未装载/损坏 → 三项一并显性降级（不建、不静默假装生效）。
     /// </summary>
     internal readonly struct SlotWeaponConstraints
     {
@@ -23,9 +21,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 按视图骨架建立三项约束：任一约束的骨路径/映射在骨架上不存在 → 该项不建并留一条警告
-        /// （调用方据此走"片段曲线驱动"降级）。catalog 为 null 时整体不建，只警告一次
-        /// （<paramref name="warnedMissingCatalog"/> 由调用方持有，避免逐槽刷屏）。
+        /// 按视图骨架建立三项约束：任一约束的骨路径/映射在骨架上不存在 → 该项不建并留一条警告 （调用方据此走"片段曲线驱动"降级）。
         /// </summary>
         public static SlotWeaponConstraints Create(Animator animator, WeaponGripCatalog catalog,
             int slot, GameObject view, ref bool warnedMissingCatalog)

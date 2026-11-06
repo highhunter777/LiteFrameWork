@@ -10,16 +10,14 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 单页布局预览驱动（《UI编辑器工具专项设计》§8.4）：编辑器 Play 内直接实例化目标 prefab，
-    /// 不跑 Boot/Lua/数据；资产保存后由 <c>UIPagePreview</c> 的 AssetPostprocessor 触发重载。
-    /// 本件只存在于编辑器形态；预览场景不在收集组，也不进构建。
+    /// 单页布局预览驱动（《UI编辑器工具专项设计》§8.4）：编辑器 Play 内直接实例化目标 prefab， 不跑 Boot/Lua/数据。
     /// </summary>
     public sealed class UIPreviewDriver : MonoBehaviour
     {
         /// <summary>目标 prefab 的 EditorPrefs 键（编辑器入口写、本件读）。</summary>
         public const string TargetPrefabKey = "LiteGame.UIPreview.TargetPrefab";
 
-        // ---- P2-3 B3：预览参数键（编辑器侧 UIPagePreview/矩阵状态机写 SessionState；本件只读原语） ----
+        // ---- P2-3 B3：预览参数键（编辑器侧 UIPagePreview/矩阵状态机写 SessionState；本件只读原语） ----。
         public const string DeviceProfileIdKey = "LiteGame.UIPreview.DeviceProfileId";
         public const string DeviceWidthKey = "LiteGame.UIPreview.DeviceWidth";
         public const string DeviceHeightKey = "LiteGame.UIPreview.DeviceHeight";
@@ -38,7 +36,7 @@ namespace LiteGame
         public const string OriginalGameViewWidthKey = "LiteGame.UIPreview.OriginalGameViewWidth";
         public const string OriginalGameViewHeightKey = "LiteGame.UIPreview.OriginalGameViewHeight";
 
-        // ---- P2-3 B3：应用/复位面（公开供 PlayMode 夹具直测；实例方法、无静态状态） ----
+        // ---- P2-3 B3：应用/复位面（公开供 PlayMode 夹具直测；实例方法、无静态状态） ----。
 
         private readonly List<SafeAreaReceiver> _safeAreaReceivers = new List<SafeAreaReceiver>();
         private PreviewFontScale _fontScale;

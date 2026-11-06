@@ -13,12 +13,7 @@ using LiteGame.Modules.Settings;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局视图组工厂（战斗域装配点）：把视图域全部依赖（内容/输入/相机/VFX/世界钟/音频/命令/
-    /// 准心手感/主题/开发会话/视角偏好）留在本域，流程只按 <see cref="IBattleViewGroupFactory"/>
-    /// 端口取件——每局再注入 account 作用域、开发叠加层与传送分发。
-    ///
-    /// **最后创建口**（<see cref="LastCreated"/>，仅测试/诊断用）：存**真 rig**、不存装饰器，
-    /// 装饰器 Dispose 时同步置空——冒烟用例据此在离场后断言"不再有视图组"，且不会读到已拆的实例。
+    /// 对局视图组工厂（战斗域装配点）：把视图域全部依赖（内容/输入/相机/VFX/世界钟/音频/命令/ 准心手感/主题/开发会话/视角偏好）留在本域。
     /// </summary>
     public sealed class BattleViewGroupFactory : IBattleViewGroupFactory
     {

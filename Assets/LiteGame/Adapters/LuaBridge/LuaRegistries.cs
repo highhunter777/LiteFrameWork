@@ -4,9 +4,7 @@ using LiteFramework.UI;
 
 namespace LiteGame
 {
-    // 三注册表的类型化入口：元素类型同为 LuaTable，容器按 Type 键控（重复注册抛），
-    // 故以三个标记接口区分。实例在装配根创建 → RegistryFiller 填充。
-    // 注册表键 = 全路径（"UI.UIMain"，LuaRegistryTests 同款约定），kind 仅作报错提示。
+    // 三注册表的类型化入口：元素类型同为 LuaTable，容器按 Type 键控（重复注册抛）， 故以三个标记接口区分。
 
     /// <summary>UI 逻辑表注册表（PageDefinition.LuaPath → ui/ 下逻辑表；UI 服务装配经生命周期桥消费）。</summary>
     public interface IUILuaRegistry : ILuaRegistry<LuaTable> { }

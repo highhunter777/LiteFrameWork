@@ -6,14 +6,7 @@ using LiteFramework;
 namespace LiteGame.Modules.Input
 {
     /// <summary>
-    /// ⑭ 输入服务（《角色状态与动作专项设计》§3"输入三件"）：
-    /// 设备 → 意图 → 三个门 的协调者。**登记在 Root**（跨对局复用；对局期由 ProcedureBattle
-    /// 挂/摘设备源），产品级拦截源（UI 模态）在装配段登记一次、跨对局常驻。
-    ///
-    /// **设备源由组合根注入**（`NewInputIntentSource` 属 `Adapters.Unity`，该程序集反向引用本域）：
-    /// 段只接工厂委托，在 `InitializeAsync` 里用**已就绪的 `IDevSession`** 构造它——
-    /// `matchRules` 读口依赖 ③ 段，前置创建会静默丢掉测试房爆头带覆写。
-    /// 对局相机在相机段建好后经 `IAimCameraSink` 补上（不同时可用，故分两步）。
+    /// ⑭ 输入服务（《角色状态与动作专项设计》§3"输入三件"）： 设备 → 意图 → 三个门 的协调者。
     /// </summary>
     public sealed class InputSegment : IClientSegment, IClientSegmentGraph
     {

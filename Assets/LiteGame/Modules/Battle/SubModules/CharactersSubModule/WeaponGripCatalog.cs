@@ -8,20 +8,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 持枪偏移数据产物（`grip.bin`）的只读装载结果：武器骨相对持枪手（挂点父级）在参考持枪姿态下的
-    /// 局部位姿——换弹上半身叠加期姿态覆写的**数据单源**（消费见 WeaponGripConstraint/GripTuning）。
-    ///
-    /// **二进制格式**（全部小端；无时间戳/无环境相关字段——同输入重烘逐字节一致）：
-    /// magic 4 字节 ASCII "GRIP" → formatVersion int32 → followPath（int32 字节长度 + UTF8）
-    /// → weaponPath（int32 字节长度 + UTF8）→ localPos 3×float32 → localEuler 3×float32（度）
-    /// → torsoWeight float32。
-    ///
-    /// **版本策略**：仅在不兼容布局变更时 <see cref="FormatVersion"/> +1；装载器拒绝未知版本
-    /// （fail-fast，不做兼容回退——旧数据必须重烘）。
-    ///
-    /// **校验失败统一抛 <see cref="InvalidDataException"/>**：magic/版本/截断/非法 UTF8/NaN/幅度越界/尾随字节。
-    ///
-    /// **无静态可变字段、无静态缓存实例、无"默认烘焙值"常量**——默认值唯一来源是 .bin 文件本身。
+    /// 持枪偏移数据产物（`grip.bin`）的只读装载结果：武器骨相对持枪手（挂点父级）在参考持枪姿态下的 局部位姿——换弹上半身叠加期姿态覆写的**数据单源**（消费见 WeaponGripConstraint/GripT。）。
     /// </summary>
     public sealed class WeaponGripCatalog
     {

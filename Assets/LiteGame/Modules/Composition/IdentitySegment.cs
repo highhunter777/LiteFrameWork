@@ -10,8 +10,6 @@ namespace LiteGame.Modules.Composition
 {
     /// <summary>
     /// ② 身份上下文（路线图 §4.9）：Build/Schema 的唯一构造点。
-    /// 只读编译期/平台事实；内容身份由装配末段绑定（内容/配置装配完成后）。
-    /// 业务代码不直接读 BuildHash/ConfigHash——经本上下文投影。
     /// </summary>
     public sealed class IdentitySegment : IClientSegment, IClientSegmentGraph
     {

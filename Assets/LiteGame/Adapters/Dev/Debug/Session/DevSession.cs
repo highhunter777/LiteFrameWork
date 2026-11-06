@@ -7,9 +7,7 @@ using LiteGame;
 namespace LiteGame
 {
     /// <summary>
-    /// 开发会话端口实现（适配器）：转发 <see cref="TestModeRuntime"/> 静态快照；
-    /// 本局规则是**实例**状态（对局会话绑定/解绑），不再有 Sim 侧静态"当前局"。
-    /// 产品代码经 <see cref="IDevSession"/> 取用；静态入口只留给既有直读点（allowlist 基线）。
+    /// 开发会话端口实现（适配器）：转发 TestModeRuntime 静态快照。
     /// </summary>
     public sealed class DevSession : IDevSession
     {

@@ -4,8 +4,6 @@ namespace LiteGame.Modules.Camera
 {
     /// <summary>
     /// 固定 16:9 信箱式视口（N1）：把 3D 渲染视口居中裁成 16:9，非 16:9 屏幕留黑边。
-    /// 与只锁横向 FOV 的方案不同，视口本身是 16:9 ⇒ X/Y 可见范围在任意屏幕上完全一致。
-    /// 纯数学，无场景/资源依赖；UI（ScreenSpaceOverlay）不受本视口影响。
     /// </summary>
     public static class CameraAspectLetterbox
     {

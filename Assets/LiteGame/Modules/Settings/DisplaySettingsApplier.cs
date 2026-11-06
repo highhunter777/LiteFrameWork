@@ -28,14 +28,6 @@ namespace LiteGame.Modules.Settings
 
     /// <summary>
     /// 显示设置生效器：分辨率 + 显示模式 + 垂直同步 + 帧率上限。
-    ///
-    /// **两条纪律**：
-    /// ① 幂等（E5）——窗口项先比对当前状态，同值不重设，避免页签切换/重复应用时反复重建窗口；
-    /// ② 编辑器不碰窗口——<c>Screen.SetResolution</c> 对 Game 视图无效，Editor 下只应用垂直同步与帧率，
-    /// 用运行时判断（<c>Application.isEditor</c>）而不是 `#if UNITY_EDITOR`（R5 要求三宏并集）。
-    ///
-    /// **垂直同步的"跟随预设"**：<c>-1</c> 表示读当前画质档内置的 <c>vSyncCount</c>。由于设置会改写当前档的
-    /// <c>vSyncCount</c>，本类按档位**首次应用前**抓取原值并缓存——否则"改过再选跟随"会读到被自己改过的值。
     /// </summary>
     public sealed class DisplaySettingsApplier
     {

@@ -4,8 +4,6 @@ namespace LiteGame
 {
     /// <summary>
     /// TPS 相机机位调参（场景单源）：挂在主 vcam 根上，由相机服务读取（瞄准机位置由主视线派生）。
-    /// 只表达"恒定臂长俯仰弧"的跟随系数/枢轴高度/地面下限——视角/灵敏度/FOV/肩偏
-    /// 仍在各自端口或 vcam 场景值，不在这里复制。
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class TpsCameraRigTuning : MonoBehaviour

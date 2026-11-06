@@ -7,9 +7,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame
 {
     /// <summary>
-    /// 配置表的文件直载源（编辑器工具与测试共用——不经 DI/内容服务全链）：
-    /// 从 <see cref="TableLayout.DataDir"/> 风格目录读全部表字节 → Luban <see cref="cfg.Tables"/>。
-    /// 与运行时 <see cref="ConfigService"/> 同一张表、同一 loader 口径；差异只在字节来源（磁盘 vs 内容租约）。
+    /// 配置表的文件直载源（编辑器工具与测试共用——不经 DI/内容服务全链）： 从 TableLayout.DataDir 风格目录读全部表字节 → Luban cfg.Tables。
     /// </summary>
     public static class ConfigTableFileSource
     {

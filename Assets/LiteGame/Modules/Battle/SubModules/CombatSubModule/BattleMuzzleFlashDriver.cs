@@ -6,18 +6,7 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 枪口火光驱动（《动作与特效专项设计》表现件；帧事件路由 <see cref="HitFeedbackDispatcher"/>
-    /// 的消费者）：**本地开火 Fire 帧事件 → 武器挂点（`Weapon_Rifle/Muzzle`）跟随播放
-    /// `fx_muzzle_flash`**（<c>follow=true</c> 挂点跟随——开火动画的枪姿态自动带走火光的位姿）。
-    ///
-    /// **只吃 Fire**：Hit/Crit 归命中特效（<see cref="BattleImpactFxDriver"/>）、死亡/技能归各自批。
-    /// **静默门**由上游 <c>SimView.EventSink</c> 保证（回滚重放/和解段事件被丢弃——火光不重复喷）；
-    /// 回滚重放期间的武器节拍由 Sim 判定，Fire 事件频率 = 真实开火频率（含武器门拦截段不产事件）。
-    ///
-    /// **远端开火火光待公共开火信号**：Fire 帧事件只来自本地预测世界（远端实体本地无输入、不开火）；
-    /// 公开面现有的开火驻留窗（`FireStanceFrames`）**瞄准也会置窗**、无法区分开火——远端火光归
-    /// CombatEvent 批（《状态同步专项设计》：可靠战斗事件留 P1）。**灰盒无挂载点 → 静默退化**（不造
-    /// 第二视觉源）。**表现参数（资源名/缩放系数）为本地常量，禁入 `CombatConfig`**（不搅 digest）。
+    /// 枪口火光驱动（《动作与特效专项设计》表现件）。
     /// </summary>
     public sealed class BattleMuzzleFlashDriver : IHitFeedbackConsumer, IDisposable
     {

@@ -7,10 +7,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 移动根复合态（下层）：MoveBlend 独占 Base 通道——进根提交（按当前速度权重）、
-    /// 每帧就地调权重（同形态连续，不换句柄）、离根收口（覆盖开始：先停 Base 再让战斗根开 Override）；
-    /// **瞄准建立 → 进战斗根**（覆盖开始）的入口裁决也在此（与战斗根的退根裁决对称——
-    /// 各根管各根的出界）。**换弹不进此裁决**（走 Overlay 上半身叠加，Base 持续出步——停即滑步）。
+    /// 移动根复合态（下层）：MoveBlend 独占 Base 通道——进根提交（按当前速度权重）、 每帧就地调权重（同形态连续，不换句柄）、离根收口（覆盖开始：先停 Base 再让战斗根开 Override）。
     /// </summary>
     internal sealed class LocomotionRootStage : IStage<CharacterAnimId, CombatAnimReq>
     {
@@ -30,7 +27,7 @@ namespace LiteGame
 
         public void OnEnter(IStageHost<CharacterAnimId, CombatAnimReq> m, in CombatAnimReq req)
         {
-            // 覆盖解除/初建：重提交 MoveBlend（初建 Speed=0 → Idle=1，不开局 T-pose）
+            // 覆盖解除/初建：重提交 MoveBlend（初建 Speed=0 → Idle=1，不开局 T-pose）。
             SubmitMoveBlend();
         }
 
@@ -38,17 +35,14 @@ namespace LiteGame
         {
             if (StageGate.Pending(m)) return;                 // 事件路由已挂（进 Fire 系优先于同帧 ADS 建立）
 
-            // 瞄准建立 → 进战斗根（覆盖开始——按锁存选叶；fire 事件路径由驱动器直接 Request，不经此）
+            // 瞄准建立 → 进战斗根（覆盖开始——按锁存选叶；fire 事件路径由驱动器直接 Request，不经此）。
             if (_ctx.IsAiming)
             {
                 m.Request(_ctx.IsMoving ? CharacterAnimId.AimWalk : CharacterAnimId.AimIdle);
                 return;
             }
 
-            // 权威射击窗在场（扣扳机/成功开火——Sim 统一置窗）→ 进战斗根 Fire 系（按锁存选叶）：
-            // 扣扳机被武器门拦下（空仓/换弹/冷却）的帧同进语境——朝向已跟准星（InputSystem 判据
-            // 同一条），此处不进根即"面朝反向播前进走"的倒滑（MoveBlend 无方向性）。
-            // 窗续期与退根由战斗根单点裁决（权威窗是保持条件而非充值源——Sim 窗尽即离场）。
+            // 权威射击窗在场（扣扳机/成功开火——Sim 统一置窗）→ 进战斗根 Fire 系（按锁存选叶）： 扣扳机被武器门拦下（空仓/换弹/冷却）的帧同进语境——朝向已跟准星（InputSystem 判据 同一条），此处不进根即"面朝反向播前进走"的倒滑（MoveBlend 无方向性）。
             if (_ctx.IsFireStance)
             {
                 m.Request(_ctx.IsMoving ? CharacterAnimId.FireWalk : CharacterAnimId.FireIdle);
@@ -69,7 +63,7 @@ namespace LiteGame
 
         public void OnLeave(IStageHost<CharacterAnimId, CombatAnimReq> m)
         {
-            // 覆盖开始：收 Base 通道——事务序（先深→浅退出、再浅→深进入）保证先停后播
+            // 覆盖开始：收 Base 通道——事务序（先深→浅退出、再浅→深进入）保证先停后播。
             if (_ctx.LocoHandle.IsValid)
                 _ctx.Player.Stop(_ctx.LocoHandle, AnimationStopReason.Cancelled);
             _ctx.LocoHandle = default;

@@ -6,10 +6,7 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 伪本地化装饰器（P2-3 B3；总设计 §6.3「多语言长文本必须进入预览矩阵」）：包装任意
-    /// <see cref="ILocalizationService"/>，把取出的文本加长（≥30%）并加音标符——模拟德语/俄语系长词，
-    /// 暴露截断/换行/布局溢出；不改表、不写盘。P3 运行时调试线可直接复用。
-    /// 富文本标签（&lt;...&gt;）原样透传，避免装饰器破坏作者标记。
+    /// 伪本地化装饰器（P2-3 B3）。
     /// </summary>
     public sealed class PseudoLocale : ILocalizationService
     {

@@ -8,12 +8,7 @@ using LiteGame.Modules.Input;
 namespace LiteGame
 {
     /// <summary>
-    /// Match 域会话工厂（《客户端依赖注入专项设计》§6）：从账号运行时端口（<see cref="IAccountRuntime"/>）
-    /// 建立局内服务域（Match 子域）与 <see cref="BattleContext"/>（**类型化工厂**——
-    /// 进房参数/输入服务经工厂声明依赖进域，流程不再裸 new）。
-    ///
-    /// **Unity 面**（BattleContext 依赖 SimView——本件只被 Unity 编译；.NET 侧验收归 DI-4）。
-    /// Account 半边（<see cref="AccountSessionFactory"/>）零引擎依赖、L1 源链接直测。
+    /// Match 域会话工厂（《客户端依赖注入专项设计》§6）：从账号运行时端口（IAccountRuntime） 建立局内服务域（Match 子域）与 BattleContext（**类型化工厂**—— 进房参数/输入服务经。）。
     /// </summary>
     public interface IMatchSessionFactory
     {

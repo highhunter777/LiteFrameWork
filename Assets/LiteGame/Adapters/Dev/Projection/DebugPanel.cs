@@ -10,9 +10,7 @@ using Object = UnityEngine.Object;
 namespace LiteGame
 {
     /// <summary>
-    /// 常用调试面板（F2，UI Toolkit）：控制台之外的轻量投影——本地测试模式进入/退出/传送 +
-    /// <see cref="TestModeOptions"/> 的 Live 开关。动作与读写全部经 <see cref="DebugKernel"/>，
-    /// 不直调业务服务、不另拼读数；release 随三宏剥离。
+    /// 常用调试面板（F2，UI Toolkit）：控制台之外的轻量投影——本地测试模式进入/退出/传送 + TestModeOptions 的 Live 开关。
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class DebugPanel : MonoBehaviour
@@ -111,7 +109,7 @@ namespace LiteGame
             {
                 foreach (TestModeOptions.Info option in _kernel.Options)
                     if (option.Group == TestModeOptions.Group.Live) _liveOptions.Add(option);
-                // 早于内核装配建过 UI（空开关表）时重建一次，补上 Live 开关按钮
+                // 早于内核装配建过 UI（空开关表）时重建一次，补上 Live 开关按钮。
                 if (_ui != null)
                 {
                     _ui.Dispose();

@@ -5,10 +5,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 预览安全区模拟策略（P2-3 B3；总设计 §7.3）：按设备档 inset 换算——返回**当前屏幕像素空间**的 Rect
-    /// （inset px × Screen.当前宽高 / 设备档分辨率缩放），`SafeAreaReceiver.Apply` 按实际 Screen 归一，
-    /// 故 GameView 分辨率未应用（降级）时归一锚点仍正确。
-    /// 住 App 程序集编辑器形态（与 UIPreviewDriver 同位；构造只收原语，不依赖编辑器程序集类型）。
+    /// 预览安全区模拟策略（P2-3 B3）。
     /// </summary>
     public sealed class PreviewSafeAreaStrategy : ISafeAreaStrategy
     {

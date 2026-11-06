@@ -7,12 +7,7 @@ using LiteSim;
 namespace LiteGame.Modules.Config
 {
     /// <summary>
-    /// <c>battlestrategy</c> 表 → <see cref="BattleStrategyProfile"/> 的唯一投影点（客户端装载链）。
-    /// 缺表/缺行回落 <see cref="BattleStrategyProfile.Default"/>；**行存在但值非法**（颜色格式/阈值次序/
-    /// 规则越界）一律抛 <see cref="InvalidDataException"/>——启动期配置错误不静默带进对局。
-    ///
-    /// 服务端只复用 <see cref="BattleStrategyTableReader.ReadRules"/> 投影规则四值（不引 Core 表现类型）；
-    /// 本类只服务客户端表现/策略面。
+    /// battlestrategy 表 → BattleStrategyProfile 的唯一投影点（客户端装载链）。
     /// </summary>
     public static class BattleStrategyProfileFactory
     {

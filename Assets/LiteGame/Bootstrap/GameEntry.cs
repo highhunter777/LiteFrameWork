@@ -9,16 +9,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 进程壳（AOT 侧，B1.5）：只做**场景入口 + 宿主生命周期 + 入口装载 + 错误面**。
-    /// 模块装配与启动续体归产品组合根（LiteGame.ClientEntry，经 ClientEntryLoader
-    /// 按程序集限定名反射装载）——本件不认识任何 LiteGame.Modules.* 实现。
-    ///
-    /// - Awake：建 ClientHost + AppLifetime 桥 → 装载入口并 Configure
-    ///   （登记装配段/组合根）→ 启动宿主初始化（失败 → BootstrapErrorPresenter 确定错误态）。
-    /// - Start：宿主初始化完成后调用入口 StartAsync（开发调参/探针/流程机启动由产品侧负责）。
-    /// - Update：驱动容器 Tickables（变速由 IGameClock 内部缩放，勿用 Time.deltaTime 二次乘）。
-    /// - 退出/宿主销毁：AppLifetime 桥接优雅关闭（刷新钩子 + 逆序段关闭 + 根 Scope 释放）。
-    ///
-    /// 静态状态仅 s_booted 幂等标记（重复引导守卫；不持真实生命周期）。
     /// </summary>
     [DefaultExecutionOrder(-1000)]   // 引导件必须最先 Awake：FileSystem/Log/容器由本件经 ClientHost 建立，其余组件依赖这套基础设施
     public sealed class GameEntry : MonoBehaviour
@@ -42,11 +32,9 @@ namespace LiteGame
         private UniTask<bool> _hostInit;          // Awake 启动、Start 等待；失败已出错误面
         private bool _active;
 
-        /// <summary>引导与开发/测试工具取得已装配的根容器；**业务流程只消费注入的能力**。
-        ///
-        /// 消费面封闭（清单登记在 Docs/审计/客户端/登记/技术债.md「TakeContainer 消费清单」）：
-        /// 编辑器工具（GM 取件 / DevReload / LuaDevRefill）与 PlayMode 冒烟用例；
-        /// 产品运行期代码与流程阶段不得调用（否则等于运行期服务定位器，层级边界静默失效）。</summary>
+        /// <summary>
+        /// 引导与开发/测试工具取得已装配的根容器。
+        /// </summary>
         public ServiceContainer TakeContainer()
         {
             if (_container == null) throw new InvalidOperationException("未装配");
@@ -71,7 +59,7 @@ namespace LiteGame
             s_booted = true;
             _active = true;
 
-            // ClientHost + 平台桥（AppLifetime 同 GameObject：接管 Pause/Focus/LowMemory/Quit 与退出善后）
+            // ClientHost + 平台桥（AppLifetime 同 GameObject：接管 Pause/Focus/LowMemory/Quit 与退出善后）。
             _host = new ClientHost();
             gameObject.AddComponent<AppLifetime>().Bind(_host);
 
@@ -93,7 +81,7 @@ namespace LiteGame
                 return;
             }
 
-            // 跨场景存活（引导件被场景卸载销毁 = 泵停转 = 全局静默冻结）
+            // 跨场景存活（引导件被场景卸载销毁 = 泵停转 = 全局静默冻结）。
             DontDestroyOnLoad(gameObject);
             _hostInit = InitializeHostAsync(_bootCts.Token);
         }
@@ -109,7 +97,7 @@ namespace LiteGame
             }
             catch (OperationCanceledException)
             {
-                // 引导取消：进入确定空闲态（Host 已回滚），不起流程
+                // 引导取消：进入确定空闲态（Host 已回滚），不起流程。
                 Log.Warning("GameEntry 引导被取消（Host 已回滚到确定状态）", LogTag.GameEntry);
                 return false;
             }

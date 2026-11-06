@@ -28,6 +28,7 @@
 - 命名统一：遵循统一的命名规范。
 - 消除重复：减少重复实现，优先复用。
 - 注释准确：代码注释仅描述现有设计与实现。
+- **注释预算**：XML 文档注释 ≤4 行（含 `<summary>`/`<param>` 标签行）；非 XML 块注释 类型 ≤3 行、成员 ≤2 行；设计理由/历史迁 `Docs/设计文档/`，代码只留结论与指针。守卫 `python scripts/gate/comment-lint.py`（增量），存量见[注释债登记](Docs/审计/客户端/登记/注释债.md)。
 - 架构一致：除 ECS 架构外，均遵循面向对象规范。
 - 开闭原则：对修改关闭，对扩展开放。
 - 禁止硬编码：避免硬编码，使用配置、常量或数据驱动。
@@ -71,6 +72,7 @@
 11. **类设计**：单一职责；>400 行多职责先给拆分方案；禁 public 可变字段状态袋；禁哈希当身份键；事件回调上接口端口。
 12. **文档回写**：代码完成后回写设计文档/施工进度；修了审计登记条目回写"修复登记"表；新问题按格式追加登记。
 13. **真机验证必须模拟人类操作**：真机/Play 端到端验证必须走真实操作路径（真实指针/键盘模拟驱动界面与流程：入口 → 操作 → 副作用断言）；UI 面先"可点性自检"（交互控件射线命中）再模拟点击；禁以直调 API/桩调用冒充"操作过"——结论必须覆盖"可操作"，全绿 ≠ 可点（细则见 [规范 02](Docs/规范/02-代码与修改规范.md) §2.3）。
+14. **注释预算**：XML 文档注释 ≤4 行（含标签），非 XML 块注释 类型 ≤3、成员 ≤2；超限的设计说明迁设计文档，代码只留结论与指针。守卫 `python scripts/gate/comment-lint.py`（增量；PR 基线 `--base origin/main`），存量按[注释债登记](Docs/审计/客户端/登记/注释债.md)分批清、只减不增。
 
 ## Skill 索引（按任务触发，ZCode）
 
@@ -98,6 +100,7 @@ python scripts/toolchain.py open <tool-id>                  # 在编辑器 Hub �
 # 验证基线（白天代码批，一切改动的底线）
 python scripts/gate/test.py --suite L1 --profile PullRequest     # L1 纯逻辑（含纪律扫描/表守卫/BuildHash 守卫）
 python scripts/gate/l0-dep-scan.py                            # 依赖与秘密扫描
+python scripts/gate/comment-lint.py                           # 注释预算（增量；--all 全量普查）
 python scripts/codegen/toolbox.py                            # 生成器工具箱（build-hash/proto/luban/sync-code/refresh-hash 统一入口；形态见专项设计）
 python scripts/codegen/toolbox.py build-hash                     # ★ 共享源集/生成读码面/Meta 源集改动后必跑（一次写两常量；表值 .bytes 改动不必跑）
 python scripts/codegen/toolbox.py build-hash --check             # 复算比对两个常量（发布 Meta 前）

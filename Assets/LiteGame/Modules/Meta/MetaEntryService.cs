@@ -9,15 +9,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 联机入口编排件（《上云测试专项设计》§2 客户端闭环：游客登录 → 房间列表 → Join Ticket → **现有 Join 管道**）。
-    ///
-    /// - **登录态只住本服务**：访问令牌不落日志、不出服务面（§11.1 同源纪律）——Lua 门面只回
-    ///   accountId 与结果形状（见 <c>Bridge.Meta</c>）；
-    /// - **进房 = Request(Match, MetaJoin)**：走 ProcedureMatch 既有管线（JoinAck → Battle 移交不变）——
-    ///   票据经验签才能进房，本服务不做第二套会话；
-    /// - **零引擎依赖**：设备标识经 <c>Func&lt;string&gt;</c> 注入、流程机经 <see cref="IStageHost{TId,TReq}"/>
-    ///   窄接口注入——EditMode 直测；
-    /// - **fail-closed**：未配置 Meta 基址（无 -meta.url）= <see cref="IsConfigured"/> false，一切入口显性失败，
-    ///   不悄悄回退本地/测试身份。
     /// </summary>
     public sealed class MetaEntryService : IAccountSessionControl, IMetaConfigFacts
     {
@@ -163,14 +154,12 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 离房/离局（进房的逆操作，同一窄接口同一管道）：请求流程机回 Main——在途阶段
-        /// （Match 等 JoinAck / Battle 对局）被取消，资源释放归各自 finally（离场无残留的既有流程侧保证）。
-        /// 未绑定流程机 = 无操作（false；与 <see cref="EnterRoomAsync"/> 的显性失败同判据）。
+        /// 离房/离局（进房的逆操作，同一窄接口同一管道）：请求流程机回 Main——在途阶段 （Match 等 JoinAck / Battle 对局）被取消，资源释放归各自 finally（离场无残留的既有流程侧保证）。
         /// </summary>
         public bool LeaveMatch()
         {
             if (_flow == null || _flow.IsAtMain) return false;   // 已在主菜单（无对局/工作台等 dev 落点）：
-                                                                  // 再请求回 Main 会被流程机拒为"重入禁止"并抛——离场语义不成立，直接 no-op
+                                                                  // 再请求回 Main 会被流程机拒为"重入禁止"并抛——离场语义不成立，直接 no-op。
             _flow.RequestMain();
             return true;
         }

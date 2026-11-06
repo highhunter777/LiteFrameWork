@@ -12,13 +12,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 战斗表现视图门面：槽位镜像、远端插值、本地和解衰减、事件静默。
-    ///
-    /// **只读 Sim、只写视图**——不写任何 Sim 状态。协作件分工：
-    /// <see cref="SnapshotInterpolationBuffer"/>（jitter buffer/渲染帧/远端插值）、
-    /// <see cref="LocalReconciler"/>（本地表现与硬切）、
-    /// <see cref="FrameEventSilenceGate"/>（回滚/和解事件去重）、
-    /// <see cref="SimViewFacts"/>（表现层事实读口）、
-    /// <see cref="EntityViewBinder"/>（槽位视图生命周期与远端落位）。
     /// </summary>
     public sealed class SimView : ITickable, IBattleView
     {

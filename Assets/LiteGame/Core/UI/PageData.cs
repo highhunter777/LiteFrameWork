@@ -5,11 +5,6 @@ namespace LiteGame.Modules.UI
 {
     /// <summary>
     /// 页面导航数据（中立数据面，纯数据、零引擎）：具名键 → 标量 / 子表 / 行数组，按插入序展开。
-    ///
-    /// 为什么需要：流程段构造页面数据（结算摘要、对局菜单门控位）时不该认识 Lua 表——
-    /// 数据树在这里装配，投射成平台数据（LuaTable）由 <see cref="IPageDataFactory"/> 的实现侧负责。
-    /// 取值类型只允许 bool / int / string / <see cref="PageData"/> / `IReadOnlyList&lt;PageData&gt;`（行数组）；
-    /// 其余类型由实现侧 fail-fast（写错的值不静默丢字段）。
     /// </summary>
     public sealed class PageData
     {
@@ -41,7 +36,7 @@ namespace LiteGame.Modules.UI
         {
             if (string.IsNullOrEmpty(key)) throw new ArgumentException("页面数据键不能为空", nameof(key));
             if (value == null) throw new ArgumentNullException(nameof(value));
-            // 重复键 = 装配错误：后写覆盖会让数据面静默丢字段（页面读到的不是作者写的那份）
+            // 重复键 = 装配错误：后写覆盖会让数据面静默丢字段（页面读到的不是作者写的那份）。
             for (int i = 0; i < _values.Count; i++)
                 if (string.Equals(_values[i].Key, key, StringComparison.Ordinal))
                     throw new InvalidOperationException("页面数据键重复：" + key);

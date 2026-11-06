@@ -4,16 +4,7 @@ using LiteSim;
 namespace LiteGame.Spatial
 {
     /// <summary>
-    /// 表现变换数学（《联机战斗演示专项设计》§2.4 C3：插值/衰减抽成纯函数
-    /// （ViewTransformMath，无引擎依赖）→ 进 Tests/LiteSim.Core.Tests（L1 覆盖），避免"表现数学
-    /// 只能靠肉眼验"）：
-    ///
-    /// **本文件零引擎依赖**——只用 <see cref="SimVector3"/> 与 System.Math。它同时被
-    /// `LiteView`（Unity 运行时）与 `Tests/LiteSim.Core.Tests`（L1，经 csproj Link 编译）使用，
-    /// 保持单一来源（同一份语义不可能在两侧漂移）。
-    ///
-    /// 纪律（《状态同步专项设计》§6.2 / 红线）：本类**只做表现换算**，不携带任何判定——
-    /// 表现位置永远只是权威/预测状态的**呈现**，不回写 Sim。
+    /// 表现变换数学（《联机战斗演示专项设计》§2.4 C3：插值/衰减抽成纯函数 （ViewTransformMath，无引擎依赖）→ 进 Tests/LiteSim.Core.Tests（L1 覆盖）。）。
     /// </summary>
     public static class ViewTransformMath
     {
@@ -50,12 +41,7 @@ namespace LiteGame.Spatial
         }
 
         /// <summary>
-        /// 和解误差衰减（《状态同步专项设计》§6.2"和解时本地误差衰减"）：把表现位置从
-        /// <paramref name="from"/> 向 <paramref name="to"/> 收敛——每帧按剩余比例的指数衰减，
-        /// 帧率无关（半衰期式）。<paramref name="sharpness"/> 越大收敛越快；≤0 = 不动（保持 from）。
-        ///
-        /// 用 <c>1 - exp(-sharpness*dt)</c> 而非固定系数：抖动只与真实经过时间相关，
-        /// 掉帧/变帧率不改变收敛手感（§6.2"本地修正不微抖"的实现口径）。
+        /// 和解误差衰减（《状态同步专项设计》§6.2"和解时本地误差衰减"）：把表现位置从 向 收敛——每帧按剩余比例的指数衰减， 帧率无关（半衰期式）。
         /// </summary>
         public static SimVector3 Decay(in SimVector3 from, in SimVector3 to, float sharpness, float deltaSeconds)
         {
@@ -75,9 +61,7 @@ namespace LiteGame.Spatial
         }
 
         /// <summary>
-        /// 硬切判据（《状态同步专项设计》§6.2"复活/传送允许硬切"）：剩余误差超过
-        /// <paramref name="snapDistance"/> 时不再衰减而是瞬时对齐——衰减追不上大幅偏差，
-        /// 拖尾观感差且长时间偏离权威位置。
+        /// 硬切判据（《状态同步专项设计》§6.2"复活/传送允许硬切"）：剩余误差超过 时不再衰减而是瞬时对齐——衰减追不上大幅偏差， 拖尾观感差且长时间偏离权威位置。
         /// </summary>
         public static bool ShouldSnap(in SimVector3 from, in SimVector3 to, float snapDistance)
         {

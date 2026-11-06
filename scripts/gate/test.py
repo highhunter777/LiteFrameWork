@@ -238,9 +238,12 @@ def invoke_dotnet_suite(name, filter_text, hang_timeout, project, results, run_i
 def invoke_doc_lint(project, profile, results, run_id):
     info("quality/test", f"doc-lint | {profile}")
     doc_lint = project / "scripts" / "gate" / "doc-lint.py"
+    comment_lint = project / "scripts" / "gate" / "comment-lint.py"
     toolchain = project / "scripts" / "toolchain.py"
     if not doc_lint.is_file():
         raise RuntimeError(f"doc-lint script missing: {doc_lint}")
+    if not comment_lint.is_file():
+        raise RuntimeError(f"comment-lint script missing: {comment_lint}")
     if not toolchain.is_file():
         raise RuntimeError(f"toolchain CLI missing: {toolchain}")
     previous = os.environ.get("PYTHONIOENCODING")
@@ -249,6 +252,9 @@ def invoke_doc_lint(project, profile, results, run_id):
         try:
             run_or_raise([sys.executable, str(doc_lint), "--root", str(project)], "doc-lint", cwd=project)
             run_or_raise([sys.executable, str(toolchain), "docs", "--check"], "tool index check", cwd=project)
+            base = os.environ.get("LITEGAME_COMMENT_BASE", "HEAD")
+            run_or_raise([sys.executable, str(comment_lint), "--root", str(project), "--base", base],
+                         "comment-lint", cwd=project)
         except RuntimeError as exc:
             write_summary(results, suite="Doc", profile=profile, status="fail", run_id=run_id, error=str(exc))
             raise
@@ -258,7 +264,7 @@ def invoke_doc_lint(project, profile, results, run_id):
             os.environ.pop("PYTHONIOENCODING", None)
         else:
             os.environ["PYTHONIOENCODING"] = previous
-    info("quality/test", "PASS: doc-lint + tool index completed.")
+    info("quality/test", "PASS: doc-lint + tool index + comment-lint completed.")
 
 
 def invoke_arch_check(project, profile, results, run_id):

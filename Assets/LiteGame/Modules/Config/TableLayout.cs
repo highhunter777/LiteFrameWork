@@ -4,12 +4,7 @@ using System.Collections.Generic;
 namespace LiteGame.Modules.Config
 {
     /// <summary>
-    /// 表数据目录布局单源（客户端与服务端**源链接共编**——RoomServer.csproj/测试工程 Compile Include 本文件）：
-    /// 领域分类目录（《资源收集目录专项设计》§5.1）下的表清单、判定面清单与位置。
-    ///
-    /// **单源纪律**：gen_luban.py 解析本文件的 <see cref="Files"/> 做 bin 产物的分域归位（生成器引用运行时常量）；
-    /// 客户端 <see cref="ConfigService"/> 与服务端 <see cref="RoomServer.ServerTableLoader"/> 的装载路径都从本类取——
-    /// 新增表 = 在 <see cref="Files"/> 加一行"领域/表名"，再跑 gen.bat + gen-build-hash.py。
+    /// 表数据目录布局单源（客户端与服务端**源链接共编**——RoomServer.csproj/测试工程 Compile Include 本文件）： 领域分类目录（《资源收集目录专项设计》§5.1）下的表清单。
     /// </summary>
     public static class TableLayout
     {
@@ -25,9 +20,9 @@ namespace LiteGame.Modules.Config
             "Entity/tbentityconfig",   // 实体定义（默认角色出生 HP；装载后投影到固定对局配置）
             "UI/tbuiform",
             "UI/tbltext",               // LText 文案表（key→zh/en；BindLocale 数据源——表现层，进 BuildHash 表现层排除）。
-                                       // 表源 #ltext.xlsx：Luban 生成名派生自输入文件名，而 #text.xlsx 是其 L10N 保留名、不可用
+                                       // 表源 #ltext.xlsx：Luban 生成名派生自输入文件名，而 #text.xlsx 是其 L10N 保留名、不可用。
             "UI/tbcrosshair",          // 准心调参表（按武器一行：静态满张/连发张开/后坐——纯 View 表现域，
-                                       // 不进判定面摘要；消费＝App 装配层投影 CrosshairFeelCatalog）
+                                       // 不进判定面摘要；消费＝App 装配层投影 CrosshairFeelCatalog）。
             "Content/tbcontententry",
             "Strategy/tbstrategy",
             "Strategy/tbbattlestrategy", // B3 战斗策略键值表（规则四值/排行/伤害数字参数；缺行回落 C# 默认）
@@ -39,18 +34,12 @@ namespace LiteGame.Modules.Config
         };
 
         /// <summary>
-        /// 判定面域（**玩法数据身份**——`CombatConfigDigest` 覆盖的表域单源）：
-        /// 域内全部表进运行期摘要（见 <see cref="JudgmentFiles"/>），新增表**落域即入面**——不依赖第二份人工清单。
-        /// 判据 = 该域的表参与判定（两端必须同值）：Combat（数值/武器）、Movement（移动数值）、Entity（实体定义）、
-        /// Item（道具定义）、Map（地图几何——移动碰撞 + 射击遮挡）。**不计入**：UI/Content/Strategy/Animation——
-        /// 表现与内容面（单端可变，热更面；`tbanimationprofile` 亦在此列——动画 Profile 属表现面，单端热更不换联机身份）。
+        /// 判定面域（**玩法数据身份**——`CombatConfigDigest` 覆盖的表域单源）： 域内全部表进运行期摘要（见 JudgmentFiles），新增表**落域即入面**——不依赖第二份人工清单。
         /// </summary>
         public static readonly string[] JudgmentDomains = { "Combat", "Movement", "Entity", "Item", "Map" };
 
         /// <summary>
-        /// 判定面表清单（<see cref="Files"/> 声明序派生——**顺序即摘要规范的一部分**，两端同一份）：
-        /// 装载后按 <see cref="ComputeGameplayDigestBase"/> 复算玩法数据身份（服务端出 `StartGame.ConfigHash`、
-        /// 客户端装载后比对）。取数归各自 IO（客户端装载候选缓存 / 服务端直读盘），清单与顺序归本处。
+        /// 判定面表清单（Files 声明序派生——**顺序即摘要规范的一部分**，两端同一份）。
         /// </summary>
         public static readonly string[] JudgmentFiles = DeriveJudgmentFiles();
 
@@ -75,10 +64,7 @@ namespace LiteGame.Modules.Config
         }
 
         /// <summary>
-        /// 判定面表字节 → 玩法数据身份**基摘要**（两端共用：算法/覆盖面单源 = <c>CombatConfigDigest</c>）。
-        /// 入参 = 装载缓存（**裸表名 → .bytes 字节**，两端同形：客户端 <see cref="ConfigService.LoadAsync"/>
-        /// 预取缓存、服务端 `ServerTableLoader.LoadTableBytes` 预读缓存）——两端同一份文件必得同一摘要。
-        /// 缺字节抛（清单/取数口径漂移＝静默退化的入口，宁 fail-fast）。
+        /// 判定面表字节 → 玩法数据身份**基摘要**（两端共用：算法/覆盖面单源 = CombatConfigDigest）。
         /// </summary>
         public static uint ComputeGameplayDigestBase(IReadOnlyDictionary<string, byte[]> bytesByTableName)
         {

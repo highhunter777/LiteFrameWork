@@ -12,14 +12,7 @@ using LiteGame.Modules.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 服务桥根类型：Lua 全局表五件（data/ui/content/text/battle）的宿主。启动时绑定成 Lua 全局表，
-    /// **白名单只此五件**——ILuaRegistry/玩法系统一律不导出（设计方案 §4.3 服务桥纪律）。
-    /// 产品侧另有联机门面（meta）经 <c>ProductBridges</c> 装订（批C-③——装订面住本适配器，
-    /// 实现模块自持端口 <c>ILuaProductBridge</c>）；两路 env 重建（Preload/DevReload）
-    /// 共用同一装订面单源。
-    /// 绑定形态：不走生成 wrapper——门面方法以白名单委托（Func&lt;int, LuaTable&gt;）注册，
-    /// 行字段在 Runtime 层手工展开（Lua 不触碰 Luban 类型，§1d）；注册表实例经 BindRegistries
-    /// 装配期注入（装配根）。
+    /// 服务桥根类型：Lua 全局表五件（data/ui/content/text/battle）的宿主。
     /// </summary>
     public static class Bridge
     {
@@ -71,11 +64,7 @@ namespace LiteGame
         private static BattleLuaFacts BattleFacts() => s_battleFacts?.Invoke() ?? BattleLuaFacts.Default;
 
         /// <summary>
-        /// 绑定 Bridge 五门面为 Lua 全局表：
-        /// 由装配点/编辑器工具经 <c>LuaComponent.Init</c> 注入——宿主（LiteFramework.Scripting.XLua）不认识 Bridge，
-        /// 依赖方向 = 产品 → 框架。门面方法全走白名单委托；只导出五门面（data/ui/content/text/battle）——battle 是只读事实，不接受写操作，
-        /// ILuaRegistry/玩法系统一律不导出；禁止 CS. 直引业务类型。
-        /// 产品侧扩展门面（meta）经 <c>ProductBridges.BindGlobals</c> 同 env 装订（见类头注释）。
+        /// 绑定 Bridge 五门面为 Lua 全局表： 由装配点/编辑器工具经 LuaComponent.Init 注入——宿主（LiteFramework.Scripting.XLua）不认识 Bridge。
         /// </summary>
         public static void BindGlobals(LuaEnv env)
         {
@@ -117,7 +106,7 @@ namespace LiteGame
         /// <summary>数据门面：查表。C# 侧强类型直返；Lua 侧经 GetXxxLua 手工展开并按行缓存。</summary>
         public static class Data
         {
-            // ---- C# 侧（强类型直返；行对象由 Luban DataMap 自缓存，不重复建 C# 缓存）----
+            // ---- C# 侧（强类型直返；行对象由 Luban DataMap 自缓存，不重复建 C# 缓存）----。
 
             /// <summary>查道具表（ItemConfig：类型 + 刷新/拾取/携带/使用 + 各类型效果数值）。</summary>
             public static cfg.itemconfig GetItem(int id) => Tables().Tbitemconfig.Get(id);
@@ -189,10 +178,7 @@ namespace LiteGame
             }
 
         /// <summary>
-        /// lua_path → 页面 id（生成目录反查；未登记返回 -1）。
-        /// 页面寻址的单源解析口——页面脚本与产品流程（PageFlow）都按 lua_path 寻址（如 `UI.Page_Lobby`，
-        /// 与 <c>LuaKeys</c> 常量同文），magic id 不进脚本（禁硬编码）。实现委托模块侧解析器
-        /// <see cref="LiteGame.Modules.UI.UIPageResolver"/>（页面目录归产品模块，Lua 桥不持有第二份）。
+        /// lua_path → 页面 id（生成目录反查）。
         /// </summary>
         public static int ResolveUIFormId(string luaPath) => LiteGame.Modules.UI.UIPageResolver.Resolve(luaPath);
 
@@ -269,9 +255,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// text 门面（LText 受控面，批C-②）：Get/Format 取文案（Toast/动态拼接用——**控件文案仍走
-        /// <c>self.ui:SetTextKey</c>**，语言切换自动刷新）；SetLocale/Locale 供设置页语言切换。
-        /// 参数上限 4 个具名位（与 Lua shim 的 LText 参数口径一致，MaxLuaFormatArgs）。
+        /// text 门面（LText 受控面，批C-②）：Get/Format 取文案（Toast/动态拼接用——**控件文案仍走 self.ui:SetTextKey**，语言切换自动刷新）。
         /// </summary>
         public static class Text
         {

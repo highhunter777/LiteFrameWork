@@ -10,11 +10,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame
 {
     /// <summary>
-    /// 候选 config/ 段的激活前语义校验（H4-2）：
-    /// 全量表字节 → 候选 cfg.Tables → ConfigTableValidator.Validate。
-    ///
-    /// **不按激活代次判断候选**：健康确认发生在确认提交之前，必须直接读候选根——否则探针永远
-    /// 看到 builtin 而跳过。无 config 段（bundle-only）返回 null；不发布、不写盘、不碰已发布状态。
+    /// 候选 config/ 段的激活前语义校验（H4-2）： 全量表字节 → 候选 cfg.Tables → ConfigTableValidator.Validate。
     /// </summary>
     public sealed class ConfigCandidateHealthProbe : IHealthProbe
     {

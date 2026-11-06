@@ -4,9 +4,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 本地测试房宿主钩子（开发/沙箱面端口）：产品只经本接口读写，具体实例住 `LiteGame.Dev`。
-    ///
-    /// 信任边界：这些开关只服务进程内本地服（冻结/回满/重置/传送），不得进入真服务器判定链；
-    /// 发布形态由 `NullDevSession` 提供全关空实现。
     /// </summary>
     public interface ILocalTestHooks
     {

@@ -7,9 +7,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 对局视图组端口（Battle 阶段唯一视图入口）：资源取件 → 建视图/接线 → 每帧驱动 → 逆序拆除。
-    /// 实现归战斗域（`Setup/BattleViewRig` 及装配件）；流程只持本口，不持有具体装配件类型。
-    /// **挂载不进本口**：`Attach(BattleContext)` 住实现件内部接缝 <see cref="IBattleViewAttachment"/>——
-    /// 契约包不得引用域内实现类型（规范 04 §6.8 R-D）。
     /// </summary>
     public interface IBattleViewGroup : IDisposable
     {

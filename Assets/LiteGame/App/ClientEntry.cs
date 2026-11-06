@@ -15,14 +15,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 产品组合根入口（B1.5）：承接原 <c>GameEntry</c> 的**模块装配序**与**启动续体**。
-    /// 本类住 <c>LiteGame.App</c>（实现件），由 AOT 壳 <c>ClientEntryLoader</c> 按程序集限定名反射装载；
-    /// AOT 壳不认识本类，也不认识任何 <c>LiteGame.Modules.*</c>。
-    ///
-    /// 调用序（与拆分前逐项一致）：
-    /// ① <see cref="Configure"/>：建组合根/部署烙入 → 注册 18 段 → ComposeRoot（宿主初始化前一次）；
-    /// ② 宿主初始化由 AOT 壳执行；
-    /// ③ <see cref="StartAsync"/>（Unity Start 后）：取容器/流程机 → 开发调参注入 → 探针武装 → 流程机 Launch。
+    /// 产品组合根入口（B1.5）：承接原 GameEntry 的**模块装配序**与**启动续体**。
     /// </summary>
     public sealed class ClientEntry : IClientEntry
     {
@@ -39,11 +32,11 @@ namespace LiteGame
             _host = host ?? throw new ArgumentNullException(nameof(host));
             _hostObject = hostObject ?? throw new ArgumentNullException(nameof(hostObject));
 
-            // 组合根：适配器工厂 + 跨域装订（ComposeAfter）
+            // 组合根：适配器工厂 + 跨域装订（ComposeAfter）。
             _appComposition = new AppComposition();
             _deployBake = new DeployBake();               // 包内烙入（内容/联机两段共用同一实例，只读一次）
             RegisterSegments(host);
-            // 全部模块成功后、装配面密封前做跨域装订（桥/模态/身份/输入拦截/开发装饰/帧驱动序/密封）
+            // 全部模块成功后、装配面密封前做跨域装订（桥/模态/身份/输入拦截/开发装饰/帧驱动序/密封）。
             host.ComposeRoot(_appComposition.ComposeAfter);
         }
 
@@ -55,14 +48,14 @@ namespace LiteGame
             if (_fsm == null)
                 throw new InvalidOperationException("host bootstrap incomplete: procedure machine missing");
 
-            // 开发运行期调节件注入（Dev 装配钩子；未绑定/未挂载 = no-op）
+            // 开发运行期调节件注入（Dev 装配钩子；未绑定/未挂载 = no-op）。
             DevHooks.Current?.InjectRuntimeTuners(_hostObject,
                 _host.Product<IWorldClock>(), _host.Product<IUIClock>(),
                 _host.Product<EventBus>(), _host.Product<CommandCenter>());
             // 内存循环实测探针：**不进 dev 条件块**——本构建为非 dev Player（dev 块在此被剔除），
             // 靠 -memloop 命令行门控（未带参数 = 一次数组查找后无操作，同 -content.cdnUrl 风格）
             MemoryLoopProbe.TryArm(_container);
-            // 模态输入恢复探针：同款命令行门控（-inputmodal）——正常启动零影响
+            // 模态输入恢复探针：同款命令行门控（-inputmodal）——正常启动零影响。
             InputModalProbe.TryArm(_host);
 
             _fsm.Start(ProcedureId.Launch);
@@ -71,10 +64,6 @@ namespace LiteGame
 
         /// <summary>
         /// 模块装配序列（《客户端总设计》§6.1"按依赖顺序初始化，失败时只关闭已经成功初始化的模块"）。
-        ///
-        /// **注册顺序 = 初始化顺序 = 关闭逆序**：模块间依赖只能引用更早模块的产物（经
-        /// <see cref="SegmentContext"/> 的 Put/Require 传递，与根容器共享实例来源）。
-        /// 模块序表达异步初始化/关闭依赖；服务声明图由容器预检，帧驱动序由装配根显式声明。
         /// </summary>
         private void RegisterSegments(ClientHost host)
         {
@@ -102,7 +91,7 @@ namespace LiteGame
                 .AddSegment(new BattleSegment(() => DevHooks.Diagnostics,
                     () => DevHooks.Current?.CreateBattleOverlay(),
                     new LiteFramework.Animation.AnimatorAnimationBackendFactory()))
-                                                                    // ⑯ 战斗域（表现内核 + 会话/对局工厂；诊断与动画后端由 App 注入）
+                                                                    // ⑯ 战斗域（表现内核 + 会话/对局工厂；诊断与动画后端由 App 注入）。
                 .AddSegment(new SessionSegment())             // ⑰ 会话（账号会话 + 传输端口；对局运行归 ⑯）
                 .AddSegment(new ProcedureSegment(_appComposition.LuaBridgesFactory(),        // ⑱ 应用壳（流程机 + 页面流 + 恢复）
                     _appComposition.LuaRegistryFillerFactory()));

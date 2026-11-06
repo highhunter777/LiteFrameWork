@@ -7,11 +7,7 @@ using XLua;
 namespace LiteGame
 {
     /// <summary>
-    /// 页面数据投射的实现（`IPageDataFactory` 端口 → Lua 表）：中立数据树逐层展开为 LuaTable，
-    /// 行数组展开为 1 基序数组；投影结果为 <see cref="LuaUIData"/>（适配器回传时解包出原始表）。
-    ///
-    /// env 经委托现取——DevReload 重建 env 后旧的 LuaTable 引用全部失效。
-    /// 值类型超出数据面允许集即 fail-fast：写错的值不静默丢字段。
+    /// 页面数据投射的实现（`IPageDataFactory` 端口 → Lua 表）：中立数据树逐层展开为 LuaTable， 行数组展开为 1 基序数组。
     /// </summary>
     public sealed class LuaPageDataFactory : IPageDataFactory
     {

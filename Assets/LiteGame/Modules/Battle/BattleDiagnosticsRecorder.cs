@@ -64,7 +64,7 @@ namespace LiteGame
             }
             catch
             {
-                // 诊断钩子不得把异常回灌 Unity 日志（递归触发自身）
+                // 诊断钩子不得把异常回灌 Unity 日志（递归触发自身）。
             }
         }
 

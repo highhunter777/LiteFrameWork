@@ -125,7 +125,7 @@ namespace LiteGame
         {
             if (!_options.ShowNet) return;
             _sb.Clear();
-            // 会话 + 弱网注入同一文案单源（DebugKernel.Network）；无对局 = false ⇒ 整段不显示
+            // 会话 + 弱网注入同一文案单源（DebugKernel.Network）；无对局 = false ⇒ 整段不显示。
             if (_kernel.Network == null || !_kernel.Network.AppendLines(_sb)) return;
             EmitLines(_sb.ToString(), sink, HudTone.Normal, "Net");
 

@@ -6,9 +6,6 @@ namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 图形设置生效器：**画质预设**（低/中/高 ↔ 平台档位按名匹配、缺档按序号钳位）。
-    ///
-    /// 覆盖项（渲染缩放/抗锯齿/阴影）走"影子管线资产"，其克隆与还原属阶段 B（设计 §4.2）；
-    /// 本类当前只负责预设档，保证与既有行为逐位一致。
     /// </summary>
     public sealed class GraphicsSettingsApplier
     {

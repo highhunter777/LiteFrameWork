@@ -5,12 +5,9 @@ using LiteFramework;
 
 namespace LiteGame.Modules.Config
 {
-    /// <summary>⑩ 配置：表投影数据源（页面目录生成物/注册表填充依赖）。字节通道经 ④内容服务租约
-    /// （代次/引用统一——提取 bytes 即释放源资产，热更专项 §9）；候选校验→原子发布见 <see cref="ConfigService"/>。
-    ///
-    /// **适配器由组合根注入**：`ConfigService` 属 `LiteGame.Adapters.Luban`，而该程序集反向引用本域
-    /// （`Adapters.Luban → Modules.Config`）——段内直接 `new` 会成环，故接工厂委托，
-    /// 装配形态（用哪个实现）留在 <see cref="AppComposition"/>。</summary>
+    /// <summary>
+    /// ⑩ 配置：表投影数据源（页面目录生成物/注册表填充依赖）。
+    /// </summary>
     public sealed class ConfigSegment : IClientSegment, IClientSegmentGraph
     {
         private readonly Func<IContentService, IFileStore, ActivationTransactionStore, IConfigService> _createConfig;

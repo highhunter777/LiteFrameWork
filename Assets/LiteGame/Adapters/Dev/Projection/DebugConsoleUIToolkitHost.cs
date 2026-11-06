@@ -10,9 +10,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 开发控制台的 UI Toolkit 渲染后端（无资产：运行时创建 PanelSettings，内联样式）。
-    /// 只渲染输出行、滚动与输入行；输入仍由 <see cref="DebugConsole"/> 经 DevHotkey 收口，
-    /// 因此不依赖 UI Toolkit 焦点/主题（本工程运行期无 ThemeStyleSheet，标准控件无样式）。
-    /// 排序 10100 高于 DevHud（10000）与产品 uGUI 最高层（6000）。
     /// </summary>
     internal sealed class DebugConsoleUIToolkitHost
     {
@@ -166,7 +163,7 @@ namespace LiteGame
 
         private void OnWheel(WheelEvent evt)
         {
-            // UI Toolkit：delta.y > 0 = 向上滚；内容随之下移（top 增大），故取负
+            // UI Toolkit：delta.y > 0 = 向上滚；内容随之下移（top 增大），故取负。
             _scrollY = Mathf.Clamp(_scrollY - evt.delta.y * ScrollStep, 0f, MaxScroll());
             ApplyScroll();
             evt.StopPropagation();

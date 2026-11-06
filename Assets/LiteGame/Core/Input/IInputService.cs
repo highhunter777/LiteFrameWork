@@ -3,34 +3,8 @@
 namespace LiteGame.Modules.Input
 {
     /// <summary>
-    /// 游戏输入服务（《角色状态与动作专项设计》§3"输入三件"的框架落点；《联机战斗演示专项设计》
-    /// §5 联调顺序"输入和三个门"）：把"设备 → 意图 → 送到 Sim"这条链的**所有权与裁决**收进一个实体服务。
-    ///
-    /// <b>三个门与服务的关系</b>（职责不重叠；实现见 <see cref="InputService"/>）：
-    /// <list type="number">
-    /// <item><b>上下文门</b>——<see cref="RegisterBlocker"/> 登记的拦截源（UI 模态栈、暂停、失焦、
-    ///   重连提示）：任一成立，本帧的采样结论**作废**（<see cref="SampleDiposedByGate"/> 计数），
-    ///   待用意图写<b>全零</b>并照常置"已采样"（《角色状态与动作专项设计》§3 第 2 件
-    ///   "UI/菜单打开时输出零战斗意图"的直接落地：UI 打开时角色不动）。
-    ///   **为什么是"零"而不是"保持最后一次放行值"**：服务器对缺席帧的唯一读法是空输入兜底——
-    ///   本地沿用旧值推进、上行又静默，移动中弹模态即"本地在动、权威已停"，下一份快照必和解回拉；
-    ///   零值让本地预测/上行/权威兜底三处逐位同读"这一帧没有战斗输入"。照发还让 ackSnapshot 随包
-    ///   流动（静默超时会让服务器把整帧持续强制成全量快照）。
-    ///   UI 侧结论由装配根**经委托注入**，本服务不认识 UI 运行时（《客户端总设计》§5.1 逻辑边界）。</item>
-    /// <item><b>采样与上行</b>——每渲染帧最多采 1 次（<see cref="SampleOnRenderFrame"/>），
-    ///   <see cref="TryTakeForSend"/> 每渲染帧恰报一次：采到发采到的，没采到发全零；
-    ///   同一份输入既进预测又上行（两端同帧同值）。</item>
-    /// <item><b>帧边界门</b>——<see cref="TryTakeForPrediction"/> 每个逻辑帧消费一次，同一帧重复
-    ///   取用返回 false（追帧不产生额外输入）。</item>
-    /// </list>
-    ///
-    /// <b>数值面</b>：Move/Aim/Fire 三个连续意图。离散意图位
-    /// （Reload/Switch/Skill/Pickup/UseItem）需要按键沿检测与逐玩家单调递增的 <c>action_seq</c>
-    /// 发生器（陈旧/重放的 seq 会被服务器 InputGate 按前向单调拒收），未有消费者，**未实现**——
-    /// 设备源不产生这些位。
-    ///
-    /// 生命周期：登记在 Root Scope（跨对局复用），对局按 <see cref="Reset"/> 清派发状态（防上一局的
-    /// 待用意图漏进下一局），关服按 <see cref="ResetAll"/> 全清。
+    /// 输入服务：设备 → 意图 → Sim 的唯一裁决点（上下文门 / 采样上行 / 帧边界门，实现见 <see cref="InputService"/>）。
+    /// 离散意图位（换弹/切枪/技能等）未实现；设计依据见《角色状态与动作专项设计》§3。
     /// </summary>
     public interface IInputService
     {
@@ -62,15 +36,8 @@ namespace LiteGame.Modules.Input
         void SetSource(IIntentSource source);
 
         /// <summary>
-        /// 逐渲染帧注入本地**预测**世界与本地玩家槽位（瞄准解算用；流程层在
-        /// <see cref="SampleOnRenderFrame"/> 前调用）。
-        ///
-        /// **与 <see cref="SampleOnRenderFrame"/> 的 localOrigin 分工**：原点（本体位置）始终逐帧给出，
-        /// 世界与槽位只为**求交**而注入（弹道方向需要目标的圆柱高度与射手朝向才能解出仰角——
-        /// 见《固定斜视角射击方案专项设计》§3）。设备源未实现 <see cref="IAimWorldSink"/>
-        /// 时本调用是安全空操作（其瞄准维持二维口径）。
-        ///
-        /// **只读**：实现不得改写注入的世界。
+        /// 逐渲染帧注入预测世界与本地槽位（瞄准求交用，流程层在采样前调用）；只读。
+        /// 设备源未实现 <see cref="IAimWorldSink"/> 时为空操作（瞄准维持二维口径）。
         /// </summary>
         void SetAimWorld(SimWorldState world, int localSlot);
 
@@ -83,10 +50,8 @@ namespace LiteGame.Modules.Input
         bool UnregisterBlocker(string name);
 
         /// <summary>
-        /// 渲染帧采样：先裁决拦截源（拦下即作废本帧结论并计数）→ 无设备源记空 → 采样并挡非有限值。
-        /// 每渲染帧只裁决一次（重复调用直接返回，防调用方把它放进多趟驱动）。
-        /// <b>必须带上下文</b>（本地玩家**预测**位置）——设备源据此做瞄准换算，不接受设备侧自己
-        /// 缓存一份位置（否则会产生与裁决不同帧的陈旧原点）。
+        /// 渲染帧采样：先裁决拦截源（拦下即作废并计数）→ 无源记空 → 采样并挡非有限值；每帧只裁决一次。
+        /// localOrigin 必须是本帧预测位置——设备源不得自缓存（会与裁决不同帧）。
         /// </summary>
         void SampleOnRenderFrame(SimVector3 localOrigin);
 
@@ -97,9 +62,8 @@ namespace LiteGame.Modules.Input
         bool TryTakeForPrediction(int frame, out SimInputFrame input);
 
         /// <summary>
-        /// 上行取值：本渲染帧的输入结论，每渲染帧恰报一次（采到发采到的，没采到发全零——
-        /// 服务器对缺席帧按空输入兜底执行，零值与其逐位同值，两端同帧同值的前提）。
-        /// 返回的就是当帧送进预测的那一份——冗余重发由 <c>RoomClient</c> 的最近帧窗口承担，本服务不重复发。
+        /// 上行取值：本渲染帧的输入结论，每帧恰报一次；未采到报全零（与服务器缺席帧兜底同值）。
+        /// 返回的就是当帧进预测的那一份；冗余重发归 RoomClient 的最近帧窗口。
         /// </summary>
         bool TryTakeForSend(out SimInputFrame input);
 

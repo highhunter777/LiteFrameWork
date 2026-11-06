@@ -3,14 +3,7 @@ using System;
 namespace LiteGame.Feedback.DamageNumbers
 {
     /// <summary>
-    /// 伤害数字轨道数学（纯函数、零引擎——《命中反馈与伤害数字专项设计》§4.2）：每渲染帧由驱动喂入
-    /// 两个时钟（出场钟/最后活动钟），输出 (升浮、推挤、淡出、抖动、出场缩放)。
-    ///
-    /// **双钟口径**：升浮/抖动/出场用**出场钟**（自 Spawn 起持续——合并不重置，数字不"跳回起点"）；
-    /// 淡出用**最后活动钟**（合并即重置——连击驻留：连击不停数字不消）。
-    ///
-    /// **表现参数纪律**：常量全在本类（样式编辑器批落地后迁 token 单源）；**禁入 <c>CombatConfig</c>**
-    /// ——它在 BuildHash/digest 源集，表现参数不得搅联机身份。
+    /// 伤害数字轨道数学（纯函数、零引擎——《命中反馈与伤害数字专项设计》§4.2）：每渲染帧由驱动喂入 两个时钟（出场钟/最后活动钟），输出 (升浮、推挤、淡出、抖动、出场缩放)。
     /// </summary>
     public static class DamageNumberMotion
     {
@@ -54,9 +47,7 @@ namespace LiteGame.Feedback.DamageNumbers
         public const float CritShakeFrequency = 46f;
 
         /// <summary>
-        /// 逐帧求值（无状态——驱动按条目两钟喂入）。推挤用种子黄金角散布（确定性：同种子同散布，
-        /// 合并条目保持原种子 → 运动不漂）。生产路径用表驱动实例 <see cref="DamageNumberMotionProfile"/>；
-        /// 本静态口保留默认参数求值（L1/测试与缺表回退同口径）。
+        /// 逐帧求值（无状态——驱动按条目两钟喂入）。
         /// </summary>
         public static void Evaluate(float sinceSpawn, float sinceLastMerge, bool crit, int seed,
             out float riseY, out float pushX, out float alpha, out float shakeX, out float popScale)

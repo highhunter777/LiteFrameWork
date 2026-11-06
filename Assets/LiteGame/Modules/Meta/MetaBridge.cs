@@ -11,14 +11,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 联机门面（Bridge.meta，批C-③）：《上云测试专项设计》§2 客户端闭环的 Lua 侧入口。
-    /// 住 App 侧（服务编排件在 App——LuaBridge 程序集不引用 App，依赖方向不可反），
-    /// 经产品装订面（`ProductBridges`，住 Lua 桥适配器）与框架四门面同 env 装订。
-    ///
-    /// **回调契约**：每个异步入口回调**恰好一次**（主线程续延），首参 ok:bool，成功随结果形状、
-    /// 失败随 reason:string（稳定错误码 / "Network" / "InvalidResponse"——不含敏感原文）。
-    /// **令牌/票据不出桥**：服务面只回 accountId 与投影形状（房间列表/战绩行手工展开成 LuaTable——
-    /// Bridge.Data §1d 同判据）。页面导航由 Lua 经 <c>Bridge.ui</c> 驱动（按 lua_path 寻址）；
-    /// 流程侧三处页面切换（首进开入口 / 开局关房间页 / 结束开结算页）经 <see cref="PageFlow"/>（批C-④）。
     /// </summary>
     public static class MetaBridge
     {
@@ -103,7 +95,7 @@ namespace LiteGame
             {
                 MetaCall<T> call = await task;
                 Done(cb, call.Ok, call.Ok ? okPayload(call) : (object)Reason(call.Failure));
-                // 凭证失效 = 恢复链的"重新登录"（先回报页面失败，再走单点重入——不拿旧令牌反复重试）
+                // 凭证失效 = 恢复链的"重新登录"（先回报页面失败，再走单点重入——不拿旧令牌反复重试）。
                 if (!call.Ok && call.Failure.IsAuthLost)
                     await ReenterAsync("meta." + Reason(call.Failure));
             }

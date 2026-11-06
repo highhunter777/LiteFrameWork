@@ -11,18 +11,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 死亡/复活 HUD 驱动（阵亡批）：**中央复活倒计时** ＋ **阵亡归属** ＋ **保护期角标**。
-    ///
-    /// - **事实来源**：一律经 <see cref="IBattleReadModel.TryGetLocalRespawn"/>（M2 读模型收口）——
-    ///   显隐/倒计时/保护期不再直读 <see cref="SimWorldState"/>；阵亡锁存判据由读模型实例注入
-    ///   （表现侧预测态）。
-    /// - **归属**吃 `Death` 帧事件（<see cref="IHitFeedbackConsumer"/>）：仅 `role==Received`（我阵亡）
-    ///   记击杀者（<see cref="HitFeedbackContext.OtherId"/>，0 = 自杀/环境无归属）；命中/开火不吃；
-    ///   **名字为占位**（<see cref="PlayerIdentity"/> 身份序号——与排行榜**共用单源**，真名字归 G3），
-    ///   经读模型的 <see cref="IBattleReadModel.DisplayName"/> 取（驱动的唯一名字入口）。
-    /// - **保护期** = 读模型 `Protected`（**端点不含**；仅**成功开火**取消、超时自然结束
-    ///   ——口径由 `MatchRulesTests.AcceptedShotCancelsProtectionButBlockedWeaponDoesNot` 钉住）；
-    /// - **写纪律**：全部**值变化才写**（两个根按开关、倒计时按整秒、标题按串变）；
-    /// - 测试注：读模型注入（同面板与排行榜驱动）——EditMode 确定性驱动。
     /// </summary>
     public sealed class BattleRespawnHudDriver : IHitFeedbackConsumer, IDisposable
     {

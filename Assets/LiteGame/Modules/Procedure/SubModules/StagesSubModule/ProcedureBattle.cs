@@ -17,30 +17,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局流程（**只做编排**）：
-    /// OnEnter 经 <see cref="IBattleRunFactory"/> 建对局运行端口（Match Scope 全套）→ 会话建立后由
-    /// <see cref="IBattleViewGroup"/> 取件并挂视图/输入接线 → 每帧驱动（运行端口 + 视图消费者）；
-    /// Ended（主动离场 / 会话失败）→ 逆序收尾（视图 → 运行端口 → Account Scope，
-    /// §6.2 关闭序）→ 回 Main。
-    ///
-    /// **对局场景组（Rig ＋ 地图）装载与卸载都在本阶段**（加载链修订）：StartGame 到达后加载
-    /// （<see cref="LoadBattleScenesAsync"/>，全程进"正在进入对局…"遮罩），离场收尾卸载
-    /// （<see cref="UnloadBattleScenes"/>）——避免"未开局即付费"与跨阶段所有权分叉。
-    ///
-    /// **视图域全部归视图组实现**（资源租约 / SimView / 七个表现件装配 / 每帧驱动 /
-    /// 逆序拆除）：经 <see cref="IBattleViewGroupFactory"/> 端口创建（装配根注入），本类只保留
-    /// "取会话 → 等信令 → 每帧驱动 → 收尾"的编排与对局级裁决（相机就绪门、
-    /// 测试模式热键、瞄准世界注入），不再持有表现件类型。
-    ///
-    /// 驱动形态：StageMachine 的 OnUpdate 即帧驱动入口（容器 Seal 后不可再注册 ITickable——
-    /// 对局期驱动走阶段生命周期，天然随离场停止）。取消语义：阶段 CTS 链接宿主根（基类），
-    /// 宿主关闭时等待 Ended 的异步被打断，finally 仍保证收尾（离场无 Match 残留的流程侧保证）；
-    /// **仅宿主关闭**的收尾不含场景卸载（该路径 Scene 行退出动作＝释放租约，见 <see cref="UnloadBattleScenes"/>），
-    /// 主动离场/被外部打断照卸。
-    ///
-    /// **输入所有权**：服务本身归装配根（跨对局复用、拦截源在装配根登记一次），
-    /// 本阶段只持**本局的设备源**（相机是局内对象）并在离场时清派发状态；流程不持任何
-    /// "UI 是否拦截"的判断——那是登记进服务的具名拦截源（`ui.modal`）。
+    /// 对局流程（**只做编排**）： OnEnter 经 IBattleRunFactory 建对局运行端口（Match Scope 全套）→ 会话建立后由 IBattleViewGroup 取件并挂视图/输入接线 → 每帧驱。
     /// </summary>
     public sealed class ProcedureBattle : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
@@ -67,16 +44,12 @@ namespace LiteGame
         private ClientScope _account;
         private Scene _sceneBeforeBattle;            // 进场前活动场景（离场还原端点——UnloadBattleScenes 一次性消费）
 
+        /// <summary>
+        /// 上下文门是登记进服务的具名拦截源（`ui.modal` 由装配根登记），流程只负责本局的设备源与 清派发状态（《角色状态与动作专项设计》§3"输入三件"）。
+        /// </summary>
         /// <param name="input">输入服务（装配根注册的跨对局实例）。**流程不持"UI 是否拦截"这类判断**：
-        /// 上下文门是登记进服务的具名拦截源（`ui.modal` 由装配根登记），流程只负责本局的设备源与
-        /// 清派发状态（《角色状态与动作专项设计》§3"输入三件"）。null = 无输入服务（测试装配/无输入形态）。</param>
         /// <param name="camera">相机服务（Cinemachine 适配器，装配根建，**跨场景常驻**）。**相机构图归
-        /// vcam 的场景配置**——流程只做一件事：每局开局 <see cref="ICameraService.Reset"/>（下一帧重新落位，
-        /// 不从上局位置飞过来）。服务对象恒非 null；"这一刻有没有接上 vcam"由
-        /// <paramref name="requireCamera"/> 在开打前裁决（见下）。</param>
         /// <param name="requireCamera">缺相机时是否拒绝对局。**装配根按场景是否配了虚拟相机决定**：
-        /// 有 vcam 的包传 false（正常路径）；没配 vcam 的包传 true——让"对局跑得动但看不见"
-        /// 这种最难的静默失效变成显性失败，而不是进了对局才发现画面纹丝不动。</param>
         /// <param name="views">视图组工厂（表现层实现；本流程只认端口——不持有视图装配件类型）。</param>
         /// <param name="roomBridge">房间会话门面装订口（Lua 桥适配器实现；房主开局批）。</param>
         public ProcedureBattle(IInputService input, ICameraService camera, IBattleCommands commands,
@@ -119,11 +92,11 @@ namespace LiteGame
                 accountSession = accountSession ?? throw new InvalidOperationException("Battle 阶段缺少账号会话端口（必须由 Match 移交）");
                 _account = accountSession.Scope;
 
-                // 视图域：工厂建视图组（表现层装配点：自有 BattleView 作用域 + 视图根 + 资源取件；缺角色资源＝无角色视图）
+                // 视图域：工厂建视图组（表现层装配点：自有 BattleView 作用域 + 视图根 + 资源取件；缺角色资源＝无角色视图）。
                 rig = _views.Create(_account, DispatchTeleport);
                 await rig.LoadAsync(ct);
 
-                // 对局运行端口（Battle 域构造 Match/Battle 会话；流程不认战斗域内部件）
+                // 对局运行端口（Battle 域构造 Match/Battle 会话；流程不认战斗域内部件）。
                 _run = _runs.Create(accountSession);
                 _run.AttachView(rig);                // 视图域归运行端口持有（拆除由会话统一逆序）
                 rig = null;                           // 所有权已移交：finally 不再重复释放
@@ -139,9 +112,7 @@ namespace LiteGame
                 }
                 else if (_run.HasSimulation)
                 {
-                    // 开局入场（加载链修订）：**对局场景组在本阶段、StartGame 之后加载**（Rig ＋ 地图，行键取
-                    // JoinAck 权威事实）——本阶段独有装载与卸载（不在 Match 载、避免"未开局即付费"与跨阶段
-                    // 所有权分叉）。全程进加载遮罩，视图建成才收：玩家从加载页直入对局画面。
+                    // 开局入场（加载链修订）：**对局场景组在本阶段、StartGame 之后加载**（Rig ＋ 地图，行键取 JoinAck 权威事实）——本阶段独有装载与卸载（不在 Match 载、避免"未开局即付费"与跨阶段 所有权分叉）。
                     FeedbackService.LoadingScope entry = _feedback?.BeginLoading("正在进入对局…") ?? default;
                     try
                     {
@@ -157,16 +128,12 @@ namespace LiteGame
                     }
                     finally { entry.Dispose(); }              // 视图建成才收遮罩；失败路径遮罩一并收（异常走 Error）
 
-                    // **先收加载系统面，再关房间页**：反序（先关 Bottom 房间页、后关 System 加载面）会让
-                    // 房间页关闭卡在被加载面挡住的模态队列里，整局留着全屏阻断、人物移不动
-                    // （实测日志 Form[13]/Form[202] 直到对局结束 1529/1540 才关闭）。
+                    // **先收加载系统面，再关房间页**：反序（先关 Bottom 房间页、后关 System 加载面）会让 房间页关闭卡在被加载面挡住的模态队列里，整局留着全屏阻断、人物移不动 （实测日志 Form[13]/Form[202] 直到对局结束 1529/1540 才关闭）。
                     _pages?.CloseRoomIfOpen();                // 开局 → 关房间页（批C-④；对局场景接管画面）
                 }
                 else
                 {
-                    // **StartGame 被拒**（批 E：玩法数据身份不符——运行端口上游已 End(SessionFailed)）：
-                    // SimView 构造要读预测态，无 Sim 进 Attach 必炸——按会话失败收尾，不把"数据分叉拒局"变成错误态。
-                    // 下面的 WaitEnded 经 earlyResult 立即拿到原因（Ended 已在上游发出）。
+                    // **StartGame 被拒**（批 E：玩法数据身份不符——运行端口上游已 End(SessionFailed)）： SimView 构造要读预测态，无 Sim 进 Attach 必炸——按会话失败收尾，不把"数据分叉拒局"变成错误态。
                     Log.Warning("StartGame 未建立解读世界（玩法数据身份不符/被拒）——跳过视图建立，按会话失败收尾", LogTag.Battle);
                 }
 
@@ -179,7 +146,7 @@ namespace LiteGame
             }
             catch (OperationCanceledException)
             {
-                // 宿主关闭/流程被打断：finally 收尾，不流转
+                // 宿主关闭/流程被打断：finally 收尾，不流转。
             }
             catch (Exception ex)
             {
@@ -189,19 +156,14 @@ namespace LiteGame
             }
             finally
             {
-                // 关闭序（§6.2）：输入接线 → 视图（含租约/实例/消费者）→ 运行端口（Match Scope 一并 Dispose）→ Account Scope
+                // 关闭序（§6.2）：输入接线 → 视图（含租约/实例/消费者）→ 运行端口（Match Scope 一并 Dispose）→ Account Scope。
                 rig?.Dispose();                        // 未移交运行端口（factory 抛异常）：视图/租约由流程侧收回
                 DetachView();
                 _run?.Dispose();
                 _run = null;
                 accountSession?.Dispose();
                 _account = null;
-                // 收尾卸载对局场景组——**只在宿主关闭时跳过**：该路径的 Scene 行退出动作是"释放资源租约"
-                // （§6.2；SceneService.ReleaseAll 随 ContainerModule 关闭执行），且关闭期资源系统可能已先行销毁
-                // （编辑器退出时 YooAsset 驱动先跑 `YooAssets.Destroy()`，卸载经 AsyncOperationSystem 必抛）。
-                // 判据取**宿主根令牌**（根取消 = 宿主关闭）而非本阶段令牌：主动离场（房间页「离开」/设置页
-                // 「退出对局」走外部 `Request(Main)`）也会取消本阶段令牌，但那不是关闭、容器仍在运行——
-                // 对局场景组必须照卸，否则残留在大厅画面里（换图重进还会累积）。
+                // 收尾卸载对局场景组——**只在宿主关闭时跳过**：该路径的 Scene 行退出动作是"释放资源租约" （§6.2）。
                 if (!RootToken.IsCancellationRequested) UnloadBattleScenes();
             }
 
@@ -212,12 +174,9 @@ namespace LiteGame
             if (next == ProcedureId.Main) _pages?.OnMatchEnded(completed, matchResult, localPlayerId);
         }
 
-        /// <summary>开局入场加载对局场景组（**本阶段职责**——加载链修订：Rig ＋ 本局地图在 StartGame 之后加载）：
-        /// 行键取 JoinAck 权威事实（多图批：`RoomClient.MapId` → <see cref="BattleScenes.ResolveMapId"/> 裁决 →
-        /// 场景路径查地图表 `scene` 列）；必须早于视图组 <c>Attach</c>（视图件按名解析场景对象）
-        /// 与相机硬门（vcam 随 Rig 场景）。进度经开局入场遮罩（"正在进入对局…"）。
-        /// 未注入场景服务（测试装配）= 跳过；**注入了场景服务但缺地图表 = 配置缺失 fail-fast**（不给"静默不加载"留口）；
-        /// 加载失败向上抛（RunAsyncCore 的失败分支统一收口进 Error，finally 照卸已载场景）。</summary>
+        /// <summary>
+        /// 开局入场加载对局场景组（**本阶段职责**——加载链修订：Rig ＋ 本局地图在 StartGame 之后加载）： 行键取 JoinAck 权威事实（多图批。）。
+        /// </summary>
         private async UniTask LoadBattleScenesAsync(int joinedMapId, CancellationToken ct)
         {
             if (_scenes == null) return;
@@ -252,15 +211,9 @@ namespace LiteGame
             Log.Info($"[Battle] 对局场景组已加载:Rig={BattleScenes.Rig} Map={map}（map_id={mapId} 叠加数 {_scenes.AdditiveCount}）", LogTag.Battle);
         }
 
-        /// <summary>离场卸载对局场景组（Rig ＋ 表内全部地图场景；幂等——未加载 = 服务侧 no-op）。
-        /// 卸载前活动场景显式还原进场前值（<see cref="RestoreActiveSceneBeforeUnload"/>）。
-        /// 多图批：地图场景清单按地图表枚举（`IMapProvider.ScenePaths`——加图不改卸载代码）；
-        /// 表面不可用（未装载/缺 scene 列）只记日志并退化为只卸 Rig（离场不因表现面失败而阻塞）。
-        /// 失败只记日志不阻塞离场（场景留驻是表现问题，不是会话正确性问题）；
-        /// 编辑器"领养"形态（场景手工已在场）下卸载是 no-op——手测时属预期。
-        /// **只跳过宿主关闭**（<see cref="ProcedureStageBase{TId,TReq}.RootToken"/> 已取消——句柄归零由
-        /// SceneService.ReleaseAll 负责，且关闭期资源系统可能已先行销毁）；其余离场出口
-        /// （正常结束/失败/主动离场/被外部 `Request` 打断）都调本方法。</summary>
+        /// <summary>
+        /// 离场卸载对局场景组（Rig ＋ 表内全部地图场景）。
+        /// </summary>
         private void UnloadBattleScenes()
         {
             if (_scenes == null) return;
@@ -298,9 +251,6 @@ namespace LiteGame
 
         /// <summary>
         /// 相机是否真的就绪（"有服务"不等于"接上了 vcam"——服务常驻，vcam 随场景）。
-        /// **按需解析**：此刻视图还没建立、<see cref="ICameraService.Follow"/> 一次都没调过，
-        /// 光读状态必然是"未接线"，所以这里主动让适配器再解析一次（场景可能刚被 Main 切到 TrainingGround）。
-        /// 非 Cinemachine 实现（测试替身等）视为就绪——由它自己保证。
         /// </summary>
         private bool CameraReady()
         {
@@ -322,8 +272,6 @@ namespace LiteGame
             if (_run == null) return;
 
             // 主动离场热键（开发入口）：Leave → Ended(Leave) → 收尾回 Main。
-            // 离场入口＝UI（ESC → 设置页 → 退出对局），无热键（《UI工作台设计》§5 入口矩阵）；
-            // 发布形态端口全关 = 本段 no-op。
             if (UnityEngine.Input.GetKeyDown(TeleportKey)) _devSession.RequestTeleport();   // T = 传送到准心（开发形态）
             if (_devSession.TakeExitRequest())                                              // GM 面板退出：离场并关模式（读即清）
             {
@@ -336,11 +284,6 @@ namespace LiteGame
             if (_run == null) return;
 
             // ① 渲染帧采样（上下文门在此裁决：登记源任一成立 → 本帧输入为空，见 IInputService）。
-            //    瞄准 = **AimPoint 单口径**（《固定斜视角射击方案专项设计》§3）：设备源把准心射线与
-            //    预测世界求交（实体圆柱 → 地面兜底）解出目标点；朝向与弹道两端自该点派生
-            //    ——点不读 Yaw ⇒ "Yaw → 枪口 → 方向 → Yaw"闭环自激不存在，锚点选择问题整体消亡。
-            //
-            //    采样前的诊断件驱动（自瞄验证件换源）必须**先于采样**——否则自瞄点落后一帧。
             _rig?.TickPreSample();
 
             // ② 运行端口推进：瞄准世界注入 → 输入采样 → 网络双泵/上行/预测/表现视图（唯一驱动入口）。

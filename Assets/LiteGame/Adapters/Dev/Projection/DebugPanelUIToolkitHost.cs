@@ -10,8 +10,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 开发面板的 UI Toolkit 渲染后端（无资产：运行时 PanelSettings + 内联样式）。
-    /// 只渲染常用动作与 <see cref="TestModeOptions"/> 的即时开关；动作/读写全部由 <see cref="DebugPanel"/> 经 DebugKernel 执行。
-    /// 运行期无 ThemeStyleSheet，故用 Button/Label 自绘，不依赖标准控件主题。
     /// </summary>
     internal sealed class DebugPanelUIToolkitHost
     {

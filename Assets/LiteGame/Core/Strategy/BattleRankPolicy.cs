@@ -22,8 +22,6 @@ namespace LiteGame
 
     /// <summary>
     /// 对局排行策略（纯件、零引擎、零状态）：局内排行榜与结算页共用的**唯一全序/名次实现**。
-    /// 策略值来自 <c>battlestrategy</c> 表（<c>rank.order</c> / <c>rank.tie</c>），缺行回落本类默认；
-    /// 算法本身不读表、不读静态——调用方把策略实例传进来（R13）。
     /// </summary>
     public readonly struct BattleRankPolicy
     {

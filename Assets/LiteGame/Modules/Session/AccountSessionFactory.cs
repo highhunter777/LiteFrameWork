@@ -9,13 +9,7 @@ namespace LiteGame
 {
 
     /// <summary>
-    /// Account 域的所有权载体（Scope = 资源域；Services = 服务域；Battle = 会话客户端端口）。
-    /// 移交给 Battle 流程后由其收尾：<see cref="Dispose"/> 释放 Account Scope（资源域 LIFO——
-    /// 会话客户端先于服务域释放）；服务域已作为同步资源登记进 Scope，随 Scope 一并释放。
-    ///
-    /// **对局侧端口**：本类实现 <see cref="IAccountRuntime"/>——Battle 只经它取 Account Scope、
-    /// Match 服务子域（<see cref="CreateMatchServices"/>）、会话客户端（<see cref="IAccountRuntime.Client"/>）、
-    /// 本局规则与地图委托；不认会话实现件，也拿不到根容器。
+    /// Account 域的所有权载体（Scope = 资源域）。
     /// </summary>
     public sealed class AccountSession : IAccountSession
     {

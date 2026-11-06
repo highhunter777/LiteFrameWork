@@ -6,9 +6,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 进程壳 → 游戏装配的入口契约（B1.5）：AOT 侧只认本接口，
-    /// 具体实现（<c>LiteGame.ClientEntry</c>）经 <see cref="ClientEntryLoader"/> 反射装载。
-    /// 调用序固定：<see cref="Configure"/>（宿主建好、初始化前）→ 宿主初始化 → <see cref="StartAsync"/>（Unity Start 后）。
+    /// 进程壳 → 游戏装配的入口契约（B1.5）：AOT 侧只认本接口， 具体实现（LiteGame.ClientEntry）经 ClientEntryLoader 反射装载。
     /// </summary>
     public interface IClientEntry
     {

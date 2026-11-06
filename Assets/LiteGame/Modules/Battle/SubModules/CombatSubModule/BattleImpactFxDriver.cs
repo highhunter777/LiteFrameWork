@@ -7,17 +7,7 @@ using LiteGame.Feedback;
 namespace LiteGame
 {
     /// <summary>
-    /// 命中特效驱动（帧事件路由 <see cref="HitFeedbackDispatcher"/> 的消费者）：
-    /// **本地造成的 Hit/Crit → 受击点世界位播放 `fx_impact_enemy`**（<c>PlayAt</c>——打哪留哪，
-    /// 不跟随实体；爆头 Crit 放大 <see cref="CritScale"/>）；**本地着墙（ObstacleHit）→ 障碍命中点
-    /// 播放 `fx_impact_wall`**（弹孔/着墙反馈）。
-    ///
-    /// **过滤**：只吃本地方向的命中（`Caused`）——"敌人命中特效"= 我打中敌人、"着墙特效"= 我打墙；
-    /// 承受反馈（`Received`）与旁观（`Bystander`）不播（不做全屏噪音）。**位置 = 事件命中点**（弹道命中部位，
-    /// 与伤害飘字同源——`ShootingSystem` 写入的 hitPos/judgeY；着墙 = 障碍命中点）。**静默门**由上游
-    /// <c>SimView.EventSink</c> 保证（回滚重放不重复弹着）。**朝向不贴合表面**（事件无法线）；
-    /// **表面分流**（Brick/Concrete/Metal/…）待地图表面标记——当前敌人/着墙各单一件。
-    /// **表现参数为本地常量，禁入 `CombatConfig`**。
+    /// 命中特效驱动（帧事件路由 HitFeedbackDispatcher 的消费者）： **本地造成的 Hit/Crit → 受击点世界位播放 `fx_impact_enemy`**（PlayAt——打哪留哪， 不跟随实体）。
     /// </summary>
     public sealed class BattleImpactFxDriver : IHitFeedbackConsumer, IDisposable
     {

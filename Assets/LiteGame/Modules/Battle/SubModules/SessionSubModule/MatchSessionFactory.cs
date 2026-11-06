@@ -7,10 +7,7 @@ namespace LiteGame
 {
 
     /// <summary>
-    /// Match 域的所有权载体（Services = 服务域；Context = 对局上下文）。
-    /// <see cref="Dispose"/> 释放服务域——工厂产物（BattleContext，Scoped/容器拥有）随域 LIFO 释放，
-    /// 其内部 Match 资源域（订阅退订）由 BattleContext.Dispose 承担；Account 域由持有方
-    /// （Battle 流程 finally）随后释放。
+    /// Match 域的所有权载体（Services = 服务域）。
     /// </summary>
     public sealed class MatchSession : IDisposable
     {

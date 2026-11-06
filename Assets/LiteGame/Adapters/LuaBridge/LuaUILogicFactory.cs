@@ -7,10 +7,7 @@ using LiteGame.Modules.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 页面逻辑工厂的实现（`IUILogicFactory` 端口 → Lua 生命周期桥）：注册表按 lua_path 取模块表，
-    /// 构造 <see cref="LuaBehaviourAdapter"/> 作为页面实例工厂。
-    ///
-    /// env 每次现取（`LuaComponent.Env`）——DevReload 重建 env 后旧对象全失效，缓存 env 会把旧表打进死环境。
+    /// 页面逻辑工厂的实现（`IUILogicFactory` 端口 → Lua 生命周期桥）：注册表按 lua_path 取模块表， 构造 LuaBehaviourAdapter 作为页面实例工厂。
     /// </summary>
     public sealed class LuaUILogicFactory : IUILogicFactory
     {

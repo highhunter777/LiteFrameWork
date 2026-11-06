@@ -7,30 +7,7 @@ using LiteGame.Modules.Camera;
 namespace LiteGame
 {
     /// <summary>
-    /// Cinemachine 相机服务（<see cref="ICameraService"/> 的 Cinemachine 实现，
-    /// 《联机战斗演示专项设计》§3"相机跟本地预测位置；和解期间跟衰减后的表现位置"）。
-    ///
-    /// **位置与视线分开**：位置由 <c>OrbitalTransposer</c> 的 yaw 轨道 + 场景 FollowOffset 表达；
-    /// 视线由 <c>CinemachinePOV</c> 的 yaw/pitch 轴表达（鼠标 1:1 跟手、yaw 360°、pitch 钳制）。
-    /// 两者都只写**场景配置的轴与偏移**——距离/肩偏/FOV/阻尼仍是场景单源，本类不复制档位常量。
-    /// 理由（《客户端总设计》§12.2 视觉单一来源的同一条判据）：相机构图是产品表现决策，
-    /// 用代码再表达一遍就有了第二处事实源，调完编辑器发现"改了没用"是最难查的一类分歧。
-    ///
-    /// **例外：三处派生写入**——① <see cref="SetAiming"/> 的优先级（主 vcam 场景值 + 1）；
-    /// ② 主相机按场景 <see cref="TpsCameraRigTuning.PitchFollow"/>/<see cref="TpsCameraRigTuning.PivotHeight"/>
-    /// 做恒定臂长俯仰弧（地面下限防穿地）；③ 瞄准机沿主视线前移（<see cref="AimOffsetCurve"/> 近距收短）。
-    /// 三者下降沿/解绑都**还原回场景配置原值**；Lens/FOV/阻尼/肩偏仍全归场景。语义态（"瞄准中"）
-    /// 来自端口调用方，映射成 Cinemachine 机制是适配器的本分。
-    ///
-    /// **场景切换后的重新解析（本类的关键行为）**：虚拟相机是**场景对象**，随场景加载/卸载而生灭
-    /// （Single 模式切场景后，启动场景里的 vcam 会被一并销毁）。因此本类在每次
-    /// <see cref="Follow"/> 时做一次**廉价有效性检查**，发现接管的 vcam 所在场景已失效就重新解析并
-    /// 重新接线。这样"启动场景配 vcam""Rig 场景配 vcam""叠加加载"三种形态都能工作，不需要调用方
-    /// 在切场景后记得手动重建服务（那种"记得调"的约定迟早会漏）。
-    ///
-    /// **本服务不创建虚拟相机**：解析不到就是装配缺口，如实回报
-    /// （<see cref="LastResolveReason"/> / <see cref="HasCamera"/>），由调用方决定降级还是报错；
-    /// 不在运行期凭空造一台——否则"美术调好的相机没生效"会被自己造的那台掩盖。
+    /// Cinemachine 相机服务（ICameraService 的 Cinemachine 实现， 《联机战斗演示专项设计》§3"相机跟本地预测位置）。
     /// </summary>
     public sealed class CinemachineCameraService : ICameraService, IRenderCameraSource
     {
@@ -53,14 +30,14 @@ namespace LiteGame
         private readonly System.Collections.Generic.List<Transform> _warpTargets =
             new System.Collections.Generic.List<Transform>(8);   // warp 目标去重表（复用，零分配）
 
-        // ---- 瞄准相机（ADS 接管，持续预放置形态：接线前置到绑定时刻，全程跟着玩家预先就位）----
+        // ---- 瞄准相机（ADS 接管，持续预放置形态：接线前置到绑定时刻，全程跟着玩家预先就位）----。
         private CinemachineVirtualCamera _aimVcam;
         private int _aimPriorityAtBind;            // 接管前优先级（场景配置值——抬升基准由主相机派生，释放时还原回场景值）
         private bool _aiming;                      // 当前语义态（变化沿生效）
         private Vector3 _aimPoint;                 // 最近一帧解算的瞄准点（世界）
         private bool _hasAimPoint;                 // 本帧是否有解算结果（false = 不动作，保持现值）
 
-        // ---- 视角派生基准（bind 采集场景 FollowOffset/轨道轴——俯仰派生与还原的端点；解绑/关闭还原场景值）----
+        // ---- 视角派生基准（bind 采集场景 FollowOffset/轨道轴——俯仰派生与还原的端点；解绑/关闭还原场景值）----。
         private Vector3 _mainFollowOffsetAtBind;   // 主 vcam 场景基准 offset
         private Vector3 _aimFollowOffsetAtBind;    // 瞄准 vcam 场景基准 offset
         private bool _hasMainFollowOffset;
@@ -75,7 +52,7 @@ namespace LiteGame
         /// <summary>装配点指定的跟随目标（null = 用 vcam 自己配的 Follow，再没有就自建空目标）。</summary>
         private readonly Transform _preferredTarget;
 
-        // ---- 本地视角状态（第三人称自由视角：AddLookDelta 累进；纯视图侧，不进意图三件/不上行）----
+        // ---- 本地视角状态（第三人称自由视角：AddLookDelta 累进；纯视图侧，不进意图三件/不上行）----。
 
         /// <summary>视角 pitch 限位（弧度，正 = 上仰）——机制初档常量单源：**下俯 −65°**、
         /// 上仰 +80°（不对称：下俯再深时越肩构图收益归零，收臂与渐隐也兜不住贴地/穿腿的极端位，
@@ -103,9 +80,6 @@ namespace LiteGame
 
         /// <summary>
         /// 确保已接线一台虚拟相机并回报结果（**按需解析**）。
-        /// 与 <see cref="HasCamera"/> 的区别：属性只反映**当前**状态，本方法在未接线时先尝试解析一次。
-        /// 调用方在"计划使用相机、但还没进过 <see cref="Follow"/>"的时刻用（例如开打前的就绪检查
-        /// ——那时视图还没建立，<see cref="Follow"/> 一次都没被调过，只读属性必然是 false）。
         /// </summary>
         public bool EnsureCamera()
         {
@@ -120,10 +94,7 @@ namespace LiteGame
         public string CameraSceneName => _vcam != null ? _vcam.gameObject.scene.name : null;
 
         /// <summary>
-        /// 当前接线 vcam 的**渲染相机**（Cinemachine brain 所在 Camera；未解析到 = null）。
-        /// 消费者：输入设备源（<c>NewInputIntentSource.SetAimCamera</c>）——叠加开发形态下 boot 相机
-        /// 不随场景销毁，`Camera.main` 回落会拿错机，必须显式注入真对局渲染相机。
-        /// 解析顺序：vcam 同物体或父链上的 brain → 全场 brain 中 Live 的一台 → null（如实回报）。
+        /// 当前接线 vcam 的**渲染相机**（Cinemachine brain 所在 Camera）。
         /// </summary>
         public Camera TryGetRenderCamera()
         {
@@ -148,10 +119,7 @@ namespace LiteGame
             _preferredTarget = followTarget;
             Resolve();
 
-            // **场景加载完成即重新解析**：启动场景通常不带 vcam（引导场景只放引导件），
-            // 玩法场景才带——没有这个订阅，服务会一直停在"启动场景没 vcam"的结论上，
-            // 即使玩法场景已经加载完。
-            // 订阅而不是"要求调用方在切场景后记得重建服务"：后者迟早会漏，且漏了表现为画面不动。
+            // **场景加载完成即重新解析**：启动场景通常不带 vcam（引导场景只放引导件）， 玩法场景才带——没有这个订阅，服务会一直停在"启动场景没 vcam"的结论上， 即使玩法场景已经加载完。
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
 
@@ -163,10 +131,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 解析并接线一台虚拟相机（构造时调一次；此后由 <see cref="Follow"/> 在检测到失效时自动重解析）。
-        /// 解析规则：全场景中**优先级最高**的启用 vcam（**排除瞄准机**——见 <see cref="AimCameraName"/>；
-        /// 瞄准接管期间它优先级在主之上，不排除会把主跟随绑错）——多台 vcam 并存时
-        /// （如每场景各配一台、或叠加场景各带一台）由优先级决定接哪台，与 Cinemachine 自身的选机口径一致。
+        /// 解析并接线一台虚拟相机（构造时调一次）。
         /// </summary>
         private void Resolve()
         {
@@ -234,7 +199,7 @@ namespace LiteGame
             _aimForwardDelta = 0f;
             if (_vcam != null)
             {
-                // vcam 可能已随场景销毁（Unity 的伪 null）——用 ReferenceEquals 判真身，避免误碰已销毁对象
+                // vcam 可能已随场景销毁（Unity 的伪 null）——用 ReferenceEquals 判真身，避免误碰已销毁对象。
                 if (!ReferenceEquals(_vcam, null) && _vcam.Follow == _target) _vcam.Follow = _followAtBind;
             }
             if (_ownsTarget && _target != null && !ReferenceEquals(_target, null))
@@ -259,7 +224,7 @@ namespace LiteGame
         {
             if (_shutdown) return;
 
-            // 场景切换后 vcam 会随旧场景销毁：这里做一次廉价检查并重解析（切场景不需要调用方记得重建）
+            // 场景切换后 vcam 会随旧场景销毁：这里做一次廉价检查并重解析（切场景不需要调用方记得重建）。
             if (!IsBoundCameraAlive())
             {
                 Resolve();
@@ -271,9 +236,7 @@ namespace LiteGame
             if (_target != null && !ReferenceEquals(_target, null))
             {
                 Vector3 previous = _target.position;
-                // 位置每帧写；**朝向不写焦点（第三人称自由视角）**：视线由 POV 轴驱动，焦点旋转
-                // 不参与构图；越肩构图由相机位置的肩偏/高度形成，焦点恒 identity ⇒ 角色朝向或
-                // 场景目标自带姿态都不会把画面构图带偏。场景配置的 Follow 目标同样只写位置。
+                // 位置每帧写。
                 _target.position = Focus;   // 阻尼/平滑在 Cinemachine 侧按 vcam 配置生效
 
                 // 复活/传送是瞬移：仅 Reset 后这一帧要求相机**直接 warp**，否则 vcam 阻尼会从上一条命
@@ -290,10 +253,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 瞬移 warp（主 + 瞄准两台 vcam 的 Follow/LookAt **全量**前移）：
-        /// 只 warp 主机时，瞄准机（<see cref="AimCameraName"/>）仍停在旧构图——死亡瞬间处于 ADS 的
-        /// 玩家复活后会看到镜头压在旧位置/旧构图上（"复活了但相机没对准"的成因之一）。
-        /// 同名目标去重：`_target` 与 `_vcam.Follow` 常常是同一件，重复 warp 会让相机偏移两倍。
+        /// 瞬移 warp（主 + 瞄准两台 vcam 的 Follow/LookAt **全量**前移）： 只 warp 主机时。
         /// </summary>
         private void WarpCameras(Vector3 delta)
         {
@@ -367,13 +327,9 @@ namespace LiteGame
             _mainRig = _vcam.GetComponent<TpsCameraRigTuning>();
         }
 
-        /// <summary>视角派生写入（双机同写）：轨道 yaw 与 POV 水平轴共用 <c>_lookYaw</c>，POV 垂直轴
-        /// 按 <see cref="TpsCameraMath.PovVerticalDegrees"/>（pitch 正 = 上仰）。位置侧：主相机绕
-        /// <see cref="TpsCameraRigTuning.PivotHeight"/> 做**恒定臂长**俯仰弧（跟随系数
-        /// <see cref="TpsCameraRigTuning.PitchFollow"/>，地面下限 <see cref="TpsCameraRigTuning.MinBoomHeight"/>）；
-        /// 瞄准机沿主相机视线前移（<see cref="AimOffsetCurve"/> 近距收短），保证 ADS 视线共线。
-        /// **首次 Follow 前 no-op**（没焦点就不写场景 vcam——纯状态测试/装配期不产生脏改）。
-        /// 构图基准仍归场景单源，幂等可重入（<see cref="Follow"/> 每拍调用）。</summary>
+        /// <summary>
+        /// 视角派生写入（双机同写）：轨道 yaw 与 POV 水平轴共用 _lookYaw，POV 垂直轴 按 TpsCameraMath.PovVerticalDegrees（pitch 正 = 上仰）。
+        /// </summary>
         private void ApplyRigDerived()
         {
             if (!_hasFocus) return;
@@ -507,13 +463,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 瞄准态接管（<see cref="ICameraService.SetAiming"/> 契约；持续预放置形态）：
-        /// 瞄准机的 Follow/LookAt 在**绑定主相机时即接线**（<see cref="BindAimCamera"/>），且
-        /// StandbyUpdate=Always 全程跟着玩家——**接管瞬间瞄准机已在正确位姿**，切换只剩
-        /// 优先级翻转与 brain 的 FOV/构图混合，无陈旧位姿甩动；近距前移按
-        /// <see cref="AimOffsetCurve"/> 随瞄准点拉近（<see cref="ApplyRigDerived"/> 派生写入、释放还原场景值）。
-        /// 幂等（已接管则只刷新派生写入）；主机未接线/瞄准机缺失时保持未接管逐帧重试，缺机记
-        /// <see cref="LastAimResolveReason"/>（不代场景自建）。
+        /// 瞄准态接管（ICameraService.SetAiming 契约）。
         /// </summary>
         public void SetAiming(bool aiming)
         {
@@ -554,10 +504,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 瞄准机**持续预放置**（幂等）：按约定名解析 + Follow/LookAt 接主相机同源焦点 +
-        /// StandbyUpdate=Always。全程跟着玩家的意义：接管瞬间瞄准机已在正确位姿，无陈旧位姿甩动。解析失败记
-        /// <see cref="LastAimResolveReason"/>（不代场景自建——"美术调好的相机没生效"不能被掩盖；
-        /// 日志只在新原因时打一次，防每帧重试刷屏）。
+        /// 瞄准机**持续预放置**（幂等）：按约定名解析 + Follow/LookAt 接主相机同源焦点 + StandbyUpdate=Always。
         /// </summary>
         private void BindAimCamera()
         {

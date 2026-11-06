@@ -5,16 +5,7 @@ using LiteGame.Modules.Dev;
 namespace LiteGame
 {
     /// <summary>
-    /// 每局规则播种（**装配根显式步骤**，不属于传输工厂）：
-    /// 建本局 <see cref="MatchTestRules"/> 持有件并复位宿主钩子（测试模式开关 / bot 冻结与满血 /
-    /// 传送分发 / 重置请求）。规则实例由调用方随传输/会话显式移交（路线图 §4.4：无全局"当前局"登记口）。
-    ///
-    /// **为什么单独成类**：规则播种是全局可变状态的写通道，不能藏在传输工厂里——传输工厂只产传输。
-    /// 播种与传输创建同刻（装配根在 <c>CreateTransport</c> 前调用），但职责分开：漏调在测试房形态
-    /// 显式失败（见 <see cref="ProductTransportFactory.CreateTransport"/>），不再静默退回"无规则本地服"。
-    ///
-    /// 规则初值经 <see cref="IDevSession"/> 读（**不再直读开发静态**）；发布形态端口 `IsDevelopmentBuild=false`
-    /// → 恒返回 null（正式包没有测试规则面）。
+    /// 每局规则播种（**装配根显式步骤**，不属于传输工厂）： 建本局 MatchTestRules 持有件并复位宿主钩子（测试模式开关 / bot 冻结与满血 / 传送分发 / 重置请求）。
     /// </summary>
     public static class MatchRulesSeeder
     {

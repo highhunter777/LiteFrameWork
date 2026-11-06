@@ -4,12 +4,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame
 {
     /// <summary>
-    /// 动画 Profile 的**文件直载源**（编辑器工具与测试共用——不经 DI/内容服务全链）：
-    /// 从 GameData/Config 目录读表字节 → 建表 → 翻译边界 → 按模型族装配 Profile。
-    /// 与 <see cref="ConfigService"/> 的运行时路径**同一张表、同一翻译器、同一装载器**
-    /// ——工具/测试与运行时的差异只在字节来源（文件 vs 内容租约），语义链零分叉。
-    /// 运行时消费方不要用本类（走 <see cref="AnimationProfileConfig"/> 读口——
-    /// 快照化/原子发布/校验前置归 ConfigService）。
+    /// 动画 Profile 的**文件直载源**（编辑器工具与测试共用——不经 DI/内容服务全链）： 从 GameData/Config 目录读表字节 → 建表 → 翻译边界 → 按模型族装配 Profile。
     /// </summary>
     public static class AnimationProfileTableSource
     {

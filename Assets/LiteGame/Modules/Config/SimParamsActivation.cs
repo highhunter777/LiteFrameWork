@@ -4,14 +4,6 @@ namespace LiteGame.Modules.Config
 {
     /// <summary>
     /// 判定参数覆写在**进房时点**的激活解析（纯函数：零引擎、无静态可变状态）。
-    ///
-    /// **为什么需要它**：覆写只服务进程内本地服的调参试验——门（<see cref="SimParamsGate"/>）必须在
-    /// "真的开一局本地测试房"那一刻求值，而不是装配期（装配期测试模式尚未开启，门恒假）。
-    /// 本类把"门 + 合并"收成一个求值点：装配根每会话调用 <see cref="Resolve"/> 一次，结果同时用于
-    /// 客户端预测读口（<see cref="CombatConfig.Publish"/>）与本地服房间数值——两端因此逐字段同值。
-    ///
-    /// 非本地测试房（联机/云端）<paramref name="applyOverrides"/> 恒 false ⇒ 结果就是表值：
-    /// 覆写不会进入真服，也不会进任何摘要（`CombatConfigDigest` 只看判定面表字节与本局规则位）。
     /// </summary>
     public static class SimParamsActivation
     {

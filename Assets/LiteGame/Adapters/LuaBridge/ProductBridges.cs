@@ -5,15 +5,7 @@ using LiteGame.Modules.Settings;
 namespace LiteGame
 {
     /// <summary>
-    /// 产品桥装订面（单源）：Lua env 重建时绑定**全部**全局门面——框架四件（data/ui/content/text，
-    /// <see cref="Bridge.BindGlobals"/>）+ 产品门面（联机 meta <see cref="MetaBridge"/>、设置
-    /// <see cref="ProductSettings"/>、房间会话 <see cref="RoomBridge"/>——房主开局批）。
-    /// Preload 首建与 DevReload 重建两条路共用本口——新增产品门面在此加一行，
-    /// 禁止在流程里散落第二处 env 绑定（白名单纪律的可枚举点）。
-    /// 流程经 <see cref="ILuaProductBridge"/> 端口消费，模块不反向认识本件。
-    ///
-    /// **设置门面的 Lua 面在这里、不在设置域**：门面本体（值域/生效面）住 <c>Modules/Settings</c>，
-    /// 而 <c>XLua</c> 是适配器依赖——绑定代码随适配器走，设置域因此不认识脚本环境。
+    /// 产品桥装订面（单源）：Lua env 重建时绑定**全部**全局门面——框架四件（data/ui/content/text， Bridge.BindGlobals）+ 产品门面（联机 meta MetaBridge。）。
     /// </summary>
     public sealed class ProductBridges : ILuaProductBridge
     {
@@ -38,7 +30,7 @@ namespace LiteGame
         {
             var settings = env.NewTable();
 
-            // 既有平铺面（保持兼容：页面与既有用例不破）
+            // 既有平铺面（保持兼容：页面与既有用例不破）。
             settings.Set("Volume", new Func<float>(() => ProductSettings.Current.Volume));
             settings.Set("SetVolume", new Action<float>(v => ProductSettings.Current.SetVolume(v)));
             settings.Set("SoundEnabled", new Func<bool>(() => ProductSettings.Current.SoundEnabled));
@@ -48,7 +40,7 @@ namespace LiteGame
             settings.Set("Save", new Action(() => ProductSettings.Current.Save()));
             settings.Set("ResetDefaults", new Action(() => ProductSettings.Current.ResetDefaults()));
 
-            // 显示组（桌面专属项由 Supports* 查询，页面据此隐藏——不在 Lua 写平台分支）
+            // 显示组（桌面专属项由 Supports* 查询，页面据此隐藏——不在 Lua 写平台分支）。
             var display = env.NewTable();
             display.Set("Mode", new Func<int>(() => ProductSettings.Current.DisplayMode));
             display.Set("SetMode", new Action<int>(v => ProductSettings.Current.SetDisplayMode(v)));
@@ -67,7 +59,7 @@ namespace LiteGame
             display.Set("SupportsVSync", new Func<bool>(() => ProductSettings.Current.SupportsWindowSettings));
             settings.Set("display", display);
 
-            // 控制组（视角手感；键位覆盖为 P2，届时在此加子表）
+            // 控制组（视角手感；键位覆盖为 P2，届时在此加子表）。
             var control = env.NewTable();
             control.Set("LookSensitivity", new Func<float>(() => ProductSettings.Current.LookSensitivity));
             control.Set("SetLookSensitivity", new Action<float>(v => ProductSettings.Current.SetLookSensitivity(v)));
@@ -77,7 +69,7 @@ namespace LiteGame
             control.Set("SetInvertLookY", new Action<bool>(on => ProductSettings.Current.SetInvertLookY(on)));
             settings.Set("control", control);
 
-            // 常规组（页签记忆；语言走 Bridge.text、账号/服务器是只读事实，不在此）
+            // 常规组（页签记忆；语言走 Bridge.text、账号/服务器是只读事实，不在此）。
             var general = env.NewTable();
             general.Set("LastTab", new Func<int>(() => ProductSettings.Current.LastTab));
             general.Set("SetLastTab", new Action<int>(i => ProductSettings.Current.SetLastTab(i)));

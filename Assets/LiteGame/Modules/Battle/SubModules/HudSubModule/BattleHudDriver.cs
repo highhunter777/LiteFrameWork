@@ -10,22 +10,7 @@ using LiteGame;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局 HUD 面板驱动（战斗 HUD 第二件：血条/弹药/技能栏——prefab <c>Hud_Battle</c>，
-    /// 血条走 <see cref="HpBar"/> 控件模板 <c>Tmp_HpBar</c>）：纯 View 层——每渲染帧把本地**预测态**
-    /// （HP/已选武器/弹匣/换弹态）写到面板控件；**禁止回写 Sim**（HUD 归 View，数据源单向流同准心）。
-    ///
-    /// **数据源**（《UI框架总设计》§8.1 高频 HUD 口径——C# 直读，不跨 Lua）：
-    /// - <see cref="EntitySlot.Hp"/> / <see cref="CombatConfig.EntityHp"/>（满值——表装载值）→ <see cref="HpBar.Set"/>；
-    /// - <see cref="EntitySlot.SelectedWeapon"/> + <see cref="WeaponRuntime"/>（弹匣/**剩余备弹**/换弹态——本人私有面，
-    ///   本地预测态直读）；未装备显示 <see cref="UnarmedAmmoPlaceholder"/>，「/ 备弹」读出整组收起。
-    /// - 技能栏为**静态占位**（技能系统未做，无数据面）。
-    ///
-    /// **写入纪律**（制作规范 §7 同值跳过 + §4 转场基线）：文本/填充只在**值变化**时写；
-    /// 本地未对齐（StartGame 未达/首快照未对齐）整组 CanvasGroup 归零隐藏（比 SetActive 省重建）；
-    /// <see cref="Dispose"/> 归零面板（离场不残留）。
-    ///
-    /// 测试注：事实经构造注入（<see cref="IBattleReadModel"/> 替身或 `BattleReadModel`）——
-    /// EditMode 确定性驱动，不依赖运行时流程。
+    /// 对局 HUD 面板驱动（战斗 HUD 第二件：血条/弹药/技能栏——prefab Hud_Battle， 血条走 HpBar 控件模板 Tmp_HpBar）。
     /// </summary>
     public sealed class BattleHudDriver : IDisposable
     {

@@ -5,12 +5,9 @@ using LiteFramework.UI;
 
 namespace LiteGame.Modules.Composition
 {
-    /// <summary>⑦ 时钟域：双轨时钟分域（逻辑轨受时停/变速，UI 轨不受）+ 墙钟。
-    ///
-    /// **事件总线不在这里产出**（唯一产出方是 ⑥ <see cref="EventsSegment"/>）——时钟模块
-    /// 只负责时间，装配粒度与领域保持一致。
-    ///
-    /// 注册序见 <see cref="GameEntry"/>（⑧ Schedulers 依赖本模块产物——模块序即依赖序）。</summary>
+    /// <summary>
+    /// ⑦ 时钟域：双轨时钟分域（逻辑轨受时停/变速，UI 轨不受）+ 墙钟。
+    /// </summary>
     public sealed class ClocksSegment : IClientSegment, IClientSegmentGraph
     {
         private FrameworkClocks _clocks;

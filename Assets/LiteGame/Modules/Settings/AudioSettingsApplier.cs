@@ -2,10 +2,7 @@
 namespace LiteGame.Modules.Settings
 {
     /// <summary>
-    /// 音频设置生效器：主音量 → 四组分组音量；音效开关 → Effect 组门。
-    ///
-    /// **语义边界**（既有口径，不变）：音效关只静音 Effect 组，Bgm/Voice/UI 仍受主音量；
-    /// 不引入"独立 BGM 音量"——那是另一层产品需求，不在当前设置模型里。
+    /// 音频设置生效器：主音量 → 四组分组音量。
     /// </summary>
     public sealed class AudioSettingsApplier
     {

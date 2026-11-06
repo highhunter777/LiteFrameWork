@@ -5,13 +5,7 @@ using LiteFramework;
 namespace LiteGame.Modules.Composition
 {
     /// <summary>
-    /// ① 平台基础设施：本地持久化 + 日志宿主（先于一切 IO；Log 未注入静默丢弃）。
-    ///
-    /// 构造顺序（池 → 文件 → JSON → 日志安装）由框架 <see cref="FrameworkInfrastructure.Create"/> 统一保证，
-    /// 本段只决定"开不开/多吵"并登记产物。
-    ///
-    /// 装配清单与依赖序见 <see cref="GameEntry"/>；模块契约见 <see cref="IClientSegment"/>。
-    /// 结构化日志文件（dev 三宏内）：`persistentDataPath/logs/*.jsonl`，检索见 `scripts/logs/query.py`。
+    /// ① 平台基础设施：本地持久化 + 日志宿主（先于一切 IO）。
     /// </summary>
     public sealed class PlatformInfrastructureSegment : IClientSegment, IClientSegmentGraph
     {
@@ -31,9 +25,6 @@ namespace LiteGame.Modules.Composition
             context.Scope.Register(_infra);                 // 随本模块关闭释放池（清空全部空闲件）
 
             // 文件端口（进程级）：消费者经 IFileStore 注入（静态门面已删除）。
-            // 注：IJsonSerializer 刻意**不进容器**——它唯一的消费者是 FileSystem 的构造参数，
-            // 注册进容器却没有容器内消费者会违反"注册必须有生产消费者"；业务侧的 JSON 需求
-            // 走 IJsonCodec（语义不同：见 IJsonCodec 注释）。
             context.Put<IFileStore>(_infra.Files);
 
             // 网络契约 JSON 端口（严格类别读取 + 字面量拼装）：第三方实现只在框架装配入口被 new，

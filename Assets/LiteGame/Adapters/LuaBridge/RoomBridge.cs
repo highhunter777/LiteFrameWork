@@ -7,27 +7,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 房间会话门面（<c>Bridge.room</c>，房主开局批）：《开房与房主开局》UI 消费面的 Lua 侧入口——
-    /// 房主事实（开钮归属）与提前开局请求。**会话态门面**：后端不是装配期常驻服务，而是**当前对局会话**
-    /// （Battle 阶段进/出时装订/摘除——"活会话登记"范式，但生产域、随阶段收尾必摘）。
-    /// 流程经 <see cref="IRoomSessionBridge"/> 端口驱动本件，模块不反向认识 Lua 桥。
-    ///
-    /// **语义契约**：
-    /// - <see cref="OnOwner"/>：**替换语义**（重复登记换回调，nil＝退订——与控件族 On*Changed 同契约）；
-    ///   订阅时已绑会话＝**立即回放当前事实**（页面先于 JoinAck 打开的竞态由此消解）；会话装订时若页面
-    ///   已订阅＝装订即回放（JoinAck 在 Match 阶段到达，装订在 Battle 阶段——两序皆回放、无丢事实）。
-    ///   事实变化源＝JoinAck（初值）与 OwnerChanged（房主迁移——续批"UI 换按钮归属"的消费面）。
-    /// - <see cref="OnMembers"/>：**替换语义**同 <see cref="OnOwner"/>；载荷 = 席位全量快照行表
-    ///   （`{key, playerId, name, online}`——行字段按条目子节点名投影，供 `SetList` 整表重绑）；
-    ///   订阅/装订即回放当前快照（未收到过 = 空表；首份广播到达后按事件推送）。数据源＝协议全量快照
-    ///   （进房/断线/恢复完成重发，自带收敛）；显示名服务端派生占位（G3 Profile 换真昵称时两处来源一并更替）。
-    /// - <see cref="StartMatch"/>：**被拒恰一次回调**（false + 服务器 reason）；成功**不回调**——开局以
-    ///   OnStartGame 广播为准，流程侧关房间页（<c>PageFlow.CloseRoomIfOpen</c>），页面无需反馈；
-    ///   未绑会话＝立即回 false（"not-in-room"——迟到点击不悬挂）。
-    /// - <see cref="ExpectedPlayers"/>：**拉取式**（房规模是 JoinAck 定值、整局不变，无需订阅）；房间页
-    ///   "等待玩家 N/M" 的分母取它，分子取 <see cref="OnMembers"/> 席位面条数——**两处同源于同一份席位面／
-    ///   JoinAck**，故计数与名单恒同帧一致（房间页不另查大厅投影：那是给 Page_Lobby 看未进的房用的）。
-    /// - 无会话时一切入口显性降级（IsOwner=false / ExpectedPlayers=0 / 不推送），不抛。
+    /// 房间会话门面（Bridge.room，房主开局批）：《开房与房主开局》UI 消费面的 Lua 侧入口—— 房主事实（开钮归属）与提前开局请求。
     /// </summary>
     public sealed class RoomBridge : IRoomSessionBridge
     {

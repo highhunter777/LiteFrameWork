@@ -3,15 +3,7 @@ using LiteFramework.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 启动走廊装载作用域持有件（《通用加载页设计》§1 时间轴与 §8 批B）：
-    /// **开在 Preload**（窗口③ Lua 预载，不定态）、**Main 只报场景进度**（窗口④，
-    /// <c>SceneService.Progress</c>——不持所有权）、**收在首屏接线点**（窗口⑥，
-    /// <c>ProcedureMain</c> 的 OpenEntryOnce 之后）；中途失败/Error 流程由各Procedure
-    /// 显式 <see cref="End"/> 兜底（不留永久阻断面）。
-    ///
-    /// 静态单场次——进程内只此一条启动走廊（服务生命周期=进程生命周期）。
-    /// 驱动面不变：内部持 <see cref="FeedbackService.LoadingScope"/>（Report/End 全经它，
-    /// 唯一驱动纪律见《通用加载页设计》§0/§3）。
+    /// 启动走廊装载作用域持有件（《通用加载页设计》§1 时间轴与 §8 批B）： **开在 Preload**（窗口③ Lua 预载，不定态）、**Main 只报场景进度**（窗口④。）。
     /// </summary>
     internal static class LaunchLoading
     {

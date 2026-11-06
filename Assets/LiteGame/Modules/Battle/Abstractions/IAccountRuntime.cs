@@ -5,14 +5,7 @@ using LiteSim;
 namespace LiteGame
 {
     /// <summary>
-    /// 账号运行时端口（Battle 对会话材料的**唯一消费口**）：对局运行只从这里取 Account 资源域、
-    /// Match 服务子域、会话客户端、本局规则与地图委托——不认会话域实现件（<c>AccountSession</c>），
-    /// 也拿不到根容器（Battle 只能建 Match 子域，写不到 Account/根作用域）。
-    ///
-    /// 实现归会话域（<c>AccountSession</c>），声明住 Battle 侧＝依赖倒置：Battle 不反向引
-    /// `LiteGame.Modules`，Session 也不再把 Battle 实现件塞进构造点。
-    ///
-    /// **零引擎依赖**（`ClientScope`/`ServiceContainer`/`LiteSim` 类型皆 L1 可编）。
+    /// 账号运行时端口（Battle 对会话材料的**唯一消费口**）：对局运行只从这里取 Account 资源域、 Match 服务子域、会话客户端、本局规则与地图委托——不认会话域实现件（AccountSession）。
     /// </summary>
     public interface IAccountRuntime
     {

@@ -10,26 +10,7 @@ using LiteGame.Modules.Input;
 namespace LiteGame
 {
     /// <summary>
-    /// 武器瞄准激光驱动（**激光器装在武器上**：束实例挂到武器挂载点、沿枪管方向出射，
-    /// 端点只由枪口前向决定——不追鼠标，也不收敛到准心/AimPoint）：纯 View 层——每渲染帧把
-    /// <see cref="LineRenderer"/>（Assets/LiteGame/Modules/Battle/Content/FX/fx_lazer_sight.prefab——KriptoFX Lazer 的
-    /// fx 归置副本，纯视觉资产零脚本）从枪口挂载点铺到枪管射线的截停点。
-    ///
-    /// **挂载与方向**（用户口径："做在武器上、只从武器激光挂载点射出"）：
-    /// - 束实例 <c>SetParent</c> 到本地视图的 <c>Weapon_Rifle/Muzzle</c> 锚点（prefab 摆位+前向烘焙：
-    ///   +Z = 枪管轴，构建器 BuildLaserAssets 落；美术转锚点即调出射方向）；
-    /// - <c>useWorldSpace=false</c>——束两点写挂载点**本地空间**，随枪的姿态/动画自动跟转，
-    ///   驱动不写束的位姿，只写端点；
-    /// - **端点恒沿枪口前向**：瞄准/开火语境不改方向、不读准心点；与准心的视觉差由枪口/弹道视差
-    ///   自然承担（用户裁决：瞄准线落点不用跟准心）。
-    ///
-    /// **截停**：<see cref="SimRaycast"/> 单源（实体圆柱 + 静态障碍取最近，与
-    /// <see cref="ShootingSystem"/> 同一几何源）——**遇玩家/障碍截停不穿透**；射程
-    /// <see cref="CombatConfig.HitscanRange"/>。方向取挂载点世界前向（含俯仰），不再做 XZ 水平投影。
-    ///
-    /// **支持位**：<see cref="LaserSightPolicy"/>（按武器 def id；测试模式直通——任何武器都支持）。
-    /// **可见性门**：本地未对齐/死亡/未装备武器/挂载点缺失（灰盒无武器 → 无激光，诚实退化）/输入被拦。
-    /// **不做**：不改 Sim 状态；弹着/命中特效归命中分发批次。
+    /// 武器瞄准激光驱动（**激光器装在武器上**：束实例挂到武器挂载点、沿枪管方向出射， 端点只由枪口前向决定——不追鼠标，也不收敛到准心/AimPoint）。
     /// </summary>
     public sealed class BattleLaserDriver : IDisposable
     {
@@ -85,24 +66,21 @@ namespace LiteGame
         }
 
 /// <summary>
-    /// 解算本帧激光端点（挂载点本地空间；门内各条任一不成立 → 藏）。
-    ///
-    /// **单一模式：枪管射线**——端点 = 挂载点世界前向（含俯仰）的三维截停点；瞄准/开火语境不改方向，
-    /// 不读准心/AimPoint。截停走 <see cref="TraceBeam"/>（实体三维 + 障碍折回同量纲 + 射程取最近）。
-    /// </summary>
+/// 解算本帧激光端点（挂载点本地空间）。
+/// </summary>
         private bool TryResolveFacts(out Vector3 localEnd)
         {
             localEnd = Vector3.zero;
             if (!_view.TryGetSlot(_view.LocalEntityId, out int slot)) return false;
             if (_view.IsDead(slot)) return false;                    // 尸体不出激光（本地槽读预测态）
 
-            // 武器支持位：未装备 → 藏；def id 走策略（测试模式直通——任何武器都支持）
+            // 武器支持位：未装备 → 藏；def id 走策略（测试模式直通——任何武器都支持）。
             ref EntitySlot e = ref _sim.State.Entities[slot];
             if (e.SelectedWeapon < 0 || e.SelectedWeapon >= SimConfig.WeaponSlotsPerEntity) return false;
             int defId = _sim.State.Weapons[slot * SimConfig.WeaponSlotsPerEntity + e.SelectedWeapon].WeaponDefId;
             if (!LaserSightPolicy.Supports(defId, _dev)) return false;
 
-            // 激光器装在武器上：无挂载点（灰盒无武器）→ 无激光——诚实退化，不拿 Sim 原点造第二视觉源
+            // 激光器装在武器上：无挂载点（灰盒无武器）→ 无激光——诚实退化，不拿 Sim 原点造第二视觉源。
             Transform mount = ResolveMount(slot);
             if (mount == null) return false;
             AttachBeam(mount);
@@ -119,11 +97,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 束的截停距离（**与 <see cref="ShootingSystem"/> 同式同量纲**，专项设计 §4/C9）：
-        /// 实体走三维入口（方向含 Y），障碍仍在 XZ 平面按**水平距离**求解后折回三维参数
-        /// （<c>t_3d = t_xz / h</c>，h = 水平投影长度），否则两类距离不同量纲、取近会取错。
-        /// 近乎垂直（h 退化）时障碍在水平方向不可达 ⇒ 判未命中（不与实体争近远）。
-        /// 返回值恒 ≤ <paramref name="maxT"/>（未命中即返回 maxT）。
+        /// 束的截停距离（**与 ShootingSystem 同式同量纲**，专项设计 §4/C9）： 实体走三维入口（方向含 Y），障碍仍在 XZ 平面按**水平距离**求解后折回三维参数 （t_3d = t_xz / h。）。
         /// </summary>
         private float TraceBeam(float ox, float oy, float oz, float dx, float dz, float dy, float maxT, int skipSlot)
         {

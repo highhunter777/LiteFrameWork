@@ -6,15 +6,7 @@ using UnityEngine;
 namespace LiteGame.Modules.Settings
 {
     /// <summary>
-    /// 设置门面本体（Lua 面 `Bridge.settings` 在 <c>Adapters/LuaBridge/ProductBridges</c>）：**四组设置的读写 + 立即生效**。
-    /// 存储走 <see cref="GameSettings"/>（设置项清单在其单源；业务禁裸用 SettingService），
-    /// 生效面按组拆给四个生效器：音频 <see cref="AudioSettingsApplier"/>、图形 <see cref="GraphicsSettingsApplier"/>、
-    /// 显示 <see cref="DisplaySettingsApplier"/>、控制 <see cref="LookPreferences"/>（视角倍率端口）。
-    /// **语言不在此**（走 `Bridge.text.SetLocale`）。
-    ///
-    /// 生效纪律（《设置系统专项设计》§4.1）：构造即全量应用（启动生效点 = 装配根）、改值即应用、
-    /// 顺序固定（画质档 → 图形覆盖 → 垂直同步 → 分辨率/模式 → 帧率）、幂等、失败降级。
-    /// 落盘时机归 SettingService 三处纪律（设置页 OnHide 调 Save；退出经 SettingsSegment.ShutdownAsync）。
+    /// 设置门面本体（Lua 面 `Bridge.settings` 在 Adapters/LuaBridge/ProductBridges）：**四组设置的读写 + 立即生效**。
     /// </summary>
     public sealed class ProductSettings
     {
@@ -57,7 +49,7 @@ namespace LiteGame.Modules.Settings
         public static ProductSettings Current
             => s_instance ?? throw new InvalidOperationException("Bridge.settings 未装订（装配点未 Bind 设置门面）");
 
-        // ---- 音频 ----
+        // ---- 音频 ----。
 
         public float Volume => _settings.MasterVolume.Get();
 
@@ -75,14 +67,14 @@ namespace LiteGame.Modules.Settings
             _audio.Apply(_settings);
         }
 
-        // ---- 图形 ----
+        // ---- 图形 ----。
 
         /// <summary>UI 画质档（0=低 / 1=中 / 2=高）。</summary>
         public int Quality => _graphics.Quality(_settings);
 
         public void SetQuality(int tier) => _graphics.SetQuality(_settings, tier);
 
-        // ---- 显示 ----
+        // ---- 显示 ----。
 
         /// <summary>当前平台是否支持窗口类设置（模式/分辨率/垂直同步）；移动端为 false。</summary>
         public bool SupportsWindowSettings => _display.SupportsWindowSettings;
@@ -129,7 +121,7 @@ namespace LiteGame.Modules.Settings
 
         public void SetVSync(int value) => _display.SetVSync(_settings, value);
 
-        // ---- 控制 ----
+        // ---- 控制 ----。
 
         public float LookSensitivity => _settings.LookSensitivity.Get();
 
@@ -155,7 +147,7 @@ namespace LiteGame.Modules.Settings
             _look.Refresh();
         }
 
-        // ---- 常规 ----
+        // ---- 常规 ----。
 
         /// <summary>上次停留的页签（0..4；越界由 <see cref="GameSettings.LastTab"/> 钳制）。</summary>
         public int LastTab => _settings.LastTab.Get();

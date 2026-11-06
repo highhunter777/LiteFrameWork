@@ -2,9 +2,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 房间会话门面装订端口（模块侧契约）：Battle 阶段进/出时装订/摘除当前对局会话，
-    /// 供 <c>Bridge.room</c> 读取房主事实/发提前开局请求。实现归 Lua 桥适配器，
-    /// 流程只经本端口驱动，不持有会话态门面本体。
+    /// 房间会话门面装订端口（模块侧契约）：Battle 阶段进/出时装订/摘除当前对局会话， 供 Bridge.room 读取房主事实/发提前开局请求。
     /// </summary>
     public interface IRoomSessionBridge
     {

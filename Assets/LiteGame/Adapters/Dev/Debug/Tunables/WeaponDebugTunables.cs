@@ -9,10 +9,7 @@ using LiteGame;
 namespace LiteGame
 {
     /// <summary>
-    /// 武器试验参数（开发三宏内）：单发伤害/射速的运行态覆写——判定面数值，覆写走 <see cref="MatchTestRules"/>
-    /// 实例字段（R13：机制不读静态），默认值来自武器表（未装载回落内置默认步枪，同值同源由 L1 守卫钉住）。
-    /// 当前对局规则经 <see cref="IDevSession.MatchRules"/> 读（实例状态，无 Sim 侧静态"当前局"）。
-    /// 覆写只对本地测试模式生效（随进房种子/活动局直写），不落盘、不进摘要、release 剥离。
+    /// 武器试验参数（开发三宏内）：单发伤害/射速的运行态覆写——判定面数值，覆写走 MatchTestRules 实例字段（R13：机制不读静态），默认值来自武器表（未装载回落内置默认步枪，同值同源由 L1 守卫钉住）。
     /// </summary>
     public sealed class WeaponDebugTunables : IDebugTunableProvider
     {
@@ -57,7 +54,7 @@ namespace LiteGame
             });
         }
 
-        // ---- 覆写落点（活动局 + 跨局待用值双落，与爆头带覆写同口径）----
+        // ---- 覆写落点（活动局 + 跨局待用值双落，与爆头带覆写同口径）----。
 
         public float CurrentDamage()
         {

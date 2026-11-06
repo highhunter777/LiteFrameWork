@@ -11,10 +11,7 @@ using LiteFramework.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局视图的**资源取件域**：角色 prefab / 激光束 / HUD prefab / 出生保护壳 / 飘字底件与四档材质 /
-    /// 片段清单 / 四组音效——全部经内容服务租约并登记视图作用域。逐项降级（缺美术不当作对局失败），
-    /// 取件失败策略由调用点决定（整组材质任一失败不注入；音效逐条独立降级）。
-    /// 租约本体归 <see cref="ClientScope"/>（随对局作用域归还），本件只持引用。
+    /// 对局视图的**资源取件域**：角色 prefab / 激光束 / HUD prefab / 出生保护壳 / 飘字底件与四档材质 / 片段清单 / 四组音效——全部经内容服务租约并登记视图作用域。
     /// </summary>
     internal sealed class BattleViewAssets
     {

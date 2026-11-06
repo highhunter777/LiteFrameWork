@@ -2,8 +2,6 @@ namespace LiteGame
 {
     /// <summary>
     /// B3 Bridge.battle 只读事实（Lua 只读门面）：本局规则 + 排行/结算口径的**不可变快照**。
-    /// 生产绑定由装配点/流程提供；未绑定时 <see cref="Default"/> 用 <see cref="BattleStrategyProfile.Default"/>，
-    /// 保证 Lua 侧永远可读且不会写入战斗状态。
     /// </summary>
     public readonly struct BattleLuaFacts
     {

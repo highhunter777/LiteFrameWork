@@ -6,10 +6,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 权威命中/击杀事件 → 表现反馈：<see cref="PublicCombatFeed"/> 的命中/阵亡队列（含他人命中/击杀）
-    /// 交给 <see cref="HitFeedbackDispatcher"/>——命中数字/受击特效/命中音效/阵亡归属不再依赖
-    /// "本地预测的帧事件"（受害方本地从不模拟敌方开火，旧路径下自己阵亡永远收不到归属/音效；
-    /// 预测命中则可能在服务端未命中时误显）。去重已在 <see cref="PublicCombatFeed"/> 完成。
+    /// 权威命中/击杀事件 → 表现反馈：PublicCombatFeed 的命中/阵亡队列（含他人命中/击杀） 交给 HitFeedbackDispatcher——命中数字/受击特效/命中音效/阵亡归属不再依赖 "本地预测的帧。
     /// </summary>
     internal sealed class AuthoritativeCombatFeedback : IDisposable
     {

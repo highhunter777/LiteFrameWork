@@ -7,12 +7,7 @@ using LiteGame;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局只读事实端口的实现（适配器）：把 <see cref="SimWorldState"/> 的槽位/武器数组翻译成
-    /// <see cref="IBattleReadModel"/> 事实——本类是**唯一**把 Sim 布局暴露给表现层驱动的翻译点。
-    ///
-    /// 读源为委托：HUD 用本地**预测态**、排行榜用**权威镜像**（首快照前回落预测），两者的实例
-    /// 各自持不同委托；容量的内部缓冲（规范序）每帧重建一次，玩家数上界 = MaxEntities。
-    /// 阵亡判据（表现侧死亡锁存）同样以委托注入——驱动不再自己接 <c>SimView</c>。
+    /// 对局只读事实端口的实现（适配器）：把 SimWorldState 的槽位/武器数组翻译成 IBattleReadModel 事实——本类是**唯一**把 Sim 布局暴露给表现层驱动的翻译点。
     /// </summary>
     public sealed class BattleReadModel : IBattleReadModel
     {

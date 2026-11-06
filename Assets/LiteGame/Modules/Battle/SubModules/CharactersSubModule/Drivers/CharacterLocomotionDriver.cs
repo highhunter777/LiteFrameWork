@@ -10,35 +10,7 @@ using LiteSync.Snapshot;
 namespace LiteGame
 {
     /// <summary>
-    /// 角色动画驱动器（《层次动画机设计》——**单机双根**：形态裁决全部收进
-    /// <see cref="CombatAnimMachine"/>，本类只负责事实喂入、事件路由、槽位生命周期与诊断聚合）：
-    /// - **速度/方向来源**：视图 Transform 的帧间位移——本地（预测+和解衰减）与远端（快照插值）同一来源，
-    ///   不读 Sim 内部；插值/衰减的速度天然平滑；
-    /// - **IsAiming**：<see cref="SimView.IsAiming"/>（Sim 权威）；**IsFireStance**：
-    ///   <see cref="SimView.IsFireStance"/>（Sim 权威开火驻留窗——瞄准/扣扳机/成功开火统一进窗，
-    ///   战斗根进根与续窗的判据之一）；**IsReloading**：<see cref="SimView.IsReloading"/>
-    ///   （Sim 权威——武器账本私有面）；**IsDead**：<see cref="SimView.IsDead"/>；
-    /// - **锁存**：迟滞公式单源 <see cref="LocomotionBlendMath.UpdateLatch"/>（进 0.6 / 出 0.3 m/s），
-    ///   驱动器每帧算、作为事实喂状态机（机内无迟滞散字段）；死亡事实同属**每帧权威状态**，
-    ///   不由帧事件置不可逆锁存（预测死亡事件不得滞留尸体姿态）；
-    /// - **开火窗长**：单源 `CombatConfig.FireStanceFrames / SimConfig.TickRate`（1s——窗与开火表现解耦）；
-    ///   **换弹倍率**：装配期按片段时长 / Sim `ReloadFrames` 求商（钳制在 Profile 区间——动画收势与
-    ///   弹药回国同帧）；
-    /// - **帧事件**：本类实现 <see cref="IFrameEventAnimationConsumer"/> 并**自订阅**
-    ///   `SimView.EventSink`（构造时挂上、<see cref="Dispose"/> 时摘下）；Fire 事件只刷新射击窗
-    ///   （站姿由 Fire 族持 AimIdle 循环，无片段可重播），首次进入按锁存路由进 FireIdle/FireWalk；
-    /// - **换弹＝Overlay 上半身叠加**：不进战斗根（接管会停 Base MoveBlend → 滑步），由本类每帧
-    ///   按 Sim 换弹事实提交/释放叠加层（<see cref="SlotAnimContext.UpdateReloadUpper"/>），腿照常出步；
-    /// - **片源（去 AC 主路径）**：<see cref="AnimationClipManifest"/>（键→Clip 显式引用的纯配置）经
-    ///   <c>AnimatorAnimationBackend.RegisterManifest</c> 装配期逐键登记——**控制器可选**：有控制器时
-    ///   其片段索引只是便利源（清单后注册，同名键以清单为权威）；无控制器（直 Clip 模型）由清单独立供片；
-    ///   两皆缺 = 无片源，视同灰盒跳过；
-    /// - **发现面＝<see cref="LiteAnimator"/>**：视图挂绑定组件（完整动画配置面：清单/可选控制器/
-    ///   Avatar/RootMotion/UpdateMode/Culling）才是可动画视图（组件 RequireComponent 自动补
-    ///   Animator 并持有全部配置）——无组件即灰盒，裸 Animator 不构成判据；
-    /// - **灰盒降级**：无绑定组件、或无任何片源（控制器与清单皆空）的视图不建播放器/状态机
-    ///   （与缺角色资源既有姿势一致）；视图回收时旧播放器/机器随槽位消失，新占用者重建（Owner 代次
-    ///   语义由重建保证）。
+    /// 角色动画驱动器（单机双根：形态裁决收进 CombatAnimMachine，本类负责事实喂入、事件路由与槽位生命周期）。
     /// </summary>
     public sealed class CharacterLocomotionDriver : IDisposable, IModuleStats, IFrameEventAnimationConsumer
     {
@@ -132,10 +104,7 @@ namespace LiteGame
                 throw new ArgumentException(
                     $"Profile 瞄准站姿须为循环（开火窗与瞄准态持同一循环）→ {CharacterAnimationIds.AimIdle}", nameof(profile));
 
-            // 片源覆盖校验（§4 片源载体裁决"装配期逐键 RegisterClip 入后端并经校验后才放行播放"）：
-            // Profile 两张登记表的全部绑定键都必须能在清单解析——缺键 = 清单与 Profile 不同步
-            // （配置错误），构造期显性失败，不等到运行时逐提交静默失败。片段引用缺失（null）不在此判：
-            // 那是资源缺失态（缺包克隆），由槽位登记计数观测、不阻止装配。
+            // 片源覆盖校验（§4 片源载体裁决"装配期逐键 RegisterClip 入后端并经校验后才放行播放"）： Profile 两张登记表的全部绑定键都必须能在清单解析——缺键 = 清单与 Profile 不同步 （配置错误），构造期显性失败，不等到运行时逐提交静默失败。
             if (manifest != null)
             {
                 var missing = new List<string>();
@@ -200,9 +169,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 读槽位当前形态与**权重**（诊断/HUD/测试；<paramref name="weights"/> 由调用方复用，零分配）：
-        /// 混合形态（MoveBlend 3 权重 / AimMoveBlend 4 权重）给出拷贝并返回 true；单片段形态返回 false 但
-        /// <paramref name="id"/> 仍给出形态。
+        /// 读槽位当前形态与**权重**（诊断/HUD/测试）。
         /// </summary>
         public bool TryGetMotion(int slotIndex, out AnimationId id, float[] weights)
         {
@@ -307,18 +274,14 @@ namespace LiteGame
             var s = _slots[i] ?? (_slots[i] = new SlotAnim());
             if (s.Player != null) return s;
 
-            // 发现面＝视图绑定组件（直 Clip 形态的视图入口）：无组件＝灰盒——
-            // 裸 Animator 不构成"可动画视图"判据；组件含 RequireComponent，Animator 不可被单独剥除。
-            // 片源优先取组件声明的清单（视图自含），装配传入清单作回退——两者同资产时等价。
+            // 发现面＝视图绑定组件（直 Clip 形态的视图入口）：无组件＝灰盒—— 裸 Animator 不构成"可动画视图"判据。
             var binding = go.GetComponentInChildren<LiteAnimator>(true);
             var animator = binding?.Animator;
             var manifest = binding != null ? binding.Manifest : null;
             if (manifest == null) manifest = _manifest;
             if (animator == null || (animator.runtimeAnimatorController == null && manifest == null))
             {
-                // 灰盒视图：无绑定组件/无 Animator、或无任何片源（控制器与清单皆空）——只记位置
-                // （保持速度判断的帧间基准），不建播放器/机器。不打日志：每帧路径不得刷屏；
-                // 降级事实由 IModuleStats（views 计数）与用例承担观测。
+                // 灰盒视图：无绑定组件/无 Animator、或无任何片源（控制器与清单皆空）——只记位置 （保持速度判断的帧间基准），不建播放器/机器。
                 RememberPosition(s, go);
                 return null;
             }
@@ -337,7 +300,7 @@ namespace LiteGame
                 ? Mathf.Clamp(reloadSeconds / reloadTarget, reloadDef.MinSpeed, reloadDef.MaxSpeed)
                 : 1f;
 
-            // 上下文窄面构造：播放器 + 权重容器（驱动器复用数组，零分配）+ 窗长/换弹倍率
+            // 上下文窄面构造：播放器 + 权重容器（驱动器复用数组，零分配）+ 窗长/换弹倍率。
             s.Ctx = new SlotAnimContext(s.Player, _moveWeights, _aimWeights, _fireHoldSeconds, reloadSpeed);
             s.Machine = CombatAnimMachine.Build(s.Ctx, ResolveMoveDurations(backend));
             s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根；无控制器时即唯一落位兜底）
@@ -367,13 +330,7 @@ namespace LiteGame
                 float measuredSpeed = MeasureSpeed(s, go.transform.position, dt, out Vector3 moveDir);
                 float speed = measuredSpeed;
 
-                // **测速低通（本地与远端统一）**：视图帧间位移是"实际速度"的瞬时估计，含
-                // 显示位置的和解/插值修正噪声。远端（快照插值）噪声更大，但**本地同样有**——
-                // 横移速度恒为 2.5 m/s（≈4 cm/帧），1 cm 的位置修正就让测速抖 ±0.6 m/s；
-                // 而 2.5 恰是 <c>LocomotionBlendMath.WalkFullMps</c> 锚点：掉到 2.2 会混入 Idle
-                // （站姿、脚不动）、冲到 2.8 会混入 Run（正向跑），并且 Φ（步幅对齐相位速率）
-                // 跟着抖 ±20% ⇒ 脚步一快一慢、混合里混进不相干的腿，表现就是"按 A/S/D 角色震"。
-                // 本地用更快的锐度：起停响应不能像远端那样迟钝（40 ms 量级）。
+                // **测速低通（本地与远端统一）**：视图帧间位移是"实际速度"的瞬时估计，含 显示位置的和解/插值修正噪声。
                 bool snapshotDriven = _view.HasSnapshotSource && !_view.IsLocalSlot(i);
                 float sharpness = snapshotDriven ? SnapshotSpeedSmoothSharpness : LocalSpeedSmoothSharpness;
                 if (measuredSpeed > SnapSpeedThreshold)
@@ -395,10 +352,7 @@ namespace LiteGame
 
                 s.MovingLatch = LocomotionBlendMath.UpdateLatch(s.MovingLatch, speed);   // 锁存公式单源
 
-                // 方向低通（四向权重用**平滑后**的方向，不用原始帧间位移方向）：低速横移时
-                // 帧间位移方向噪声大（见 MoveDirSmoothSharpness），直接取角会让 Walk_F/R/B/L
-                // 的权重在槽位边界来回跳——表现就是"按 A/S/D 角色抖，按 W 不抖"。
-                // 静止（无位移）时保持上一次方向：角度对 Idle 无意义，但突然归零会造成一次跳变。
+                // 方向低通（四向权重用**平滑后**的方向，不用原始帧间位移方向）：低速横移时 帧间位移方向噪声大（见 MoveDirSmoothSharpness），直接取角会让 Walk_F/R/B/L 的权重在槽位边界来回跳——表现就是"按 A/S/D 角色抖，按 W 不抖"。
                 Vector3 smoothDir = moveDir;
                 if (moveDir != Vector3.zero)
                 {
@@ -417,10 +371,6 @@ namespace LiteGame
                 }
 
                 // 事实喂入（单机单上下文——层间不引用，全部经 ctx 单点**整体替换**，无半更新态）。
-                // **死亡只读权威状态**（本地=预测态经快照和解、远端=快照渲染态）：不再由帧事件
-                // 置不可逆锁存——客户端预测出来的死亡事件不得把角色按在死亡叶里（《角色状态与动作
-                // 专项设计》§死亡表现：状态可重建，事件只做反馈）。复活=IsDead 变假（Hp 回满），
-                // 战斗根自然退出死亡叶，不再依赖 LifeStartFrame 复位。
                 bool dead = _view.IsDead(i);
                 s.Ctx.Feed(new SlotAnimFacts(
                     isAiming: _view.IsAiming(i),
@@ -440,9 +390,7 @@ namespace LiteGame
 
                 s.Machine.Tick(dt);                   // 根→叶 OnUpdate + 事务帧末应用（一帧一事务）
 
-                // 换弹：Overlay 上半身一次性叠加（**不进战斗根**——战斗根接管会停 Base MoveBlend，
-                // 脚定住而世界位移照旧即滑步；叠加层只盖上半身，腿继续由 MoveBlend 走）。
-                // 放在机 Tick 之后：机不再因换弹迁根，腿的权重维护与叠加层提交互不干扰。
+                // 换弹：Overlay 上半身一次性叠加（**不进战斗根**——战斗根接管会停 Base MoveBlend， 脚定住而世界位移照旧即滑步）。
                 s.Ctx.UpdateReloadUpper(s.Ctx.IsReloading, s.Ctx.IsDead);
 
             }
@@ -455,14 +403,10 @@ namespace LiteGame
             RememberPosition(s, go);
             s.Player?.Tick(dt);                        // 唯一驱动入口（§7）
 
-            // 持枪约束：**必须在播放器 Tick 之后**——Graph.Evaluate 刚把本帧动画姿态写完，
-            // 此刻读到的武器骨局部变换就是"动画本该给的值"，约束按幅度缩放覆写它
-            // （单一写者契约：换弹期这根骨归约束；退出即停写，动画下帧自然接管）。
+            // 持枪约束：**必须在播放器 Tick 之后**——Graph.Evaluate 刚把本帧动画姿态写完， 此刻读到的武器骨局部变换就是"动画本该给的值"，约束按幅度缩放覆写它 （单一写者契约：换弹期这根骨归约束）。
             s.Grip?.Update(s.Ctx?.ReloadSubmitted ?? false);
 
-            // 俯仰姿态（TPS）：**只给本地玩家**——相机 pitch 是本地事实，套到远端会让别人的
-            // 上半身跟着本机镜头仰俯。射击语境（瞄准 ∨ 开火驻留窗——与激光同谓词族）内写，
-            // 写序同持枪约束（Evaluate 后）；语境外不写（动画值原样）。
+            // 俯仰姿态（TPS）：**只给本地玩家**——相机 pitch 是本地事实，套到远端会让别人的 上半身跟着本机镜头仰俯。
             if (s.Posture != null && _cameraPitchOf != null && _view.IsLocalSlot(i))
                 s.Posture.Update(
                     (s.Ctx?.IsAiming ?? false) || (s.Ctx?.IsFireStance ?? false),
@@ -485,14 +429,10 @@ namespace LiteGame
             for (int i = 0; i < _slots.Length; i++) ReleaseSlot(i);
         }
 
-        // ---- IFrameEventAnimationConsumer（§8：帧事件 → 播放请求）----
+        // ---- IFrameEventAnimationConsumer（§8：帧事件 → 播放请求）----。
 
         /// <summary>
-        /// 帧事件消费（**逻辑帧边界**，由 <see cref="SimView.EventSink"/> 在静默门之后调用）：
-        /// fire 事件即进 Fire 系——语义/通道由战斗层装配期从 Profile 单源解析
-        /// （构造期校验保留）；Hit/Evade 待接入（未预建消费者）。
-        /// 路由：窗先行（根合并口刷新＝重置满窗）→ Fire 族态内只续窗（站姿循环由叶自维护，
-        /// 无片段可重播）→ 否则按锁存 Request 进 Fire 叶（站定 FireIdle / 移动 FireWalk）。
+        /// 帧事件消费（**逻辑帧边界**，由 SimView.EventSink 在静默门之后调用）： fire 事件即进 Fire 系——语义/通道由战斗层装配期从 Profile 单源解析 （构造期校验保留）。
         /// </summary>
         public void OnFrameEvent(in FrameEvent e)
         {
@@ -516,7 +456,7 @@ namespace LiteGame
             s.Machine.Request(s.Ctx.IsMoving ? CharacterAnimId.FireWalk : CharacterAnimId.FireIdle);
         }
 
-        // ---- 内部：槽位生命周期与测量 ----
+        // ---- 内部：槽位生命周期与测量 ----。
 
         /// <summary>视图帧间位移 → 水平速度（m/s）与单位移动方向（无位移时方向为零向量）。</summary>
         private static float MeasureSpeed(SlotAnim s, Vector3 pos, float dt, out Vector3 dir)
@@ -562,7 +502,7 @@ namespace LiteGame
             return s?.Player != null && s.Machine != null;
         }
 
-        // ---- IModuleStats（§11 诊断；调用方复用容器，禁止每次 new）----
+        // ---- IModuleStats（§11 诊断；调用方复用容器，禁止每次 new）----。
 
         string IModuleStats.StatsName => "Animation";
 

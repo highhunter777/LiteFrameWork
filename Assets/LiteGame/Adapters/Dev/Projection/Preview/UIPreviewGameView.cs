@@ -7,10 +7,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// GameView 分辨率切换（P2-3 B3 / D2 用户裁决：反射内部 SetCustomResolution＋容错降级）：先确保
-    /// GameView 处于经典分辨率模式（2022.3 的 Device Simulator 是独立窗口，这里显式取 GameView），
-    /// 再调内部 `SetCustomResolution`。失败返回 false（调用方降级：安全区/语言照跑，分辨率提示手动切，
-    /// 矩阵索引记 resolutionApplied=false）。内部 API 集中在本单点，不散落。
+    /// GameView 分辨率切换（P2-3 B3 / D2 用户裁决：反射内部 SetCustomResolution＋容错降级）。
     /// </summary>
     public static class UIPreviewGameView
     {

@@ -7,21 +7,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局客户端会话：**持有传输与 RoomClient**，负责装配与生命周期；会话状态机**不在此重复**——
-    /// 相位机（Idle/Connected/SuspectedLost/Reconnecting/Restoring/Failed）全部在 <see cref="RoomClient"/>，
-    /// 本类只做：
-    /// - **连接与进房装配**：传输 OnConnected 且相位 Idle 时发 Join（初次进房；重连路径由 RoomClient
-    ///   状态机自动发 ReconnectRequest，两条路径互斥不重叠）；
-    /// - **所有权**：本类创建并拥有 <see cref="KcpTransportClient"/>（Account Scope 登记 BattleClient，
-    ///   Dispose 逆序先 RoomClient 后 transport——RoomClient 不代管传输）；
-    /// - **诊断**：传输错误留 <see cref="LastError"/>（kcp2k OnError 不进 RoomClient——会话语义由
-    ///   OnDisconnected/相位承担，错误文本只作诊断）。
-    ///
-    /// 事件面（JoinAck/StartGame/Snapshot/相位迁移/断线）经 <see cref="Client"/> 直通——BattleContext
-    /// 直挂 RoomClient 事件（编排层不转发第二遍事件，避免"转发即订阅泄漏"的双倍面）。
-    ///
-    /// **端口实现**：本类实现 <see cref="IBattleClient"/>（Battle/Abstractions）——消费面只认端口，
-    /// 具体构造只经 <see cref="BattleClientFactory"/>（会话域不再 `new` 本类）。
+    /// 对局客户端会话：**持有传输与 RoomClient**，负责装配与生命周期。
     /// </summary>
     public sealed class BattleClient : IBattleClient
     {

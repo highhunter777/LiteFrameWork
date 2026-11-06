@@ -4,11 +4,7 @@ using LiteFramework;
 namespace LiteGame.Modules.Settings
 {
     /// <summary>
-    /// <see cref="ILookPreferences"/> 的实现：把 <see cref="GameSettings"/> 的三项读成**缓存值**。
-    ///
-    /// 为什么要缓存：<c>Setting&lt;T&gt;.Get()</c> 每次都走字典查找 + 字符串解析，放在逐帧的
-    /// 视角计算里是纯浪费；设置变更时由 <see cref="ProductSettings"/> 调 <see cref="Refresh"/> 刷新，
-    /// 读取端（<see cref="BattleLookController"/>）只读字段。
+    /// ILookPreferences 的实现：把 GameSettings 的三项读成**缓存值**。
     /// </summary>
     public sealed class LookPreferences : ILookPreferences
     {

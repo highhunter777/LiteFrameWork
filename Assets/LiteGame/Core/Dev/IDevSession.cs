@@ -3,11 +3,7 @@ using LiteSim;
 namespace LiteGame
 {
     /// <summary>
-    /// 开发会话端口（路线图 M0 接缝 6）：产品代码只经本端口读开发/测试面开关与请求，
-    /// 不直接触碰 <c>TestModeRuntime</c> 静态（该静态只在开发装配里存在，release 整段剥离）。
-    ///
-    /// 现有直读点按"只减不增"基线保留（见 L1 allowlist 守卫）；**新增**读取一律经本端口，
-    /// 由装配根注入具体实现（开发 = 转发静态；发布 = 全关的空实现）。
+    /// 开发会话端口（路线图 M0 接缝 6）：产品代码只经本端口读开发/测试面开关与请求， 不直接触碰 TestModeRuntime 静态（该静态只在开发装配里存在，release 整段剥离）。
     /// </summary>
     public interface IDevSession
     {

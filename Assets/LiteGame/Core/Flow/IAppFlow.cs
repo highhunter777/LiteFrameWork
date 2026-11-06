@@ -2,10 +2,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 应用流程请求端口（联机入口 → 应用壳）：只表达"要做什么"，**不认识阶段机/阶段参数类型**。
-    ///
-    /// 为什么单独成端口：联机入口（Meta）需要"进对局 / 回主菜单 / 是否已在主菜单"三件事，
-    /// 过去直接持有 <c>IStageHost&lt;ProcedureId, ProcedureArgs&gt;</c>——Meta 因此反向认识流程域的类型
-    /// （阶段枚举 + 参数结构）。端口把这件事收敛成三个语义动作，实现留在流程段（App）。
     /// </summary>
     public interface IAppFlow
     {

@@ -12,47 +12,14 @@ using LiteGame.Feedback;
 namespace LiteGame
 {
     /// <summary>
-    /// 伤害数字渲染驱动（《命中反馈与伤害数字专项设计》§4.3）——<see cref="BattleLaserDriver"/> 同款纪律：
-    /// sealed、IDisposable、只读 Sim 事实、不改 Sim。
-    ///
-    /// **消费面**：<see cref="IHitFeedbackConsumer"/>（经 <see cref="HitFeedbackDispatcher"/> 注册）——
-    /// 只吃 Hit/Crit 且**本地相关性过滤**（只显示本地玩家造成/承受——口径见 <see cref="HitLocalRole"/>）；
-    /// 死亡播报/开火不进飘字（各自归属动画/特效批次）。
-    ///
-    /// **职责分工**：合并窗口与账目归 <see cref="DamageNumberAggregator"/>（纯件，L1 把守）；
-    /// 每帧位形归 <see cref="DamageNumberMotion"/>（纯件）；本驱动只做实例池、文本/样式落 TMP、
-    /// 跟随与到期收口——**轨道数学/渲染件可替换**（§5 升级路径：TMP 直渲 → 网格提取 → 合批，
-    /// 换渲染件不动本类之外的纯件）。
-    ///
-    /// **批C 观感（逐档材质 + 顶点渐变）**：颜色为顶→底渐变——驱动每帧写
-    /// <c>colorGradient</c> 四角（含 alpha 淡出；上下同值即平色），描边/光晕走**逐档材质**
-    /// （<see cref="DamageNumberMaterialSet"/> 调色板注入；null = 不换材质——测试/降级形态，
-    /// 底件默认材质即造成档）。顶点渐变开启归底件（builder 置 <c>enableVertexGradient</c>）；
-    /// 平色写为诚实兜底（底件未开渐变时仍按顶色 + alpha 淡出，不静默失去淡出）。
-    ///
-    /// **锚定与朝向**：飘字**锚定受击点**（命中事件的世界位＝弹道命中部位；用户裁决"飘字应该在受击部位飘"，
-    /// 不随实体移动）——**合并时锚点目标改最新受击点**（平滑追随最新命中处，恒速靠近、不瞬跳——
-    /// 见 Tick 追随步）；每帧把 TMP 摆在锚点上方并**转向渲染相机**（billboard）——底件 prefab
-    /// 无 TMP_Billboard 组件、初始旋转 identity，故朝向必须由本驱动每帧写（对局相机是可旋转的
-    /// Cinemachine 轨道机，烘焙朝向只在某机位下正确）。**可见正面朝本地 −Z**（TMP 契约），
-    /// 故 billboard 传 <c>−toCam</c> 使 −Z 朝向相机；up 取世界上方向（跟随相机俯仰会侧翻）。
-    /// 相机来源经<code>cameraOf</code> 注入（对局渲染相机），null 时回落 <c>Camera.main</c> 且不跟随朝向（诚实退化）。
-    ///
-    /// **生命周期**：实例经 <see cref="ObjectPool{T}"/> 池化（onGet/onRelease 只翻转激活态）；
-    /// 条目到期（聚合器裁决）→ 实例归还＋摘账（账实一致）；受击点锚定后不依赖实体视图——目标
-    /// despawn 无影响（原位淡出，不悬挂）；同屏超 <see cref="Budget"/> → 淘汰最旧并**记日志**（不静默丢）。
-    ///
-    /// **时钟**：合并窗口与寿命走注入的 <see cref="IWorldClock"/>（世界时钟——VfxService 同款纪律），
-    /// **不累加渲染帧 delta**——实测编辑器态 `Time.unscaledDeltaTime` 会整体通胀数倍（背景节流态
-    /// unscaledTime 跑 2.6~3.5 倍墙钟），累加 delta 会把淡出窗压扁到几百毫秒；世界时钟保持 1:1 且
-    /// 变速/暂停语义内建（测试模式 TimeScale 即经它生效）。
+    /// 伤害数字渲染驱动（《命中反馈与伤害数字专项设计》§4.3）——BattleLaserDriver 同款纪律： sealed、IDisposable、只读 Sim 事实、不改 Sim。
     /// </summary>
     public sealed class BattleDamageNumberDriver : IDisposable, IHitFeedbackConsumer
     {
         /// <summary>同屏上限；超限淘汰最旧并记日志（不静默丢）。</summary>
         public const int Budget = 24;
 
-        // 相机距离缩放（本工程相机自适配——参考距离 22m 持平，近大远小钳制）
+        // 相机距离缩放（本工程相机自适配——参考距离 22m 持平，近大远小钳制）。
         private const float CameraReferenceDistance = 22f;
         private const float CameraScaleMin = 0.6f;
         private const float CameraScaleMax = 1.4f;
@@ -111,9 +78,7 @@ namespace LiteGame
             // **逐档材质调色板**（批C）：装配点整组注入（缺档即不注入——见 ProcedureBattle 取件）；
             // null = 保持底件默认材质（测试装配/降级形态——观感回到批B 平色，行为不失效）。
             _materials = materials;
-            // **相机来源可注入**（billboard 面）：优先由装配点给对局渲染相机（Cinemachine brain 的
-            // OutputCamera）；null = 无设备形态（如测试装配），此时回落 Camera.main，camScale 恒 1、
-            // 朝向不跟随（诚实退化——不猜相机）。同 `ProcedureBattle` 给设备源注入相机的同一口径。
+            // **相机来源可注入**（billboard 面）：优先由装配点给对局渲染相机（Cinemachine brain 的 OutputCamera）。
             _cameraOf = cameraOf;
             _dev = dev;
             _pool = new ObjectPool<GameObject>(
@@ -124,31 +89,17 @@ namespace LiteGame
                 diagnoseDoubleRelease: DevBuildFacts.IsDevelopment);
         }
 
-        // ---- IHitFeedbackConsumer（逻辑帧边界——分发器按注册序转发）----
+        // ---- IHitFeedbackConsumer（逻辑帧边界——分发器按注册序转发）----。
 
         public void OnHitFeedback(in HitFeedbackContext ctx)
         {
             if (_disposed) return;
             if (ctx.Kind != FrameEventKind.Hit && ctx.Kind != FrameEventKind.Crit) return;   // 死亡/开火不进飘字
             if (ctx.LocalRole == HitLocalRole.Bystander) return;                             // 口径：只显本地造成/承受
-            // 开发形态开关：飘字是正式特性（非开发模式恒显），测试房内可由 GM 面板现场开合
+            // 开发形态开关：飘字是正式特性（非开发模式恒显），测试房内可由 GM 面板现场开合。
             if (_dev != null && _dev.Active && !_dev.DamageNumbers) return;
 
-            // **同键旧代际收口（账实一致，必须在 `MergeOrSpawn` 之前）**：`_active` 的键是 (目标, 角色, 爆头档)，
-            // **同目标同角色同档的条目共用一键**（爆头与普通各成一条——用户裁决"连击合并区分爆头/普通"）。间隔射击（超出 `MergeWindowSeconds`）时本帧会起新条目
-            // （`Merged=false`），若直接覆盖赋值，旧条目的记录就被顶掉 ⇒
-            //  ① 旧实例不再被 `Tick` 遍历 → alpha 永不再推进 ⇒ **淡出失效、数字永久残留屏幕**；
-            //  ② 旧实例也再不会被 `Release` 按键查到 → **池实例永不归还（泄漏）**。
-            // 现象：连击后新数字正常淡出，被顶掉的旧数字永不消失。
-            //
-            // **只在"真起新条目"时收口**：`WillMerge` 判否才Release。若不判、连击（`Merged=true`）
-            // 也一并收口，则每发连击都销毁重建实例 ⇒ 破坏"连击不跳位/不重启淡出"的既有语义
-            // （`ApplyEntry` 的原意就是保住同一条目的相位）。
-            //
-            // **顺序要点**：`Release` 内含 `_aggregator.Remove(key)`，故必须**先收口旧代际、再让聚合器
-            // 建新条目**；若反序（先 MergeOrSpawn 后 Release），会把刚写入的新账一并摘掉 ⇒ 新条目
-            // 在 `_active` 有记录、聚合器却无账，`CollectExpired` 判到期后 `TryGet` 落空 ⇒ 淡出被跳过。
-            // 收口走 `Release` 同一路径（与 `EvictOldest`/`Dispose` 一致），不新增第二套释放语义。
+            // **同键旧代际收口（账实一致，必须在 `MergeOrSpawn` 之前）**：`_active` 的键是 (目标, 角色, 爆头档)， **同目标同角色同档的条目共用一键**（爆头与普通各成一条——用户裁决"连击合并区分爆头/普通"）。
             bool crit = ctx.Kind == FrameEventKind.Crit;
             var key = (ctx.EntityId, ctx.LocalRole, crit);
             bool merging = _aggregator.WillMerge(ctx.EntityId, ctx.LocalRole, crit, _clock.Now);
@@ -159,9 +110,7 @@ namespace LiteGame
 
             if (snap.Merged)
             {
-                // 同档连击：更新既有条目（文本累计/按值分带缩放重解析）＋**锚点目标改最新受击点**
-                // ——合并时数字挪向最新命中处（平滑追随，不瞬跳；见 Tick 的恒速靠近步）。
-                // 仍锚"受击点"语义（最新一发的），不跟随实体。
+                // 同档连击：更新既有条目（文本累计/按值分带缩放重解析）＋**锚点目标改最新受击点** ——合并时数字挪向最新命中处（平滑追随，不瞬跳）。
                 ApplyEntry(key, in snap, ctx.WorldPos);
                 return;
             }
@@ -175,9 +124,7 @@ namespace LiteGame
             // 池实例上一世代的材质会被此处覆盖（不依赖"归还时还原"——那要求记住底件默认值，多一份状态）。
             if (_materials != null) tmp.fontSharedMaterial = _materials.For(style.Tier);
 
-            // 受击点锚（用户裁决："飘字应该在受击部位飘"）——命中事件世界位（弹道命中部位）；
-            // 起条目时 Anchor=AnchorTarget=该发受击点；此后锚点向目标恒速靠近（合并时目标改最新）
-            // ——不随实体移动，视图可用性/目标 despawn 均无影响（本驱动不依赖实体视图）。
+            // 受击点锚（用户裁决："飘字应该在受击部位飘"）——命中事件世界位（弹道命中部位）。
             _active[key] = new Active
             {
                 Tmp = tmp,
@@ -243,7 +190,7 @@ namespace LiteGame
             float dt = Mathf.Clamp((float)(now - _lastTickNow), 0f, 0.1f);
             _lastTickNow = now;
 
-            // ① 到期收口：聚合器裁决（淡出钟），实例归还 + 摘账——账实一致
+            // ① 到期收口：聚合器裁决（淡出钟），实例归还 + 摘账——账实一致。
             _aggregator.CollectExpired(now, _expired);
             for (int i = 0; i < _expired.Count; i++) Release(_expired[i]);
 
@@ -269,7 +216,7 @@ namespace LiteGame
                 if (dt > 0f && a.Anchor != a.AnchorTarget)
                     a.Anchor = Vector3.MoveTowards(a.Anchor, a.AnchorTarget, _motion.AnchorFollowSpeed * dt);
 
-                // 受击点锚位置（不随实体移动；升浮/推挤/抖动归轨道数学叠在锚上）
+                // 受击点锚位置（不随实体移动；升浮/推挤/抖动归轨道数学叠在锚上）。
                 Vector3 pos = new Vector3(
                     a.Anchor.x + push + shake,
                     a.Anchor.y + _motion.HoverHeight + rise,
@@ -284,16 +231,7 @@ namespace LiteGame
 
                 a.Tmp.transform.position = pos;
 
-                // **billboard：每帧把飘字转向渲染相机**（此前**从未写过 rotation**——底件
-                // `fx_damage_number.prefab` 只有 Transform+MeshRenderer+TextMeshPro 三个组件、
-                // 无 TMP_Billboard、初始旋转 identity，故 TMP 恒保持烘焙朝向）。
-                // 对局相机是 Cinemachine 轨道机（可旋转），烘焙朝向只在某机位下正确 ⇒ 飘字歪。
-                //
-                // **朝向轴取 −Z（TMP 的可见正面朝本地 −Z）**：用 `LookRotation(toCam, up)`会让
-                // **+Z** 指向相机，等于把背面转向观察者 ⇒ 文字呈镜像/反向（第一版踩过）。
-                // 故这里传 **−toCam**，使 **−Z**（正面）朝向相机。
-                // up取世界上方向而非相机 up：相机在飘字上方俯视，跟随相机俯仰会让文字侧翻。
-                // 相机恰在同高时退化（不写rotation）—— LookRotation 的退化轴在此无解。
+                // **billboard：每帧把飘字转向渲染相机**（此前**从未写过 rotation**——底件 `fx_damage_number.prefab` 只有 Transform+MeshRenderer+TextMeshPro 三个组件、 无 TMP_Billboard。）。
                 if (cam != null)
                 {
                     Vector3 toCam = cam.transform.position - pos;
@@ -305,9 +243,7 @@ namespace LiteGame
                 a.Tmp.transform.localScale = new Vector3(scale, scale, scale);
                 a.Tmp.fontSize = a.FontSize;
 
-                // 颜色（批C：顶→底顶点渐变——**权威面**；四角含 alpha，淡出随顶点色全链生效——
-                // 已核 TMP_SDF.shader：顶点色 alpha 乘到最终输出，描边/光晕/软影一并淡出，不残留）。
-                // 上下同值即平色；`color` 平色写为诚实兜底（底件未开顶点渐变时仍按顶色 + alpha 淡出）。
+                // 颜色（批C：顶→底顶点渐变——**权威面**）。
                 Color top = new Color(a.TopR, a.TopG, a.TopB, alpha);
                 Color bottom = new Color(a.BottomR, a.BottomG, a.BottomB, alpha);
                 a.Tmp.colorGradient = new VertexGradient(top, top, bottom, bottom);

@@ -2,15 +2,7 @@
 namespace LiteGame
 {
     /// <summary>
-    /// 本地测试模式开关的**统一描述表**（开发/编辑器/开发包专用；release 整段剥离）。
-    /// 单一写点：GM 面板渲染、运行时快照、DevStartupConfig 进房初值都经 <see cref="Get"/>/<see cref="Set"/>——
-    /// 新增一个开关 = 本表加一行 + 运行时字段（+ 必要时的消费者读取），面板零改动；
-    /// 显示名只有这里一份（面板勾选框与状态行不再各写一套）。
-    ///
-    /// 分组：<see cref="Group.Startup"/> = 进房生效（DevStartupConfig 序列化承载初值）；
-    /// <see cref="Group.Live"/> = 局内可调（GM 面板现场开合，即时生效）。
-    /// 副作用（如无限子弹要同步 Sim 静态、受测试模式门约束）一律在 <see cref="Set"/> 内收口。
-    /// **默认值与 <see cref="TestModeRuntime"/> 字段初始值同口径**（字段初始值是"未套默认前的初态"）。
+    /// 本地测试模式开关的**统一描述表**（开发/编辑器/开发包专用）。
     /// </summary>
     public static class TestModeOptions
     {
@@ -104,9 +96,7 @@ namespace LiteGame
                 case Id.BotInfiniteHp: TestModeRuntime.Current.BotInfiniteHp = value; break;
             }
 
-            // 副作用：无限子弹写**当前对局**的规则持有件（由调用方给出——对局会话绑定在 IDevSession 上的同一实例；
-            // 客户端预测与本地服同实例，同进程两端同值）。非测试模式一律不武装；无对局（未进对局）时只记
-            // TestModeRuntime 初值，下次进房生效。
+            // 副作用：无限子弹写**当前对局**的规则持有件（由调用方给出——对局会话绑定在 IDevSession 上的同一实例）。
             if (id == Id.InfiniteAmmo && TestModeRuntime.Current.Active && match != null)
                 match.InfiniteAmmo = value;
 

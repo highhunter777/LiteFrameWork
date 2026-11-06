@@ -3,18 +3,7 @@ using System.Collections.Generic;
 namespace MetaWire
 {
     /// <summary>
-    /// Meta HTTP 契约的**线形状**（双端唯一真相）：客户端 `LiteGame.App` 编译它，
-    /// 服务端 `MetaServer.csproj` 以源链接共编（同 `JoinTicketFormat` 的既有惯例）。
-    ///
-    /// 纪律：
-    /// <list type="bullet">
-    /// <item>**只用属性**（`{ get; set; }`）——STJ 默认只序列化属性，字段会静默成空对象；</item>
-    /// <item>**零序列化注解**——注解会绑定某个序列化库，而本文件必须能编进零第三方约束的位置；</item>
-    /// <item>**只放线上形状**，不放客户端本地结果类型（`MetaCall`/`MetaFailure` 等留在客户端）；</item>
-    /// <item>集合用 `List&lt;T&gt;`：两端反序列化器都能直接构造。</item>
-    /// </list>
-    ///
-    /// 字段名即线名（camelCase 由序列化设置统一给出）：改名 = 改协议。
+    /// Meta HTTP 契约的**线形状**（双端唯一真相）：客户端 `LiteGame.App` 编译它。
     /// </summary>
     public sealed class MetaError
     {
@@ -28,7 +17,7 @@ namespace MetaWire
         public List<string> Args { get; set; }
     }
 
-    // ---- Auth：游客登录 ----
+    // ---- Auth：游客登录 ----。
 
     /// <summary>游客登录请求：<c>{ requestId, deviceId }</c>。</summary>
     public sealed class GuestLoginRequest
@@ -47,7 +36,7 @@ namespace MetaWire
         public long ExpiresAtMs { get; set; }
     }
 
-    // ---- Lobby：票据 / 建房 / 房间列表 ----
+    // ---- Lobby：票据 / 建房 / 房间列表 ----。
 
     /// <summary>换票请求：<c>{ requestId, roomId, buildHash }</c>（roomId 空 = 服务端默认房）。</summary>
     public sealed class JoinTicketRequest
@@ -124,7 +113,7 @@ namespace MetaWire
         public int MapId { get; set; }
     }
 
-    // ---- Profile：战绩查询 ----
+    // ---- Profile：战绩查询 ----。
 
     /// <summary>战绩响应：<c>{ matches: [ ... ] }</c>。</summary>
     public sealed class MatchesResponse
@@ -143,7 +132,7 @@ namespace MetaWire
         public long FinishedAtMs { get; set; }
     }
 
-    // ---- Lobby：实例注册（房间服 → Meta）----
+    // ---- Lobby：实例注册（房间服 → Meta）----。
 
     /// <summary>实例注册/心跳：<c>{ instanceId, buildHash, address, maxRooms, roomCount, maxPlayers,
     /// playerCount, draining, rooms }</c>。重复提交同一 instanceId = 更新（幂等键）。</summary>
@@ -168,15 +157,10 @@ namespace MetaWire
         public long HeartbeatTtlMs { get; set; }
     }
 
-    // ---- Profile：结算提交（房间服 → Meta，服务间线形状）----
+    // ---- Profile：结算提交（房间服 → Meta，服务间线形状）----。
 
     /// <summary>
-    /// 对局结算提交（RoomServer → Meta）：一条提交同时承载
-    /// 逐玩家受验证的奖励增量（账本面）与对局结果事实（归档面）。
-    ///
-    /// **非 sealed**：MetaServer 侧保留一个零属性重复的继承壳（服务端命名/测试引用用），
-    /// 属性形状仍只在本类定义——加字段时服务端壳与 RoomServer 同时编译失败/自动获得。
-    /// 客户端不生产该请求（服务间调用），但同属线形状单源。
+    /// 对局结算提交（RoomServer → Meta）：一条提交同时承载 逐玩家受验证的奖励增量（账本面）与对局结果事实（归档面）。
     /// </summary>
     public class MatchResultSubmission
     {

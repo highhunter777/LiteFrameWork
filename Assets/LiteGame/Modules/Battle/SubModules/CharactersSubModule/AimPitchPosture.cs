@@ -2,8 +2,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 俯仰瞄准姿态映射（第三人称自由视角）：相机 pitch（弧度）→ 上半身姿态俯仰角（弧度）。
-    /// 程序化姿态的纯数学面——写序与 <c>WeaponGripConstraint</c> 同款（动画 Evaluate 后置写、
-    /// 单一写者、退出即停写）。aim up/down 素材批（Overlay 上半身混合）落地后本映射退役为素材驱动。
     /// </summary>
     public static class AimPitchPosture
     {

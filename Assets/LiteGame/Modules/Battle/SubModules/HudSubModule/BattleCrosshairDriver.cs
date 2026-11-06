@@ -9,31 +9,7 @@ using LiteGame.Feedback;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局准心驱动（战斗 HUD 第一件；纯 View 层——HUD 归 View、禁止回写 Sim，数据源单向流同前）：
-    /// - **位置**：恒钉**画布中心**（TPS 屏心——全屏居中 Overlay 画布的局部原点即屏心）+ **后坐冲量
-    ///   残余偏移**（上跳）。指针锁定形态下鼠标只驱动相机视角，"屏幕光标位"语义退役；瞄准链 =
-    ///   屏心射线 → 交点（AimPoint）＝ 屏心位置——所见即所打同位。
-    /// - **形态**：<see cref="SimView.IsAiming"/> 读本地预测态（连续位进 PredictedButtons，与本地手感
-    ///   同帧）切腰射/瞄准两组；按实体 Id 解析槽位（不能把带版本的 Id 当下标）。
-    /// - **可见性**：上下文门被拦（模态 UI 开）→ 藏准心；本地表现未建 → 整体隐藏。**光标/指针锁定
-    ///   已收编 <c>PointerLockService</c>**（TPS 指针锁定形态——BattleViewRig 驱动、Cursor 唯一写者）；
-    ///   本驱动的 <paramref name="setCursorVisible"/> 注入位仅供测试断言驱动意向，默认 no-op。
-    /// - **散布张开（静态）**：有效散布角（瞄准 = 表值 spread、腰射 ×<see cref="CombatConfig.Geometry.HipSpreadFactor"/>）
-    ///   → 准心整体缩放；**满张倍率按武器行**（tbcrosshair.static_max_scale——按武器表化；出件为单贴图
-    ///   准心，"张开"= 整体缩放）。未装备/无散布信息 → 基线 <see cref="MinSpreadScale"/>（如实降级，不猜）。
-    /// - **连发临时张开**：本地 Fire 帧事件（<see cref="IHitFeedbackConsumer"/>——<c>HitFeedbackDispatcher</c>
-    ///   路由；静默门由上游 EventSink 保证，回滚重放段不重计入）每发 +<c>burst_growth</c>、钳连发上限，
-    ///   停火按回正速率指数衰减回静态——半自动点射同逐发张开。
-    /// - **后坐（准心冲量）**：每发一次上跳冲量（<c>kick</c> 像素）并入位置写入，按回弹速率指数回正
-    ///   ——与连发张开各自独立节拍（连发张"开多大"、后坐管"跳多高"）。
-    /// 手感数值全部表驱动（tbcrosshair 按武器一行；缺行/无表装配回落 <see cref="CrosshairFeel.Default"/>）；
-    /// GM 面板「准心调参」经 <see cref="CrosshairTuning"/> 实时覆写定档（不落盘）。
-    ///
-    /// **不做**：命中标记（随帧事件批）、ADS 相机联动（手测项——不接相机时 ADS 准心跟鼠标，
-    /// 锁屏心要等瞄准相机同轴后才成立）。
-    ///
-    /// 测试注：<paramref name="setCursorVisible"/> 是注入位（EditMode 确定性驱动——断言"驱动意向"，
-    /// 光标实写归 <c>PointerLockService</c>）。位置恒屏心无需注入位。
+    /// 对局准心驱动（战斗 HUD 第一件）。
     /// </summary>
     public sealed class BattleCrosshairDriver : IHitFeedbackConsumer, IDisposable
     {
@@ -106,7 +82,7 @@ namespace LiteGame
             if (_hip != null) _hip.SetActive(!aiming);       // 形态组缺失 = 单形态退化（构造侧容忍 null）
             if (_ads != null) _ads.SetActive(aiming);
 
-            // 回正（dt 钳 ≥0：暂停/首帧不倒扣；指数衰减连续无突变；小残归零收口免常驻脏写）
+            // 回正（dt 钳 ≥0：暂停/首帧不倒扣；指数衰减连续无突变；小残归零收口免常驻脏写）。
             float dt = elapseSeconds > 0f ? elapseSeconds : 0f;
             if (dt > 0f)
             {
@@ -116,10 +92,10 @@ namespace LiteGame
                 if (_kick < 0.05f) _kick = 0f;
             }
 
-            // 位置：恒钉画布中心（TPS 屏心——全屏居中 Overlay 画布的局部原点即屏心）+ 后坐上跳残余
+            // 位置：恒钉画布中心（TPS 屏心——全屏居中 Overlay 画布的局部原点即屏心）+ 后坐上跳残余。
             _reticle.localPosition = new Vector3(0f, _kick, 0f);
 
-            // 缩放：静态散布张开（按武器行满张倍率）+ 连发增量，钳连发总上限（值变化才写 Transform）
+            // 缩放：静态散布张开（按武器行满张倍率）+ 连发增量，钳连发总上限（值变化才写 Transform）。
             CrosshairFeel feel = hasSlot ? FeelOf(slot) : CrosshairFeel.Default;
             float scale = StaticScaleOf(in feel, hasSlot, slot, aiming) + _burstOpen;
             float cap = CrosshairTuning.BurstCapOf(feel.BurstCap);

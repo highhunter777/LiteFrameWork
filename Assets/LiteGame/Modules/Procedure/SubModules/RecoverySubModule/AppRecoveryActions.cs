@@ -10,9 +10,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 生产恢复动作：导出诊断到 <c>persistentDataPath/recovery/</c>；致命错误在 Player 内安全退出
-    /// （编辑器保留现场，不 <c>Application.Quit</c>——排查优先）；清受控内容缓存委托内容域
-    /// <see cref="IContentCacheMaintenance"/>（未注入 = 该动作不可用，如实返回 false，不假装成功）。
+    /// 生产恢复动作：导出诊断到 persistentDataPath/recovery/。
     /// </summary>
     public sealed class AppRecoveryActions : IRecoveryActions
     {

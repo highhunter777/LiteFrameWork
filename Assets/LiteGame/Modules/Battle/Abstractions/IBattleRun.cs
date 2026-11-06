@@ -22,10 +22,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 对局运行端口（流程段唯一认识的"对局"）：StartGame 等待、结束事件、终局原因/结果/席位、
-    /// 每帧驱动与离场。实现归 Battle 域（<c>BattleSession</c>）——流程不再直引
-    /// <c>BattleClient</c>/<c>BattleContext</c>/<c>BattleContext.EndReason</c>/<c>RoomSessionFace</c>
-    /// 这些战斗域内部件。
+    /// 对局运行端口（流程段唯一认识的"对局"）：StartGame 等待、结束事件、终局原因/结果/席位、 每帧驱动与离场。
     /// </summary>
     public interface IBattleRun : IDisposable
     {

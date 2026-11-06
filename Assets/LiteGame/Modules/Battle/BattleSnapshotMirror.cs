@@ -9,10 +9,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 权威快照镜像（从对局上下文外提）：**持久镜像重建** + 和解判定 + 视图插值源推进。
-    ///
-    /// 为什么必须有持久镜像：增量快照只保证"缺席 = 未变化"，**只在同一份镜像上连续累积才完整**
-    /// （《状态同步专项设计》§5.5）；视图插值要的是完整槽位，故经 <see cref="SimWorldStateSnapshot.CaptureFull"/>
-    /// 取整，而不是把增量包直接当插值源。
     /// </summary>
     internal sealed class BattleSnapshotMirror
     {
@@ -30,8 +26,6 @@ namespace LiteGame
 
         /// <summary>
         /// 应用一份状态快照：镜像重建 → 和解（checksum 比对/覆盖/重放）。
-        /// 返回 true = 发生和解（调用方上报 Mismatch）；false = 已刷新非预测量（弹药/CD/比赛状态——
-        /// P0 分层：不预测的量只能随包来）。
         /// </summary>
         public bool ApplyAndReconcile(RollbackSim sim, LiteNet.Proto.StateSnapshot snapshot)
         {
@@ -65,9 +59,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 把当前镜像拷进视图插值源（两块轮转）并推给视图。用完整捕获而非增量摘要——
-        /// 视图要的是**完整**槽位（增量包的槽位可能没被这帧指到，必须从持久镜像整体取）。
-        /// 视图未挂（纯会话/测试形态）= no-op。
+        /// 把当前镜像拷进视图插值源（两块轮转）并推给视图。
         /// </summary>
         public void PushToView(IBattleView view)
         {

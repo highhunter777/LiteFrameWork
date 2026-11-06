@@ -10,9 +10,7 @@ using LiteGame.Modules.Camera;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局**战斗反馈装配器**：命中分发器 + 伤害数字 / 枪口火光 / 敌人命中特效 / 远端开火火光 /
-    /// 对局音效 / 权威命中反馈。消费者按注册序接收帧事件；VFX/Audio/世界钟缺服务时整段降级（如实警告）。
-    /// 驱动实例归本件；租约与材质归 <see cref="BattleViewAssets"/>。
+    /// 对局**战斗反馈装配器**：命中分发器 + 伤害数字 / 枪口火光 / 敌人命中特效 / 远端开火火光 / 对局音效 / 权威命中反馈。
     /// </summary>
     internal sealed class BattleFeedbackAssembler
     {
@@ -191,9 +189,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 对局**渲染相机**解析（伤害飘字 billboard 面用）：Cinemachine brain 的 <c>OutputCamera</c>——
-        /// **不走 <c>Camera.main</c>**（叠加开发形态下 boot 相机不随场景销毁且带 MainCamera tag）。
-        /// 解析不到 → null，驱动退回不跟随朝向。
+        /// 对局**渲染相机**解析（伤害飘字 billboard 面用）：Cinemachine brain 的 OutputCamera—— **不走 Camera.main**（叠加开发形态下 boot 相机不随场景销毁且带 。）。
         /// </summary>
         private Func<Camera> RenderCameraOf()
             => _camera is IRenderCameraSource cameraSource

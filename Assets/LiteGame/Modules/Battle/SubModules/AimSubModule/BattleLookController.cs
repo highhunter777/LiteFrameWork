@@ -11,9 +11,7 @@ using LiteGame.Modules.Settings;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局**视角/指针输入控制器**：鼠标增量 → 相机 yaw/pitch（含 ADS 灵敏度收敛与 GM 调参覆写）、
-    /// 相机瞄准混合门（含复活复位）、瞄准点注入、指针锁定（Cursor 唯一写者 <see cref="PointerLockService"/>）。
-    /// 纯视图侧（不上行、不进意图三件）；只读 <see cref="SimView"/> 的本地预测事实。
+    /// 对局**视角/指针输入控制器**：鼠标增量 → 相机 yaw/pitch（含 ADS 灵敏度收敛与 GM 调参覆写）、 相机瞄准混合门（含复活复位）、瞄准点注入。
     /// </summary>
     internal sealed class BattleLookController
     {
@@ -78,8 +76,6 @@ namespace LiteGame
         public void Tick(float elapseSeconds)
         {
             // 复活复位：上一条命的 ADS 门控态不得跨命沿用（否则复活瞬间镜头被钉在瞄准机上）。
-            // **`_view` 可空**：本方法在进场加载期就会每帧被调（视图是 Attach 场景加载完才建），
-            // 判空是必须的——漏了就是每帧一条 NRE（联机实测 217 条，全在加载段）。
             if (_view != null && _view.LocalRespawnSerial != _lastRespawnSerial)
             {
                 _lastRespawnSerial = _view.LocalRespawnSerial;
@@ -115,9 +111,6 @@ namespace LiteGame
             }
 
             // 视角增量（第三人称自由视角）：鼠标 delta → 相机 yaw/pitch（纯视图侧，不上行）。
-            // Unity 屏幕系 y 向上：鼠标上推（delta.y>0）= 上仰（pitch 正）；POV 垂直轴取负归实现。
-            // ADS 期灵敏度收敛（档位缩放——档位本体=双机优先级+brain FOV/构图混合，场景 rig 值）。
-            // 灵敏度/收敛比经 GM「视角调参」实时覆写（LookTuning——实机定档后写回机制常量）。
             Vector2 look = pointerLocked && _lookDeltaOf != null ? _lookDeltaOf() : Vector2.zero;
             bool mouseMoved = look != Vector2.zero;
             if (mouseMoved)
@@ -192,9 +185,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 视角增量来源：设备源适配器的 <see cref="NewInputIntentSource.LookDelta"/>（像素）。
-        /// 与准心/移动同源（设备源适配器）——非该实现返回 null（无自由视角形态）；
-        /// 不在此 import InputSystem（纪律 R12）。
+        /// 视角增量来源：设备源适配器的 NewInputIntentSource.LookDelta（像素）。
         /// </summary>
         private static Func<Vector2> LookDeltaOf(IInputService input)
         {
@@ -212,11 +203,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 瞄准点来源：**待上行输入帧**（<see cref="IInputService.Pending"/>）的 AimPoint 三分量——
-        /// 与准心/开火/上行同一份事实（AimPoint 单口径）。**为什么不绑具体设备源**：曾经绑定
-        /// "鼠标源实例"（开局抓取），自瞄验证件/触屏/测试替身换源后激光与构图仍追旧源（鼠标停在地面
-        /// ⇒ 激光"瞄地"、与真实弹道脱节）。改绑 Pending 后**任何意图源**下"激光=准心=弹道"同源不失效。
-        /// 零值 = 无点（与判定同约定）→ null。**不在此 import InputSystem**（R12）。
+        /// 瞄准点来源：**待上行输入帧**（IInputService.Pending）的 AimPoint 三分量—— 与准心/开火/上行同一份事实（AimPoint 单口径）。
         /// </summary>
         private static Func<Vector3?> AimPointOf(IInputService input)
         {

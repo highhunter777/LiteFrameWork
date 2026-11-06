@@ -20,10 +20,7 @@ namespace LiteGame.Modules.Dev
     }
 
     /// <summary>
-    /// 开发装配钩子（**产品侧唯一静态缝**，M3-6b 3b）：`LiteGame.Dev` 在
-    /// `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)` 绑定，早于场景引导；release 构建没有 Dev 程序集
-    /// → 恒为 null，产品走 `NullDevSession` / 跳过开发装配（与 `LocalTransportRegistry` 同款接缝纪律：
-    /// 只存一个实现引用、不做服务定位；新增能力一律走接口）。
+    /// 开发装配钩子（**产品侧唯一静态缝**，M3-6b 3b）：`LiteGame.Dev` 在 `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)` 绑定，早于场景引导。
     /// </summary>
     public static class DevHooks
     {

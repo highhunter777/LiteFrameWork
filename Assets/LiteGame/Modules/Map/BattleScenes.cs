@@ -5,16 +5,7 @@ using LiteSync.Client;
 namespace LiteGame.Modules.Map
 {
     /// <summary>
-    /// 对局场景**装载语义单源**（多图批收敛）：Rig＝装配件（vcam×2）；地图场景路径**查地图表**
-    /// （`tbmap.scene` 列——加图＝加文件 + 加场景，本件不再持有逐图路径常量）。
-    ///
-    /// **地图行键的事实源 = JoinAck**（服务器权威）：`RoomClient.MapId` → <see cref="ResolveMapId"/> 裁决
-    /// （0 = 服务器未标注，按首图口径回落——嵌入式/测试直构形态）；表行与场景都按它取——视觉与判定
-    /// 恒同图（D16）。
-    ///
-    /// **生命周期落点**：加载与卸载**都在 <c>ProcedureBattle</c>**——`StartGame` 到达后加载
-    /// （Rig ＋ 本局地图，进度进"正在进入对局…"开场遮罩，早于相机硬门与视图取件），离场收尾卸载
-    /// （正常结束/主动离场/失败三条出口统一；场景清单按表枚举）。
+    /// 对局场景**装载语义单源**（多图批收敛）：Rig＝装配件（vcam×2）。
     /// </summary>
     public static class BattleScenes
     {

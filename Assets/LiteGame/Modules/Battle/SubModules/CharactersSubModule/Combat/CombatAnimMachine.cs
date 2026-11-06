@@ -50,21 +50,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 单机双根角色动画层次机装配（《层次动画机设计》§1/§2）：
-    /// - **互斥覆盖**：战斗根（上层）任一态激活 = 覆盖移动根（框架多根 = 互斥平级根，跨根 = 全退全进）；
-    /// - **战斗层不可被移动层打断**：退根只有两条路——Fire*：窗尽 ∧ !IsAiming；Aim*：!IsAiming（单点裁决）；
-    ///   移动事实只驱动层内 idle↔walk 轴（两族）与退根叶选择；死亡事实由根裁决**打断**（优先级路由）；
-    /// - **换弹不在本机内**：它走 Overlay 通道的上半身一次性叠加（见
-    ///   <see cref="SlotAnimContext.UpdateReloadUpper"/>）——进战斗根会停掉移动根的 Base MoveBlend、
-    ///   脚定住即滑步；叠加层只盖上半身，腿继续由 MoveBlend 走，故换弹既不发起根迁移也不打断窗；
-    /// - **射击窗**：窗长 = <see cref="CombatConfig.FireStanceFrames"/>/TickRate（1s 独立常量），
-    ///   事件/瞄准刷新＝重置满窗；**权威窗（SimView.IsFireStance——扣扳机不问武器门结果，
-    ///   空仓/被拦同进语境）在场即不退根**（保持条件、非充值源——与事件窗同点置满同长衰减，
-    ///   Sim 窗尽即离场，无叠加尾巴）；**窗内保持 clip**——Fire 族持 AimIdle 家族循环
-    ///   （开火不播专用片段，见 <see cref="CombatGirlsAnimationProfile"/>）；窗尽 = 保持 clip 的终点
-    ///   （同形态次态续播保相位、异形态提交替换）；
-    /// - **通道接管**：各根自管本根通道（移动根收/建 Base、战斗根收 Override）——事务序
-    ///   （先深→浅退出、再浅→深进入）结构性保证先停旧通道再开新通道。
+    /// 单机双根角色动画层次机装配（战斗根覆盖移动根，跨根全退全进；移动事实只驱动层内 idle↔walk）。
     /// </summary>
     public static class CombatAnimMachine
     {
@@ -89,9 +75,7 @@ namespace LiteGame
                 },
                 composites: new CompositeSpec<CharacterAnimId>[]
                 {
-                    // 初始子态仅形式性存在（战斗根进入恒由事件路由、ADS 建立或权威射击窗事实的
-                    // 根裁决显式 Request 叶）；无历史——窗尽降级与 ADS 进入都按事实选叶，
-                    // 不复活旧子页（不引入历史语义）
+                    // 初始子态仅形式性存在（战斗根进入恒由事件路由、ADS 建立或权威射击窗事实的 根裁决显式 Request 叶）。
                     new CompositeSpec<CharacterAnimId>(CharacterAnimId.CombatRoot, CharacterAnimId.AimIdle,
                         HistoryMode.None,
                         CharacterAnimId.FireIdle, CharacterAnimId.FireWalk,

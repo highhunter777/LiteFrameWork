@@ -17,7 +17,7 @@ namespace LiteGame.Feedback.DamageNumbers
                 return value.ToString(CultureInfo.InvariantCulture);
 
             float k = value / 1000f;
-            // 整千不带小数（20K 而非 20.0K）；带余一位小数（12.3K）
+            // 整千不带小数（20K 而非 20.0K）；带余一位小数（12.3K）。
             return (k % 1f == 0f
                     ? ((int)k).ToString(CultureInfo.InvariantCulture)
                     : k.ToString("F1", CultureInfo.InvariantCulture))

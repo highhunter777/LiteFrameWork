@@ -59,10 +59,6 @@ namespace LiteGame
 
     /// <summary>
     /// 帧样本环（240 帧 ≈ 4s@60fps）＋ p50/p95/p99 ＋ GC/绘制调用 ProfilerRecorder。
-    /// 性能读模型住内核（《GM 与调试工具分层专项设计》§7.2 读模型"性能样本"行）：
-    /// 投影只喂 <see cref="SampleFrame"/> 的时钟差并读 <see cref="Read"/>，不另拼读数。
-    /// ProfilerRecorder 随内核构造启动、进程级存活（本件只在开发三宏内编译；三个查询句柄，
-    /// 开销可忽略，不做停启状态机）。marker 缺失时 recorder invalid（读数显示 n/a），不阻断。
     /// </summary>
     public sealed class DebugPerfSampler
     {

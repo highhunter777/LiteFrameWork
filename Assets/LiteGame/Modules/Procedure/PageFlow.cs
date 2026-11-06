@@ -10,18 +10,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 五页页面流（批C-④，《上云测试页面层级设计》§1 页面关系）：页面寻址
-    /// （lua_path → PageDefinition id，经 UI 域端口 <see cref="IPageDirectory"/>）与**流程侧页面切换**——
-    /// 首进 Main 开登录页；对局开局（StartGame）关房间页；对局结束开结算页（失败/离场回大厅）；
-    /// 对局中打开设置页（HUD 菜单钮 / 空栈 Back 的对局菜单语义——导航数据 `battleExit` 供
-    /// 设置页门控"退出对局"按钮）。
-    ///
-    /// **职责边界**：页面→页面 的跳转（登录成功→大厅、进房→房间、返回大厅、设置叠加）由 Lua 经
-    /// <c>Bridge.ui</c> 驱动（同一导航单写者）；本件只接流程不认识 UI、UI 不认识流程的那几处接缝——
-    /// 流程层（ProcedureMain/ProcedureBattle）持有本件，UI 层不知道它存在。
-    ///
-    /// **数据面**：导航数据经 <see cref="PageData"/> 中立树装配（具名键/子表/行数组），投射成 Lua 表归
-    /// <see cref="IPageDataFactory"/> 的实现侧——本件不引 XLua、不碰 LuaTable。
+    /// 五页页面流（批C-④，《上云测试页面层级设计》§1 页面关系）：页面寻址 （lua_path → PageDefinition id。）。
     /// </summary>
     public sealed class PageFlow : ILoginSurface
     {
@@ -77,9 +66,7 @@ namespace LiteGame
         public bool IsLoginOpen => IsOpen(LuaKeys.UI.Page_Login);
 
         /// <summary>
-        /// 账号重入（恢复链单点）：把页面栈替换为登录页——**忽略启动落点的一次性守卫**
-        /// （<see cref="OpenLanding"/> 只在首进 Main 开一次页；登录失效发生在运行期，必须能再次出现）。
-        /// 重入的登录态清理/离场由 <see cref="AccountReentry"/> 先行完成，本方法只做导航。
+        /// 账号重入（恢复链单点）：把页面栈替换为登录页——**忽略启动落点的一次性守卫** （OpenLanding 只在首进 Main 开一次页）。
         /// </summary>
         public void ShowLogin(string reason)
         {
@@ -98,14 +85,11 @@ namespace LiteGame
         public void CloseRoomIfOpen() => CloseIfOpen(LuaKeys.UI.Page_Room);
 
         /// <summary>
-        /// 对局结束（对局运行端口 Ended）：正常结束（Completed + 冻结结果在）→ 结算页（带本局结果）；
-        /// 失败/主动离场 → **回大厅**（"断开 + 返回大厅"）。回大厅不依赖房间页是否还开着：
-        /// 对局中房间页已随开局关闭，会话失败（RoomClient Failed → 运行端口 SessionFailed）后
-        /// 若无页面可回，玩家会停在 Main 的空栈上——故空栈也开大厅；dev 直入（Landing.None）无大厅语境，不强行开。
+        /// 对局结束（对局运行端口 Ended）：正常结束（Completed + 冻结结果在）→ 结算页（带本局结果）。
         /// </summary>
         public void OnMatchEnded(bool completed, LiteNet.Proto.MatchEnded result, int localPlayerId)
         {
-            // 对局菜单随对局结束收口：菜单开着时自然结束/离场——结算页/大厅须直接可见，不被设置页压着
+            // 对局菜单随对局结束收口：菜单开着时自然结束/离场——结算页/大厅须直接可见，不被设置页压着。
             CloseIfOpen(LuaKeys.UI.Page_Settings);
             if (completed && result != null)
             {
@@ -158,17 +142,14 @@ namespace LiteGame
             return true;
         }
 
-        /// <summary>本局结果 → 结算页数据树（Lua 侧只认具名键；结束原因取枚举名——页面按值域拼文案键
-        /// `UI.Result.Reason.&lt;名&gt;`，不在 Lua 侧抄枚举值）。**名次与玩家排行同源**：都取自
-        /// <see cref="ISettlementSummary.Build"/> 的同一份行表（击杀降序 → EntityId 升序；名次 = 1 + 击杀严格
-        /// 大于本机的人数，并列同名次；名字 = 玩家{k}——口径实现在 Battle 域，流程只经端口取行表）。
-        /// 本机不在册 = rank 0（页面隐藏 Txt_Score）。
-        /// `ranks`＝排行行数组（`{rank, name, kills, deaths}`）——供结算页列表（原 Cot_Records 位）填充。</summary>
+        /// <summary>
+        /// 本局结果 → 结算页数据树（Lua 侧只认具名键）。
+        /// </summary>
         private PageData ResultData(LiteNet.Proto.MatchEnded result, int localPlayerId)
         {
             IReadOnlyList<MatchSettlementRow> rows = _settlement.Build(result.Players);
 
-            // 本机行（本局摘要）与排行同一份行表：名次/击杀/阵亡单源，页面侧不重算
+            // 本机行（本局摘要）与排行同一份行表：名次/击杀/阵亡单源，页面侧不重算。
             bool found = false;
             int kills = 0, deaths = 0, rank = 0;
             for (int i = 0; i < rows.Count; i++)

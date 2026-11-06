@@ -8,23 +8,7 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 公共战斗事件面（《状态同步专项设计》§5.2 CombatEvent 面）：独立包
-    /// <see cref="PacketType.CombatEvents"/> 携带的窗口 → **去重后的分类队列**，供各表现驱动逐条取用。
-    ///
-    /// **它取代了什么**：原 `PublicKillFeed` / `PublicFireFeed` / `PublicHitFeed` 三件——三份几乎相同的
-    /// "已见记忆环 + 去重 + 队列"实现，每加一类事件就要再抄一份。现在只有**一条**去重与分发路径：
-    /// 事件按 <see cref="FrameEventKind"/> 分流到各自的消费队列（视图/HUD/音效按需取用，互不干扰）。
-    ///
-    /// **去重**：键 = <see cref="CombatEventRecord.SameKey"/>（kind + 双方 + 帧），与服务端窗口的聚合键
-    /// **严格同源**——窗口随每份事件批全量重发，记忆环保证一条只触发一次。
-    ///
-    /// **首份 / 重连**：第一份批里的记录一律标为"已见"而不入队（**不重播历史**：重连后不该突然
-    /// 刷出一串断线前的击杀）；<see cref="Reset"/> 后下一份按"首份"处理。
-    ///
-    /// **本地过滤不在本件**：本地开火/命中该不该播归各消费者自己判（如远端火光驱动跳过本地实体），
-    /// 本件保持"纯事实分发"——它不持表现、不碰 UI/VFX（同原有三件的定位）。
-    ///
-    /// 生命周期归 <c>BattleContext</c>（Match Scope 内），Dispose 即弃。
+    /// 公共战斗事件面（《状态同步专项设计》§5.2 CombatEvent 面）：独立包 PacketType.CombatEvents 携带的窗口 → **去重后的分类队列**，供各表现驱动逐条取用。
     /// </summary>
     public sealed class PublicCombatFeed
     {

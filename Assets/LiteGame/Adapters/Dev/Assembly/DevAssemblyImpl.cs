@@ -10,11 +10,7 @@ using LiteGame.Adapters.Dev.Debug.WeakNet;
 namespace LiteGame
 {
     /// <summary>
-    /// 开发装配实现（M3-6b 3b）：产品程序集经 <see cref="DevHooks"/> 只认端口，本类在开发程序集内落地
-    /// "会话实现 / 容器装饰（GM 命令 + 弱网 + 调试内核）/ 传输包装 / 诊断登记 / 对局叠加层"。
-    ///
-    /// **绑定时机**：`BeforeSceneLoad` —— 早于场景引导件（GameEntry.Awake），装配根取件时钩子已在位；
-    /// `SubsystemRegistration` 复位（Domain-Reload-Off 下静态不跨 Play 残留）。
+    /// 开发装配实现（M3-6b 3b）：产品程序集经 DevHooks 只认端口，本类在开发程序集内落地 "会话实现 / 容器装饰（GM 命令 + 弱网 + 调试内核）/ 传输包装 / 诊断登记 / 对局叠加层"。
     /// </summary>
     public sealed class DevAssemblyImpl : IDevAssembly
     {

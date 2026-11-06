@@ -298,7 +298,7 @@ namespace LiteGame
         }
     ]
 }");
-            // GamePlay
+            // GamePlay。
             m_GamePlay = asset.FindActionMap("GamePlay", throwIfNotFound: true);
             m_GamePlay_Fire = m_GamePlay.FindAction("Fire", throwIfNotFound: true);
             m_GamePlay_Move = m_GamePlay.FindAction("Move", throwIfNotFound: true);
@@ -307,7 +307,7 @@ namespace LiteGame
             m_GamePlay_Dash = m_GamePlay.FindAction("Dash", throwIfNotFound: true);
             m_GamePlay_Reload = m_GamePlay.FindAction("Reload", throwIfNotFound: true);
             m_GamePlay_FreeLook = m_GamePlay.FindAction("FreeLook", throwIfNotFound: true);
-            // UI
+            // UI。
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Newaction = m_UI.FindAction("New action", throwIfNotFound: true);
         }
@@ -374,7 +374,7 @@ namespace LiteGame
             return asset.FindBinding(bindingMask, out action);
         }
 
-        // GamePlay
+        // GamePlay。
         private readonly InputActionMap m_GamePlay;
         private List<IGamePlayActions> m_GamePlayActionsCallbackInterfaces = new List<IGamePlayActions>();
         private readonly InputAction m_GamePlay_Fire;
@@ -468,7 +468,7 @@ namespace LiteGame
         }
         public GamePlayActions @GamePlay => new GamePlayActions(this);
 
-        // UI
+        // UI。
         private readonly InputActionMap m_UI;
         private List<IUIActions> m_UIActionsCallbackInterfaces = new List<IUIActions>();
         private readonly InputAction m_UI_Newaction;

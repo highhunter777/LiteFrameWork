@@ -9,10 +9,7 @@ namespace LiteGame.Modules.Map
 {
 
     /// <summary>
-    /// 默认实现：读 <see cref="IConfigService"/> 已发布的 Luban 表快照，经**共享投影**
-    /// <see cref="MapTableProjection"/> 产出（与服务端同代码同数据——同一份 `Map/tbmap.bytes`）。
-    /// 取值点（`MatchSessionFactory` 进房装配 / `ProcedureMatch` 场景装载）恒在 Preload 装载之后
-    /// ——未装载即访问由 <c>ConfigService.Tables</c> 抛（同 `GameplayDigestBase` 惰性读口径）。
+    /// 默认实现：读 IConfigService 已发布的 Luban 表快照，经**共享投影** MapTableProjection 产出（与服务端同代码同数据——同一份 `Map/tbmap.bytes`）。
     /// </summary>
     public sealed class MapProvider : IMapProvider
     {

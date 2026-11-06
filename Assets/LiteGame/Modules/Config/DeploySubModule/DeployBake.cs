@@ -8,20 +8,7 @@ using Debug = UnityEngine.Debug;
 namespace LiteGame.Modules.Config
 {
     /// <summary>
-    /// 部署烙入读取件（构建流水线的客户端半边）：<c>StreamingAssets/deploy.args</c> → 参数全文。
-    ///
-    /// **文件形态**：每行一个 <c>-key=value</c>（<see cref="MetaDeployConfig"/> 与
-    /// <see cref="LiteFramework.ContentDeployConfig"/> 的 token 形态——烙入文件就是**持久化的命令行参数**，
-    /// 由 <c>scripts/build/build-player.py</c> 按 <c>BuildProfile.endpoints</c> 在构建前写入/清删）。
-    /// **装载合并序**：命令行参数 &gt; 本烙入 &gt; 字段默认——合并在两装载器各自的
-    /// <c>Load(args, bakedArgsText)</c> 纯函数内（本件只负责"把文本取出来"）。
-    ///
-    /// **平台读取通道**：Standalone/Editor 的 streamingAssetsPath 是普通文件路径——直读；
-    /// **Android 的 StreamingAssets 位于 APK 内**，<see cref="Application.dataPath"/> 就是 APK 自身，
-    /// 故按 zip 条目 <c>assets/deploy.args</c> 读（真同步、无帧泵依赖）。
-    ///
-    /// **读取契约**：返回 null ＝"无烙入"（缺文件/缺条目，正常路径）；抛异常 ＝读失败（退化为无烙入，
-    /// 但留一次性 Warning）。**本实例只读一次**：引导期多处消费点共用同一实例的 memo（不再有可变静态）。
+    /// 部署烙入读取件（构建流水线的客户端半边）：StreamingAssets/deploy.args → 参数全文。
     /// </summary>
     public sealed class DeployBake
     {

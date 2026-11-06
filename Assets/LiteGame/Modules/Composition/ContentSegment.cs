@@ -57,25 +57,7 @@ namespace LiteGame.Modules.Composition
                 new FileSystemLuaCandidateSource(files, () => activation.ActiveGeneration));
             RegisterSceneAndCacheServices(context, files);
 
-            // 热更链生产装配。装配形态决定能力边界：
-            // - **信任锚**：内置锚表（ContentTrustAnchors——根信任编入应用本体，不放可写存储）。
-            //   锚点已 provisioning（RSA-2048）——候选验签链可用；轮换/撤销经下一版内置表 + Revoke
-            //   体现（私钥绝不入库/入包）。
-            // - **候选通道 = 部署配置二选一**（§7 部署配置契约；基址非信任边界——信封必过验签、
-            //   文件必过摘要复算，被污染的基址只能造成失败/拒绝）：
-            //   配了 CDN（ContentDeployConfig，命令行注入）→ 信封与文件都走 HTTP（HttpCandidateProvider +
-            //   HttpCandidateFetcher，来源经 DownloadPlan 下发）；未配 → 本地信封文件通道（现行为，
-            //   无网络依赖，离线开发用）。
-            // - **磁盘余量 = DriveInfo → 写探针回退**：优先 DriveInfo 精确值；不可用（实测 IL2CPP
-            //   Windows Player 的 DriveInfo 拿不到卷余量）→ 写探针取下界（只在确有候选、预检时机写入，
-            //   属更新期一次性成本）；两者均不可知 → -1 → 空间预检按不足处理（fail-closed）。
-            // - **健康探针族**：
-            //   候选配置（config/ 前缀 = Luban 表字节）+ 候选 Lua（lua/ 前缀 → 模块名 →
-            //   受控沙箱执行）——两者基于候选根文件，先于资源包初始化可运行。
-            //   入口资源可加载性探针（AssetsHealthProbe）查当前代次入口，须在资源包初始化后才有意义
-            //   （Patch 先于初始化，时序不可能）——本模块只**登记**探针，由 ProcedurePatch 在初始化后执行；
-            //   入口取真实实体 prefab（Characters 收集组），不再依赖已退役的样例①标记素材。
-            // 部署配置三源（命令行 > 包内 deploy.args 烙入 > 默认——分发包零参数启动；基址非信任边界不变）
+            // 热更链生产装配。
             ContentCdnConfig deploy = ContentDeployConfig.Load(
                 Environment.GetCommandLineArgs(), _deployBake.ReadArgs());
             string candidateRoot = ReleaseLayout.CandidateRootRelative;

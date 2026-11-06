@@ -9,22 +9,7 @@ using LiteGame;
 namespace LiteGame
 {
     /// <summary>
-    /// 局内排行榜驱动（排行榜批；FFA "比分"＝击杀）：每渲染帧从**公共镜像**收参赛玩家
-    /// （<see cref="EntityFlags.Player"/>——阵亡/断线保留槽位，故不看存活），按
-    /// <c>Kills 降序 → EntityId 升序</c> 全序排列，把结果**从左往右**填进**预置**的 8 格
-    /// （最左＝第一名）；只有"击杀分布"变化才重排/写（脏位）；**自己那格**点亮高亮件；
-    /// 人数 &lt; 8 的尾部空格隐藏。
-    ///
-    /// - **数据源**：只读事实端口 <see cref="IBattleReadModel"/>（权威镜像优先；规范序由端口给出）——
-    ///   事件与平台无关，测试可注入替身（同面板驱动的读法，不跨 Lua）；
-    /// - **名字**：本批**占位** <c>玩家{k}</c>（k = 参赛玩家按 EntityId 升序的序号，局内稳定；
-    ///   真名字/昵称归 G3 Profile——见审计登记）；
-    /// - **`Txt_Score`（团队比分）**：预留节点——<see cref="MatchStateData.Team"/>==0（FFA）时隐藏，
-    ///   不显示恒 0 假数据；Team 模式落地即启用；
-    /// - **禁运行时建视觉元素**（结构脚手架扫描）：8 格全部 prefab 预置，本驱动只**显隐/写值**；
-    ///   **显隐＝关/开「格根」（单元）**，格内子件（名字/击杀/高亮）保持激活——prefab 里可直接读/调，
-    ///   不必先逐个点亮（高亮件仍按位开关，属格内状态）；
-    /// - 测试注：镜像与本地 Id 走构造注入（同面板驱动）——EditMode 确定性驱动。
+    /// 局内排行榜驱动（排行榜批）。
     /// </summary>
     public sealed class BattleRankboardDriver : IDisposable
     {
@@ -40,20 +25,20 @@ namespace LiteGame
         private readonly TextMeshProUGUI _teamScore;
         private readonly BattleRankPolicy _order;      // 排行策略（策略表投影；缺省 = 击杀降序→EntityId 升序）
 
-        // 每帧采集缓冲（零分配——容量上界 = MaxEntities；索引即规范序）
+        // 每帧采集缓冲（零分配——容量上界 = MaxEntities；索引即规范序）。
         private readonly long[] _ids;
         private readonly int[] _killCounts;
         private int _count;
 
-        // 展示序索引（Kills 降序 → Id 升序）
+        // 展示序索引（Kills 降序 → Id 升序）。
         private readonly int[] _display;
 
-        // 格内脏位（值变化才写）——_cellId[i]==0 表示该格当前为空（隐藏）
+        // 格内脏位（值变化才写）——_cellId[i]==0 表示该格当前为空（隐藏）。
         private readonly long[] _cellId = new long[CellCount];
         private readonly string[] _cellName = new string[CellCount];
         private readonly int[] _cellKills = new int[CellCount];
 
-        // 上一帧指纹（规范序 (id,kills) 序列 + 数量 + 本地 Id + Team）——不变即整体跳过
+        // 上一帧指纹（规范序 (id,kills) 序列 + 数量 + 本地 Id + Team）——不变即整体跳过。
         private readonly long[] _printIds;
         private readonly int[] _printKills;
         private int _printCount = -1;
@@ -125,7 +110,7 @@ namespace LiteGame
             MarkPrint();
         }
 
-        // ---- 采集 ----
+        // ---- 采集 ----。
 
         /// <summary>从事实端口收参赛玩家（规范序：EntityId 升序——序号/名字与指纹的稳定基准）。</summary>
         private void CollectPlayers()
@@ -143,7 +128,7 @@ namespace LiteGame
         private void SortByDisplay()
             => _order.SortDisplay(_count, _ids, _killCounts, _display);
 
-        // ---- 写入（脏位）----
+        // ---- 写入（脏位）----。
 
         private void FillCells()
         {
@@ -206,7 +191,7 @@ namespace LiteGame
             SetText(_teamScore, _readModel.TeamScore.ToString());
         }
 
-        // ---- 指纹 ----
+        // ---- 指纹 ----。
 
         private bool FingerprintChanged()
         {

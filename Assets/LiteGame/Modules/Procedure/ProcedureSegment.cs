@@ -13,12 +13,9 @@ using LiteGame.Modules.UI;
 using LiteSync.Client;
 namespace LiteGame
 {
-    /// <summary>⑱ 应用壳：流程机（阶段表）＋ 页面流 ＋ 错误恢复 ＋ 账号重入 ＋ 产品桥装订口。
-    /// **只编排**：各阶段的业务实现住各自域（战斗/会话/联机入口），本段不认业务内部。
-    ///
-    /// **适配器依赖收成端口**：两件 Lua 桥件（房间/产品桥、注册表填充器）由装配根产出注入；
-    /// 页面目录与页面数据面经 UI 域端口取用——本段不直引 `LiteGame.Adapters.*`，
-    /// 故与其余 17 段同住 `Modules/**`。</summary>
+    /// <summary>
+    /// ⑱ 应用壳：流程机（阶段表）＋ 页面流 ＋ 错误恢复 ＋ 账号重入 ＋ 产品桥装订口。
+    /// </summary>
     public sealed class ProcedureSegment : IClientSegment, IClientSegmentGraph
     {
         private readonly Func<(IRoomSessionBridge room, ILuaProductBridge product)> _createBridges;
@@ -56,17 +53,17 @@ namespace LiteGame
             IPageDataFactory pageData = context.Require<IPageDataFactory>();   // 数据面端口（UI 段产出）
             ISettlementSummary settlement = context.Require<ISettlementSummary>();   // 结算摘要端口（Battle 段产出）
 
-            // 页面流（入口/开局关房/结算三处流程×页面接缝）——只吃目录/数据两个端口，不认生成物与 Lua 表
+            // 页面流（入口/开局关房/结算三处流程×页面接缝）——只吃目录/数据两个端口，不认生成物与 Lua 表。
             var pageFlow = new PageFlow(nav, ui, pages, pageData, settlement);
-            // 账号重入单点（登录失效 → 清登录态 → 在途对局回 Main → 登录页）；Bridge.meta 是唯一调用方
+            // 账号重入单点（登录失效 → 清登录态 → 在途对局回 Main → 登录页）；Bridge.meta 是唯一调用方。
             context.Put<IAccountReentry>(new AccountReentry(accountControl, pageFlow));
 
-            // Lua 桥装订口：房间会话门面与产品桥共用同一实例（实现住 Adapters.LuaBridge，本段只经接口）
+            // Lua 桥装订口：房间会话门面与产品桥共用同一实例（实现住 Adapters.LuaBridge，本段只经接口）。
             var (roomBridge, productBridge) = _createBridges();
             context.Put<IRoomSessionBridge>(roomBridge);
             context.Put<ILuaProductBridge>(productBridge);
 
-            // 恢复执行器（Root：启动/内容/会话失败共用）；清缓存实现面归内容段
+            // 恢复执行器（Root：启动/内容/会话失败共用）；清缓存实现面归内容段。
             var recovery = new ErrorRecoveryService(
                 new AppRecoveryActions(cache: context.Require<IContentCacheMaintenance>()));
             context.Put(recovery);
@@ -74,7 +71,7 @@ namespace LiteGame
             var machine = CreateMachine(context, pageFlow, context.Require<IMetaConfigFacts>(), recovery,
                 productBridge, roomBridge, pages);
             context.Put(machine);
-            // 联机入口只认流程端口（不回看阶段机/阶段参数类型）
+            // 联机入口只认流程端口（不回看阶段机/阶段参数类型）。
             context.Put<IAppFlow>(new ProcedureFlow(machine));
             return UniTask.CompletedTask;
         }
@@ -89,7 +86,7 @@ namespace LiteGame
             IContentService content = context.Require<IContentService>();
             IConfigService config = context.Require<IConfigService>();
             ILuaHost lua = context.Require<ILuaHost>();
-            // 注册表填充器经端口注入：三注册表与页面目录的具体形态归适配器/UI 域
+            // 注册表填充器经端口注入：三注册表与页面目录的具体形态归适配器/UI 域。
             ILuaRegistryFiller filler = _createRegistryFiller(config, lua, pages);
             var rootToken = context.RootScope.Token;
 

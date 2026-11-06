@@ -15,30 +15,7 @@ using LiteGame.Modules.Settings;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局视图装配件（<see cref="ProcedureBattle"/> 的视图域，一处收口全部表现件接线）：
-    /// 自有 `BattleView` 子作用域 → 资源取件（<see cref="BattleViewAssets"/>）→ 视图本体
-    /// （<see cref="BattleViewSceneAssembler"/>）→ HUD 族（<see cref="BattleHudAssembler"/>）→
-    /// 战斗反馈（<see cref="BattleFeedbackAssembler"/>）→ 视角/指针（<see cref="BattleLookController"/>）。
-    ///
-    /// **三面**：<see cref="LoadAsync"/>（取件与降级）、<see cref="Attach"/>（建视图与接线）、
-    /// <see cref="Tick"/>（按相位驱动各域）、<see cref="Dispose"/>（按相位逆序拆：消费者先于生产者）。
-    /// 流程层只保留"取会话 → 等信令 → 每帧驱动 → 收尾"的编排。
-    ///
-    /// **所有权**：视图根 GameObject 与 `BattleView` 作用域归本件；驱动实例与租约归各协作件
-    /// （视图/ HUD / 反馈 / 视角）。视图是上下文的消费者，**先拆视图再拆上下文**（反向释放会读到已拆的 Sim）。
-    /// 服务本体（内容/输入/相机/VFX/音频/命令）归装配根，本件只持接线所需的引用。
-    ///
-    /// **相位顺序**（tick/dispose 与拆分前逐项一致，见批次计划 A3）：
-    /// tick = 移动动画 → 权威反馈 → HUD 族 → 世界表现件 → 反馈消费者 → 视角/指针；
-    /// dispose = 移动动画 → HUD 族（逐件）→ 世界表现件 → HUD 根件 → 反馈消费者（逐件）→ 传送/诊断 →
-    /// 分发器 → 视角/指针 → 上下文/视图根/租约作用域。
-    ///
-    /// **降级口径**：缺资源/缺服务一律"警告 + 显式降级"（缺角色 prefab → 无角色视图，不造假人；缺 HUD/激光/飘字/
-    /// 音效 → 该项静默降级），不把表现增益当成对局失败。**例外是内容包必备件**：`rootmotion.bin` 缺失/损坏
-    /// = 对局失败（fail-fast），因为根位移是权威位移的输入而不是表现增益。
-    ///
-    /// **已烘焙、执行层未接线**：本件只把 `rootmotion.bin` 装载为 <see cref="RootMotionCatalog"/> 并登记摘要
-    /// （<see cref="RootMotionDigestHolder"/>）＋日志；动作位移的 Sim 执行层尚未接线，**当前无生产消费者**。
+    /// 对局视图装配件（ProcedureBattle 的视图域，一处收口全部表现件接线）。
     /// </summary>
     internal sealed class BattleViewRig : IBattleViewGroup, IBattleViewAttachment
     {
@@ -102,7 +79,7 @@ namespace LiteGame
             _lookController = new BattleLookController(input, camera, lookPreferences);   // 视角偏好端口（可空 = 纯机制常量）
         }
 
-        // ---- 诊断观测面（**仅测试/诊断用**：冒烟用例核对"视图组已建/挂载点/准心"；产品路径不读）----
+        // ---- 诊断观测面（**仅测试/诊断用**：冒烟用例核对"视图组已建/挂载点/准心"；产品路径不读）----。
 
         /// <summary>视图是否已建并接线（<see cref="Attach"/> 之后 = true，<see cref="Dispose"/> 之后 = false）。</summary>
         internal bool IsBuilt => _context != null && _viewAssembler.View != null;
@@ -119,7 +96,7 @@ namespace LiteGame
         /// <summary>根位移目录（观测面：装载结果/摘要；动作位移执行层接线前无生产消费者）。</summary>
         internal RootMotionCatalog RootMotion => _rootMotionCatalog;
 
-        // ---- 取件（资源租约；逐项降级）----
+        // ---- 取件（资源租约；逐项降级）----。
 
         /// <summary>取全部对局表现资源（角色 prefab → 激光束 → HUD → 保护壳 → 飘字底件 → 逐档材质 → 片段清单 → 音效 clip → grip.bin）。
         /// 逐项表现资源失败只降级该项（缺角色资源＝无角色视图），不把缺美术当对局失败；
@@ -190,18 +167,10 @@ namespace LiteGame
             }
         }
 
-        // ---- 装配（建视图 + 接线；须在 StartGame 之后调用）----
+        // ---- 装配（建视图 + 接线；须在 StartGame 之后调用）----。
 
         /// <summary>
-        /// 建视图并接线：<see cref="SimView"/>（镜像/插值/静默门/相机服务）→ 移动动画驱动 → HUD 族 →
-        /// 瞄准激光/保护壳 → 命中分发与反馈消费者 →〔编辑器〕爆头诊断件 → 传送命令登记。
-        ///
-        /// **相机不由本件创建**：装配根建好 <see cref="ICameraService"/>（内含场景配置好的虚拟相机）并
-        /// 跨对局复用，本件只把端口交给 SimView，并在开局 <see cref="ICameraService.Reset"/> 一次
-        /// （镜头重新落位，不从上局位置飞过来）。
-        ///
-        /// <paramref name="openBattleMenu"/>＝对局菜单钮回调（HUD 菜单钮点击 → 流程层开设置页——退场链；
-        /// null / 旧 prefab 无此钮 = 静默降级，HUD 其余面照常）。
+        /// 建视图并接线：SimView（镜像/插值/静默门/相机服务）→ 移动动画驱动 → HUD 族 → 瞄准激光/保护壳 → 命中分发与反馈消费者 →〔编辑器〕爆头诊断件 → 传送命令登记。
         /// </summary>
         public void Attach(BattleContext context, Action openBattleMenu = null)
         {
@@ -260,17 +229,13 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 输入接线（§3 输入三件）：**设备源已在装配根装好**（<see cref="InputSegment"/>），
-        /// 本件只处理"对局相机注入 + 把服务交给对局上下文 + 镜头落位"。
-        /// **上下文门不在这里裁决**——拦截源在装配根按名登记（`ui.modal`），由服务采样时统一裁决。
+        /// 输入接线（§3 输入三件）：**设备源已在装配根装好**（InputSegment）， 本件只处理"对局相机注入 + 把服务交给对局上下文 + 镜头落位"。
         /// </summary>
         private void AttachInputWiring()
         {
             if (_input == null) return;                           // 无服务（替身/测试装配）= 无输入形态
 
-            // **对局相机注入**：设备源持有的是装配根 boot 相机——叠加开发形态下它
-            // **不随场景销毁**，`Camera.main` 回落也拿错机（两台相机在场），瞄准/相机相对移动会
-            // 全部算在错机上。这里把真对局渲染相机（brain 所在 Camera）显式换进去。
+            // **对局相机注入**：设备源持有的是装配根 boot 相机——叠加开发形态下它 **不随场景销毁**，`Camera.main` 回落也拿错机（两台相机在场），瞄准/相机相对移动会 全部算在错机上。
             if (_camera is IRenderCameraSource cameraSource && _input.Source is IAimCameraSink aimCamera)
             {
                 cameraSource.EnsureCamera();                       // 视图未建时 Follow 还没跑过——先解析 vcam
@@ -323,7 +288,7 @@ namespace LiteGame
             _rootMotionCatalog = null;                   // 目录是纯数据（无租约）；置空防跨局误读
         }
 
-        // ---- 装配细节 ----
+        // ---- 装配细节 ----。
 
         /// <summary>本地实体当前位置（传送出发位；未就绪 = null——处理器拒绝并留因）。</summary>
         private SimVector3? ReadLocalOrigin()
@@ -334,9 +299,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 公共事实读源：**权威镜像优先**（`BattleContext.AuthorityState`，首份快照后可用），
-        /// 首快照前回落本地预测态。排行榜/阵亡面板等公共展示只吃它——预测的击杀/死亡不得先上板
-        /// （否则会出现"我这边死了/我这边加击杀，对方没死"的单边展示）。
+        /// 公共事实读源：**权威镜像优先**（`BattleContext.AuthorityState`，首份快照后可用）， 首快照前回落本地预测态。
         /// </summary>
         private SimWorldState PublicFactState()
             => _context != null

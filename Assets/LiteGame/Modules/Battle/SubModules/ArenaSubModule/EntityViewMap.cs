@@ -8,16 +8,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 槽位 → 视图对象的映射与池。
-    ///
-    /// 槽位是 Sim 的稳定寻址（《状态同步专项设计》§3：实体 Id = 版本 + 槽位，禁止 swap-remove），
-    /// 故视图直接按槽位下标索引——一个定长数组，零字典查找、零分配。
-    ///
-    /// **池按 prefab location 分桶**：每 location 一个 <see cref="ObjectPool{T}"/>（组合内核，
-    /// 不自研第二套池——《对象池专项设计》§5 收编；不用 <see cref="GameObjectPool"/> 的原因见 §5.2：
-    /// 全局 DontDestroyOnLoad 池根与本类的战斗域 root 生命周期不符）。validateOnAcquire 做 Unity
-    /// fake-null 销毁防御；onGet = 激活，onRelease = 停用 + 挂回 _root；maxIdle 可配（默认 32）。
-    /// 回收 = 停用 + 入池（不销毁）；视图对象本身由 <see cref="SimView.ViewRecycler"/> 决定最终去向
-    /// （生产接 EntityService.Hide；测试接 Destroy）——本类只管"什么时候回收"。
     /// </summary>
     public sealed class EntityViewMap
     {
@@ -92,7 +82,7 @@ namespace LiteGame
 
             if (view == null) return;
 
-            // 视图回收是对局的罕见事件（死亡/传送/离场），每次留痕便于定位实例归属
+            // 视图回收是对局的罕见事件（死亡/传送/离场），每次留痕便于定位实例归属。
             Log.Warning(
                 $"视图回收 slot={slotIndex} name={view.name} active={view.activeSelf} pos={view.transform.position}", LogTag.View);
 
@@ -104,7 +94,7 @@ namespace LiteGame
                 return;
             }
 
-            // 自有池路径：onRelease（停用 + 挂回 _root）与超限销毁由内核驱动（PoolKey 归桶自描述）
+            // 自有池路径：onRelease（停用 + 挂回 _root）与超限销毁由内核驱动（PoolKey 归桶自描述）。
             GetPool(PoolKey(view)).Release(view);
         }
 

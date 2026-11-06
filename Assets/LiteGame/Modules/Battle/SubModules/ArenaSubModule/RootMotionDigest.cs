@@ -5,11 +5,8 @@ using System.Text;
 
 namespace LiteGame.Modules.Battle.Arena
 {
-    /// <summary>根位移样本摘要（烘焙侧确定性校验工具）——规范化文本与 <c>CombatConfigDigest</c> 同纪律：
-    /// 字段序固定、InvariantCulture、'\n' 分隔、无空白填充。
-    ///
-    /// **不是运行时身份摘要**：对局身份用的 <see cref="RootMotionCatalog.Digest"/> 是 `.bin` 整段字节的
-    /// SHA-256；本类只用于烘焙器在编码前后复算样本（编码往返丢字段 = 烘焙立即 ABORT）与跨次烘焙对比。
+    /// <summary>
+    /// 根位移样本摘要（烘焙侧确定性校验工具）——规范化文本与 CombatConfigDigest 同纪律： 字段序固定、InvariantCulture、'\n' 分隔、无空白填充。
     /// </summary>
     public static class RootMotionDigest
     {

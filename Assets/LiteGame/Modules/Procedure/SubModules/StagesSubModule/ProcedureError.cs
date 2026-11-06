@@ -6,11 +6,7 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 错误流程：任何流程 Fail 后的落点。显示失败原因（复用 AOT 侧
-    /// <see cref="BootstrapErrorPresenter"/> 的最小错误页，代码构建、不经资源包），
-    /// **消费 <see cref="ErrorKind"/>** 决定提示语，并经 <see cref="ErrorRecoveryService"/> 执行终止动作
-    /// （Security：导出诊断后阻断；Fatal：导出诊断并安全退出——编辑器内不退出）。
-    /// 失败原因经 **payload** 传来（<c>ProcedureArgs.Error</c>）。
+    /// 错误流程：任何流程 Fail 后的落点。
     /// </summary>
     public sealed class ProcedureError : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {

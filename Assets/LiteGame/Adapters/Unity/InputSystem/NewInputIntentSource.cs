@@ -10,25 +10,7 @@ using LiteGame.Modules.Input;
 namespace LiteGame
 {
     /// <summary>
-    /// New Input System 设备源（<see cref="IIntentSource"/> 的 Input System 实现，
-    /// 《角色状态与动作专项设计》§3 第 1 件"键鼠和触屏输出相同的 Move/Aim/Buttons"）。
-    ///
-    /// **为什么用 Input System 而不是 legacy <c>UnityEngine.Input</c>**：同一套 Action 资产同时
-    /// 覆盖键鼠与触屏（《联机战斗演示专项设计》§1"触屏沿用同一 Move/Aim/Buttons 输入面"），
-    /// 且重绑/多设备由框架承担——设备源不硬编码 KeyCode。
-    ///
-    /// **职责边界**（三件里只管第 1 件）：
-    /// - 上下文门与帧边界门归 <see cref="IInputService"/>；本类只回答"按键现在是什么"；
-    /// - **离散意图的按键沿在这里产生**：<c>Fire</c>/<c>Aim</c> 是连续意图（按住即持续），
-    ///   而 <c>Reload</c> 属 §3 第 3 件的"按键沿所在的一个逻辑帧才置位"（`WasPressedThisFrame`），
-    ///   需要逐玩家单调递增的 <c>ActionSeq</c>。其余离散动作（Switch/Skill/Pickup/UseItem）
-    ///   Action 资产里尚未定义，出现消费者时按 Reload 同款追加；
-    /// - 瞄准由**相机屏心射线 → 与预测世界求交得瞄准目标点**解算（AimPoint 单口径：只产点、
-    ///   不产方向——朝向与弹道两端自点派生，单向无环；TPS 指针锁定形态下鼠标只驱动相机视角，
-    ///   "鼠标屏幕位"不再参与瞄准）；求交所需的世界与槽位经 <see cref="SetAimWorld"/> 注入
-    ///   （未注入则退化为纯地面点）；
-    /// - **移动按相机平面 yaw 旋转**：W=屏幕上=相机 forward 投影；
-    ///   相机为 null（纯测试装配）时退化为世界轴直映射。
+    /// New Input System 设备源（IIntentSource 的 Input System 实现， 《角色状态与动作专项设计》§3 第 1 件"键鼠和触屏输出相同的 Move/Aim/Buttons"）。
     /// </summary>
     public sealed class NewInputIntentSource : IIntentSource, IAimWorldSink, IAimCameraSink, ILookDevice, IDisposable
     {
@@ -48,7 +30,7 @@ namespace LiteGame
         private float _aimPointZ;
         private bool _disposed;
 
-        // 预测世界与本地槽位（三维瞄准解算用；IAimWorldSink 注入，null/越界 ⇒ 退回二维口径）
+        // 预测世界与本地槽位（三维瞄准解算用；IAimWorldSink 注入，null/越界 ⇒ 退回二维口径）。
         private SimWorldState _aimWorld;
         private int _localSlot = -1;
 
@@ -71,12 +53,6 @@ namespace LiteGame
         private const float PlanarYawMinSqr = 0.008f;
         /// <summary>
         /// 最近一次采样解算出的**瞄准目标点**（世界坐标）。
-        ///
-        /// **语义随三维化变更（《固定斜视角射击方案专项设计》§3）**：
-        /// 该点是"准心射线在世界里点到的东西"——命中实体时**带高度**（准心在敌人头上则点高 1.8m），
-        /// 未命中实体时为地面点（y=0）。**不再是"永远是 y=0 的地面点"**。
-        /// 消费者注意：构图偏移（<c>ICameraService</c> 只取水平投影）与武器激光（按三维弹道截停）
-        /// 都仍成立；但任何"假定它 y=0"的消费方都必须改，否则会与子弹弹道撕裂。
         /// </summary>
         public bool TryGetAimPoint ( out Vector3 point ) { point = _aimPointWorld; return _hasAimPoint; }
         public string Name => "new-input-system";
@@ -104,27 +80,11 @@ namespace LiteGame
 
         /// <summary>
         /// 瞄准解算相机（装配根注入：表现域建好主相机后设一次）。
-        /// **为什么不进 <see cref="IIntentSource"/> 接口**：那会让核心接口依赖 <c>UnityEngine.Camera</c>，
-        /// 从而把 `LiteFramework.Services` 的输入三件排除出 L1 的源链接覆盖（纯逻辑那部分必须能脱离引擎编译）。
-        /// 相机只是**本实现**的输入之一，由装配根对具体类型设置即可——接口不必为实现的设备差异扩面。
-        ///
-        /// 传进来的相机**可能随场景切换被销毁**（主相机是场景对象）：<see cref="ResolveCamera"/> 在采样时
-        /// 检查并回落到当前 `Camera.main`，调用方不需要在每次切场景后记得重设（那种约定迟早会漏）。
         /// </summary>
         public void SetAimCamera(Camera camera) => _camera = camera;
 
         /// <summary>
-        /// 注入本地预测世界与本地玩家槽位（<see cref="IAimWorldSink"/>；流程层经
-        /// <c>IInputService.SetAimWorld</c> 每渲染帧调用）。
-        ///
-        /// **为什么必须注入而不能自己找**：瞄准点解算要判"准心点到的是什么"（实体圆柱还是地面），
-        /// 那需要世界——而 <see cref="IIntentSource"/> 的契约是设备源**不缓存权威状态**
-        /// （否则是与裁决不同帧的陈旧世界，表现为判定时灵时不灵）。世界的所有权在流程层。
-        ///
-        /// **世界在本源只用于求交**：准心射线与实体圆柱求交（含跳过自身的槽位）——AimPoint 单口径下
-        /// 本源**不读、也不产出任何方向/朝向**（朝向与弹道两端自点派生，"锚点闭环自激"问题整体消亡）。
-        ///
-        /// 传 null / 槽位越界 ⇒ 本源退化为**纯地面点解算**（只与地面平面求交，是合法退化形态）。
+        /// 注入本地预测世界与本地玩家槽位（IAimWorldSink）。
         /// </summary>
         public void SetAimWorld(SimWorldState world, int localSlot)
         {
@@ -137,28 +97,12 @@ namespace LiteGame
             => _aimWorld != null && _localSlot >= 0 && _localSlot < SimConfig.MaxEntities;
 
         /// <summary>
-        /// 相机射线 → **瞄准目标点**（§4 的核心换算）：
-        /// <list type="number">
-        /// <item>与预测世界的**实体圆柱**求交——用**同一个** <see cref="SimRaycast"/>（客户端不另立
-        ///   圆柱数学：两份几何必然漂移，表现为爆头时灵时不灵，且难以定位）。命中则取交点，
-        ///   <b>带高度</b>：准心在敌人头上 → 点高 ≈1.8m → 弹道抬进头部带。</item>
-        /// <item>未命中实体则落**地面 y=0**（打空/打远）。</item>
-        /// </list>
-        ///
-        /// **障碍刻意不入此步**：本步的语义是"准心点到的是什么"，而截断是权威判定阶段的事
-        /// （<see cref="ShootingSystem"/> 会用同一几何再判一次）。若这里先被墙截断，墙后敌人的准心
-        /// 会被拉低成打墙的弹道——既丢了爆头语义，也让"准心对着敌人却打墙"变成采集侧的裁决。
-        /// 保持"准心指哪、解出哪条弹道"，子弹是否被墙挡住交给权威判定，视觉与判定自然一致。
-        ///
-        /// 射程用 <see cref="CombatConfig.HitscanRange"/>：比它更远的目标本来就打不到，
-        /// 射线穿过去也不会被算成目标点。
+        /// 相机射线 → **瞄准目标点**（§4 的核心换算）： 与预测世界的**实体圆柱**求交——用**同一个** SimRaycast（客户端不另立 圆柱数学：两份几何必然漂移，表现为爆头时灵时不灵，且难以定位）。
         /// </summary>
         private bool TryResolveAimPoint(Ray ray, in SimVector3 shooterPos, out Vector3 point)
         {
             point = Vector3.zero;
-            // **走 Vector3 入口**（形参序不可能传错）：三维重载是 (dx, dz, dy)，曾把方向按 (x,y,z)
-            // 顺序直传 ⇒ y/z 对调、水平方向整体错位、实体求交恒 miss → 落地面（"准心在身上打不中、
-            // 激光瞄地"实测事故；探针里同射线手算命中、游戏解算不命中即此因）。
+            // **走 Vector3 入口**（形参序不可能传错）：三维重载是 (dx, dz, dy)，曾把方向按 (x,y,z) 顺序直传 ⇒ y/z 对调、水平方向整体错位、实体求交恒 miss → 落地面（"准心在身上打不中、 激光瞄地"实测事故）。
             if (HasAimWorld()
                 && SimRaycast.RaycastEntities(_aimWorld, _localSlot,
                     new SimVector3(ray.origin.x, ray.origin.y, ray.origin.z),
@@ -169,11 +113,7 @@ namespace LiteGame
                 return true;
             }
 
-            // 地面兜底：超程（|交点−射手| > 射程）与无交（瞄天）同走**射程截断**——第三人称自由俯仰下
-            // 屏心射线可能无地面交或交在极远处，截断保证**任何合法开火帧都有闸内有效点**
-            // （消灭"瞄天=无点非法帧 / 超程=InputGate 整帧丢弃〔含 Move〕"两类丢帧）。
-            // 截断距离取 <see cref="CombatConfig.HitscanRange"/>（服务器闸 = HitscanRange×1.1——客户端
-            // 钳在闸内 0.9 折余量；不与服务器闸常量跨程序集单源，闸值口径以推导注释钉住）。
+            // 地面兜底：超程（|交点−射手| > 射程）与无交（瞄天）同走**射程截断**——第三人称自由俯仰下 屏心射线可能无地面交或交在极远处，截断保证**任何合法开火帧都有闸内有效点** （消灭"瞄天=无点非法帧 / 超程=InputGate 整帧丢弃〔含 Move〕"两类丢帧）。
             if (_groundPlane.Raycast(ray, out float distance))
             {
                 Vector3 ground = ray.GetPoint(distance);
@@ -220,9 +160,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 本帧视角增量（像素；`GamePlay/Look`——鼠标 delta）。第三人称自由视角的**相机驱动源**：
-        /// 纯视图侧读数（不进意图三件/不进协议——鼠标增量只喂 <c>ICameraService.AddLookDelta</c>，不上行）；
-        /// 像素→弧度换算归喂入侧。App 层经注入位消费（R12 边界内），不直接认识 InputSystem。
+        /// 本帧视角增量（像素）。
         /// </summary>
         public Vector2 LookDelta => _actions.GamePlay.Look.ReadValue<Vector2>();
 
@@ -272,10 +210,7 @@ namespace LiteGame
             bool fireOrAim = _actions.GamePlay.Fire.IsPressed() || _actions.GamePlay.Aim.IsPressed();
             bool useFrozen = _aimFrozen && !fireOrAim;
 
-            // **俯视退化判定**（移动基准与瞄准点共用同一判据）：pitch 逼近 −90° 时相机 forward
-            // 的水平分量趋零——`eulerAngles.y` 同时进入万向锁（值退化/跳变），屏心射线又垂直打在
-            // 自己脚下（AimPoint 距本体几厘米，`Atan2(极小,极小)` 方向随机）。两处都必须走
-            // "保持上一次有效值"而不是照单全收，否则角色会原地抽搐（Sim 侧 Yaw 每帧随机）。
+            // **俯视退化判定**（移动基准与瞄准点共用同一判据）：pitch 逼近 −90° 时相机 forward 的水平分量趋零——`eulerAngles.y` 同时进入万向锁（值退化/跳变），屏心射线又垂直打在 自己脚下（AimPoint 距本体几厘米。）。
             bool planarUsable = true;
             if (aimCamera != null)
             {
@@ -285,13 +220,7 @@ namespace LiteGame
 
             if (aimCamera != null)
             {
-                // **相机相对移动**：W = 屏幕上 = 相机平面 forward 投影，D = 屏幕右 = 相机 right——
-                // 肩后/自由相机一旦有 yaw，世界轴直映射的 WASD 会横着走。
-                // 只在**采集侧**旋转：Sim 输入契约仍是世界空间向量，服务器/预测/协议零改动。
-                // **基准 yaw**：非退化时仍用 `eulerAngles.y`（与原行为逐位一致——改算法没有收益，
-                // 反而要承担 Cinemachine forward 带 roll 时的约定风险）；只在**正俯视退化**
-                // （`planarUsable` 为假，万向锁）时保持上一次有效基准，不猜。
-                // 自由观察冻结期用冻结时的相机 yaw：WASD 仍按进入自由观察前的屏幕方向。
+                // **相机相对移动**：W = 屏幕上 = 相机平面 forward 投影，D = 屏幕右 = 相机 right—— 肩后/自由相机一旦有 yaw，世界轴直映射的 WASD 会横着走。
                 float yawRad;
                 if (useFrozen)
                 {
@@ -316,7 +245,7 @@ namespace LiteGame
             frame.MoveX = moveX;
             frame.MoveZ = moveZ;
 
-            // 长度 ≤1 契约：数字键盘/手柄可能有轴向过冲与斜向超长，采集侧负责归一
+            // 长度 ≤1 契约：数字键盘/手柄可能有轴向过冲与斜向超长，采集侧负责归一。
             float moveMag2 = frame.MoveX * frame.MoveX + frame.MoveZ * frame.MoveZ;
             if (moveMag2 > 1f)
             {
@@ -328,16 +257,7 @@ namespace LiteGame
             // （机理与实测值见 IntentVectorLimit 类注释）；出界即按余量收缩，界内逐位不动。
             IntentVectorLimit.EnsureWithinLengthLimit(ref frame.MoveX, ref frame.MoveZ);
 
-            // 瞄准（**AimPoint 单口径**）：
-            // **相机屏心射线** → **与预测世界求交得瞄准目标点 P**（实体圆柱未中落地面/截断）
-            // → 只上报 P（点即唯一瞄准表示；朝向与弹道方向由两端自 P 派生，单向无环）。
-            //
-            // **为什么是点不是方向**：方向口径下"服务端从枪口沿方向求交"命中圆柱近弧，与准心所指
-            // 有高度偏差（爆头边界上的"瞄着下沿打不中"）；且方向向量与"锚点/枪口偏移/Yaw 反推"
-            // 纠缠出闭环自激与平行差——点口径把这些问题整体消掉。
-            // 自由视角下射线可能无地面交/交在极远——由**射程截断**兜底（TryResolveAimPoint 第三档）；
-            // 唯一无点路径仍是相机未就绪，沿用上次点。
-            // 场景切换后缓存会失效——ResolveCamera 已回落到当前 Camera.main
+            // 瞄准（**AimPoint 单口径**）： **相机屏心射线** → **与预测世界求交得瞄准目标点 P**（实体圆柱未中落地面/截断） → 只上报 P（点即唯一瞄准表示）。
             if (useFrozen)
             {
                 _aimPointX = _frozenAimX;
@@ -348,10 +268,7 @@ namespace LiteGame
             }
             else if (aimCamera != null && planarUsable)
             {
-                // TPS 屏心射线（viewport 中心——分辨率无关）：指针锁定形态下鼠标只驱动相机视角，
-                // 瞄准点恒自相机中心解算——不再依赖鼠标屏幕位（Mouse.current 缺席也可解算）。
-                // **正俯视退化时不解析**：射线垂直打在自己脚下，点离本体几厘米，`Atan2(极小,极小)`
-                // 方向随机 ⇒ 保持上一次点（下面的 `_aimPointX/Y/Z` 不动即"沿用上次"）。
+                // TPS 屏心射线（viewport 中心——分辨率无关）：指针锁定形态下鼠标只驱动相机视角， 瞄准点恒自相机中心解算——不再依赖鼠标屏幕位（Mouse.current 缺席也可解算）。
                 var ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
                 if (TryResolveAimPoint(ray, in localPos, out Vector3 p))
                 {

@@ -9,10 +9,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 现有手写调参面的统一描述（开发三宏内）：爆头区 / 持枪幅度 / 准心 / 视角。
-    /// 默认值来自烘焙/表/机制常量，覆写复位统一回源值；编辑器「调试参数」页按描述渲染，
-    /// 不再为每组写专用滑杆代码。准心/视角默认值仍写在代码常量里（定档后迁表/配置），
-    /// 标 <see cref="DebugTunableScope.Product"/>；爆头区/持枪默认值已由烘焙产物提供，覆写按调试维度归类。
-    /// 当前对局规则经 <see cref="IDevSession.MatchRules"/> 读（实例状态，无 Sim 侧静态"当前局"）。
     /// </summary>
     public sealed class FeatureDebugTunables : IDebugTunableProvider
     {
@@ -35,7 +31,7 @@ namespace LiteGame
             AddLook(into);
         }
 
-        // ---- 爆头区（判定面沙箱件；活动局 + 跨局待用值双落）----
+        // ---- 爆头区（判定面沙箱件；活动局 + 跨局待用值双落）----。
 
         public float CurrentHeadLine()
         {
@@ -91,7 +87,7 @@ namespace LiteGame
             });
         }
 
-        // ---- 持枪幅度（纯表现）----
+        // ---- 持枪幅度（纯表现）----。
 
         private void AddGrip(ICollection<DebugTunable> into)
         {
@@ -114,7 +110,7 @@ namespace LiteGame
             });
         }
 
-        // ---- 准心（纯表现；六个参数共享同一运行时覆写面）----
+        // ---- 准心（纯表现；六个参数共享同一运行时覆写面）----。
 
         private static void AddCrosshair(ICollection<DebugTunable> into)
         {
@@ -172,7 +168,7 @@ namespace LiteGame
             });
         }
 
-        // ---- 视角（灵敏度/ADS 收敛；FOV 是场景 rig 值，保留在 GM 页直改）----
+        // ---- 视角（灵敏度/ADS 收敛；FOV 是场景 rig 值，保留在 GM 页直改）----。
 
         private static void AddLook(ICollection<DebugTunable> into)
         {

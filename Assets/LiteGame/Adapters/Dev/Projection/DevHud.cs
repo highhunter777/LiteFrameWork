@@ -13,27 +13,9 @@ using UnityEngine.SceneManagement;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 namespace LiteGame
 {
-    /// <summary>开发 HUD（只读快照展示）。**自创建形态**：[RuntimeInitializeOnLoadMethod] 在场景加载后
-    /// 自建 GameObject（场景**不挂**组件——避免三宏 #if 剥离时场景序列化组件报
-    /// "not derived from MonoBehaviour"；同 DevStartupConfig 手法）。
-    ///
-    /// **不要把本目录移进任何 `Editor/` 下**：`Assets/.../Editor/` 是特殊文件夹，其中的
-    /// MonoBehaviour **不能 AddComponent**——运行时报 "it is an editor script"，组件加不上、
-    /// HUD 彻底不出现（本件为**代码创建**形态，直接命中）——故本件住开发装配层
-    /// `Assets/LiteGame/Adapters/Dev/Projection`（asmdef 三宏 defineConstraints + 文件内 `#if` 双重剥离）。
-    /// Player 里的剥离由三宏负责，不靠程序集边界。
-    /// 自拉取模式：LiteGame.Dev → LiteFramework.{Services,Adapters,Hosting} 单向引用，HUD 在 Start 经
-    /// FindAnyObjectByType 拉 `GameEntry.Stats`（只读统计访问器，非解析入口）+ 场景组件型 IModuleStats 合并；
-    /// **场景加载后重扫**（对局场景里的 Animation/Lua 组件才进得来），每轮轮询剔除已销毁件。
-    /// **各段渲染开关 = public 字段**（Inspector 可配 / 代码可改）：showStats /
-    /// statToggles（单模块段 bool 开关）/ showNetDiag（联机诊断段——读口 <see cref="BattleDiagnostics"/>，
-    /// 无对局整段不显示）/ showPerf（性能段——本机帧样本自算）/ showLogRecent / logRecentLines / showErrorsLine。
-    /// 首次运行（本机无折叠记忆）的展开集读 `DevStartupConfig.DevHudDefaultExpanded`；此后以持久化折叠态为准。
-    /// 0.25s 节流轮询：聚合单串，交 UI Toolkit `Label` 渲染（`DevHudUIToolkitHost`；字体不可用或
-    /// `renderWithUIToolkit=false` 时自动回退 IMGUI）；**帧采样与可见性解耦**（隐藏期间性能窗不冻结）。
-    /// 热键：F1 总开关 / F4 复制文本 / F5 日志级别过滤 / F6 仅本局 / F7 落现场包 / F8 导出 JSON / F9 过滤模式
-    /// （F2 = 开发面板、F3 = 开发控制台）。
-    /// 日志行带关联上下文（会话/对局/帧/席位，见 <see cref="LogEntry"/>）；只读，不写运行态。</summary>
+    /// <summary>
+    /// 开发 HUD（只读快照展示）。
+    /// </summary>
     public sealed class DevHud : MonoBehaviour
     {
         /// <summary>单模块 stats 段开关（按 StatsName 一段一 bool，Inspector 直改；未列出的模块默认隐藏＝白名单）。</summary>

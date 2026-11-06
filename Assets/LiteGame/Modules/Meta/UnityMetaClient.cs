@@ -11,16 +11,7 @@ using MetaWire;
 namespace LiteGame
 {
     /// <summary>
-    /// <see cref="IMetaClient"/> 的 UnityWebRequest 实现（《上云测试专项设计》§2：HTTPS/JSON + Bearer 访问令牌）。
-    ///
-    /// - **非 2xx 与传输失败都不抛**：UniTask 的 <c>SendWebRequest().WithCancellation</c> 在非 2xx 时自抛
-    ///   <see cref="UnityWebRequestException"/>（HttpCandidateFetcher 同款先例），本类在此统一转
-    ///   <see cref="MetaCall{T}"/>；取消（<see cref="OperationCanceledException"/>）原样传播——Scope 语义不变；
-    /// - **Content-Type 必须显式 application/json**（服务端 <c>TryReadJsonAsync</c> 对非 JSON 类型按坏请求收口，
-    ///   UnityWebRequest.Post(string,string) 默认表单编码——不可用，须手工 UploadHandler）；
-    /// - **JSON 编解码经注入的 <see cref="IJsonCodec"/>**（端口住 Core、实现住适配层）：本类与
-    ///   <see cref="MetaJson"/> 都不引用第三方 JSON 库；
-    /// - 令牌/票据不落日志（§11.1）；失败 Detail 只带状态码与错误码，不带原文。
+    /// IMetaClient 的 UnityWebRequest 实现（《上云测试专项设计》§2：HTTPS/JSON + Bearer 访问令牌）。
     /// </summary>
     public sealed class UnityMetaClient : IMetaClient
     {
@@ -103,7 +94,7 @@ namespace LiteGame
                 }
                 catch (UnityWebRequestException ex)
                 {
-                    // 非 2xx 在这里自抛（先例同 HttpCandidateFetcher）；无响应（连接失败/DNS/超时）ResponseCode=0 → 暂态
+                    // 非 2xx 在这里自抛（先例同 HttpCandidateFetcher）；无响应（连接失败/DNS/超时）ResponseCode=0 → 暂态。
                     if (ex.ResponseCode <= 0)
                         return MetaCall<T>.Failed(MetaFailure.Network("meta:" + path));
                     return MetaCall<T>.Failed(_json.ParseFailure(ex.ResponseCode, ex.Text));

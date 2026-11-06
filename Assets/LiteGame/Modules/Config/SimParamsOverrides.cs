@@ -4,19 +4,11 @@ using LiteSim;
 namespace LiteGame.Modules.Config
 {
     /// <summary>
-    /// 判定几何参数覆写（`#combatgeom` 13 列的调参面）：只记"被改动过的列"，合并时按列重建
-    /// <see cref="CombatGeometry"/>，未覆写的字段原样取源值（<see cref="CombatValues"/> 其余字段一律不动）。
-    ///
-    /// **实例面**：不读任何静态、不落盘。写入方是调参面板（<c>SimParamsDebugTunables</c>）；
-    /// 是否允许合并由进房单点按 <see cref="SimParamsGate"/> 每局求值一次后决定
-    /// （<see cref="SimParamsActivation"/>；联机/云端恒不合并）；
-    /// 落表是编辑器侧 <c>SimParamsExporter</c> 的职责（表才是权威值，覆写只是试验面）。
-    /// **校验口径**与 `scripts/codegen/_combatgeom_row.py` / <c>SimConfigMapper.Validate</c> 一致（宁严勿松）：
-    /// 非法列名/非有限值/越界当场抛，不留下"能合并但两端都不认"的数值。
+    /// 判定几何参数覆写（`#combatgeom` 13 列的调参面）：只记"被改动过的列"，合并时按列重建 CombatGeometry，未覆写的字段原样取源值（CombatValues 其余字段一律不动）。
     /// </summary>
     public sealed class SimParamsOverrides
     {
-        // ---- 列名单源（顺序 = `#combatgeom` 列序 = CombatGeometry 构造参数序）----
+        // ---- 列名单源（顺序 = `#combatgeom` 列序 = CombatGeometry 构造参数序）----。
 
         public const string BodyRadiusColumn = "body_radius";
         public const string HitscanHeightColumn = "hitscan_height";

@@ -9,12 +9,6 @@ namespace LiteGame
 {
     /// <summary>
     /// DevHud 的 UI Toolkit 渲染后端（无资产：运行时创建 `PanelSettings`，内联样式）。
-    /// 字体走 TextCore 系统字体文件（微软雅黑/黑体/宋体/PingFang/Noto 候选链），
-    /// 无可用 SDF 字体时抛异常，由 <see cref="DevHud"/> 回退 IMGUI。
-    /// 渲染模型：顶部状态行（可拖动面板）+ 可折叠段 + 每行一个 Label（按 <see cref="HudTone"/> 着色）+ 滚轮滚动。
-    /// 折叠态由宿主（DevHud）持有并持久化，本类只做显示与点击上报。
-    /// 已知边界：UI Toolkit 面板渲染在 uGUI Screen Space Overlay 之下，`sortingOrder=10000` 高于产品现有最高 6000；
-    /// 无 `ThemeStyleSheet` 时标准控件无样式，故折叠/拖拽/滚动都用 Label + PointerEvent 自实现。
     /// </summary>
     internal sealed class DevHudUIToolkitHost
     {
@@ -182,7 +176,7 @@ namespace LiteGame
             view.Header = CreateLabel(view.Root, HeaderColor);
             view.Header.pickingMode = PickingMode.Position;
             view.Header.style.marginTop = 4f;
-            // 普通 Label 不会自动收到 ClickEvent（那是 Clickable 的行为），用 PointerDown 做折叠
+            // 普通 Label 不会自动收到 ClickEvent（那是 Clickable 的行为），用 PointerDown 做折叠。
             view.Header.RegisterCallback<PointerDownEvent>(_ =>
             {
                 view.Collapsed = !view.Collapsed;
@@ -310,7 +304,7 @@ namespace LiteGame
 
         private void OnWheel(WheelEvent evt)
         {
-            // UI Toolkit：delta.y > 0 = 向上滚；内容随之下移（top 增大），故取负
+            // UI Toolkit：delta.y > 0 = 向上滚；内容随之下移（top 增大），故取负。
             _scrollY = Mathf.Clamp(_scrollY - evt.delta.y * 24f, 0f, MaxScroll());
             ApplyScroll();
             evt.StopPropagation();

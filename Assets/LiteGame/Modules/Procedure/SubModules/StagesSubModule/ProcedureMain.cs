@@ -10,10 +10,7 @@ using LiteGame.Modules.Dev;
 namespace LiteGame
 {
     /// <summary>
-    /// 主流程：**启动落点决策**（登录页/大厅页/不开页，见 <see cref="ResolveLanding"/>）＋ 开发直入训练场。
-    /// **不再加载对局场景组**——场景组的加载与卸载都归 `ProcedureBattle`
-    /// （`StartGame` 后加载、离场收尾卸载；《地图数据专项设计》加载链修订；Main 阶段只有启动场景 Boot 与 UI）。
-    /// 后续流程树（主菜单 → 选模式 → 进场景 → 战斗 → 结算）在此扩展；Match/Battle 预留见 <see cref="ProcedureId"/>。
+    /// 主流程：**启动落点决策**（登录页/大厅页/不开页，见 ResolveLanding）＋ 开发直入训练场。
     /// </summary>
     public sealed class ProcedureMain : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
@@ -67,10 +64,7 @@ namespace LiteGame
         {
             try
             {
-                // 启动落点（**一个决策点**）：
-                //   直入训练场 → 不开页（对局接管）；
-                //   本地服务器（开发）→ 大厅页（跳过登录）；Meta 已配置（正式）→ 登录页；否则不开页。
-                // **只开一次**——对局结束/离场返回 Main 不重开入口（页面流接管：结算页或大厅在场）。
+                // 启动落点（**一个决策点**）： 直入训练场 → 不开页（对局接管）。
                 if (_pages != null) _pages.OpenLanding(ResolveLanding());
 
                 // 启动走廊收口（窗口⑥ 首屏接线点——登录页/大厅就绪即收，通用加载页 §1）。

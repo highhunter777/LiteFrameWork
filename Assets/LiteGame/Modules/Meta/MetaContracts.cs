@@ -4,13 +4,7 @@ using System.Globalization;
 namespace LiteGame
 {
     /// <summary>
-    /// Meta 契约的**客户端本地面**（线形状在 <c>MetaWire</c>，双端共用）。
-    /// 本件只放"客户端如何处置结果"的类型：失败分类与结果包装——服务端没有这些概念，
-    /// 因此不进共享契约（共享面只描述线上长什么样）。
-    ///
-    /// **结果型返回**（不抛业务异常）：传输/形状问题一律落 <see cref="MetaCall{T}.Failure"/>，
-    /// 调用方按 <see cref="MetaFailureKind"/> 分支处置（Network 可重试、Rejected 按 code 展示、
-    /// InvalidResponse 确定性不重试）。
+    /// Meta 契约的**客户端本地面**（线形状在 MetaWire，双端共用）。
     /// </summary>
     public enum MetaFailureKind
     {
@@ -89,8 +83,6 @@ namespace LiteGame
 
     /// <summary>
     /// 房间服端点（票据/投影下发的 Address="host:port" 拆解）。
-    /// 解析规则与服务端 <c>LobbyRegistrationClient</c> 的 <c>AdvertiseHost + ":" + Port</c> 拼接互逆；
-    /// 支持裸 IPv4/主机名与 [IPv6]:port 两种形态。纯函数可直测。
     /// </summary>
     public sealed class RoomEndpoint
     {
@@ -108,7 +100,7 @@ namespace LiteGame
             string portText;
             if (address[0] == '[')
             {
-                // [IPv6]:port
+                // [IPv6]:port。
                 int close = address.IndexOf(']');
                 if (close < 0 || close + 1 >= address.Length || address[close + 1] != ':')
                 { reason = "括号形态缺端口"; return false; }

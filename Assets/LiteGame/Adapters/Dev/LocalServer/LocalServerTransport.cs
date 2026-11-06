@@ -20,24 +20,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// **进程内本地服务器**（离线隔离开发）：实现 <see cref="IClientTransport"/>，
-    /// 在同一进程里跑**真的**房间内核 <see cref="RoomRuntime"/> 与**真的** <see cref="SnapshotPipeline"/>
-    /// （两者与服务端宿主编译同一份源码：`Assets/RoomServer/{Runtime,Application}`），中间不走网络。
-    ///
-    /// **它解决什么**：不必起 `RoomServer` 进程即可在进程内跑完整闭环（否则 `ProcedureMatch`
-    /// 十秒超时、进不了对局）。开关打开即自带权威端。
-    ///
-    /// **真实性边界（务必分清，别把"本地绿"当"联机绿"）**：
-    /// - **真**：Sim 判定、`InputGate` 校验、快照差分/AOI、协议编解码（`PacketCodec`）、会话相位机；
-        /// - **假**：无 Socket（无丢包/乱序/延迟/MTU）、无票据验签（token 只做非空）、单房间、
-        ///   无多房间/排空/Ops/持久化、时间轴自走（不依赖墙钟）、**自动补位**（真客户端进房后，
-        ///   剩余席位由假连接补满并按"缺席空输入"站桩——真实多人交互不可由此模拟）+ **代房主开局**
-        ///   （<see cref="StartAsOwner"/>：本形态没有房间页开局钮，进房即代房主发 StartEarly）。
-        ///   弱网、断线重连真实性、多房间隔离仍须在**真服务器**验。
-    ///
-    /// **与真服务端应用层的关系**：本类只补最小的那层映射（Join → JoinAck、MatchStarted → StartGame、
-    /// Tick → 快照广播、终局输出 → MatchEnded），对应 `ServerHost.ApplySignal`/`ApplyOutput` 里那几行。
-    /// **不复制**票据/多房间/排空/Ops——那些属于 Application 的带 IO 半边，本形态不需要。
+    /// **进程内本地服务器**（离线隔离开发）：实现 IClientTransport， 在同一进程里跑**真的**房间内核 RoomRuntime 与**真的** SnapshotPipeline （两者与服务端宿主编译同一。）。
     /// </summary>
     public sealed class LocalServerTransport : IClientTransport
     {
@@ -120,23 +103,12 @@ namespace LiteGame
 
         /// <summary>
         /// 按房间号构造（**调用方的唯一入口**）。
-        ///
-        /// **为什么需要它**（《客户端与服务端共享代码范围专项设计》§3 D2 + §7-1）：
-        /// 消费方（`ProcedureMatch.CreateTransport`）只留房间号，配置装配归本类——否则它必须认识
-        /// `RoomServer.Runtime`，**依赖从"装配档位"漏进业务代码**。本类是该档位里唯一认识房间内核的类型。
-        ///
-        /// 人数/seed/时限留默认（与 `RoomConfig` 的 MVP 形态一致）——本地服本就不模拟
-        /// 多房间/票据/排空（见类注释"真实性边界"），没有需要按房间调的参数。
         /// </summary>
         /// <param name="expectedPlayers">总席位（0 = 房间默认 2）；测试模式按 bot 数量配置。</param>
         /// <param name="testRules">测试房规则持有件（null = 常规对局）；初值同时盖进房间数值快照
-        /// （联机身份摘要可见），运行态经持有件注入权威步进（与客户端预测同实例）。</param>
         /// <param name="gameplayDigestBase">判定面表字节基摘要（批 E——装配根传 `ConfigService.GameplayDigestBase`
-        /// 同一提供者；摘要不等 = 客户端拒局，见类头"联机身份"与 `BattleContext` 校验点）。</param>
         /// <param name="map">判定图（**必填**——装配根经 `IMapProvider` 传入，与客户端逐位同图：
-        /// 出生点/碰撞/遮挡；D22：无回退地图）。</param>
         /// <param name="mapId">地图行键（多图批；随 JoinAck 回执——客户端按它选表行/场景，与真服务器同一条
-        /// 权威路径；0 = 未标注）。</param>
         /// <param name="roomValues">本局判定数值（装配根在进房时点解析；null = 直构形态回落默认表值）。</param>
         public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0, MatchTestRules testRules = null,
             uint gameplayDigestBase = 0, SimMapData map = null, int mapId = 0, ILocalTestHooks hooks = null,
@@ -157,11 +129,7 @@ namespace LiteGame
         public void Connect(string address, int port)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(LocalServerTransport));
-            // 本地形态没有拨号/握手过程（真 KCP 的 cookie 握手在此不存在——这正是它的边界），但**时序
-            // 必须对齐真传输**：`KcpTransportClient` 的连接完成是 **Tick 驱动的异步过程**（Connect 后
-            // 持续泵至 OnConnected），不在 Connect() 内同步发——若本地形态同步发，Join→JoinAck 整条链
-            // 会在 BattleClient 构造内跑完，客户端的 JoinAck 边缘事件在订阅者（WaitJoined）挂好之前
-            // 就发掉了，表现为"本地模式必超时"。故挂起到下一次 TickIncoming 再触发。
+            // 本地形态没有拨号/握手过程（真 KCP 的 cookie 握手在此不存在——这正是它的边界），但**时序 必须对齐真传输**：`KcpTransportClient` 的连接完成是 **Tick 驱动的异步过程**（Connect 后 持续泵至 OnConnected）。
             _tickAccumMs = 0;
             _nowMs = 0;
             _connectPending = true;
@@ -197,7 +165,7 @@ namespace LiteGame
                 }
                 case PacketType.Heartbeat:
                 {
-                    // RTT/丢包探针回声：与真服务端同口径——原样回显 client_time（Unreliable）
+                    // RTT/丢包探针回声：与真服务端同口径——原样回显 client_time（Unreliable）。
                     _outbox.Add((PacketType.Heartbeat, new Heartbeat { ClientTime = ((Heartbeat)msg).ClientTime }));
                     FlushOutbox();
                     break;
@@ -212,8 +180,6 @@ namespace LiteGame
             if (join.BuildHash != LiteNet.BuildHash.Value)
             {
                 // 与真服务端同一条红线：不一致直接拒绝（否则本地绿会掩盖"两端 hash 不同"这类真问题）。
-                // 处置也与 ServerHost.Reject 同款：**不回 JoinAck**（假 Ack 会带 -1 号位进 Battle、
-                // 静默挂在"等 StartGame"），只打日志——客户端按 Join 超时进确定错误态，红线照常暴露。
                 UnityEngine.Debug.LogWarning(
                     $"[LocalServer] Join 被拒：buildHash 不符（{join.BuildHash} != {LiteNet.BuildHash.Value}）");
                 return;
@@ -238,7 +204,7 @@ namespace LiteGame
             _inputBatch.Count = raw;
             _inputBatch.Frames = _batchFrames;
 
-            // 语义 ACK（与真服务端同一道闸——差分基线靠它前推；不接则 NeedsFull 恒真、每帧全量）
+            // 语义 ACK（与真服务端同一道闸——差分基线靠它前推；不接则 NeedsFull 恒真、每帧全量）。
             _seats[_playerId]?.TryAcceptAck(msg.AckSnapshot);
 
             long acceptedBefore = _runtime.Gate.AcceptedCount;
@@ -249,10 +215,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 代房主开局（本地形态专属）：开局唯一入口是房主发起（裁决——满员不再自动开局），
-        /// 而本形态没有房间页/开局钮（TestMode 由开发控制台/GM 直开对局）——单客户端恒为首入座者（房主），
-        /// 这里代其发出 <see cref="RoomCommand.StartEarly"/>（与真服同一条开局路径：owner 判定/立即
-        /// StartMatch/缺席席位居空输入），房主开局语义仍被真实走一遍。真实多人房走真服务器，不经本类。
+        /// 代房主开局（本地形态专属）：开局唯一入口是房主发起（裁决——满员不再自动开局）， 而本形态没有房间页/开局钮（TestMode 由开发控制台/GM 直开对局）——单客户端恒为首入座者（房主）。
         /// </summary>
         private void StartAsOwner()
         {
@@ -262,14 +225,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 自动补位（离线形态专属）：真客户端进房后，剩余席位用**假连接**补满——席位即刻占满
-        /// （开局由 <see cref="StartAsOwner"/> 紧接着代房主发起）。补位者永不发包 = 权威循环每帧
-        /// 给它**空输入**（`RoomRuntime` "缺席沿用空输入"语义）＝站桩对手。
-        ///
-        /// **为什么必须**：客户端预测世界按 `BattleContext.ExpectedPlayers`（=2，首版房间规模）
-        /// 定容重建，两端世界构造必须逐位一致（`OnStartGame` 契约）——1 人房会让服务端少生成一个
-        /// 实体，首帧权威快照起每帧假和解。补位保住"同一份世界构造"，离线才跑得通完整闭环。
-        /// 连接号从 Conn+1 起编（不与本地客户端冲突）。
+        /// 自动补位（离线形态专属）：真客户端进房后，剩余席位用**假连接**补满——席位即刻占满 （开局由 StartAsOwner 紧接着代房主发起）。
         /// </summary>
         private void FillRoomWithBots()
         {
@@ -286,7 +242,7 @@ namespace LiteGame
         {
             if (_disposed || !_connected || !_joined) return;
 
-            // 虚拟时钟推进：按真实帧间隔累计，满一逻辑帧就走一步（与服务端 ServerLoop 同节拍口径）
+            // 虚拟时钟推进：按真实帧间隔累计，满一逻辑帧就走一步（与服务端 ServerLoop 同节拍口径）。
             _tickAccumMs += UnityEngine.Time.unscaledDeltaTime * 1000.0;
             double stepMs = 1000.0 / SimConfig.TickRate;
 
@@ -304,7 +260,7 @@ namespace LiteGame
                     entityIdOf: p => _runtime.EntityIdOf(p),
                     seatBroadcastable: p => _seats[p] != null && !_seats[p].Disconnected);
 
-                // 事件面与状态面同节拍（本地服与真服同一条纪律——否则"本地能复现、联机复现不了"）
+                // 事件面与状态面同节拍（本地服与真服同一条纪律——否则"本地能复现、联机复现不了"）。
                 if (_pipeline.BroadcastedThisFrame)
                     _events.Publish(_runtime.AuthSim.Frame,
                         p => _seats[p] != null && !_seats[p].Disconnected);
@@ -315,7 +271,7 @@ namespace LiteGame
 
         public void TickIncoming()
         {
-            // 收包在 Send/TickOutgoing 内同步产生并直接回调；连接建立事件在此补发（见 Connect 注释）
+            // 收包在 Send/TickOutgoing 内同步产生并直接回调；连接建立事件在此补发（见 Connect 注释）。
             if (!_connectPending) return;
             _connectPending = false;
             _connected = true;
@@ -355,9 +311,7 @@ namespace LiteGame
                     continue;
                 }
 
-                // 终局信令（与真服同一条链）：对局中收尾 SettlementReady → MatchEnded（带结果）；
-                // 未开局/等待期收尾 RoomAborted → MatchEnded（无结果散场）。打包单源在
-                // HandshakePacker（与真服共一份）；本地形态无结算 Outbox/隐藏房面——信令照发、不落盒。
+                // 终局信令（与真服同一条链）：对局中收尾 SettlementReady → MatchEnded（带结果）。
                 switch (output)
                 {
                     case SettlementReadyOutput sr:
@@ -372,12 +326,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 宿主级关闭（运维口径镜像——与真服投递 <see cref="RoomCommand.Shutdown(ShutdownReason)"/> 同入口）：
-        /// 对局中 → 结算收尾（<c>SettlementReady</c> → MatchEnded 带结果）；未开局/等待期 → 中止
-        /// （<c>RoomAborted</c> → MatchEnded 无结果散场）。幂等（Closed 后内核记"重复关闭"不重迁移）。
-        /// 终局信令经 <see cref="OnData"/> 同步到达；此后权威 Tick 为 no-op（帧冻结），上行输入不再推进。
-        /// 本地形态的 GM/EditMode/集成驱动入口——此前对局打满时限的终局输出无人转信令，客户端
-        /// 永不知道比赛结束（僵尸对局）。
+        /// 宿主级关闭（运维口径镜像——与真服投递 RoomCommand.Shutdown(ShutdownReason) 同入口）： 对局中 → 结算收尾（SettlementReady → MatchEnded 带结果）。
         /// </summary>
         public void ShutdownHost(ShutdownReason reason)
         {

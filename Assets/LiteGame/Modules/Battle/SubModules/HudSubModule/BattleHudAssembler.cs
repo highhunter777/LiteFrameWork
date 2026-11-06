@@ -9,9 +9,7 @@ using LiteGame.Modules.Input;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局 **HUD 族装配器**：准心 / 血条弹药面板 / 局内排行榜 / 全局击杀提示 / 网络质量 / 死亡复活面板，
-    /// 以及 HUD 根件销毁与菜单钮监听挂摘。件缺失一律静默降级（只警告）——HUD 是表现增益，不当作对局失败。
-    /// 驱动实例归本件；根件（ScreenSpace Canvas 实例）也由本件销毁，租约归视图作用域。
+    /// 对局 **HUD 族装配器**：准心 / 血条弹药面板 / 局内排行榜 / 全局击杀提示 / 网络质量 / 死亡复活面板， 以及 HUD 根件销毁与菜单钮监听挂摘。
     /// </summary>
     internal sealed class BattleHudAssembler
     {

@@ -7,13 +7,7 @@ using XLua;
 namespace LiteGame
 {
     /// <summary>
-    /// Lua 行表 → <see cref="IUIListRows"/>（G6）：行字段**手工展开**（Bridge.Data §1d 同判据——
-    /// Lua 不触碰 C# 类型，行数据由 Lua 侧持有）。行形：
-    /// <c>rows[i] = { key="Room-A", Txt_RoomName="Room-A", Txt_RoomState={ key="UI.Lobby.RoomState", arg0=2, arg1=8 } }</c>
-    /// ——字段名 = **条目子节点名**；值为字符串/数字 = 数据直写（不随语言刷新），值为表（带 key）= 本地化文案，
-    /// 参数走具名 <c>arg0..arg3</c>（与 self.ui 的 LText 参数口径一致；**定长不用变长表**——
-    /// xLua 对嵌套数组的映射语义不由本项目控制，见 <see cref="LuaBehaviourAdapter.MaxLuaFormatArgs"/>）。
-    /// 字段名为 Lua 侧任意插入序（GetKeys 无序）——投影按子节点名寻址，与顺序无关。
+    /// Lua 行表 → IUIListRows（G6）：行字段**手工展开**（Bridge.Data §1d 同判据—— Lua 不触碰 C# 类型，行数据由 Lua 侧持有）。
     /// </summary>
     internal sealed class LuaListRows : IUIListRows
     {

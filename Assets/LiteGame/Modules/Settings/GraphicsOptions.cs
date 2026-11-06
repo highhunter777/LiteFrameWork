@@ -6,12 +6,6 @@ namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 图形覆盖档（图形设置）：渲染缩放 / 抗锯齿 / 阴影三组允许值 + 阴影档参数，单源。
-    ///
-    /// **为什么是"覆盖"而不是独立档位**：画质预设（低/中/高）已由三套 URP 资产承载整体观感；
-    /// 覆盖项只处理"某一项特别吃性能"的个例，<see cref="FollowPreset"/> 表示不覆盖（零开销）。
-    ///
-    /// **阴影只走两个公开标量**（URP 14 的 `shadowDistance` / `shadowCascadeCount`）：阴影开关与
-    /// 阴影贴图分辨率是 `internal set`，用反射改会把表现档绑在包实现细节上。
     /// </summary>
     public static class GraphicsOptions
     {

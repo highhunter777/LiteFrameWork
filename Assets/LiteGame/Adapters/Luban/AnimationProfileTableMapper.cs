@@ -5,10 +5,7 @@ using LiteFramework.Animation;
 namespace LiteGame
 {
     /// <summary>
-    /// tbanimationprofile 生成行 → Core <see cref="AnimationProfileRow"/> 的**翻译边界**
-    /// （类别/通道字符串 → 枚举——字符串语义不出适配器，同 fire_mode 先例）。
-    /// 纯函数、无状态：<see cref="ConfigService.ValidateCandidate"/> 用它做候选校验
-    /// （含全族 FromRows 装载演练——语义校验前置到启动），装载期再取一次结果发布读口。
+    /// tbanimationprofile 生成行 → Core AnimationProfileRow 的**翻译边界** （类别/通道字符串 → 枚举——字符串语义不出适配器，同 fire_mode 先例）。
     /// </summary>
     public static class AnimationProfileTableMapper
     {

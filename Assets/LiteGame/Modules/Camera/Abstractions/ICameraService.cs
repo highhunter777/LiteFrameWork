@@ -3,25 +3,7 @@ using UnityEngine;
 namespace LiteGame.Modules.Camera
 {
     /// <summary>
-    /// 相机服务端口（《商业级通用客户端框架总设计》§5 框图 `Platform.Unity` 适配器块的抽象面；
-    /// 《联机战斗演示专项设计》§3"相机跟本地预测位置；和解期间跟衰减后的表现位置"）。
-    ///
-    /// **为什么是端口而不是直接用 Cinemachine**：表现层（<see cref="SimView"/>）只该知道
-    /// "有个相机在跟这个表现位置"，不该认识 Cinemachine 这个包——同 <see cref="IVfxService"/> 的处置
-    /// （表现层定端口、适配器实现、消费者只认端口）。换掉相机后端只换适配器，SimView 与流程零改动。
-    ///
-    /// **为什么住 `LiteView` 而不是 `LiteFramework.Core`**：本接口带 <c>UnityEngine.Vector3</c>，
-    /// 而 Core 声明了 `noEngineReferences: true`（核心机制不依赖引擎，是硬约束）。表现层端口归表现层。
-    ///
-    /// 契约：
-    /// - <see cref="Follow"/> 在**渲染帧**调用（与 SimView 的视图更新同拍），传本地玩家**表现位置**
-    ///   （预测位置；和解期间是衰减后的位置——消费方决定，本端口不解释）；
-    /// - 实现**只写相机**，不写 Sim、不读 Sim 状态（《状态同步专项设计》§1 原则 3）；
-    /// - **相机构图（俯角/距离/FOV/阻尼/优先级）不在本接口表达**：那是产品表现决策，由
-    ///   虚拟相机的场景/预制配置单源表达（《客户端总设计》§12.2 视觉单一来源）。实现不得用
-    ///   代码再写一份档位常量，否则编辑器里调完发现"改了没用"；
-    /// - <see cref="Shutdown"/> 释放本服务**自己创建**的对象（自建目标等），幂等；
-    ///   场景/预制里已有的对象不归它处置（§6.2 所有权）。
+    /// 相机服务端口（《商业级通用客户端框架总设计》§5 框图 `Platform.Unity` 适配器块的抽象面）。
     /// </summary>
     public interface ICameraService
     {
@@ -32,20 +14,12 @@ namespace LiteGame.Modules.Camera
         Vector3 Focus { get; }
 
         /// <summary>
-        /// 跟随目标表现位姿（每渲染帧调用；<paramref name="deltaSeconds"/> = 真实帧间隔）。
-        /// **只跟随位置**：第三人称自由视角的视线由 <see cref="AddLookDelta"/> 驱动，实现不把
-        /// <paramref name="facing"/> 写进焦点旋转——否则角色转身会带动构图，和自由视角的轨道
-        /// 事实源打架。保留 <paramref name="facing"/> 形参供未来视图消费方（如动画朝向），
-        /// 当前相机实现如实不读它。
+        /// 跟随目标表现位姿（每渲染帧调用）。
         /// </summary>
         void Follow(in Vector3 target, in Quaternion facing, float deltaSeconds);
 
         /// <summary>
-        /// 瞄准态通知：本地玩家处于 ADS（右键瞄准）时传 true——期望**瞄准视角
-        /// 接管**；松开回 false。**语义态进端口、接管方式归实现**（Cinemachine = 抬瞄准 vcam 优先级），
-        /// 与构图同理不在接口表达任何档位常量。
-        /// 每渲染帧幂等调用（实现内部按变化沿生效）；实现自备目标（如瞄准 vcam）的解析与还原——
-        /// 瞄准视角缺配置（场景没有瞄准相机）时如实 no-op，不得替场景自建。
+        /// 瞄准态通知：本地玩家处于 ADS（右键瞄准）时传 true——期望**瞄准视角 接管**。
         /// </summary>
         void SetAiming(bool aiming);
 
@@ -64,10 +38,7 @@ namespace LiteGame.Modules.Camera
         void SetLookAngles(float yawRad, float pitchRad);
 
         /// <summary>
-        /// 本地视角增量（第三人称自由视角）：把本帧输入源的视角增量（弧度）累进服务自持的相机
-        /// yaw/pitch 状态（yaw 环绕、pitch 按实现限位钳制）。**pitch 正 = 上仰**（与 POV 垂直轴
-        /// 的"正 = 向下"相反，符号换算归实现）。**纯视图侧**——视角不进意图三件、不进协议、不上行：
-        /// 相机姿态是本地表现，Sim/判定零涉及。每渲染帧幂等调用（零增量 = 无操作）。
+        /// 本地视角增量（第三人称自由视角）：把本帧输入源的视角增量（弧度）累进服务自持的相机 yaw/pitch 状态（yaw 环绕、pitch 按实现限位钳制）。
         /// </summary>
         void AddLookDelta(float yawDelta, float pitchDelta);
 

@@ -8,11 +8,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame.Modules.Map
 {
     /// <summary>
-    /// 客户端地图提供者（D9——地图装载自成一件事）：按 <c>map_id</c> 从已装载表链产出判定图，
-    /// 与数值/武器同一条"装载产物显式传递"链（技术债 #1 纪律）。
-    ///
-    /// 多图批：表行另带 <c>scene</c>（地图场景路径）——**场景选择同走表行**（加图＝加文件 + 加场景，
-    /// 不改代码；`BattleScenes` 不再持有逐图路径常量）。
+    /// 客户端地图提供者（D9——地图装载自成一件事）：按 map_id 从已装载表链产出判定图， 与数值/武器同一条"装载产物显式传递"链（技术债 #1 纪律）。
     /// </summary>
     public interface IMapProvider
     {

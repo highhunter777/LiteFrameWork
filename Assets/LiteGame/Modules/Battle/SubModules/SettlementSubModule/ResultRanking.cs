@@ -4,12 +4,7 @@ using LiteNet.Proto;
 namespace LiteGame
 {
     /// <summary>
-    /// 结算页排行投影（**冻结结果 → 行表**；口径单一裁决处）：
-    /// - **全序** = 击杀降序 → EntityId 升序（与局内排行榜 <c>BattleRankboardDriver</c> 同一全序）；
-    /// - **名次** = 1 + 击杀**严格大于**本行的人数（并列同名次——与本地行结算口径同式）；
-    /// - **名字** = <c>玩家{k}</c>，k = <see cref="PlayerIdentity.OrdinalOfRows"/>（与局内身份序号**同一条规则**，
-    ///   输入面 = 冻结行表）。
-    /// 名单 ≤ 内核席位上限，插入排序即可（零比较器分配）。
+    /// 结算页排行投影（**冻结结果 → 行表**）。
     /// </summary>
     internal static class ResultRanking
     {

@@ -5,11 +5,7 @@ using LiteFramework;
 namespace LiteGame.Modules.Composition
 {
     /// <summary>
-    /// ⑥ 事件域：根 <see cref="EventBus"/> 的**唯一**产出方。
-    ///
-    /// 为什么独立成段：总线过去由时钟模块顺带创建（"双轨时钟 + 事件中心"），导致
-    /// 事件订阅失败/关闭顺序问题的排查入口落在时钟文件里——事件与时钟是两个能力域，
-    /// 装配粒度应与领域一致（事件总线只需引用池，不需要任何时钟）。
+    /// ⑥ 事件域：根 EventBus 的**唯一**产出方。
     /// </summary>
     public sealed class EventsSegment : IClientSegment, IClientSegmentGraph
     {

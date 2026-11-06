@@ -6,20 +6,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 联机入口部署配置（《上云测试专项设计》§3 批C："服务器地址/端口与 PSK 可配（构建期注入）"）。
-    ///
-    /// 四项注入面：
-    /// - <see cref="MetaUrl"/>：Meta 基址（游客登录/票据/战绩查询的同一主机）。**空 = 未配置** →
-    ///   联机入口显性拒绝（登录页报"未配置服务器"，不连任何地址——fail-closed，不悄悄回退本地）；
-    /// - <see cref="TimeoutSeconds"/>：Meta 单请求超时；
-    /// - <see cref="EnvelopeKeyBase64"/>：KCP 安全信封 PSK（Base64、32 字节）。**空 = 不注入**，
-    ///   传输装配回落 <see cref="LiteNet.Transport.SecureEnvelopeOptions.FromEnvironment"/> 既有口
-    ///   （与部署侧 `LITENET_SECURE_ENVELOPE_KEY` 同名——两道注入口不互斥，命令行优先）；
-    /// - <see cref="DeviceId"/>：游客账号归属键（服务端按 `deviceId` 唯一索引 get-or-create）。
-    ///   **空 = 不注入**，回落平台机器标识（<c>SystemInfo.deviceUniqueIdentifier</c>）——同一台机器上的
-    ///   编辑器与 player 会因此**落到同一账号**；同机多客户端要各自身份时注入不同值。
-    ///
-    /// 与 <see cref="LiteFramework.ContentCdnConfig"/> 同源先例：运行时来源是命令行参数（部署/测试注入），
-    /// 解析是纯函数（EditMode 直测）；基址不是信任边界——访问令牌/Join Ticket 的效力由服务端验签把守。
     /// </summary>
     public sealed class MetaEntryConfig
     {
@@ -59,7 +45,7 @@ namespace LiteGame
             {
                 if (!string.IsNullOrEmpty(GmUrl)) return GmUrl.TrimEnd('/');
                 if (string.IsNullOrEmpty(MetaUrl)) return "";
-                // meta.url = http://10.8.0.1:5000 → GM = http://10.8.0.1:9101
+                // meta.url = http://10.8.0.1:5000 → GM = http://10.8.0.1:9101。
                 if (System.Uri.TryCreate(MetaUrl, System.UriKind.Absolute, out System.Uri uri))
                     return uri.Scheme + "://" + uri.Host + ":9101";
                 return "";
@@ -71,18 +57,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 部署配置装载（命令行 → <see cref="MetaEntryConfig"/>）。
-    /// <see cref="Parse"/> 是纯函数（参数数组进、配置出）——EditMode 直测；
-    /// <see cref="Load"/> 是 Unity 入口（读进程命令行）。
-    ///
-    /// 参数形态（与 <see cref="LiteFramework.ContentDeployConfig"/> 同款，两种等价支持）：
-    /// <c>-meta.url=https://meta.example.com</c> 或 <c>-meta.url https://meta.example.com</c>；
-    /// 未出现的键保持默认。非法值静默保持默认——部署参数不是攻击面，但也不让它让启动失败。
-    ///
-    /// **三源装载（发布链）**：<see cref="Load(string[], string)"/> 合并**命令行参数 > 包内烙入文件
-    /// （StreamingAssets/deploy.args——构建流水线按 BuildProfile.endpoints 写入的参数行流）>
-    /// 字段默认**：烙入是分发渠道的零参数启动面（信封 PSK 烙入后环境变量口语义不变——传输装配
-    /// 在命令行/烙入皆空时仍回落 <c>LITENET_SECURE_ENVELOPE_KEY</c>）。
+    /// 部署配置装载（命令行 → MetaEntryConfig）。
     /// </summary>
     public static class MetaDeployConfig
     {
@@ -112,11 +87,9 @@ namespace LiteGame
         public static MetaEntryConfig LoadWithBaked()
             => Load(Environment.GetCommandLineArgs(), new DeployBake().ReadArgs());   // 编辑器工具一次性读取（无静态 memo）
 
-        /// <summary>三源装载：命令行 > 包内烙入（<paramref name="bakedArgsText"/> = deploy.args 全文；
-        /// null/空白 = 无烙入文件，退化为纯命令行装载）。纯函数可直测。
-        /// 实现为 **token 层拼接**（烙入流在前、命令行流在后，<see cref="Parse"/> 顺序覆盖 ⇒ 后见者赢）：
-        /// 字段默认值非零（如 <see cref="MetaEntryConfig.TimeoutSeconds"/>=15），按字段值判"命令行给没给过"
-        /// 结构性不可行——token 层单流无此歧义。</summary>
+        /// <summary>
+        /// 三源装载：命令行 > 包内烙入（ = deploy.args 全文）。
+        /// </summary>
         public static MetaEntryConfig Load(string[] args, string bakedArgsText)
         {
             string[] baked = Tokenize(bakedArgsText);
@@ -146,7 +119,7 @@ namespace LiteGame
                 string arg = args[i];
                 if (string.IsNullOrEmpty(arg) || arg[0] != '-') continue;
 
-                // 形态一：-key=value（同 token 内拆）；形态二：-key value（取下一 token）
+                // 形态一：-key=value（同 token 内拆）；形态二：-key value（取下一 token）。
                 string key = arg.TrimStart('-');
                 string value = null;
                 int eq = key.IndexOf('=');

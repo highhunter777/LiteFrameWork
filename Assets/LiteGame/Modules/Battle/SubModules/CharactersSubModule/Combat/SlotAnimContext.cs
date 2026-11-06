@@ -5,9 +5,7 @@ using LiteSim;
 namespace LiteGame
 {
     /// <summary>
-    /// 驱动器每帧喂入的跨层事实（不可变值——**唯一写入入口** <see cref="SlotAnimContext.Feed"/>）。
-    /// 事实整体替换（非逐项赋值），故不存在"喂一半"的中间态；读取方为各 Stage
-    /// （层间不引用：跨层事实全部经此单点传递）。
+    /// 驱动器每帧喂入的跨层事实（不可变值——**唯一写入入口** SlotAnimContext.Feed）。
     /// </summary>
     public readonly struct SlotAnimFacts
     {
@@ -52,16 +50,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 槽位上下文（各态对"播放器 + 事实 + 双通道形态跟踪 + 射击窗"的窄面——按槽位新建，不持槽数组引用；
-    /// 单机单上下文）。**层间不引用**：跨层事实由驱动器经 <see cref="Feed"/> 整体喂入（只读读口
-    /// <see cref="Facts"/>）；**不反向引用宿主**（窗状态归本类，根阶段只调本类的窗三态入口）。
-    ///
-    /// **属主**（本类不设 public 可变字段）：
-    /// - 播放器/权重容器/窗长/换弹倍率 = 构造期注入（驱动器持有，本类只持引用）；
-    /// - 事实（<see cref="Facts"/>）= 驱动器每帧唯一写者；
-    /// - 通道状态（<see cref="LocoHandle"/>/<see cref="BodyForm"/>/<see cref="BodyHandle"/>/
-    ///   <see cref="BodyIsBlend"/>/<see cref="ReloadHandle"/>）= 状态机（各根/叶）写、外部只读；
-    /// - 射击窗（<see cref="FireWindow"/>）= 裁决与推进都在战斗根，本类只提供三态入口。
+    /// 槽位上下文（各态对"播放器 + 事实 + 双通道形态跟踪 + 射击窗"的窄面——按槽位新建，不持槽数组引用）。
     /// </summary>
     public sealed class SlotAnimContext
     {
@@ -111,7 +100,7 @@ namespace LiteGame
         /// <summary>移动方向 vs 朝向夹角（读口——见 <see cref="SlotAnimFacts.MoveRelAngleDeg"/>）。</summary>
         public float MoveRelAngleDeg => _facts.MoveRelAngleDeg;
 
-        // ---- 射击窗（战斗根裁决单点；本类只存状态 + 提供三态入口）----
+        // ---- 射击窗（战斗根裁决单点；本类只存状态 + 提供三态入口）----。
 
         /// <summary>射击窗剩余（秒）——0 = 窗不在（诊断/测试读值）。</summary>
         public float FireWindow { get; private set; }
@@ -126,7 +115,7 @@ namespace LiteGame
         /// <summary>窗清零（退根/离场收口）。</summary>
         internal void ClearFireWindow() => FireWindow = 0f;
 
-        // ---- 通道状态（状态机写、外部只读）----
+        // ---- 通道状态（状态机写、外部只读）----。
 
         /// <summary>Base 通道句柄（移动根独占：进根建、离根收）。</summary>
         internal AnimationHandle LocoHandle { get; set; }
@@ -161,7 +150,7 @@ namespace LiteGame
             ReloadPlaybackSpeed = reloadPlaybackSpeed;
         }
 
-        // ---- Override 形态提交（战斗根叶共用）----
+        // ---- Override 形态提交（战斗根叶共用）----。
 
         /// <summary>提交单片段形态（Override）：同 ID **仍在播** → 续播保相位（不重提交——重提交会按
         /// 第 0 帧并刷终态）；不在播/异 ID → 提交（旧形态由通道仲裁替换）。拒绝返回 false（调用方自愈重试）。</summary>
@@ -201,18 +190,10 @@ namespace LiteGame
             return true;
         }
 
-        // ---- 换弹：Overlay 通道一次性上半身叠加（**不进战斗根**）----
+        // ---- 换弹：Overlay 通道一次性上半身叠加（**不进战斗根**）----。
 
         /// <summary>
         /// 换弹事实 → 上半身叠加层的一次性提交（Overlay 通道），由驱动器每帧喂事实调用。
-        ///
-        /// **为什么换弹不进战斗根**：战斗根接管会把移动根的 Base MoveBlend 停掉——脚定住而世界位移照旧，
-        /// 即滑步。走叠加层则 AvatarMask 只盖上半身（Root 位与双腿关闭，见 <c>OverlayMaskFactory</c>），
-        /// 腿继续由 Base 通道的 MoveBlend 走。换弹因此**不参与根裁决**，也不打断开火/瞄准的 Override 形态
-        /// （叠加层权重 1 天然压住上半身）。
-        ///
-        /// 同一事实期只提交一次（重发会按第 0 帧重播）；提交被拒（无 humanoid Mask 等能力位缺失）→
-        /// 不记已提交，下帧自愈重试。
         /// </summary>
         public void UpdateReloadUpper(bool isReloading, bool isDead)
         {

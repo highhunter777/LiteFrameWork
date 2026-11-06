@@ -2,23 +2,12 @@
 {
     /// <summary>
     /// 相机瞄准混合门（最小保持宽度）：喂"玩家原始瞄准位"与帧间隔，输出**相机混合位**。
-    ///
-    /// 这是**相机混合语义**，不是玩家瞄准事实（原始位由 Sim/设备源给出）：频繁点按 ADS 会反复重启
-    /// 相机混合——输入侧用滞回治理：
-    /// - **上升沿立即生效**（按下即瞄准，不加延迟）；
-    /// - **下降沿按时长分治**——瞄准持续 ≥ 最小保持宽度 → 释放立即生效（长按手感不变）；
-    ///   不足 → 推迟到满宽度（短按也得到一次完整摆动，不再半途折返）；
-    /// - **推迟窗口内再按 → 取消推迟重新武装**（连点期间瞄准持续，相机不随点按来回翻转；
-    ///   点按停止后，窗口走完自然释放）。
-    ///
-    /// 宽度取相机侧常量 <see cref="CameraBlendDefaults.AimBlendSeconds"/>（与 Cinemachine Brain 的
-    /// DefaultBlend/EaseInOut 对齐）——本类不读时钟（dt 由调用方注入，确定性可测）。
     /// </summary>
     public sealed class CameraAimBlendGate
     {
         private readonly float _minHoldSeconds;
         private float _onSeconds;          // 本轮按下的持续时长（**每个上升沿清零**——连点的累计时长不得
-                                           // 误触"长按立即释放"分支，否则连点仍会漏出单帧翻转）
+                                           // 误触"长按立即释放"分支，否则连点仍会漏出单帧翻转）。
         private float _deferRemaining;     // >0 = 推迟释放窗口剩余（短按后的补足倒计时）
         private bool _held;                // 门控后的瞄准态
         private bool _prevRaw;             // 上一帧原始位（上升沿检测）

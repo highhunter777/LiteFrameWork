@@ -8,14 +8,9 @@ using LiteGame.Modules.Config;
 
 namespace LiteGame.Modules.UI
 {
-    /// <summary>⑬ UI 能力段装配：页面目录端口 + 数据面端口 + 红点 + UIService（逻辑解析器经
-    /// <see cref="ILuaUIBinding"/> 端口注入 ← 实现住 Lua 桥适配器，解析失败降级 NullLogic）
-    /// + LText 语言服务（tbltext→目录→服务，批C-② 生产装配——页面 SetTextKey 由"必抛"转正）
-    /// + 主题资产（P2-3 B2：内容服务一次装载 → ThemeProvider 注入 → 页面装配期应用令牌现值；失败降级保持烘焙值）。
-    /// prefab 加载经内容服务租约（实例持租约到销毁）；Shutdown 释放面。
-    ///
-    /// **程序集边界**：本段住产品模块程序集（`LiteGame.Modules`），只经端口消费适配器——
-    /// 三件 Lua 桥件（逻辑工厂/数据投射/文本门面）由装配根装订 <see cref="ILuaUIBinding"/> 注入。</summary>
+    /// <summary>
+    /// ⑬ UI 能力段装配：页面目录端口 + 数据面端口 + 红点 + UIService（逻辑解析器经 ILuaUIBinding 端口注入 ← 实现住 Lua 桥适配器。）。
+    /// </summary>
     public sealed class UISegment : IClientSegment, IClientSegmentGraph
     {
         private readonly Func<ILuaHost, ILuaUIBinding> _createLuaBinding;
@@ -62,9 +57,7 @@ namespace LiteGame.Modules.UI
             _uiService = new UIService(pageDirectory,
                 logicResolver: page => luaBinding.LogicFactory.Create(page, _confirmRouter),
                 loadPrefab: (location, token) => LoadPrefabLeaseAsync(content, location, token),
-                // 转场策略**必须显式传**（《客户端总设计》§5.1 逻辑边界）：UIService 默认为零动效
-                // InstantTransition（通用层不认识 DOTween）；产品转场是**装配决策**，
-                // 在此注入真实现。不传 = 页面瞬时切换（功能正确、无动效）。
+                // 转场策略**必须显式传**（《客户端总设计》§5.1 逻辑边界）：UIService 默认为零动效 InstantTransition（通用层不认识 DOTween）。
                 transitionStrategy: new FadeSlideTransition(),
                 localeProvider: localeProvider,              // 页面索引 BindLocale 注入缝（批C-②）
                 themeProvider: themeProvider);               // 主题注入缝（UIStyleRef/IThemeBound——P2-3 B2）
@@ -73,7 +66,7 @@ namespace LiteGame.Modules.UI
             _uiService.Focus.PlatformBack = () => nav.BackAsync(); // 平台返回统一口径（§6.2）：ESC→协调者→导航器 Back 链
             context.Put(nav);
 
-            // UI 能力段自持的配套件：UI 时钟驱动 + 弹窗/反馈/提示 + 确认缝真实现
+            // UI 能力段自持的配套件：UI 时钟驱动 + 弹窗/反馈/提示 + 确认缝真实现。
             context.Services.RegisterInstance(new DotweenUIClockDriver(context.Require<IUIClock>()));
             _dialogs = new DialogService(_uiService, nav: nav);
             context.Services.RegisterInstance(_dialogs, ServiceOwnership.ContainerOwned);

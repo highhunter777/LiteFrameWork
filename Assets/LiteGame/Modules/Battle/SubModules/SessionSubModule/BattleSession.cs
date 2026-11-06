@@ -10,20 +10,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局聚合（路线图 M0 接缝 4 / M2）：Match 域的唯一持有点——持有 <see cref="MatchSession"/>
-    /// （服务域 + <see cref="BattleContext"/>），并把本局规则实例绑定到开发会话端口
-    /// （<see cref="IDevSession.MatchRules"/>）供调试投影读取，离场解绑。
-    ///
-    /// 为什么是聚合：M0 之前"当前局"是隐式全局（Seeder + BattleContext 两处静态写）；聚合后
-    /// 规则实例随会话显式传递、经端口暴露给 dev 投影，Sim 侧不再有静态"当前局"。
-    ///
-    /// **流程端口**：本类实现 <see cref="IBattleRun"/>——流程段只认 StartGame 等待/
-    /// 终局事实/每帧驱动/离场，不再直引 <c>BattleClient</c>/<c>BattleContext</c>/<c>RoomSessionFace</c>。
-    ///
-    /// 生命周期：构造即接线，<see cref="Dispose"/> 先摘订阅/解绑再释放视图域与 Match 域（不留下局可读状态）。
-    ///
-    /// **诊断所有权（M2）**：对局诊断读口（<c>BattleDiagnostics</c>，开发三宏内）的登记/注销归本会话——
-    /// 与会话同生共死，视图域（<see cref="IBattleViewGroup"/>）只做装配/拆除，不再登记静态读口。
+    /// 对局聚合（路线图 M0 接缝 4 / M2）：Match 域的唯一持有点——持有 MatchSession （服务域 + BattleContext）。
     /// </summary>
     internal sealed class BattleSession : IBattleRun
     {

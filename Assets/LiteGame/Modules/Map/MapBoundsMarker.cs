@@ -3,9 +3,7 @@
 namespace LiteGame.Modules.Map
 {
     /// <summary>
-    /// 地图场景作者标注（烘焙器 `SimMapBaker` 的单源读取面；运行时零消费者）：判定边界与地面高度。
-    /// 地图场景约定拓扑：`MapCollision` 代理树 ＋ `spawn_*` 出生标记 ＋ 本件（挂场景对象 `map_bounds`）。
-    /// 值随地图场景入库——烘焙产物 tbmap 的 ground_y/half_width/half_depth 由此而来。
+    /// 地图场景作者标注（烘焙器 `SimMapBaker` 的单源读取面）。
     /// </summary>
     public sealed class MapBoundsMarker : MonoBehaviour
     {
@@ -20,9 +18,7 @@ namespace LiteGame.Modules.Map
     }
 
     /// <summary>
-    /// 地图场景拓扑约定名（全图共用，场景制作方与消费方同守）：运行时/Editor 共享单源，
-    /// Editor 烘焙侧（<c>BakeTargets</c>）别名引用本处——禁两侧各写一份字面量（常量双写即
-    /// 审计红线「靠注释人肉同步」）。新约定名在这里加行；消费面只读常量，不猜名。
+    /// 地图场景拓扑约定名（全图共用，场景制作方与消费方同守）：运行时/Editor 共享单源， Editor 烘焙侧（BakeTargets）别名引用本处——禁两侧各写一份字面量（常量双写即 审计红线「靠注释人肉同步」）。
     /// </summary>
     public static class MapTopology
     {

@@ -5,13 +5,7 @@ using LiteSim;
 namespace LiteGame.Modules.Config
 {
     /// <summary>
-    /// 地图表行 → <see cref="SimMapData"/> 的**共享投影**（服务端源链接共编同一物理文件——
-    /// 同 <see cref="SimConfigMapper"/>/<see cref="TableLayout"/> 先例）：两端从同一份 `tbmap.bytes`
-    /// 投影出同一张判定图（移动碰撞 + 射击遮挡）。
-    ///
-    /// **校验（fail-fast，投影出错两端必分叉——宁可拒载）**：数量上限、kind 合法、全 finite、
-    /// surface ∈ 0..10（<see cref="SimMapBuilder"/> 定长填充闸）＋ **行内 `content_digest` 复算比对**
-    /// （不等 = "map.json→bytes→投影"链路走样：手改源/生成物过期/行键漂移）。
+    /// 地图表行 → SimMapData 的**共享投影**（服务端源链接共编同一物理文件—— 同 SimConfigMapper/TableLayout 先例）。
     /// </summary>
     public static class MapTableProjection
     {

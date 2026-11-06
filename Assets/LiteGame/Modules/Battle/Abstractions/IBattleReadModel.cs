@@ -65,11 +65,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 对局只读事实端口（路线图 M0 接缝 2 / M2）：表现层（HUD/排行/击杀提示/复活面板）只经本端口取事实，
-    /// 不直读 <c>SimWorldState</c> 的槽位数组布局——测试可注入替身。
-    ///
-    /// **顺序契约**：<see cref="PlayerCount"/> 同时刷新内部规范序（EntityId 升序）；
-    /// 随后按 0..PlayerCount-1 调 <see cref="TryGetPlayerAt"/> 取同一快照。
+    /// 对局只读事实端口（路线图 M0 接缝 2 / M2）：表现层（HUD/排行/击杀提示/复活面板）只经本端口取事实， 不直读 SimWorldState 的槽位数组布局——测试可注入替身。
     /// </summary>
     public interface IBattleReadModel
     {

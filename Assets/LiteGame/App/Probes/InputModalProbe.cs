@@ -14,25 +14,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 模态输入恢复 Player 探针（准入项「UI 与表现可组合」的"模态输入恢复 Player 段"证据）。
-    ///
-    /// 触发：命令行含 <c>-inputmodal</c> 才运行（smoke：player-smoke.ps1 -InputModal）——正常启动
-    /// 零影响（不查参数即无操作，同 <see cref="MemoryLoopProbe"/> 形态）。
-    ///
-    /// 链路（全部生产代码，探针只在设备边界注入已知意图）：
-    /// 装配根登记的产品级拦截源 <c>ui.modal</c>（<c>ContainerModule</c>：模态栈打开即拦）→
-    /// <see cref="IInputService"/> 上下文门（拦下 = 待用意图写全零并照常置已采样——本地/上行/权威
-    /// 三处同读"这一帧没有战斗输入"）→ 模态关闭后<b>首个采样帧</b>即恢复设备实时意图
-    /// （采样先于预测，不凭空多零帧）。设备边界用恒定意图源（前进 + 开火按住）经
-    /// <see cref="IInputService.SetSource"/> 注入——与对局挂设备源同一 API；无头 Player 无真实按键，
-    /// 恒定意图让"拦下/放行"可分辨。
-    ///
-    /// 模态对象是<b>真实窗体</b>：按 prefab 路径从生成页面目录解析 id（不硬编码），按生产约定
-    /// "弹窗按模态登记"（<see cref="UIService.RegisterModal"/>）后经 <see cref="UIService.ShowAsync"/>
-    /// 真实打开（真 prefab + 真转场），关闭走 <see cref="UIService.CloseAsync"/>。
-    ///
-    /// 证据行（smoke 按行断言）：<c>[InputModal] baseline ok …</c> / <c>[InputModal] modal ok …</c> /
-    /// <c>[InputModal] recovered ok …</c> / <c>[InputModal] done</c>；失败行
-    /// <c>[InputModal] fail &lt;reason&gt;</c> 携带当帧状态数据（一次跑拿到全部诊断）。
     /// </summary>
     public static class InputModalProbe
     {
@@ -98,7 +79,7 @@ namespace LiteGame
                 originalSource = input.Source;
                 input.SetSource(new HeldIntentSource());
 
-                // ── 基线段：无模态 → 不拦，恒定意图逐帧可见（输入服务 Root 级，引导后即可驱动）──
+                // ── 基线段：无模态 → 不拦，恒定意图逐帧可见（输入服务 Root 级，引导后即可驱动）──。
                 PhaseResult baseline = await PhaseAsync(input, "baseline", expectBlocked: false);
                 if (!baseline.Passed)
                 {
@@ -161,7 +142,7 @@ namespace LiteGame
                 Debug.Log($"[InputModal] modal ok frames={FramesPerPhase} by={modal.BlockerName} " +
                           $"zero=1 disposed=+{modal.DisposedDelta}");
 
-                // ── 恢复段：关闭模态 → 首个采样帧即恢复恒定意图（无幻影零帧）──
+                // ── 恢复段：关闭模态 → 首个采样帧即恢复恒定意图（无幻影零帧）──。
                 await ui.CloseAsync(formId);
                 ui.UnregisterModal(formId);
                 Debug.Log($"[InputModal] modal-close form={formId} isOpen={ui.IsOpen(formId)} modal={ui.IsModalOpen}");

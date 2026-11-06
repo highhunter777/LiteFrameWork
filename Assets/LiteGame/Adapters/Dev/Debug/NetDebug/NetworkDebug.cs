@@ -10,17 +10,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 网络调试组件（调试内核 <see cref="DebugKernel.Network"/> 持有）：把**读数**（会话相位 / RTT / 丢包 /
-    /// 弱网注入）与**动作**（强制断线 / 无状态重连 / 抑制自动重连）收在一处，投影（DevHud / F2 面板 / F3 控制台 / GM 页）
-    /// 只经内核消费——不各自拼读数、不直调会话客户端。
-    ///
-    /// **相位语义**：<see cref="BattleContext"/> 在进入
-    /// <see cref="ClientSessionPhase.SuspectedLost"/> 时默认**自动**发起重连（凭 JoinAck 票据）；
-    /// 抑制开关开启则不自动重拨、停在断线态等手动恢复。自动重连已接管时"重连"按钮仍只接受
-    /// SuspectedLost 相位，其余相位如实拒绝。
-    ///
-    /// 边界：只对真 KCP 会话有意义；本地测试房（进程内 <c>LocalServerTransport</c>）无 Socket——
-    /// 断线/重连只走协议层，不模拟真实丢包（弱网注入同理不覆盖本地测试房）。
+    /// 网络调试组件（调试内核 DebugKernel.Network 持有）：把**读数**（会话相位 / RTT / 丢包 / 弱网注入）与**动作**（强制断线 / 无状态重连 / 抑制自动重连）收在一处。
     /// </summary>
     public sealed class NetworkDebug
     {
@@ -98,9 +88,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 追加"会话 + 弱网注入"诊断行（DevHud 联机诊断段 / F2 面板 / F3 控制台 / GM 页同一文案单源）：
-        /// 会话两行 + 扩展行由 <see cref="BattleDiagnostics.AppendExtendedCurrent"/> 产出，
-        /// 弱网启用时再追加注入行。返回 false = 无对局（已写入空态占位）。
+        /// 追加"会话 + 弱网注入"诊断行（DevHud 联机诊断段 / F2 面板 / F3 控制台 / GM 页同一文案单源）。
         /// </summary>
         public bool AppendLines(StringBuilder into)
         {
@@ -119,9 +107,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 强制断线（模拟丢链）：仅 Connected/Restoring 可执行；断后由 <see cref="BattleContext"/>
-        /// 的相位策略自动发起重连（SuspectedLost → Reconnecting），用于验证恢复全链。
-        /// 返回 false 时 <paramref name="error"/> 为稳定拒绝原因（投影原样显示）。
+        /// 强制断线（模拟丢链）：仅 Connected/Restoring 可执行。
         /// </summary>
         public bool TryForceDisconnect(out string error)
         {

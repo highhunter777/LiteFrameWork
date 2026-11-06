@@ -1,9 +1,7 @@
 ﻿namespace LiteGame.Modules.Camera
 {
     /// <summary>
-    /// 瞄准机沿主视线前移距离曲线（纯二次）：<c>D(d) = d² / base</c>（d &lt; base），d ≥ base 不干预（回 base）。
-    /// 性质：过原点、在 d=base 处连续接回场景主/瞄准基座差、[0, base) 内恒有 D &lt; d
-    /// （瞄准点越近，ADS 相机越贴近主相机——近距贴脸时不会停在瞄准点后方）。
+    /// 瞄准机沿主视线前移距离曲线（纯二次）：D(d) = d² / base（d &lt）。
     /// </summary>
     public static class AimOffsetCurve
     {

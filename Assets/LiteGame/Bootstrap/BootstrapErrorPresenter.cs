@@ -7,8 +7,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 引导期（流程机就绪前）的最小错误面：内建 UI（代码构建、不经资源包）+ 固定冒烟标记。
-    /// AOT 侧落点——不依赖任何产品模块/组合根；<c>ProcedureError</c> 的流程级错误页复用本件，
-    /// 保证“冷启动失败”与“运行期流程失败”看到同一张最小错误页。
     /// </summary>
     public static class BootstrapErrorPresenter
     {
@@ -35,7 +33,7 @@ namespace LiteGame
             }
             catch (Exception uiEx)
             {
-                // 错误 UI 自身失败不能吞掉原始错误——两处都落日志（Player.log 冒烟断言仍可命中第一条）
+                // 错误 UI 自身失败不能吞掉原始错误——两处都落日志（Player.log 冒烟断言仍可命中第一条）。
                 Log.Error($"{SmokeMarker} UI 创建失败:{uiEx.Message}", LogTag.Bootstrap);
             }
         }
@@ -54,9 +52,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 内建最小错误 UI：Canvas(Overlay) + 黑底 + 全屏文本。诊断用途，代码构建——
-        /// 不经资源包（关键错误界面必须可从内置资源启动，总设计 §6.1）；
-        /// 主行英文规避内置字体无 CJK 字形的限制，完整诊断以 Player.log 为准。
+        /// 内建最小错误 UI：Canvas(Overlay) + 黑底 + 全屏文本。
         /// </summary>
         private static void ShowMinimalErrorUI(string message, ErrorKind kind)
         {

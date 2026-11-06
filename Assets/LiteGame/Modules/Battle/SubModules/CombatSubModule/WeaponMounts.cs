@@ -3,9 +3,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 武器挂载点解析（激光/枪口火光等"装在武器上"的表现件共用——`Weapon_Rifle/Muzzle`：
-    /// 美术锚点单源，见《固定斜视角射击方案专项设计》§6 激光行）。**只读视图层级**：
-    /// 找不到（灰盒/裸 prefab 形态）返回 null——调用方静默退化，不造第二视觉源。
+    /// 武器挂载点解析（激光/枪口火光等"装在武器上"的表现件共用——`Weapon_Rifle/Muzzle`： 美术锚点单源，见《固定斜视角射击方案专项设计》§6 激光行）。
     /// </summary>
     internal static class WeaponMounts
     {

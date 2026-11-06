@@ -9,9 +9,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 配置表校验（发布闸门）：与 ConfigService 的装载/探针共用同一套语义规则。
-    ///
-    /// 返回 null = 通过，非 null = 拒绝原因。**不得触碰已发布状态**——调用方在
-    /// ConfigSnapshotService.Publish 前调用（失败保留旧版）；候选健康探针也直接调用本类。
     /// </summary>
     public static class ConfigTableValidator
     {
@@ -52,9 +49,7 @@ namespace LiteGame
                 return $"tbanimationprofile: {ex.Message}";
             }
 
-            // 准心调参表（表现域——不进判定面摘要，行完整性仍是配置错误）：每把武器一行 + 值域
-            // （缺行/错值炸 Preload，不在对局内静默丢手感）。static_max_scale 以 1 为基线（<1 会把准心
-            // 缩得比本体小）；burst_cap 须 ≥ 静态上限（连发只张开不收紧）
+            // 准心调参表（表现域——不进判定面摘要，行完整性仍是配置错误）：每把武器一行 + 值域 （缺行/错值炸 Preload，不在对局内静默丢手感）。
             if (candidate.Tbcrosshair == null || candidate.Tbcrosshair.DataList.Count == 0)
                 return "tbcrosshair 空表——表源被改坏或生成物过期";
             foreach (cfg.weapon weapon in candidate.Tbweapon.DataList)

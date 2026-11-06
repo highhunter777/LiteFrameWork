@@ -17,9 +17,7 @@ namespace LiteGame.Modules.Config
         BattleStrategyProfile Strategy { get; }
 
         /// <summary>
-        /// 表装载的判定数值（**不含覆写**）：判定参数覆写的合并源。
-        /// 进房单点从这里出发、按门合并一次（<see cref="SimParamsActivation.Resolve"/>），
-        /// 客户端发布面与本地服房间数值由同一结果派生——两端逐字段同值。
+        /// 表装载的判定数值（不含覆写）：进房单点按门合并一次，客户端发布面与本地服同源。
         /// 未装载即访问抛（与 <see cref="Tables"/> 同判据）。
         /// </summary>
         CombatValues TableCombatValues { get; }

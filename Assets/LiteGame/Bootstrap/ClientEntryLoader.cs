@@ -3,10 +3,7 @@ using System;
 namespace LiteGame
 {
     /// <summary>
-    /// 入口装载器（AOT 侧唯一反射点）：按程序集限定名解析 <see cref="IClientEntry"/> 实现。
-    /// 今天用 <see cref="Type.GetType(string)"/>；B6 改成 <c>Assembly.Load("LiteGame.App")</c> + 同名字符串，
-    /// 接口与调用序不变（方案 (c)：hclr 唯一装载点）。
-    /// 入口类型名可解析性由 EditMode 守卫真解析一次；IL2CPP 侧由 link.xml preserve <c>LiteGame.App</c>。
+    /// 入口装载器（AOT 侧唯一反射点）：按程序集限定名解析 IClientEntry 实现。
     /// </summary>
     public static class ClientEntryLoader
     {

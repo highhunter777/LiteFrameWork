@@ -4,31 +4,7 @@ using LiteSim;
 namespace LiteGame.Modules.Input
 {
     /// <summary>
-    /// <see cref="IInputService"/> 的实现（《角色状态与动作专项设计》§3"输入三件"的协调者）。
-    ///
-    /// 三个门的落地（与 <see cref="IInputService"/> 的接口文档一一对应，本类只写实现细节）：
-    ///
-    /// **① 上下文门**——<see cref="IntentGate"/> 上登记的拦截源每渲染帧裁决一次。拦下时本帧采样作废、
-    /// 待用意图写<b>全零</b>并照常置"已采样"：被拦下的帧等价于"这一帧没有战斗输入"，本地与服务器
-    /// **同读**——本地零意图预测、上行零意图、服务器缺席兜底（<c>RoomRuntime</c> 缺席沿用 default）
-    /// 也是零，三处逐位一致（《角色状态与动作专项设计》§3 第 2 件"UI/菜单打开时输出零战斗意图"、
-    /// §6 验收"UI 打开时角色不动"）。解拦后的首个采样帧即恢复实时按键（采样先于预测，见
-    /// <c>ProcedureBattle.OnUpdate</c> 第①步），不会凭空多出零帧。
-    ///
-    /// **② 上行**——每渲染帧一份**结论**：采到发采到的，没采到（被拦/设备未返回）发全零；
-    /// <see cref="TryTakeForSend"/> 与 <see cref="TryTakeForPrediction"/> 共享同一份
-    /// <see cref="_pending"/>：同一帧里预测消费与上行发出的**是同一份输入**（《状态同步专项设计》§5.1
-    /// 的前提——两端同帧同值）。拦下期间照发还有第二层意义：ackSnapshot 随输入包上行，静默超
-    /// <c>FullResendAckLagFrames</c> 会让服务器 NeedsFull 判据把**整帧**持续强制成全量（全房陪付
-    /// 带宽）。冗余重发由 <c>RoomClient</c> 的最近帧窗口负责，本类不重复发。
-    ///
-    /// **③ 帧边界门**——<see cref="TryTakeForPrediction"/> 记 <see cref="_lastPredictedFrame"/>，
-    /// 同一 frame 第二次调用返回 false；采样未发生过的帧（无待用）也返回 false，杜绝"拿上一次的
-    /// 意图当这一帧的输入"这类追帧重复消费。
-    ///
-    /// **拦截源登记**：同名覆盖不抛（UI 重连/流程重进时同名更新是常态）；重名抛只发生在
-    /// <see cref="IntentGate.Register"/> 直调路径——本类走覆盖语义，因为调用方是产品装配点，
-    /// 抛错会把"同一理由重新登记"变成崩溃而不是幂等。
+    /// IInputService 的实现（《角色状态与动作专项设计》§3"输入三件"的协调者）。
     /// </summary>
     public sealed class InputService : IInputService
     {
@@ -59,9 +35,7 @@ namespace LiteGame.Modules.Input
         public void SetSource(IIntentSource source) => _source = source;
 
         /// <summary>
-        /// 逐帧注入预测世界与本地槽位（<see cref="IInputService.SetAimWorld"/>）。
-        /// **只做能力转发**：设备源未实现 <see cref="IAimWorldSink"/>（触屏/手柄等不需要瞄准求交的源）
-        /// 时是安全空操作——核心服务不因此认识世界类型，也不需要每个源都实现这个能力。
+        /// 逐帧注入预测世界与本地槽位（IInputService.SetAimWorld）。
         /// </summary>
         public void SetAimWorld(SimWorldState world, int localSlot)
         {
@@ -118,20 +92,15 @@ namespace LiteGame.Modules.Input
             else
             {
                 SampleWithNoSource++;
-                // 未采到与被拦**同读法**：空意图 + 照常置位（沿用旧值会与权威空输入分叉，理由同上）
+                // 未采到与被拦**同读法**：空意图 + 照常置位（沿用旧值会与权威空输入分叉，理由同上）。
                 _pending = default;
                 _sampledThisRenderFrame = true;
             }
 
-            // 设备返回值的契约兜底（移动/瞄准长度 ≤ 1 归设备源自己保证，这里不重复做）：
-            // 只挡 NaN/Infinity —— 非法值会经 Step 污染整个 Sim；服务器 InputGate 亦会拒，
-            // 但本地预测不该先脏。清零 = 该分量无输入。
+            // 设备返回值的契约兜底（移动/瞄准长度 ≤ 1 归设备源自己保证，这里不重复做）： 只挡 NaN/Infinity —— 非法值会经 Step 污染整个 Sim。
             Sanitize(ref _pending);
 
-            // **离散意图 action_seq 产生**（《游戏业务系统总设计》§3.2：离散位必须携带逐玩家单调递增的
-            // seq——服务器按 (playerId, seq) 去重防重放）。产生点选在帧边界门内（本帧采样的唯一收口）：
-            // 只在含离散位的帧递增并写入；同一意图在追帧中被沿用帧复用不构成重放（沿用帧剥离离散位，
-            // RollbackSim 侧）；**不随 Reset 归零**（连接内单调——归零会被服务器判为回退 seq 拒收）。
+            // **离散意图 action_seq 产生**（《游戏业务系统总设计》§3.2：离散位必须携带逐玩家单调递增的 seq——服务器按 (playerId, seq) 去重防重放）。
             if ((_pending.Buttons & SimInputFrame.DiscreteIntentButtons) != 0u)
                 _pending.ActionSeq = ++_actionSeq;
 

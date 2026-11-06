@@ -25,17 +25,9 @@ namespace LiteGame.Modules.Battle.Arena
         Windowed = 1,
     }
 
-    /// <summary>单个动作的烘焙根位移（§3 位移数据契约：**只读玩法数据**，服务端不加载
-    /// AnimationClip/Avatar/Animator——两端经同一份数据产物共享同一组数值）。
-    ///
-    /// 量化纪律（烘焙侧与消费侧同源定稿——§3"单位、舍入规则和计算次序在 Sim 侧定稿"）：
-    /// - 平面增量：**毫米有符号整数**（short，±32.767m 单 tick 上限恒安全）；
-    /// - Yaw：**厘度**（1/100 度，short）——DirectionPolicy=起始锁定，数组恒零；
-    /// - 舍入：round half away from zero（正负对称，无银行家舍入歧义）；
-    /// - 采样：固定 60Hz（Sim 逻辑帧率）；SampleCount = max(1, round(clip 时长×60) − 1) 个
-    ///   "帧 i → 帧 i+1"增量；循环片段不回绕（尾帧差按曲线末值持位——原地走跑不受影响）。
-    /// Y 轴：YPolicy 默认沿用 Sim 重力/地面（§3）——烘焙只记录 <see cref="YPeakMm"/> 供校验，
-    /// 不把视觉抬升写进权威位移。</summary>
+    /// <summary>
+    /// 单个动作的烘焙根位移（§3 位移数据契约：**只读玩法数据**，服务端不加载 AnimationClip/Avatar/Animator——两端经同一份数据产物共享同一组数值）。
+    /// </summary>
     public sealed class RootMotionEntry
     {
         public int ActionId;

@@ -7,14 +7,6 @@ namespace LiteGame
 {
     /// <summary>
     /// Meta 契约编解码单源（请求构造 + 响应解析 + 错误体分类）。
-    ///
-    /// 形状来自共享契约 <c>MetaWire</c>（双端同一份 DTO），序列化行为来自 <see cref="IJsonCodec"/>
-    /// （实现共用 `WireJsonSettings`）。因此本类**不再手写逐字段取值**：只做
-    /// "反序列化 → 必填校验 → 失败分类" 三步——字段覆盖由共享类型保证，缺字段由校验与
-    /// `MetaWireContractTests` 的“必填/可选归类 + 必填缺失”反射断言保证。
-    ///
-    /// 失败分类语义不变：传输层失败 = Network（暂态）；非 2xx = Rejected（按 code 分支）；
-    /// 2xx 但形状/必填不符 = InvalidResponse（确定错误，不重试）。
     /// </summary>
     internal sealed class MetaJson
     {
@@ -24,7 +16,7 @@ namespace LiteGame
         internal MetaJson(IJsonCodec codec)
             => _codec = codec ?? throw new ArgumentNullException(nameof(codec));
 
-        // ---- 请求体（形状 = 共享 DTO；字段名 camelCase 由契约设置统一给出）----
+        // ---- 请求体（形状 = 共享 DTO；字段名 camelCase 由契约设置统一给出）----。
 
         public string BuildGuestLoginRequest(string requestId, string deviceId)
             => _codec.Serialize(new GuestLoginRequest
@@ -58,7 +50,7 @@ namespace LiteGame
             });
         }
 
-        // ---- 响应体（2xx → 载荷；反序列化失败或必填缺失 = InvalidResponse）----
+        // ---- 响应体（2xx → 载荷；反序列化失败或必填缺失 = InvalidResponse）----。
 
         public MetaCall<GuestLoginInfo> ParseGuestLogin(string body)
             => Parse<GuestLoginInfo>(body, MetaWireValidator.TryRequire);
@@ -92,7 +84,7 @@ namespace LiteGame
                 : MetaCall<IReadOnlyList<MatchRecordInfo>>.Failed(parsed.Failure);
         }
 
-        // ---- 错误体（非 2xx：{ code, messageKey, args }——code 分支消费，原文不回显）----
+        // ---- 错误体（非 2xx：{ code, messageKey, args }——code 分支消费，原文不回显）----。
 
         /// <summary>把非 2xx 响应分类为 Rejected；错误体不可解析时 Code 为空串（状态码仍可分支）。</summary>
         public MetaFailure ParseFailure(long httpStatus, string body)

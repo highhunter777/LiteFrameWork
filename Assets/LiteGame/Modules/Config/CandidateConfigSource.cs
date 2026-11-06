@@ -6,9 +6,6 @@ namespace LiteGame.Modules.Config
 {
     /// <summary>
     /// ICandidateConfigSource 的文件系统实现：候选根 config/ 段 → 全量表字节。
-    ///
-    /// 代次由装配点以委托注入（生产接线 = <c>() =&gt; activation.ActiveGeneration</c>），
-    /// 本类不持有 ActivationTransactionStore、不做缓存；只认已确认代次（未确认/内置 → HasConfigSegment=false）。
     /// </summary>
     public sealed class CandidateConfigSource : ICandidateConfigSource
     {

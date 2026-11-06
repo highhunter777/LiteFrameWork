@@ -12,10 +12,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 战斗根复合态（上层）：射击窗持有者 + 退根/降级**单点裁决**（窗递减与"窗尽 → 去哪"
-    /// 都收在此处，叶只发层内轴请求且先让位）。优先级：死亡 &gt; 开火/瞄准（窗）。
-    /// **换弹不在此裁决**——它走 Overlay 上半身叠加（见 <see cref="SlotAnimContext.UpdateReloadUpper"/>），
-    /// 既不发起根迁移（会停 Base 造成滑步）也不打断窗（叠加层权重天然压住上半身）。
+    /// 战斗根复合态（上层）：射击窗持有者 + 退根/降级**单点裁决**（窗递减与"窗尽 → 去哪" 都收在此处，叶只发层内轴请求且先让位）。
     /// </summary>
     internal sealed class CombatRootStage : IStage<CharacterAnimId, CombatAnimReq>
     {
@@ -47,28 +44,18 @@ namespace LiteGame
 
             if (StageGate.Pending(m)) return;                 // 事件路由已挂（进 Fire 系优先）——本帧不裁决
 
-            // 窗刷新源＝瞄准在场（Sim 侧瞄准帧同步置窗——两层同源同长；长按 ADS 的松开尾巴
-            // 与点按瞄准的间隙尾巴同一语义）。**权威窗在场不充值本层窗**——它是下项的独立
-            // 保持条件；充值会把"Sim 窗余量 + 本层窗尾巴"叠成双倍驻留。
+            // 窗刷新源＝瞄准在场（Sim 侧瞄准帧同步置窗——两层同源同长）。
             if (_ctx.IsAiming) _ctx.RefreshFireWindow();
             else if (_ctx.FireWindow > 0f) _ctx.AdvanceFireWindow(elapseSeconds);
 
-            // 退根/降级单点裁决（**全族同一条退根路**：窗尽 ∧ !IsAiming ∧ 权威窗不在场；
-            // 移动事实永不触发退根，只选叶）：
-            //   权威窗 = Sim 侧瞄准/扣扳机/成功开火统一置的 `FireStanceFrames`
-            //   （SimView.IsFireStance 投影——扣扳机被武器门拦下的帧同在此语境）：
-            //   **在场即不退根**——保持条件、非充值源（与事件窗同点置满同长衰减，
-            //   Sim 窗尽即离场，无叠加尾巴）；
-            //   窗尽 ∧ IsAiming（充值源在场——防御位）→ Fire* 降级 Aim 叶（同形态续播保相位；
-            //   Aim 系无需请求——已在 Aim 叶）；
-            //   窗尽 ∧ !IsAiming ∧ !权威窗 → 移动根叶（窗尽才离开——窗内"不能回移动层"）。
+            // 退根/降级单点裁决（**全族同一条退根路**：窗尽 ∧ !IsAiming ∧ 权威窗不在场）。
             if (_ctx.FireWindow <= 0f && !_ctx.IsFireStance)
             {
                 if (_ctx.IsAiming)
                 {
                     if (m.Current == CharacterAnimId.FireIdle || m.Current == CharacterAnimId.FireWalk)
                         m.Request(_ctx.IsMoving ? CharacterAnimId.AimWalk : CharacterAnimId.AimIdle);
-                    // Aim 系 + IsAiming：已在瞄准叶——无动作
+                    // Aim 系 + IsAiming：已在瞄准叶——无动作。
                 }
                 else
                 {

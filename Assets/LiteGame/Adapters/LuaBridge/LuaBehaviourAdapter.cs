@@ -10,19 +10,7 @@ using LiteGame.Modules.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 生命周期桥（实例与调用契约见《UI框架总设计》§5.1）：
-    /// 注册表存的是**模块表**，本适配器即**实例工厂**——构造期执行 `module.new()` 得到页面实例
-    /// （无 `new` 的旧式逻辑表退化为"模块自身即实例"），把 IUIFormLogic 七回调翻译成
-    /// `self:OnInit/OnShow/...`（冒号定义的生命周期方法显式传 self）。
-    /// ① 七个 LuaFunction 构造期一次取齐缓存（OnUpdate 每帧路径禁反复 Get）；
-    /// ② 方法缺失 = 静默跳过（界面可只写需要的回调）；
-    /// ③ 异常防护由 UIForm 层的 SafeCall 统一承担（单回调抛 = 该界面降级，不波及其他界面）；
-    /// ④ 数据回传解包：LuaUIData → 原始 LuaTable；C# 自定义 IUIData 原样传入（userdata）；
-    /// ⑤ 受控 API 面（§2.4）：OnInit 建绑定索引 + 给**实例**挂 `self.ui` 门面表（通用派发器，whitelist 单委托
-    ///    Action&lt;string, LuaTable&gt;——EventBridge 同款手法，零新增生成）；OnHide 解绑全部按钮
-    ///    （池化复用跨环境的安全垫）；
-    /// ⑥ **所有权分开（§5.1）**：注册表拥有模块引用，页面拥有实例与回调引用——<see cref="Release"/>
-    ///    只释放实例/回调/ui 门面表，**绝不 Dispose 共享模块**。
+    /// 生命周期桥（实例与调用契约见《UI框架总设计》§5.1）： 注册表存的是**模块表**。
     /// </summary>
     public sealed partial class LuaBehaviourAdapter : IUIFormLogic, ILocaleBound
     {
@@ -137,9 +125,7 @@ namespace LiteGame
         public bool Released => _released;
 
         /// <summary>
-        /// 释放（§2.3 运行期增量重填 / §10.2 env 重建）：解绑按钮监听 + 释放**本页面拥有**的
-        /// Lua 引用（实例、已缓存回调、ui 门面表）。**不释放共享模块**（§5.1 所有权分开——模块归注册表）。
-        /// 幂等；调用前提 = 本适配器已不被任何界面使用（换表 / 全关 / env 重建前）。
+        /// 释放（§2.3 运行期增量重填 / §10.2 env 重建）：解绑按钮监听 + 释放**本页面拥有**的 Lua 引用（实例、已缓存回调、ui 门面表）。
         /// </summary>
         public void Release()
         {
@@ -163,10 +149,7 @@ namespace LiteGame
         public const int MaxLuaFormatArgs = 4;
 
         /// <summary>
-        /// 取 LText 模板参数：约定 Lua 侧传具名 <c>arg0..arg3</c>。
-        ///
-        /// **为何不用变长表**：xLua 的 <c>LuaTable.Get</c> 对嵌套数组的映射语义不由本项目控制，
-        /// 猜错会静默取到空值；具名定长键语义确定，且与既有 payload 协议（全具名）一致。
+        /// 取 LText 模板参数：约定 Lua 侧传具名 arg0..arg3。
         /// </summary>
         private static object[] LuaFormatArgs(LuaTable payload)
         {

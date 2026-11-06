@@ -3,10 +3,7 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 开火·静止（"窗内保持 clip"）：进态即持 AimIdle 循环——**开火不播专用射击片段**
-    /// （包内 `AimIdle_Shoot` 后坐节奏与射速表节拍对不上；开火反馈归枪口特效）。
-    /// Fire 事件只由驱动器刷新射击窗，叶无合并动作——站定连发/点按全程同句柄续播
-    /// （零重提交、零终态）。起跑 → 迁 FireWalk（窗不清——限速语境保持）。
+    /// 开火·静止（"窗内保持 clip"）：进态即持 AimIdle 循环——**开火不播专用射击片段** （包内 `AimIdle_Shoot` 后坐节奏与射速表节拍对不上）。
     /// </summary>
     internal sealed class FireIdleStage : IStage<CharacterAnimId, CombatAnimReq>
     {
@@ -36,7 +33,7 @@ namespace LiteGame
         }
 
         public void OnLeave(IStageHost<CharacterAnimId, CombatAnimReq> m) { }
-        // 离场不无条件 Stop：窗尽退根/降级由根收口（同形态续播/异形态提交替换）；起跑由次态提交替换
+        // 离场不无条件 Stop：窗尽退根/降级由根收口（同形态续播/异形态提交替换）；起跑由次态提交替换。
     }
 
     /// <summary>

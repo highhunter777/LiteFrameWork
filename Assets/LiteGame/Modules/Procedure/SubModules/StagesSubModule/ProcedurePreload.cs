@@ -12,10 +12,7 @@ using LiteGame.Modules.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 预载流程：配置加载 → **五步序**——
-    /// ① Lua 全量预载 → ② Init env + 执行 main.lua → ③ RegistryFiller 读三件套填充注册表 →
-    /// ④ 报告整批统一判定（有失败即 Fail 阻断）→ ⑤ 放行（**模态登记已就位**）进 Main。
-    /// LuaComponent/RegistryFiller/页面目录由装配点构造注入（依赖不从 payload 取）。
+    /// 预载流程：配置加载 → **五步序**—— ① Lua 全量预载 → ② Init env + 执行 main.lua → ③ RegistryFiller 读三件套填充注册表 → ④ 报告整批统一判定（有失败即 Fai。）。
     /// </summary>
     public sealed class ProcedurePreload : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
@@ -57,16 +54,12 @@ namespace LiteGame
         {
             try
             {
-                // 资源包初始化在 Patch 流程完成（§7.1 Patch 先于 Preload）
+                // 资源包初始化在 Patch 流程完成（§7.1 Patch 先于 Preload）。
                 await _config.LoadAsync(ct);
 
-                // ---- Lua 预载与注册表填充段（勿在此行上方插入消费逻辑）----
-                // ⓪ 启动走廊开场（窗口③——不定态，Preload 开 / Main 报进度 / 首屏收，§通用加载页 §1）：
-                //    依赖上面已装载的配置（202 表行）与就绪的 UIService。
+                // ---- Lua 预载与注册表填充段（勿在此行上方插入消费逻辑）---- ⓪ 启动走廊开场（窗口③——不定态，Preload 开 / Main 报进度 / 首屏收，§通用加载页 §1）： 依赖上面已装载的配置（202 表行）与就绪的 UIService。
                 LaunchLoading.Begin(_feedback, "正在预载资源…");
-                // ① 全量预载 → ② env + main.lua + tick 开：适配器实现内部按同一顺序执行
-                //    （字节经 IContentService 租约通道——代次/引用统一，提取即释放；
-                //     清单经装配点注入——不直查静态门面）
+                // ① 全量预载 → ② env + main.lua + tick 开：适配器实现内部按同一顺序执行 （字节经 IContentService 租约通道——代次/引用统一，提取即释放）。
                 await _lua.StartAsync(LoadLuaBytesViaContent, _listLuaFiles, LuaLayout.LuaDir, _events,
                     _productBridge.BindGlobals, _candidateLua, ct);
 
@@ -83,9 +76,7 @@ namespace LiteGame
                     return;
                 }
 
-                // ---- 模态登记（配置已装载——表驱动反查单源；装配期查表必抛，见 ContainerModule 注）----
-                // 设置页模态要在**任何打开路径**（登录/大厅/结算/对局菜单；Lua 直开与 PageFlow 两条链）之前全局注册，
-                // 故落在放行闸口而非页面流内部。
+                // ---- 模态登记（配置已装载——表驱动反查单源）。
                 int settingsFormId = _pages.Resolve(LuaKeys.UI.Page_Settings);
                 if (settingsFormId >= 0) _ui.RegisterModal(settingsFormId);
                 else Log.Error($"模态登记失败：生成页面目录未登记 '{LuaKeys.UI.Page_Settings}'", LogTag.UI);

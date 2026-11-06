@@ -5,12 +5,7 @@ using LiteFramework.Animation;
 namespace LiteGame.Modules.Config
 {
     /// <summary>
-    /// 动画 Profile 行读口（客户端单世界便捷读，同 <c>CombatConfig</c>/<c>WeaponConfig</c> 家族）：
-    /// 配置适配器（LiteFramework 的 Luban 服务）装载 tbanimationprofile 后把翻译好的
-    /// <see cref="AnimationProfileRow"/> 列表**原子发布**到这里；消费方（对局装配/构建器/测试）经
-    /// <see cref="AnimationProfileLoader.FromRows"/> 按模型族装配 Profile。行翻译（类别/通道字符串→枚举）
-    /// 发生在配置适配器的装载边界——本读口只持有已翻译的纯行数据。
-    /// 装载失败＝候选校验拒绝，读口保留旧态（快照化纪律归配置服务）。
+    /// 动画 Profile 行读口（客户端单世界便捷读，同 CombatConfig/WeaponConfig 家族）。
     /// </summary>
     public static class AnimationProfileConfig
     {

@@ -12,9 +12,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 运行期操控投影（《GM 与调试工具分层专项设计》§7）：F3 文本控制台，开发页退役后的唯一运行期开发入口。
-    /// 只做词法解析与输出格式化；命令执行/选项/请求桥/读数全部经 <see cref="DebugKernel"/>。
-    /// 渲染走 UI Toolkit（<see cref="DebugConsoleUIToolkitHost"/>，无资产运行时面板）；输入仍经 DevHotkey 收口。
-    /// 打开期间注册输入拦截并取得文本输入所有权，关闭/销毁幂等释放；release 随三宏剥离。
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class DebugConsole : MonoBehaviour

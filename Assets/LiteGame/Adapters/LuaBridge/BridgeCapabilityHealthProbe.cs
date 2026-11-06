@@ -7,13 +7,6 @@ namespace LiteGame
 {
     /// <summary>
     /// Bridge 能力健康探针（§10"新 Lua 引用旧包不存在的能力必须在执行前拒绝"）。
-    ///
-    /// **检查方式**：候选脚本集合声明的**要求能力**（由脚本映射给出）必须被当前
-    /// <see cref="BridgeCapabilitySet"/> 覆盖；缺一即不健康——**在执行前拒绝**，
-    /// 而不是等 Lua 跑到那一行才报 "attempt to call a nil value"。
-    ///
-    /// 与 <c>CandidateScriptSet</c> 的分工：后者校验脚本集合自身的完整性（依赖闭包/环），
-    /// 本探针校验"脚本集合要求的能力 vs 本包具备的能力"。
     /// </summary>
     public sealed class BridgeCapabilityHealthProbe : IHealthProbe
     {

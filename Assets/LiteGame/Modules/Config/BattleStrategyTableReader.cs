@@ -4,11 +4,7 @@ using LiteSim;
 namespace LiteGame.Modules.Config
 {
     /// <summary>
-    /// <c>battlestrategy</c> 键值表的读取口（**客户端与服务端源链接共编**——与 <see cref="TableLayout"/> 同链）：
-    /// 只认键名与取值类型，不认消费语义；缺行回落调用方给的默认值（"缺行回落 C# 默认"契约的单点）。
-    ///
-    /// **键名单源**：表源 <c>Luban/Data/#battlestrategy.xlsx</c> 的行键必须落在这里；
-    /// <c>BattleStrategyTableTests.键名单源_表产物逐键在册</c> 逐键核对表产物，防"表里改了键、代码还读旧键"的静默失效。
+    /// battlestrategy 键值表的读取口（**客户端与服务端源链接共编**——与 TableLayout 同链）： 只认键名与取值类型，不认消费语义。
     /// </summary>
     public static class BattleStrategyTableReader
     {

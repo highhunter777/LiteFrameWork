@@ -4,13 +4,9 @@ using LiteGame;
 
 namespace LiteGame
 {
-    /// <summary>本地测试模式（Room-Test）的运行时快照与控制桥（开发/编辑器/开发包专用；release 整段剥离）。
-    /// **启动配置在场景 DevStartupConfig**（免死/人数/冻结/传送/三个表现开关的进房初值——进房时快照进来）；
-    /// **局内可调项在 GM 面板**（直接读写本快照的现场开关）。进入/退出由开发控制台（F3）或 GM 面板发起。
-    /// **请求桥（进/退/传送）经 <see cref="RequestEnter"/>/<see cref="RequestExit"/>/<see cref="RequestTeleport"/>
-    /// 与 <see cref="TakeEnterRequest"/>/<see cref="TakeExitRequest"/>/<see cref="TakeTeleportRequest"/>
-    /// 类型化读写对收口**——消费侧读即清，一次性语义编译期保证（静态标志不再对外裸露）。
-    /// 对局行为全部由本快照驱动——本地测试模式恒为本地服形态，两端同进程同源。</summary>
+    /// <summary>
+    /// 本地测试模式（Room-Test）的运行时快照与控制桥（开发/编辑器/开发包专用）。
+    /// </summary>
     public sealed class TestModeRuntime : ILocalTestHooks
     {
         /// <summary>进程内唯一实例（开发面单所有者；后续批次可改为 DevSession 构造注入）。</summary>
@@ -19,7 +15,7 @@ namespace LiteGame
         /// <summary>当前是否处于本地测试模式（进入置位；退出/离场由 GM 面板或对局内退出请求清除）。</summary>
         public bool Active;
 
-        // ---- 配置快照（进房时由 DevStartupConfig 启动配置写入；默认口径见 TestModeOptions.All）----
+        // ---- 配置快照（进房时由 DevStartupConfig 启动配置写入；默认口径见 TestModeOptions.All）----。
         public bool NoDeath = true;          // 全房免死（Hp 保底 1、目标不消失）
         public bool InfiniteAmmo;            // 无限子弹（Sim 规则；GM 面板可现场开合）
         public bool LaserSight = true;       // 瞄准激光（运行中可切）
@@ -30,7 +26,7 @@ namespace LiteGame
         public bool BotInfiniteHp;           // bot 无限生命（权威侧每帧回满——假人永不死；命中/飘字反馈照常）
         public int BotCount = 1;             // 补位bot 数量（总席位 = 1 + BotCount）
 
-        // ---- 本地测试房宿主钩子（与上面的“开关快照”分离：快照管 UI/配置，钩子管权威侧消费）----
+        // ---- 本地测试房宿主钩子（与上面的“开关快照”分离：快照管 UI/配置，钩子管权威侧消费）----。
         private bool _localTestActive;
         private bool _localTestBotFrozen;
         private bool _localTestBotInfiniteHp;
@@ -54,14 +50,11 @@ namespace LiteGame
         public int WeaponRpmOverride = -1;
 
         /// <summary>
-        /// **身位/爆头调试绘制**开关（默认关）：打开后在每个活体身上常驻画**服务端身位圆柱**
-        /// （半径/高 = 烘焙判定常量，与命中判定同源）与爆头带段（黄圈=下沿、红圈=上沿）——
-        /// 肉眼核对"判定柱在哪、多高算爆头、贴墙距离多远"（绘制件 <see cref="BattleHeadshotDebugDrawer"/>）。
-        /// 纯诊断，不改任何判定；面板可现场开关，不必重进本地测试模式。
+        /// **身位/爆头调试绘制**开关（默认关）：打开后在每个活体身上常驻画**服务端身位圆柱** （半径/高 = 烘焙判定常量，与命中判定同源）与爆头带段（黄圈=下沿、红圈=上沿）—— 肉眼核对"判定柱在哪、多高算爆头。
         /// </summary>
         public bool DrawHeadshotDebug;
 
-        // ---- 请求桥（编辑器面板/热键 → 运行时；一次性语义经类型化读写对编译期强制——根治审计中债）----
+        // ---- 请求桥（编辑器面板/热键 → 运行时；一次性语义经类型化读写对编译期强制——根治审计中债）----。
         private bool _enterRequested;        // 进入本地测试模式（主菜单消费 → 进 Room-Test）
         private bool _exitRequested;          // 退出本地测试模式（对局内 = 请求离场并关模式；主菜单 = 只关模式）
         private bool _teleportRequested;      //「传送到准心」请求（流程解析目标 → ILocalTestHooks 分发）

@@ -6,9 +6,6 @@ namespace LiteGame
 {
     /// <summary>
     /// 命中反馈上下文（分发器在静默门之后解析交付——消费者不自行解事件、不重复解析槽位）。
-    /// 字段按 <see cref="FrameEvent"/> 释义：主体（EntityId＝Hit 命中目标/Death 死者/Fire 开火者）、
-    /// 对象（OtherId＝Hit 射手/Death 击杀者/Fire 恒 0）。角色枚举 <see cref="HitLocalRole"/> 在独立
-    /// 零引擎文件（L1 源链接前提）。
     /// </summary>
     public readonly struct HitFeedbackContext
     {
