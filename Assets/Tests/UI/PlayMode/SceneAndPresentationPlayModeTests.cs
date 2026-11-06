@@ -35,7 +35,7 @@ namespace LiteGame.Tests.UI.PlayMode
             _scope = new PlayModeTestScope(nameof(SceneAndPresentationPlayModeTests));
             if (!_assetsReady)
             {
-                var init = AssetService.InitAsync();
+                var init = TestContent.InitAsync();
                 yield return Wait(init, 60f);
                 Assert.AreEqual(UniTaskStatus.Succeeded, init.Status, "资源包初始化未成功（faulted 会在此抛出）");
                 _assetsReady = true;
@@ -234,7 +234,7 @@ namespace LiteGame.Tests.UI.PlayMode
         {
             Assert.IsTrue(System.IO.File.Exists(TestScene), $"受控场景缺失：{TestScene}");
 
-            var scene = new SceneService();
+            var scene = new SceneService(TestContent.Content);
             Assert.IsFalse(scene.IsLoaded(TestScene), "初始未加载");
 
             // **用 Additive 而非 Single**：PlayMode 用例跑在 Unity 测试框架自己的场景里， 而 Single 模式会销毁当前所有场景——把测试场景一并干掉。

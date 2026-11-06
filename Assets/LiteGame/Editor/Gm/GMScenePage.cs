@@ -47,7 +47,7 @@ namespace LiteGame.Editor
                 if (GUILayout.Button("↻", GUILayout.Width(24))) RefreshScenePaths();
             }
 
-            bool ready = Application.isPlaying && AssetService.Initialized && !_sceneBusy;
+            bool ready = Application.isPlaying && GetContentService()?.IsInitialized == true && !_sceneBusy;
             using (new EditorGUI.DisabledScope(!ready))
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -57,7 +57,7 @@ namespace LiteGame.Editor
                 if (GUILayout.Button("卸载叠加")) RunSceneOp(new GMUnloadAdditiveSceneCommand { Location = _sceneLocation }, "卸载叠加").ForgetLogged("GMScenePage");
             }
 
-            if (!Application.isPlaying) EditorGUILayout.HelpBox("场景操作需 Play（AssetService 初始化后才可加载）", MessageType.Info);
+            if (!Application.isPlaying) EditorGUILayout.HelpBox("场景操作需 Play（内容服务初始化后才可加载）", MessageType.Info);
             else if (_sceneBusy) EditorGUILayout.HelpBox("场景操作进行中……", MessageType.None);
 
             EditorGUILayout.LabelField(_sceneState, EditorStyles.wordWrappedLabel);
@@ -138,6 +138,8 @@ namespace LiteGame.Editor
         }
 
         private ISceneService GetSceneService() => GMEditorResolve.ResolveFromContainer<ISceneService>();
+
+        private static IContentService GetContentService() => GMEditorResolve.ResolveFromContainer<IContentService>();
 
         private static CommandCenter GetCommandCenter() => GMEditorResolve.ResolveFromContainer<ICommandCenter>() as CommandCenter;   // lint-allow R14 场景页＝带参命令专面板（§2.2）：带参/异步形态直用命令总线派发（全量审计），非旁路
     }

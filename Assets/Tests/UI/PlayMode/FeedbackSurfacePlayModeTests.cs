@@ -72,9 +72,9 @@ namespace LiteGame.Tests.UI.PlayMode
 
             if (!_assetsReady)
             {
-                // 真资源初始化：编辑器模拟模式（见 AssetService 的 #if UNITY_EDITOR 分支）。
+                // 真资源初始化：编辑器模拟模式（见 YooAssetContentService 的 #if UNITY_EDITOR 分支）。
                 // 失败即用例失败——本组的意义就是真资源链路，不允许静默退化。
-                var init = AssetService.InitAsync();
+                var init = TestContent.InitAsync();
                 yield return WaitUniTask(init, 60f);
                 Assert.IsFalse(init.Status == UniTaskStatus.Pending, "资源包初始化超时（60s）");
                 _assetsReady = true;
@@ -199,7 +199,7 @@ namespace LiteGame.Tests.UI.PlayMode
         /// <summary>真资源加载（编辑器模拟模式；不在本程序集引 AssetDatabase）。</summary>
         private static async UniTask<IUIPrefabLease> LoadRealPrefabAsync(string location, CancellationToken ct)
         {
-            GameObject prefab = await AssetService.LoadAssetAsync<GameObject>(location);
+            GameObject prefab = await TestContent.LoadAssetAsync<GameObject>(location);
             if (prefab == null) throw new InvalidOperationException($"真资源加载失败:{location}（EditorSimulateMode 是否初始化？）");
             return new SimulateLease(prefab);
         }

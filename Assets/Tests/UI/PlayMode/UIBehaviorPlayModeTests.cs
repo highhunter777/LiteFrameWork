@@ -108,7 +108,7 @@ namespace LiteGame.Tests.UI.PlayMode
             _scope = new PlayModeTestScope(nameof(UIBehaviorPlayModeTests));
             if (!_assetsReady)
             {
-                var init = AssetService.InitAsync();
+                var init = TestContent.InitAsync();
                 yield return Wait(init, 60f);
                 Assert.AreNotEqual(UniTaskStatus.Pending, init.Status, "资源包初始化超时（60s）");
                 _assetsReady = true;
@@ -246,7 +246,7 @@ namespace LiteGame.Tests.UI.PlayMode
 
         private static async UniTask<IUIPrefabLease> LoadLeaseAsync(string location, CancellationToken ct)
         {
-            var go = await AssetService.LoadAssetAsync<GameObject>(location, ct);
+            var go = await TestContent.LoadAssetAsync<GameObject>(location, ct);
             if (go == null) throw new InvalidOperationException($"真资源加载失败:{location}");
             return new PlainLease(go);
         }

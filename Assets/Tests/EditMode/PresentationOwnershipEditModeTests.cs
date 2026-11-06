@@ -32,6 +32,8 @@ namespace LiteGame.Tests.EditMode
 
             public FakeContent(Func<string, GameObject> assetFactory) => _assetFactory = assetFactory;
 
+            public bool IsInitialized => true;
+
             public UniTask InitializeAsync(CancellationToken ct = default) => UniTask.CompletedTask;
 
             /// <summary>本替身不模拟内容发现——空清单。</summary>

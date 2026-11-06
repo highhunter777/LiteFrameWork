@@ -91,7 +91,7 @@ namespace LiteGame
                           $"move={baseline.MoveZ:F2} fire={(baseline.Fire ? 1 : 0)}");
 
                 // ── 模态段：真实窗体按生产约定登记为模态并打开——表与 prefab 都经内容租约
-                //    （ConfigService 惰性装载、AssetService 在 Patch 初始化），未就绪按间隔重试直至超时 ──
+                //    （ConfigService 惰性装载、内容服务在 Patch 初始化），未就绪按间隔重试直至超时 ──
                 int formId = 0;
                 float deadline = Time.realtimeSinceStartup + ReadyTimeoutSec;
                 int attempts = 0;

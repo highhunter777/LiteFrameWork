@@ -96,6 +96,8 @@ namespace LiteFramework.Core.Tests
         {
             public int ShutdownCount;
 
+            public bool IsInitialized => true;
+
             public UniTask InitializeAsync(CancellationToken ct = default) => UniTask.CompletedTask;
 
             public UniTask<AssetLease<T>> AcquireAsync<T>(string location, ContentGeneration generation = default,

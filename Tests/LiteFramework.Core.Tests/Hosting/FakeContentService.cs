@@ -36,6 +36,9 @@ namespace LiteFramework.Tests
         /// <summary>Shutdown 已执行标记（幂等断言用）。</summary>
         public bool ShutdownCompleted { get; private set; }
 
+        /// <summary>契约成员：已初始化且未关闭。</summary>
+        public bool IsInitialized => Volatile.Read(ref _initialized) == 1 && !ShutdownCompleted;
+
         /// <summary>按 tag 预置的路径表（测试播种；未播种 = 空清单）。</summary>
         public readonly Dictionary<string, List<string>> TagPaths = new Dictionary<string, List<string>>();
 

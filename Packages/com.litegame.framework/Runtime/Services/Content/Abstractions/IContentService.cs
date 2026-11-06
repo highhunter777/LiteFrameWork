@@ -12,6 +12,9 @@ namespace LiteFramework
         /// <summary>初始化（幂等）。</summary>
         UniTask InitializeAsync(CancellationToken ct = default);
 
+        /// <summary>内容服务是否已就绪（初始化成功后为真；关闭后为假）。</summary>
+        bool IsInitialized { get; }
+
         /// <summary>获取资源租约（引用计数 +1；失败抛含 location 的异常；ct 取消贯穿加载）。
         /// <paramref name="generation"/> 固定本次获取的**内容代次**（加载/缓存键包含代次——
         /// 默认 = 当前代；旧 Scope 应显式携带自己的代次，不从全局 Current 混取新内容）。</summary>

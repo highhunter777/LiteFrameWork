@@ -4,12 +4,6 @@ using UnityEngine;
 
 namespace LiteFramework
 {
-    /// <summary>池化标记：记录产源桶键——Release 自描述归桶；非本池产物入池当场抛。</summary>
-    public sealed class PooledInstance : MonoBehaviour
-    {
-        public string Key { get; internal set; }
-    }
-
     /// <summary>
     /// GameObject 对象池（三池分工的第三件：**包 Core ObjectPool&lt;T&gt; 做底层， 不自研第二套池逻辑**；纯数据对象 → ReferencePool。）。
     /// </summary>
@@ -19,6 +13,8 @@ namespace LiteFramework
         public const string RootName = "[GameObjectPool]";
 
         private readonly Dictionary<string, ObjectPool<GameObject>> _buckets = new Dictionary<string, ObjectPool<GameObject>>(8);
+        private readonly Dictionary<GameObject, string> _keys = new Dictionary<GameObject, string>(32);   // 产物 → 桶键（Release 自描述归桶）
+        private readonly List<GameObject> _deadKeys = new List<GameObject>(8);                            // 外部销毁留下的悬空键（Clear 时收）
         private Transform _root;                           // 池化停放容器（整体隐藏——池内物必非激活）；Dispose 后置空
 
         public GameObjectPool(Transform root = null, int maxIdlePerKey = 32)
@@ -45,13 +41,15 @@ namespace LiteFramework
 
         public int MaxIdlePerKey { get; }
 
-        /// <summary>取：桶命中复用（Acquire → 重挂父 → 激活 → OnSpawn），未命中 create 现建（打桶键标记）。</summary>
+        /// <summary>取：桶命中复用（Acquire → 重挂父 → 激活 → OnSpawn），未命中 create 现建（记池内桶键）。
+        /// 工厂拒绝（返回 null，如资源缺失）时按 null 返回——与 <see cref="ObjectPool{T}"/> 契约一致。</summary>
         public GameObject Get(string key, Func<GameObject> create, Transform parent = null)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             if (create == null) throw new ArgumentNullException(nameof(create));
 
             var go = GetBucket(key, create).Acquire();
+            if (go == null) return null;
             if (parent != null) go.transform.SetParent(parent, false);
             go.GetComponent<IPoolLifecycle>()?.OnSpawn();
             return go;
@@ -68,17 +66,16 @@ namespace LiteFramework
             return true;
         }
 
-        /// <summary>还：OnRecycle → 隐藏 → 归桶（按桶键标记自描述）。非本池产物抛（fail-fast）。</summary>
+        /// <summary>还：OnRecycle → 隐藏 → 归桶（按池内桶键自描述）。非本池产物抛（fail-fast）。</summary>
         public void Release(GameObject go)
         {
             if (go == null) throw new ArgumentNullException(nameof(go));
-            var marker = go.GetComponent<PooledInstance>();
-            if (marker == null)
-                throw new InvalidOperationException("该 GameObject 无桶键标记——不是本池产物，禁止入池");
+            if (!_keys.TryGetValue(go, out var key))
+                throw new InvalidOperationException("该 GameObject 不是本池产物（无桶键记录），禁止入池");
 
             go.GetComponent<IPoolLifecycle>()?.OnRecycle();
             if (_root != null) go.transform.SetParent(_root, false);   // Dispose 后无停放容器——保持在位即可
-            GetBucket(marker.Key, null).Release(go);       // 桶必然已存在（产物由此而出）
+            GetBucket(key, null).Release(go);       // 桶必然已存在（产物由此而出）
         }
 
         /// <summary>当前桶中（闲置）总数——统计/HUD 用。</summary>
@@ -102,6 +99,17 @@ namespace LiteFramework
         {
             foreach (var bucket in _buckets.Values)
                 bucket.Clear();                            // ObjectPool.Clear = Trim(0)：销毁全部闲置件
+            PruneDeadKeys();                               // 外部 Destroy 的活体（场景卸载）留悬空键——顺手收掉
+        }
+
+        /// <summary>摘掉已销毁对象的桶键（外部 Destroy 属违约，只防字典累积）。</summary>
+        private void PruneDeadKeys()
+        {
+            if (_keys.Count == 0) return;
+            _deadKeys.Clear();
+            foreach (var pair in _keys)
+                if (pair.Key == null) _deadKeys.Add(pair.Key);
+            foreach (var dead in _deadKeys) _keys.Remove(dead);
         }
 
         /// <summary>
@@ -136,12 +144,16 @@ namespace LiteFramework
                     create: () =>
                     {
                         var go = create != null ? create() : new GameObject(key);
-                        go.AddComponent<PooledInstance>().Key = key;
-                        return go;
+                        if (go != null) _keys[go] = key;        // 桶键记账在池内，不往实例补组件
+                        return go;                              // null = 工厂拒绝（资源缺失），交回 Acquire 处理
                     },
                     onGet: go => go.SetActive(true),
                     onRelease: go => go.SetActive(false),
-                    onDestroy: go => DestroyAtRuntime(go),
+                    onDestroy: go =>
+                    {
+                        if (go != null) _keys.Remove(go);
+                        DestroyAtRuntime(go);
+                    },
                     maxIdle: MaxIdlePerKey,
                     statsName: $"GameObjectPool.{key}",
                     diagnoseDoubleRelease: DevBuildFacts.IsDevelopment);

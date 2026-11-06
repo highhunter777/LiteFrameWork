@@ -18,6 +18,8 @@ namespace LiteGame.Tests.EditMode
             public GameObject HudPrefab;
             public int Acquires;
 
+            public bool IsInitialized => true;
+
             public UniTask InitializeAsync(CancellationToken ct = default) => UniTask.CompletedTask;
 
             public IReadOnlyList<string> ListAssetPathsByTag(string tag) => Array.Empty<string>();

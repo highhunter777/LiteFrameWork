@@ -14,7 +14,7 @@ namespace LiteGame.Modules.Composition
     {
         private readonly DeployBake _deployBake;   // 包内烙入（命令行 > 烙入 > 默认；实例只读一次）
         private readonly Func<IFileStore, IContentService> _contentFactory;
-        private readonly Func<ISceneService> _sceneFactory;
+        private readonly Func<IContentService, ISceneService> _sceneFactory;
         private readonly Func<string, IFileStore, IHealthProbe> _luaHealthProbeFactory;
         private readonly Func<string, IFileStore, IHealthProbe> _configHealthProbeFactory;
         private readonly Func<IHealthProbe> _bridgeHealthProbeFactory;
@@ -22,11 +22,11 @@ namespace LiteGame.Modules.Composition
         private ISceneService _scenes;      // 场景句柄服务（流程/工具体消费；租约面归内容域）
 
         /// <param name="contentFactory">内容服务实现工厂（YooAsset 适配器在组合根构造——本段只认端口）。</param>
-        /// <param name="sceneFactory">场景服务实现工厂（同上）。</param>
+        /// <param name="sceneFactory">场景服务实现工厂（同上；包句柄由内容服务持有）。</param>
         /// <param name="luaHealthProbeFactory">Lua 候选脚本健康探针工厂（XLua 沙箱归适配器，本段只认 IHealthProbe）。</param>
         public ContentSegment(DeployBake deployBake,
             Func<IFileStore, IContentService> contentFactory,
-            Func<ISceneService> sceneFactory,
+            Func<IContentService, ISceneService> sceneFactory,
             Func<string, IFileStore, IHealthProbe> luaHealthProbeFactory,
             Func<string, IFileStore, IHealthProbe> configHealthProbeFactory,
             Func<IHealthProbe> bridgeHealthProbeFactory)
@@ -115,7 +115,7 @@ namespace LiteGame.Modules.Composition
         /// <summary>场景与缓存租约都走内容包：场景服务、清缓存实现面归本段（进程级实例，关闭时归零）。</summary>
         private void RegisterSceneAndCacheServices(SegmentContext context, IFileStore files)
         {
-            _scenes = _sceneFactory();
+            _scenes = _sceneFactory(_content);
             context.Put<ISceneService>(_scenes);
             context.Put<IContentCacheMaintenance>(
                 new ContentCacheMaintenance(_content, files, context.Require<ActivationTransactionStore>()));

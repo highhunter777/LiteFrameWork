@@ -58,7 +58,7 @@ namespace LiteGame.Tests.UI.PlayMode
 
             if (!_assetsReady)
             {
-                var init = AssetService.InitAsync();
+                var init = TestContent.InitAsync();
                 yield return WaitUniTask(init, 60f);
                 Assert.IsFalse(init.Status == UniTaskStatus.Pending, "资源包初始化超时（60s）");
                 _assetsReady = true;
@@ -232,7 +232,7 @@ return m";
         private static async UniTask<IUIPrefabLease> LoadRealPrefabAsync(string location, CancellationToken ct)
         {
             await UniTask.Yield(ct);
-            GameObject prefab = await AssetService.LoadAssetAsync<GameObject>(location, ct);
+            GameObject prefab = await TestContent.LoadAssetAsync<GameObject>(location, ct);
             if (prefab == null) throw new InvalidOperationException($"真资源加载失败:{location}");
             return new CountingLease(prefab);
         }

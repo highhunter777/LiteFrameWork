@@ -63,7 +63,7 @@ namespace LiteGame.Tests.UI.PlayMode
 
             if (!_assetsReady)
             {
-                var init = AssetService.InitAsync();
+                var init = TestContent.InitAsync();
                 yield return WaitUniTask(init, 60f);
                 Assert.IsFalse(init.Status == UniTaskStatus.Pending, "资源包初始化超时（60s）");
                 _assetsReady = true;
@@ -220,7 +220,7 @@ return m";
         {
             // 让出一帧再加载：把"在途窗口"变成**确定性**的，取消用例才测得到取消语义 （真实 IO 若同帧完成，CloseAsync 走的是"已打开"的转场关闭路径）。
             await UniTask.Yield(ct);
-            GameObject prefab = await AssetService.LoadAssetAsync<GameObject>(location, ct);
+            GameObject prefab = await TestContent.LoadAssetAsync<GameObject>(location, ct);
             if (prefab == null) throw new InvalidOperationException($"真资源加载失败:{location}");
             return new CountingLease(prefab);
         }

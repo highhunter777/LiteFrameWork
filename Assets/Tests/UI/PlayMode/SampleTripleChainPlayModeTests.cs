@@ -35,7 +35,7 @@ namespace LiteGame.Tests.UI.PlayMode
             _scope = new PlayModeTestScope(nameof(SampleTripleChainPlayModeTests));
             if (!_assetsReady)
             {
-                var init = AssetService.InitAsync();
+                var init = TestContent.InitAsync();
                 yield return Wait(init, 60f);
                 Assert.AreEqual(UniTaskStatus.Succeeded, init.Status, "①资源包初始化未成功（faulted 会在此抛出）");
                 _assetsReady = true;
@@ -64,7 +64,7 @@ namespace LiteGame.Tests.UI.PlayMode
         public IEnumerator 单链贯通_真场景到测试角色到表现到卸载_全程无残留()
         {
             // ═══ ① 真资源场景 ═══
-            var scene = new SceneService();
+            var scene = new SceneService(TestContent.Content);
             // 用 **Additive** 而非 Single：PlayMode 用例跑在自己的测试场景里，
             // Single 会把测试场景销毁掉（且最后卸载必然失败——见场景组用例的注释）。
             var load = scene.LoadAdditiveAsync(TestScene);

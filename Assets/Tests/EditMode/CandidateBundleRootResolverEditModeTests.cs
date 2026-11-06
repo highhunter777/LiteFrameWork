@@ -16,7 +16,7 @@ namespace LiteGame.Tests.EditMode
         {
             bool ready = CandidateBundleRootResolver.IsCandidateBundleReady(
                 ContentGeneration.Default.ReleaseId, ReleaseLayout.CandidateBundleRootRelative,
-                AssetService.DefaultPackageName, _ => true);
+                YooAssetContentService.DefaultPackageName, _ => true);
 
             Assert.IsFalse(ready, "内置身份永远走内置包根");
         }
@@ -25,9 +25,9 @@ namespace LiteGame.Tests.EditMode
         public void 判定_无身份或空_退回内置包根()
         {
             Assert.IsFalse(CandidateBundleRootResolver.IsCandidateBundleReady(
-                null, ReleaseLayout.CandidateBundleRootRelative, AssetService.DefaultPackageName, _ => true));
+                null, ReleaseLayout.CandidateBundleRootRelative, YooAssetContentService.DefaultPackageName, _ => true));
             Assert.IsFalse(CandidateBundleRootResolver.IsCandidateBundleReady(
-                "", ReleaseLayout.CandidateBundleRootRelative, AssetService.DefaultPackageName, _ => true));
+                "", ReleaseLayout.CandidateBundleRootRelative, YooAssetContentService.DefaultPackageName, _ => true));
         }
 
         [Test]
@@ -35,7 +35,7 @@ namespace LiteGame.Tests.EditMode
         {
             string probed = null;
             bool ready = CandidateBundleRootResolver.IsCandidateBundleReady(
-                "rel-sample-001", ReleaseLayout.CandidateBundleRootRelative, AssetService.DefaultPackageName,
+                "rel-sample-001", ReleaseLayout.CandidateBundleRootRelative, YooAssetContentService.DefaultPackageName,
                 path => { probed = path; return true; });
 
             Assert.IsTrue(ready, "两条齐备 → 用候选资产包根");
@@ -46,7 +46,7 @@ namespace LiteGame.Tests.EditMode
         public void 判定_有身份但版本文件缺失_退回内置包根()
         {
             bool ready = CandidateBundleRootResolver.IsCandidateBundleReady(
-                "rel-sample-001", ReleaseLayout.CandidateBundleRootRelative, AssetService.DefaultPackageName, _ => false);
+                "rel-sample-001", ReleaseLayout.CandidateBundleRootRelative, YooAssetContentService.DefaultPackageName, _ => false);
 
             Assert.IsFalse(ready, "候选包不完整（缺版本文件）→ 退回内置，不让初始化裸失败");
         }

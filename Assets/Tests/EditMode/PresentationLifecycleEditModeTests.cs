@@ -210,7 +210,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 场景_释放后拒绝新加载()
         {
-            var scene = new SceneService();
+            var scene = NewSceneService();
             scene.ReleaseAll();
 
             Assert.IsTrue(scene.IsReleased);
@@ -224,7 +224,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 场景_释放幂等_且使在途加载过期()
         {
-            var scene = new SceneService();
+            var scene = NewSceneService();
             CancellationToken lifetime = scene.LifetimeToken;
             Assert.IsFalse(lifetime.IsCancellationRequested);
 
@@ -238,11 +238,15 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 场景_未加载时卸载为幂等noop()
         {
-            var scene = new SceneService();
+            var scene = NewSceneService();
             Assert.DoesNotThrow(() => scene.UnloadSingleAsync().GetAwaiter().GetResult());
             Assert.DoesNotThrow(() => scene.UnloadAdditiveAsync("Assets/Scene/X.unity").GetAwaiter().GetResult());
             Assert.IsNull(scene.SingleSceneName);
             Assert.AreEqual(0, scene.AdditiveCount);
         }
+
+        private static SceneService NewSceneService()
+            => new SceneService(new YooAssetContentService(
+                new FileSystem(new UnityPathProvider(), new NewtonsoftJsonSerializer())));
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -11,7 +11,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// GM 工具箱·配置诊断页（原三区合一）：运行状态（FSM/AssetService/配置装载）+ 表查询 （cfg.Tables 反射自动发现。）。
+    /// GM 工具箱·配置诊断页（原三区合一）：运行状态（FSM/内容服务/配置装载）+ 表查询 （cfg.Tables 反射自动发现。）。
     /// </summary>
     internal sealed class GMConfigDiagnosticsPage : IGMPage
     {
@@ -88,10 +88,13 @@ namespace LiteGame.Editor
             var config = GetConfigService();
             string configText = config == null ? "未装配" : config.Loaded ? "已加载" : "未加载";
 
+            IContentService content = GMEditorResolve.ResolveFromContainer<IContentService>();
+            string contentText = content == null ? "未装配" : content.IsInitialized ? "就绪" : "未初始化";
+
             DebugKernel kernel = GMEditorResolve.ResolveFromContainer<DebugKernel>();
             string errorText = kernel != null ? kernel.ErrorCount.ToString() : "—";
 
-            _status = $"Play={(Application.isPlaying ? "是" : "否")}｜AssetService={(AssetService.Initialized ? "就绪" : "未初始化")}"
+            _status = $"Play={(Application.isPlaying ? "是" : "否")}｜内容={contentText}"
                       + $"｜配置={configText}｜FSM={fsmState}｜ErrorCount={errorText}";
         }
 

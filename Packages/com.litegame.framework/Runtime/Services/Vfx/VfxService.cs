@@ -45,7 +45,7 @@ namespace LiteFramework
         /// <summary>宿主关闭级联令牌（供调用方链接——与 EntityService 同名语义）。</summary>
         public CancellationToken LifetimeToken => _lifetime.Token;
 
-        /// <param name="loader">加载口（必需；装配点绑 AssetService，测试注入替身）。</param>
+        /// <param name="loader">加载口（必需；装配点绑内容服务租约，测试注入替身）。</param>
         /// <param name="clock">世界时钟（必需；时停冻结到期）。</param>
         /// <param name="catalog">名→地址；null = "命名即引用"默认根。</param>
         /// <param name="budget">预算/降级；null = 桌面默认。</param>

@@ -56,13 +56,17 @@ namespace LiteGame.Modules.Camera
         public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
 
         /// <summary>
-        /// 保证有一台主相机：场景里有（含 tag MainCamera）就用它，没有才建一台默认的。
+        /// 保证有一台主相机：场景里有（含 tag MainCamera）就用它，没有才建默认相机**并告警**。
         /// **只保证"有投影面"**——构图/档位/跟随全部归 vcam 的场景配置（本段不写档位常量）。
         /// </summary>
         private UnityEngine.Camera EnsureCamera()
         {
             UnityEngine.Camera scene = UnityEngine.Camera.main;
             if (scene != null) return scene;
+
+            // 兜底必须出声：漏配主相机仍给投影面，但不再让"白板相机"冒充配置成功（资产问题不静默）。
+            Log.Warning($"[Camera] 场景[{UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}]"
+                        + "无 MainCamera——已建默认相机兜底（构图/跟随全缺，请补场景资产）", LogTag.Camera);
 
             _cameraHost = new GameObject("[MainCamera]");
             var created = _cameraHost.AddComponent<UnityEngine.Camera>();

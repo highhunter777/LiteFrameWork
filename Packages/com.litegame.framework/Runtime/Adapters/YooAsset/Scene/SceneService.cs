@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -42,11 +42,16 @@ namespace LiteFramework
         private readonly Dictionary<string, ClientScope> _additiveScopes = new Dictionary<string, ClientScope>(StringComparer.Ordinal);   // 每个叠加场景一枚作用域
         private SceneHandle _lastLoad;                                     // 进度读数源：最近一次发起的加载
         private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
+        private readonly YooAssetContentService _content;                   // 包句柄唯一 owner（组合根注入）
 
         /// <summary>
         /// 宿主代次：<see cref="ReleaseAll"/> 时递增。
         /// </summary>
         private int _generation;
+
+        /// <summary>场景服务：内容服务是包句柄唯一 owner（组合根注入，本类不回落静态门面）。</summary>
+        public SceneService(YooAssetContentService content)
+            => _content = content ?? throw new ArgumentNullException(nameof(content));
 
         /// <summary>服务是否已释放（ReleaseAll 后不再接受加载请求）。</summary>
         public bool IsReleased { get; private set; }
@@ -314,7 +319,7 @@ namespace LiteFramework
 
         private async UniTask<SceneHandle> LoadHandleAsync(string location, LoadSceneMode mode, CancellationToken ct)
         {
-            SceneHandle handle = AssetService.Package.LoadSceneAsync(location, mode);
+            SceneHandle handle = _content.LoadSceneAsync(location, mode);
             _lastLoad = handle;
             try
             {

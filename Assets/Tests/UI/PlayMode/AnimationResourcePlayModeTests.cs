@@ -34,7 +34,7 @@ namespace LiteGame.Tests.UI.PlayMode
             _scope = new PlayModeTestScope(nameof(AnimationResourcePlayModeTests));
             if (!_assetsReady)
             {
-                var init = AssetService.InitAsync();
+                var init = TestContent.InitAsync();
                 yield return Wait(init, 60f);
                 _assetsReady = true;
             }
@@ -47,7 +47,7 @@ namespace LiteGame.Tests.UI.PlayMode
         public IEnumerator 动画_真角色经真加载_驱动按速度切档_卸载释放()
         {
             // 经真资源链路取真角色 prefab（与 ProcedureBattle 同一 ViewPrefabPath）
-            var load = AssetService.LoadAssetAsync<GameObject>(CombatGirlsAnimationProfile.ViewPrefabPath);
+            var load = TestContent.LoadAssetAsync<GameObject>(CombatGirlsAnimationProfile.ViewPrefabPath);
             yield return Wait(load, 60f);
 
             // 结果只取一次（UniTask 不允许 await/取结果两次）
@@ -83,7 +83,7 @@ namespace LiteGame.Tests.UI.PlayMode
             Assert.IsNull(animator.runtimeAnimatorController, "直 Clip 模型：视图不挂控制器（片源走清单）");
 
             // 直 Clip 供片：经清单登记（与生产驱动同一登记面）
-            var loadManifest = AssetService.LoadAssetAsync<AnimationClipManifest>(CombatGirlsAnimationProfile.ClipManifestPath);
+            var loadManifest = TestContent.LoadAssetAsync<AnimationClipManifest>(CombatGirlsAnimationProfile.ClipManifestPath);
             yield return Wait(loadManifest, 60f);
             var manifest = loadManifest.Status == UniTaskStatus.Succeeded ? loadManifest.GetAwaiter().GetResult() : null;
             Assert.IsNotNull(manifest, $"片段清单应可加载:{CombatGirlsAnimationProfile.ClipManifestPath}");
@@ -113,7 +113,7 @@ namespace LiteGame.Tests.UI.PlayMode
         /// </summary>
         private IEnumerator LoadAvatar(System.Action<GameObject> onDone)
         {
-            var load = AssetService.LoadAssetAsync<GameObject>(CombatGirlsAnimationProfile.ViewPrefabPath);
+            var load = TestContent.LoadAssetAsync<GameObject>(CombatGirlsAnimationProfile.ViewPrefabPath);
             yield return Wait(load, 60f);
             GameObject prefab = load.Status == UniTaskStatus.Succeeded ? load.GetAwaiter().GetResult() : null;
             onDone(prefab);
@@ -150,7 +150,7 @@ namespace LiteGame.Tests.UI.PlayMode
             Animator animator = avatar.GetComponentInChildren<Animator>(true);
             Assert.IsNotNull(animator, "真角色视图应带 Animator（绑定组件 RequireComponent 保证）");
 
-            var loadManifest = AssetService.LoadAssetAsync<AnimationClipManifest>(CombatGirlsAnimationProfile.ClipManifestPath);
+            var loadManifest = TestContent.LoadAssetAsync<AnimationClipManifest>(CombatGirlsAnimationProfile.ClipManifestPath);
             yield return Wait(loadManifest, 60f);
             var manifest = loadManifest.Status == UniTaskStatus.Succeeded ? loadManifest.GetAwaiter().GetResult() : null;
             Assert.IsNotNull(manifest, "片段清单应可加载");
@@ -215,7 +215,7 @@ namespace LiteGame.Tests.UI.PlayMode
             var root = _scope.CreateGameObject("DisposeRoot").transform;
             avatar.transform.SetParent(root, false);
 
-            var loadManifest = AssetService.LoadAssetAsync<AnimationClipManifest>(CombatGirlsAnimationProfile.ClipManifestPath);
+            var loadManifest = TestContent.LoadAssetAsync<AnimationClipManifest>(CombatGirlsAnimationProfile.ClipManifestPath);
             yield return Wait(loadManifest, 60f);
             var manifest = loadManifest.Status == UniTaskStatus.Succeeded ? loadManifest.GetAwaiter().GetResult() : null;
             Assert.IsNotNull(manifest, "片段清单应可加载");

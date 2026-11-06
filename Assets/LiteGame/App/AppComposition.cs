@@ -54,9 +54,11 @@ namespace LiteGame
         internal Func<IFileStore, IContentService> ContentServiceFactory()
             => files => new YooAssetContentService(files);
 
-        /// <summary>场景服务（YooAsset 场景句柄适配器）：只经 ISceneService 被流程消费。</summary>
-        internal Func<ISceneService> SceneServiceFactory()
-            => () => new SceneService();
+        /// <summary>场景服务（YooAsset 场景句柄适配器）：只经 ISceneService 被流程消费；包句柄由内容服务持有
+        /// （组合根是唯一把端口还原为具体实现的地方）。</summary>
+        internal Func<IContentService, ISceneService> SceneServiceFactory()
+            => content => new SceneService(content as YooAssetContentService
+                ?? throw new ArgumentException("SceneService 需要 YooAsset 内容服务", nameof(content)));
 
         /// <summary>Lua 候选脚本健康探针（受控 XLua 沙箱）：只经 IHealthProbe 注入内容编排。</summary>
         internal Func<string, IFileStore, IHealthProbe> LuaHealthProbeFactory()
