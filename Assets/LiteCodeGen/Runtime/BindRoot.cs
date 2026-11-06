@@ -9,8 +9,6 @@ namespace LiteCodeGen
 {
     /// <summary>
     /// 绑定生成"根标记"。
-    /// 挂在生成根节点上,记录生成配置(命名空间/脚本名/脚本目录/基类),并提供"生成代码"入口。
-    /// 一个根节点 + 若干子节点上的 BindNode 标记 = 一次生成的最小单位。
     /// </summary>
     [AddComponentMenu("LiteCodeGen/BindRoot(根标记)")]
     public class BindRoot : MonoBehaviour

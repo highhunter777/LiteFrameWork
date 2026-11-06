@@ -10,10 +10,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 契约族：契约漂移对账（工具链设计 §6.2「sourceHash 漂移」；§9.3「生成物可重建、可对账；手改生成物被检出」）。
-    /// 页面清单（上下文可注入）里 `contractPresent` 的页面逐一对账：按 <see cref="UIContractBatch.Regenerate"/>
-    /// （判据单源——身份取清单 forms[0]、维护字段/events 同批量口径）重生成内存态契约与盘上契约逐字节比较——
-    /// 不一致＝Error（重跑 `ui.contract`；同时覆盖手改检出）。缺契约/草稿条目归 `ui.page-manifest`，本规则不重复报；
-    /// 清单读取失败显式一条 Error。
     /// </summary>
     public sealed class ContractDriftRule : IUIRule
     {

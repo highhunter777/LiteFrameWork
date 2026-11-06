@@ -168,11 +168,6 @@ namespace RoomServer.Runtime.Diagnostics
 
     /// <summary>
     /// 一局权威房间的完整重放记录：房间/对局身份 + Seed + 有序命令/步进/规则事件。
-    /// 不含构建/表/地图身份（那是宿主信封的职责）；不参与 Sim 判定，只在房间静默后取走。
-    ///
-    /// 世界存档环（可选）：录制器按帧深拷权威世界（<see cref="SimWorldState.CopyTo"/>，容量有界），
-    /// 让重放器在分歧帧能产出 <see cref="SimWorldDiff"/> 字段级报告——否则只有帧号与 checksum。
-    /// 分歧帧早于窗口（环已覆盖）时只有帧号，与 SimRunRecord.BeginWithWorlds 同一取舍。
     /// </summary>
     public sealed class RoomRunRecord
     {

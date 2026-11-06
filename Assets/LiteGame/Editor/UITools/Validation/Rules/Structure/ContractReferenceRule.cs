@@ -10,12 +10,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 契约族：引用对账（工具链设计 §6.2「controls 越界/未消费」；§5.2「required＝页面逻辑必须消费，未消费报 Warning」）。
-    /// 按页面清单逐页（luaPath 非空且契约在盘）：
-    /// **未消费**＝契约 `controls[]` 的 required 项、其 bindName 字面量未出现在页面 Lua 全文＝Warning（消费判定用
-    /// 全文字面量匹配，覆盖 `_Begin("Button_X",…)` 式变量中转；动态构造名不识别，如实登记）；
-    /// **越界**＝页面 Lua 名字型 API 调用点名不在契约 `controls[]`/`text[]` 面＝Error（名字打错即抓——
-    /// self.ui 按名寻址依赖 BindNode，引用未绑名＝运行时取不到）。
-    /// Lua 文件解析默认走 <see cref="UILuaReferenceScanner.TryResolveLuaFile"/>，测试可经构造器注入替代解析。
     /// </summary>
     public sealed class ContractReferenceRule : IUIRule
     {

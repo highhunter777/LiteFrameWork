@@ -7,8 +7,6 @@ namespace LiteGame.EditorTools.UI
 {
     /// <summary>
     /// 令牌源模型（《UI 编辑器工具链专项设计》§8.1；格式以 `Docs/设计文档/客户端/UI系统/UIStyleTokens.schema.json` 2.0 为准）。
-    /// 字段序由 `JsonProperty(Order)` 固定，作为规范文本序列化的唯一顺序来源。
-    /// 组清单集中在 <see cref="UIThemeGroups.Enumerate"/>：新增一组＝加一个组属性 + 该枚举里一行 + 下游 SO/快照数组。
     /// </summary>
     [JsonObject(MemberSerialization.OptIn)]
     public sealed class UIThemeTokens

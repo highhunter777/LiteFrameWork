@@ -9,11 +9,7 @@ using LiteFramework.UI;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// 增量重填调试口（《UI性能优化规划》缺口 2 的验收手段，Play only）：
-    /// **与 <see cref="LuaDevReload"/> 并列**——后者是"重建 env + 全关界面"的重锤（Editor 迭代用），
-    /// 本菜单走 <see cref="LuaRegistryRefillService"/> 的轻路径（不动 env，只重预载 + 清 require 缓存 + 重填）。
-    /// 自检断言（失败当场抛 + Log.Error，不静默）：
-    ///   ① 三注册表失效纪元前进；② 报告无失败项；③ 待更新界面数不增（池中件已换表）。
+    /// 增量重填调试口（《UI性能优化规划》缺口 2 的验收手段，Play only）： **与 <see cref="LuaDevReload"/> 并列**——后者是"重建 env + 全关界面"的重锤（Editor 迭代用。）。
     /// </summary>
     public static class LuaDevRefill
     {

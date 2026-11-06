@@ -9,14 +9,7 @@ using UnityEngine;
 namespace LiteGame.EditorTools.UI
 {
     /// <summary>
-    /// 令牌读面（《UI 编辑器工具链专项设计》§8.1「工具只读生成物与 prefab 引用」）：
-    /// 从盘上 `UIThemeAsset` 装载颜色/文字令牌，供样式工具、校验规则与夹具共用。
-    ///
-    /// **委托壳（P2-3 B2 起解析核心单源＝<see cref="UIStyleResolver"/>〔LiteFramework.UI，运行时同源〕；
-    /// 本类只保留编辑器装载面（AssetDatabase）与既有公开签名，调用点源兼容）。**
-    ///
-    /// 纪律：**不做静态缓存**——编辑器域重载后静态缓存会读到旧值；样式工具每次操作只装载一次，
-    /// 之后把实例逐层下传（不逐节点重新装载）。资产缺失或类型不符时显式失败，不返回空集冒充成功。
+    /// 令牌读面（《UI 编辑器工具链专项设计》§8.1「工具只读生成物与 prefab 引用」）： 从盘上 `UIThemeAsset` 装载颜色/文字令牌，供样式工具、校验规则与夹具共用。
     /// </summary>
     public sealed class UITokenCatalog
     {

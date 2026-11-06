@@ -6,24 +6,6 @@ namespace RoomServer.Runtime
 {
     /// <summary>
     /// 公共战斗事件窗口（房间级**纯数据**有界环；《状态同步专项设计》§5.2 CombatEvent 面）。
-    ///
-    /// **它取代了什么**：原 `KillRecordWindow` / `FireRecordWindow` / `HitRecordWindow` 三个并行环——
-    /// 三份同样的"有界环 + 全量重发"实现、三个 packer、三段捕获调用，且**每加一种事件就要从
-    /// 房间内核一直改到客户端（五处）**。本类把它们收成一个：
-    /// 事件类型由 <see cref="FrameEventKind"/> 单一词汇定义，新增类型**不改本类、不改 wire**。
-    ///
-    /// **两条收敛纪律**（缺一就会重演 2026-10-18 的事故）：
-    /// 1. **时间老化**（<see cref="StaleFrames"/>）：只保留最近 1s 内的事件。原三环只按容量淘汰，
-    ///    打满后永远满载 ⇒ 每份快照恒定携带 32+16+16 条 ⇒ 包体顶爆 KCP 不可靠上限 ⇒
-    ///    整份快照被丢 ⇒ 状态流彻底中断。老化让"稳态载荷 ≈ 最近 1s 真实事件量"，与局时长无关。
-    /// 2. **容量有界**（<see cref="Capacity"/>）：老化之外的第二道闸。满则淘汰最旧——击杀等低频事件
-    ///    在 1s 内不可能堆到容量上限，因此不会被高频命中事件挤掉。
-    ///
-    /// **聚合**：同一 `(Kind, A, B, Frame)` 只留一条（霰弹多弹丸的 Hit 合并伤害并合并 Crit）——
-    /// 这与客户端去重键 <see cref="CombatEventRecord.SameKey"/> 严格同源，两端不必各写一套规则。
-    ///
-    /// 遍历序 <see cref="Get"/>：**下标 0 = 最旧 → 最新**（客户端按序消费，表现不乱序）。
-    /// 携带方式：随每份快照/事件批**全量重发**（30Hz 自带丢包收敛——这是它不需要可靠通道的原因）。
     /// </summary>
     public sealed class CombatEventWindow : ICombatEventSource
     {
@@ -46,11 +28,9 @@ namespace RoomServer.Runtime
         /// <summary>当前条数。</summary>
         public int Count => _count;
 
-        /// <summary>记入一条战斗事件（上游产出点唯一入口）。
-        /// <see cref="FrameEventKind.Hit"/>/<see cref="FrameEventKind.Crit"/> 视作**同一族**（伤害事件）：
-        /// 同 (双方, 帧) 的多条合并为一条、伤害累加、有任一 Crit 即升档为 Crit——
-        /// 这样客户端只按 kind 分档即可，也不必为"同一枪的普通弹丸与爆头弹丸"处理两条记录。
-        /// 其他 kind 各自成族（<see cref="FrameEventKind.Death"/> 等按同键去重）。</summary>
+        /// <summary>
+        /// 记入一条战斗事件（上游产出点唯一入口）。
+        /// </summary>
         public void Add(FrameEventKind kind, long a, long b, int frame, int value, in SimVector3 pos)
         {
             byte family = FamilyOf(kind);

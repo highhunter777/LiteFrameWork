@@ -78,10 +78,6 @@ namespace RoomServer.Application
 
     /// <summary>
     /// 验证通过的票据主体（《商业级通用服务端框架总设计》§7"建议最小接口"）。
-    ///
-    /// **形态由设计钉死**：<c>JoinPrincipal Validate(string ticket, JoinContext context)</c>——
-    /// 因此失败不走异常也不走 bool，而是返回 <see cref="Rejection"/> != None 的主体。
-    /// 调用方**必须先查 <see cref="IsValid"/>**，不得只看非空。
     /// </summary>
     public sealed class JoinPrincipal
     {
@@ -138,19 +134,6 @@ namespace RoomServer.Application
 
     /// <summary>
     /// Join 票据验证端口（《商业级通用服务端框架总设计》§P0-6/§7；《框架先行》§5-4）。
-    ///
-    /// **归属 RoomServer 侧**（设计 §7 工程结构 + Meta 专项 §15"R2：RoomServer 侧 Join Ticket 本地验签"）：
-    /// Meta/Lobby 用**私钥签发**，RoomServer 用**本地公钥验签**；对局热路径**不查询** Profile 数据库。
-    ///
-    /// **实现约定**：
-    /// - 必须 **fail-closed**——任何异常/缺失/不确定一律返回拒绝，不得降级放行；
-    /// - 必须**无状态可注入时钟**（<see cref="JoinContext.NowMs"/> 由调用方给），不得自读系统时钟——
-    ///   否则 L1 无法构造过期/回拨用例（与 <see cref="IMonotonicClock"/> 同一纪律）；
-    /// - 必须**不查库**（设计明文），密钥/公钥环在进程内；
-    /// - 重放判定由实现维护**有界**一次性消费窗口（设计 §20 完成定义第 4 条：任何队列/缓存/票据窗口
-    ///   都必须有显式容量与清理策略）。
-    ///
-    /// <see cref="JoinPrincipalValidate"/> 不得抛出——验证失败是**预期路径**，不是异常路径。
     /// </summary>
     public interface IJoinTicketValidator
     {

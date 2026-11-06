@@ -29,17 +29,7 @@ namespace LiteGame.EditorTools
     }
 
     /// <summary>
-    /// 根位移烘焙器（烘焙工具箱「根位移」页，或 run_script 调用；《联机动画与根位移专项设计》§3 制作链：
-    /// 采样 → 数值规范化/量化 → 校验 → 导出两端共享数据产物 → 摘要）。
-    ///
-    /// **提取口径**：人形片段的根轨迹 = RootT 曲线（Avatar 局部空间）——逐 60Hz 采样帧间差分为
-    /// 局部平面增量（毫米量化，round half away from zero）；非人形片段不支持（fail-fast，§3 不许静默回退）。
-    /// **校验**（§3）：NaN/Inf、单 tick 超速（>2m）、重复 ActionId、非零 Y 位移（记峰值并警告——
-    /// YPolicy 默认 Sim 重力，视觉抬升不进权威位移）。预期失败返回 <c>ABORT</c> 多行报告（含"动作/帧号"定位），不抛异常。
-    /// **确定性**：排序固定（ActionId 升序）、毫米量化吸收曲线求值的浮点尾差——同配置重复烘焙逐字节一致；
-    /// 编码后立即按同一格式自装载并复算样本摘要（往返丢字段 = 本次烘焙 ABORT，不落盘）。
-    /// **产物**：<see cref="BakeTargets.RootMotionBinOutput"/>（格式见 <see cref="RootMotionCatalog"/>）——
-    /// 数据产物不进 BuildHash 源集，**改后无需重生成 BuildHash，但需重发内容包**（Config 收集组）。
+    /// 根位移烘焙器（烘焙工具箱「根位移」页，或 run_script 调用；《联机动画与根位移专项设计》§3 制作链： 采样 → 数值规范化/量化 → 校验 → 导出两端共享数据产物 → 摘要）。
     /// </summary>
     public static class RootMotionBaker
     {

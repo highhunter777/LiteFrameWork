@@ -6,9 +6,7 @@ using Newtonsoft.Json;
 namespace LiteGame.Editor.UITools.Contracts
 {
     /// <summary>
-    /// 页面契约模型（字段语义见《UI 编辑器工具链专项设计》§5 与
-    /// `Docs/设计文档/客户端/UI系统/UIPageContract.schema.json`）。
-    /// 生成物只读：仅 <see cref="UIContractGenerator"/> 写；字段顺序固定，禁止时间戳。
+    /// 页面契约模型（字段语义见《UI 编辑器工具链专项设计》§5 与 `Docs/设计文档/客户端/UI系统/UIPageContract.schema.json`）。
     /// </summary>
     public sealed class UIPageContract
     {

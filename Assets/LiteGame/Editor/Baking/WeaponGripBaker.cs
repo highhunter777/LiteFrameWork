@@ -7,23 +7,7 @@ using UnityEngine;
 namespace LiteGame.EditorTools
 {
     /// <summary>
-    /// 持枪偏移烘焙工具（烘焙工具箱「持枪偏移」页，或 run_script 调用）：
-    /// 在**参考持枪姿态**下采样，把「武器骨相对持枪手」的局部变换导出为
-    /// <see cref="BakeTargets.GripBinOutput"/>（`grip.bin` 数据产物，格式见 <see cref="WeaponGripCatalog"/>）。
-    ///
-    /// **为什么需要它**：枪骨是根骨（不随手），换弹期需要把武器骨钉回持枪语境
-    /// （见 WeaponGripConstraint 的换弹上半身叠加覆写）。参考姿态取 <see cref="BakeTargets.ReferenceClip"/>
-    /// t=0（该片段是持枪语境的单源——射弹时刻姿态族同源）。
-    ///
-    /// **偏移定义**：武器骨在跟随骨（持枪手 RightHand）局部空间下的位置与旋转。
-    ///
-    /// **为什么跟随右手**：实测（Reload 片段逐帧手到枪距离）——枪骨 <c>add_weapon_r</c>
-    /// 与右手骨世界位**完全相同**（静止差 0.6 mm），右手是枪的挂点父级；左手到枪恒 33.6 cm
-    /// （片段里左手并未握枪）。跟随挂点手骨是唯一能让"枪永远在手"的结构解——跟随躯干会在
-    /// 拉栓动作（右手位移 21 cm）时与挂点父级脱节，表现为"枪没对上手"。
-    ///
-    /// **落点**：`Assets/GameData/Config/runtime/grip.bin`（纯表现数据，刻意不进 BuildHash 源集；
-    /// 随 Config 收集组进内容包——改后无需重生成 BuildHash，但需重发内容包）。
+    /// 持枪偏移烘焙工具（烘焙工具箱「持枪偏移」页，或 run_script 调用）： 在**参考持枪姿态**下采样。
     /// </summary>
     public static class WeaponGripBaker
     {

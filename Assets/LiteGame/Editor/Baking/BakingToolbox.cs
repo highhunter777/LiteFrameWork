@@ -5,12 +5,7 @@ using UnityEngine;
 namespace LiteGame.EditorTools
 {
     /// <summary>
-    /// 烘焙工具箱（菜单 <c>LiteGame/烘焙工具箱</c>——六件烘焙/调带工具的**统一入口与统一形态**）：
-    /// 每件工具一页（说明 + 执行 + 报告），共享目标单源 <see cref="BakeTargets"/>；执行面统一为
-    /// 「静态 <c>All()</c> 返回多行报告文本，预期失败返回 <c>ABORT</c> 报告不抛异常」。原独立菜单
-    /// （烘焙身位圆柱/烘焙枪口偏移/烘焙持枪偏移/调整爆头带/LiteSim 根位移烘焙）收敛于此；
-    /// 场景采样族「地图」（<see cref="SimMapBaker"/>）直落本箱第六页；
-    /// run_script 仍可直调各类 <c>All()</c>/<see cref="HeadHitLineTuner.Export"/>。
+    /// 烘焙工具箱（菜单 <c>LiteGame/烘焙工具箱</c>——六件烘焙/调带工具的**统一入口与统一形态**）： 每件工具一页（说明 + 执行 + 报告）。
     /// </summary>
     public sealed class BakingToolbox : EditorWindow
     {

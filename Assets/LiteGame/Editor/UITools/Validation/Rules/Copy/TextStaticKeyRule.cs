@@ -11,9 +11,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 文本族：静态文案 key 必须在 <c>tbltext</c>（工具链设计 §6.2「key 缺失」）。
-    /// 两路输入：资产面 <c>LTextKeyRef.Key</c>；Lua 面 <c>SetTextKey/SetTextKeyArgs/SetTextKeyPlural</c> 的 key 实参。
-    /// 表读取失败显式报一条 Error（不伪造空表——与清单规则同口径）；种子（<c>UIValidationContext.LTextSeed</c>）
-    /// 供测试注入合成条目，缺省走 <c>UILTextTable</c> 真实装载。空 key 归契约生成器（生成期拦），本规则不重复报。
     /// </summary>
     public sealed class TextStaticKeyRule : IUIRule
     {

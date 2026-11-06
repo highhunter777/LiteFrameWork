@@ -6,8 +6,6 @@ namespace LiteGame.Toolchain
 {
     /// <summary>
     /// 开发工具链 Hub：唯一顶层入口 LiteGame/工具链。
-    /// 目录来自 scripts/gate/toolchain.json；Hub 只按 page/window/action/cli/docs 做薄适配，
-    /// hud 是运行内载体（只说明），平面筛选按清单 plane 字段过滤。
     /// </summary>
     public sealed class LiteGameToolboxWindow : EditorWindow
     {

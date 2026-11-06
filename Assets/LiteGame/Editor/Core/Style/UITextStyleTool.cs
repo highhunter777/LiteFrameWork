@@ -33,14 +33,6 @@ namespace LiteGame.EditorTools.UI
 
     /// <summary>
     /// 文字样式工具（《UI编辑器工具专项设计》§3.1/§3.2——"统一文字档"的落地执行件；**仅编辑器批量工具**）。
-    ///
-    /// - **应用（<see cref="ApplyTextStyles"/>）**：按 <see cref="UITextStyleRef"/> 声明的角色，把档位基线
-    ///   **精确写入**文本组件（字号/对齐/换行/初始溢出策略/字重——§3.2"文字枚举/字号精确应用"）；
-    ///   值已符合的属性逐项跳过 → 重跑幂等；改基线（<see cref="UITextStyle"/> 单源）后重跑即全量收敛。
-    /// - **对账（<see cref="ReportTextDrift"/>）**：分三类报告——未标记文本（整改清单）、有标记属性漂移、
-    ///   标记失效（无文本组件 / TMP font 缺失）。**只读报告不擅改**（对账只读盘上资产——运行时实例变化
-    ///   不进资产漂移，§3.2）。
-    /// - 作用域与 <see cref="UIStyleTool"/> 同面：Widgets + Screens（§3.2）；扫描根可注入（测试用临时目录）。
     /// </summary>
     public static class UITextStyleTool
     {

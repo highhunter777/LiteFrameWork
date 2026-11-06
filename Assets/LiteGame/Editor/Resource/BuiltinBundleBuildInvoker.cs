@@ -9,16 +9,7 @@ using YooAsset.Editor;
 namespace LiteGame.EditorTools
 {
     /// <summary>
-    /// 内置 Bundle 包构建入口（C1：《商业级通用客户端框架总设计》§8.1 + 热更专项——
-    /// Offline 健康路径的包来源。C0-③ 曾以双标记放行"错误 UI 分支"，本入口补齐"AssetService 就绪"分支的
-    /// 可重复生产方式）。
-    ///
-    /// 流程：ScriptableBuildPipeline 真实构建 DefaultPackage（SBP 1.21.25）→
-    /// BundledCopyOption.ClearAndCopyAll 把产物清空复制到 StreamingAssets/yoo →
-    /// Player 构建时随包分发（OfflinePlayMode 内置文件系统应答）。
-    ///
-    /// 入口：①菜单（手工）②Run()（CI/Player 构建链可编程调用）。Player 构建前必须先跑本构建，
-    /// 否则 StreamingAssets 缺 BuiltinCatalog → Preload 失败 → 错误 UI（确定错误态，设计内行为）。
+    /// 内置 Bundle 包构建入口（C1：《商业级通用客户端框架总设计》§8.1 + 热更专项—— Offline 健康路径的包来源。）。
     /// </summary>
     public static class BuiltinBundleBuildInvoker
     {
@@ -100,10 +91,7 @@ namespace LiteGame.EditorTools
         public static void RunStandaloneWindows64() => Run(BuildTarget.StandaloneWindows64);
 
         /// <summary>
-        /// **候选专用入口**（样例①真实资产包段）：构建 DefaultPackage 但**不复制到 StreamingAssets**
-        /// ——内置包保持既有版本与内容（否则内置包带上新收集组的内容，样例证据自毁）。
-        /// 产物目录经 <paramref name="outputDirectory"/> 返回（同时记录到 <see cref="LastOutputDirectory"/>），
-        /// 由发布脚本以 `publish-candidate.ps1 -BundleSource &lt;dir&gt;` 打成候选的 `bundle/` 段。
+        /// **候选专用入口**（样例①真实资产包段）：构建 DefaultPackage 但**不复制到 StreamingAssets** ——内置包保持既有版本与内容（否则内置包带上新收集组的内容，样例证据自毁）。
         /// </summary>
         public static void RunForCandidateFromMenu()
         {
@@ -199,18 +187,13 @@ namespace LiteGame.EditorTools
             // dev 件隔离守卫（构建清单核对）：dev 资产打进运行时包＝层泄漏，构建直接失败。
             GuardNoDevAssets(result.OutputPackageDirectory, buildParameters.PackageVersion);
 
-            // 候选路径（copy=None 会跳过 YooAsset 的 TaskCreateCatalog）补生成内置目录文件：
-            // 运行时以候选包根初始化时，内置文件系统必读 `BuiltinCatalog.bytes`（文件名 → 包 GUID 映射）——
-            // 缺它 = 激活后启动 404（实测）。目录生成写进**构建输出目录**（不碰 StreamingAssets，
-            // "不覆盖内置包"语义保持）；镜像到候选 `bundle/**` 后随发布走。
+            // 候选路径（copy=None 会跳过 YooAsset 的 TaskCreateCatalog）补生成内置目录文件： 运行时以候选包根初始化时。
             if (copyOption == EBundledCopyOption.None)
                 CreateBuiltinCatalogInOutput(result.OutputPackageDirectory);
         }
 
         /// <summary>
         /// 在构建输出目录内生成 `BuiltinCatalog.bytes`/`.json`（YooAsset 内置目录文件）。
-        /// 经反射调用 YooAsset 内部 `BuiltinCatalogHelper.CreateFile`——序列化格式的单一来源留在包内，
-        /// 本工程不复制其二进制格式（包升级不脱节）；解密器同内置构建路径（不加密时为 null）。
         /// </summary>
         private static void CreateBuiltinCatalogInOutput(string outputDirectory)
         {

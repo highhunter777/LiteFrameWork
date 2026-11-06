@@ -13,12 +13,6 @@ namespace LiteGame.Editor
 {
     /// <summary>
     /// GM 工具箱·测试模式页：进入/退出/传送到准心 + 现场开关（即时生效）+ 爆头区/持枪幅度实时调。
-    /// **静态启动配置不在本页**——在场景 DevStartupConfig（Inspector 随场景保存，进房快照）；本页只管进入/退出与局内可调项。
-    /// 分层裁决：读数与动作全部经 <see cref="DebugKernel"/> 门面（《GM 与调试工具分层专项设计》§7——投影不另拼读数、
-    /// 不另写动作）；内核之下开关单表/请求桥仍是唯一写口（新增开关只改那张表——本页零改动）；
-    /// 进入/退出/传送 = 一次性请求桥（传送的实际派发在对局内经 ProcedureBattle → <c>SendQueued(TeleportToAimCommand)</c> 进审计环）；
-    /// 爆头带覆写写通道 = <see cref="MatchTestRules"/> 活动局实例 + TestModeRuntime 待用值双落
-    /// （判定路径读注入实例——确定性判定不读静态，含 dev 宏内）。
     /// </summary>
     internal sealed class GMTestModePage : IGMPage
     {
@@ -55,9 +49,7 @@ namespace LiteGame.Editor
         private string _testRoomStatus = "(未创建)";
 
         /// <summary>
-        /// 云端测试房与 GM 下发：普通房 = standard（大厅建房，正常结算）；云端测试房 = sandbox
-        /// （隐藏、不进大厅、不结算，地图随建房票据盖章）。测试房由本页显式创建；免死/无限弹药
-        /// 由服务端权威生效，只对带模板建成的隐藏房有效，普通房 409。
+        /// 云端测试房与 GM 下发：普通房 = standard（大厅建房，正常结算）；云端测试房 = sandbox （隐藏、不进大厅、不结算，地图随建房票据盖章）。
         /// </summary>
         private void DrawCloudGmBlock()
         {

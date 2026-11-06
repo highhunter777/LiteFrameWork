@@ -12,10 +12,7 @@ using UnityEngine.SceneManagement;
 namespace LiteGame.Editor.UITools.Preview
 {
     /// <summary>
-    /// 截图矩阵执行器（P2-3 B3 / AC3）：编辑器 Play 内逐组合应用设备档/语言/字体缩放→稳定帧→
-    /// ScreenCapture→回写 matrix.json。Job 状态存 SessionState，跨域重载可恢复；中断安全；
-    /// 单组合失败只记失败继续。产物固定落 `Artifacts/`（.gitignore 已排除）。
-    /// 输入解析归 <see cref="UIPreviewMatrixPlanner"/>，状态持久化归 <see cref="UIPreviewMatrixJobStore"/>。
+    /// 截图矩阵执行器（P2-3 B3 / AC3）：编辑器 Play 内逐组合应用设备档/语言/字体缩放→稳定帧→ ScreenCapture→回写 matrix.json。
     /// </summary>
     [InitializeOnLoad]
     public static class UIPreviewMatrixRunner

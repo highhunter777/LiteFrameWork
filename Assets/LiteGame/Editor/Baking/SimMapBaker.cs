@@ -20,21 +20,7 @@ namespace LiteGame.EditorTools
     }
 
     /// <summary>
-    /// 地图烘焙器（烘焙工具箱「地图」页，或 run_script 直调；《地图数据专项设计》§6 规则全量）：
-    /// 采集地图场景（<see cref="BakeTargets.MapScenePath"/>）的判定代理（`MapCollision` 树）＋出生点
-    /// （`spawn_*`）＋边界（`map_bounds` 的 <see cref="MapBoundsMarker"/>，禁硬编码）→ 校验（fail-fast，
-    /// 不产半成品）→ 毫米量化（round half away from zero）→ 固定排序 → <see cref="SimMapDigest"/> →
-    /// 写 `Luban/Data/map.json`（write-if-changed）。
-    ///
-    /// **产物是 Luban 数据源**（非 .bytes）：不自动跑 gen.bat（D6）——`.bytes` 由 `Luban/gen.bat` 从本
-    /// JSON 产出；改场景 = 重烘本 JSON，**勿手改**（"源＝烘焙产物"闭环）。
-    /// **确定性**：同场景重复烘焙逐字节一致（固定 key 排序 ＋ 毫米量化 ＋ InvariantCulture ＋ LF）。
-    /// **失败口径**：预期失败返回 <c>ABORT</c> 多行报告（含对象路径定位），不抛异常（工具箱统一形态）。
-    /// **多图**：目标注册表＝<see cref="BakeTargets.Maps"/>（加图＝加一条），整批入口＝<see cref="BakeAll"/>。
-    /// 采集规则：Box→Box、Sphere→Circle（须均匀缩放）、Capsule 按方向（Y→Circle／X,Z→Box）、
-    /// MeshCollider 按 <see cref="MeshColliderPolicy"/>；旋转仅 yaw∈{0,90,180,270}（pitch/roll 拒载）；
-    /// surface 走代理名前缀 `surf_&lt;surface&gt;_`（无前缀＝Default，未知名拒载）；超 256 件按占位面积
-    /// 降序取前 256 并报告丢弃清单（禁止静默截断）。
+    /// 地图烘焙器（烘焙工具箱「地图」页，或 run_script 直调；《地图数据专项设计》§6 规则全量）： 采集地图场景（<see cref="BakeTargets.MapScenePath"/>）的判定代理（`MapC。）。
     /// </summary>
     public static class SimMapBaker
     {
@@ -148,10 +134,6 @@ namespace LiteGame.EditorTools
 
         /// <summary>
         /// 采集＋校验＋量化＋摘要（**不落盘**——写盘归 <see cref="All"/>；测试与 run_script 对账直调）。
-        /// <paramref name="bodyRadius"/>/<paramref name="bodyHeight"/> 是身位圆柱（prefab CC 单源，
-        /// 经表行与入库夹具三方一致后由调用方传入）——出生点校验不再读编译期常量。
-        /// 失败返回 ABORT 报告并置 <paramref name="map"/>/<paramref name="jsonText"/> 为 null；
-        /// 成功返回采集报告（含丢弃清单等提示行），产物经 out 交给调用方。
         /// </summary>
         public static string Collect(GameObject collisionRoot, out SimMapData map, out string jsonText,
             float bodyRadius, float bodyHeight,

@@ -6,13 +6,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Compose
 {
     /// <summary>
-    /// 受控属性分区（《UI编辑器工具专项设计》§5"受控属性"）：按白名单 attribute（<c>UIWidgetProperty</c>）
-    /// 枚举可改成员，逐组件用 **Odin 属性树**只画白名单成员——未标注成员在本分区**没有任何绘制入口**，
-    /// "不暴露控件内部实现"是机制而非按钮禁用。写入/Undo/脏标记由 Odin 属性树统一处理
-    /// （<see cref="InspectorUtilities.BeginDrawPropertyTree"/> / <see cref="InspectorUtilities.EndDrawPropertyTree"/> 绘制对）。
-    ///
-    /// 白名单发现走零 Sirenix 的 <see cref="UIWidgetPropertyCatalog"/>（测试只测该处）。
-    /// 几何/锚点/尺寸不在此面——归 Unity Prefab Stage 原生编辑（§5"布局操作仍由 Prefab Stage 提供"）。
+    /// 受控属性分区（《UI编辑器工具专项设计》§5"受控属性"）：按白名单 attribute（<c>UIWidgetProperty</c>） 枚举可改成员。
     /// </summary>
     public sealed class UIWidgetPropertySection
     {

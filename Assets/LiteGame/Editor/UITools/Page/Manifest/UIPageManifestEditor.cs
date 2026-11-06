@@ -7,9 +7,7 @@ using LiteGame.Editor.UITools.Contracts;
 namespace LiteGame.Editor.UITools.Page
 {
     /// <summary>
-    /// 页面清单的编辑 API（《UI 编辑器工具链专项设计》§3.1/§3.6/§8.5）：起页草稿、状态流转、
-    /// 维护字段更新。**纯内存操作**——调用方显式保存（`UIPageManifestStore.Save` 或 `SyncToDisk`）；
-    /// 每次成功编辑后重算 `sourceHash`。
+    /// 页面清单的编辑 API（《UI 编辑器工具链专项设计》§3.1/§3.6/§8.5）：起页草稿、状态流转、 维护字段更新。
     /// </summary>
     public static class UIPageManifestEditor
     {

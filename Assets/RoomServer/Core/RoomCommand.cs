@@ -10,8 +10,6 @@ namespace RoomServer.Runtime
         Operator,
         /// <summary>
         /// **限时排空**（§12 优雅关闭第 3 步："在配置时限内完成对局；**超时则归档 Aborted 原因并安全关闭**"）。
-        /// 与 <see cref="Operator"/> 的区别在语义而非机制：Operator 是立即停，DrainTimeout 是
-        /// "已等满排空时限仍未自然收敛"。归档/日志据此区分"正常排空"与"排空超时被强停"。
         /// </summary>
         DrainTimeout,
         /// <summary>不可恢复错误（内部状态损坏、连续异常）。</summary>
@@ -43,13 +41,6 @@ namespace RoomServer.Runtime
 
     /// <summary>
     /// 房间命令（§8.1 RoomCommand）：App 层完成解码、票据/buildHash 校验后构造本命令送入 Runtime。
-    ///
-    /// 形态裁定：**struct 判别联合 + 静态工厂**，非 record 族——ClientInput 与 Tick 是每包/每帧的
-    /// 热路径（R0 起零分配纪律），多态 record 每条一次堆分配不可接受；命令种类有限且字段面窄，
-    /// 联合 struct 一处可览。R2 引入有界 Mailbox 时命令即队列元素，本形态零改动可序列入队。
-    ///
-    /// 语义边界：AuthenticatedJoin 只在 App 层验证（版本/票据/房间号/字节上限）通过后才会构造——
-    /// Runtime 信任命令来源，不再重复验证协议细节（§5-5"可测与可诊断"：失败源可注入）。
     /// </summary>
     public readonly struct RoomCommand
     {
@@ -113,18 +104,13 @@ namespace RoomServer.Runtime
         }
 
         /// <summary>
-        /// 恢复完成 ACK（§9.3 步骤 6）：客户端已应用重连响应的权威快照与输入历史，席位
-        /// <see cref="SeatPhase.Restoring"/> → Active——服务器自此恢复该席位增量广播。
-        /// 幂等：非 Restoring 席位（未在恢复中）静默忽略，重复 ACK 无副作用。
+        /// 恢复完成 ACK（§9.3 步骤 6）：客户端已应用重连响应的权威快照与输入历史，席位 <see cref="SeatPhase.Restoring"/> → Active——服务器自此恢复该席位增量广播。
         /// </summary>
         public static RoomCommand RestoreAck(int playerId)
             => new RoomCommand(RoomCommandKind.RestoreAck, -1, playerId, -1, 0, ShutdownReason.None, default);
 
         /// <summary>
-        /// 房主开局请求（PlayerId = 发起席位；owner 判定在 Runtime——"开房者 = 首个入座者"）——
-        /// **唯一开局入口**（裁决：满员不再自动开局）。
-        /// 立即 StartMatch（世界只生成已入座实体，缺席席位沿用空输入）；
-        /// 非 WaitingForPlayers 幂等忽略、非 owner 拒绝（App 回 <c>StartMatchResponse</c> 信令）。
+        /// 房主开局请求（PlayerId = 发起席位；owner 判定在 Runtime——"开房者 = 首个入座者"）—— **唯一开局入口**（裁决：满员不再自动开局）。
         /// </summary>
         public static RoomCommand StartEarly(int playerId)
             => new RoomCommand(RoomCommandKind.StartEarly, -1, playerId, -1, 0, ShutdownReason.None, default);

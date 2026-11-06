@@ -7,18 +7,6 @@ namespace RoomServer.Application
 {
     /// <summary>
     /// HMAC-SHA256 Join 票据验证器（《服务端总设计》§P0-6、§7"建议最小接口"；《框架先行》§5-4）。
-    ///
-    /// **为什么是共享密钥而非非对称**：§P0-6 允许"RoomServer 使用**本地公钥或共享验证器**验签"。
-    /// 框架期 Meta 与 RoomServer 同信任域，HMAC-SHA256 即满足"热路径不查库 + fail-closed"。
-    /// **换成非对称验签只替换本类**，<see cref="IJoinTicketValidator"/> 与消费者不变。
-    ///
-    /// **本类纪律**（对应 <see cref="IJoinTicketValidator"/> 的契约）：
-    /// - 时钟**只**取 <see cref="JoinContext.NowMs"/>，绝不读系统时钟（否则 L1 造不出过期/回拨用例）；
-    /// - <see cref="Validate"/> **不抛异常**——任何解析失败/未预期异常一律落到拒绝分类（fail-closed）；
-    /// - nonce 窗口**有界**且可 purge（§20 完成定义第 4 条）；
-    /// - **本类不写日志**（票据原文绝不进日志）。
-    ///
-    /// **线程安全**：nonce 窗口加锁（服务端多连接并发验证）。
     /// </summary>
     public sealed class HmacJoinTicketValidator : IJoinTicketValidator
     {
@@ -27,8 +15,6 @@ namespace RoomServer.Application
 
         /// <summary>
         /// 票据字符串字节上限（P0-3 解析前限制长度：超限不解析直接拒）。
-        /// **与准入门同源**（P2）：<see cref="JoinFieldLimits.TokenBytes"/>——准入先拦 256 字节，
-        /// 验签器此前自钉 2048 永远够不着（等于"第二道闸"形同虚设，且让"上限到底是多少"有两个答案）。
         /// </summary>
         public const int DefaultMaxTokenBytes = JoinFieldLimits.TokenBytes;
 

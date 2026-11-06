@@ -8,9 +8,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 样式族：颜色 token 对账（工具链设计 §6.2「裸颜色」；§8.1「漂移报告区分引用缺失/解析值不符/裸值」）。
-    /// 复用 <see cref="UIStyleTool.ReportDrift"/> 单源（最近 token 匹配 + 命中阈值 1e-4 在工具处单源），
-    /// 报告**不命中任何 token** 的颜色＝Warning（手调/漂移由对账暴露，不擅改——工具文档口径）。
-    /// 作用域＝上下文资产所在目录（去重），结果按上下文资产面过滤归属。
     /// </summary>
     public sealed class StyleColorDriftRule : IUIRule
     {

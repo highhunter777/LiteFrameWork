@@ -9,9 +9,6 @@ namespace Tools.DisciplineScan.Editor
 {
     /// <summary>
     /// 纪律扫描菜单（Editor 侧）：只负责定位项目根、跑引擎、输出与退出码。
-    /// 规则与扫描逻辑全在 <see cref="DisciplineScanner"/>（零依赖，dotnet 测试共用同一引擎）。
-    ///
-    /// CI 入口：<c>Unity -batchmode -quit -executeMethod Tools.DisciplineScan.Editor.DisciplineScanMenu.RunCli</c>
     /// </summary>
     public static class DisciplineScanMenu
     {

@@ -2,18 +2,6 @@ namespace RoomServer.Application
 {
     /// <summary>
     /// 每席位快照广播记账（《状态同步实施方案》§4.5 SessionManager 行；R0-P0-4 ACK 语义四道闸）。
-    ///
-    /// **归属**：广播记账是**房间侧**状态——发送水位 / 发送 ledger / 已验证 ACK 水位 / 背压档位
-    /// 只由驱动该房间的线程读写（单线程纪律）。宿主 owner 形态下记账挂在 <see cref="Session"/> 上
-    /// （连接即席位视图同一体）；Worker 执行形态下挂在房间本地的每席位槽上——两种形态共用本类，
-    /// 保证"ACK 只释放真实发送过的量"等语义只有一份实现。
-    ///
-    /// 连接级身份（ConnectionId/断开标记）不在这里——见 <see cref="IBroadcastSeat"/>。
-    ///
-    /// **状态面（P4 计数面封装）**：八个可变字段全部私有，只经**意图方法**写入——
-    /// 每个字段"谁能写、写成什么"由 API 承载，而不是由注释约定（原先字段公开：
-    /// 水位/ACK 水位可被任意调用点直赋，背压三件套由管线连写三处、漏一处就是"档位升了但恢复观察没退"）。
-    /// **读面**保持同名只读属性，`SnapshotPipeline`/宿主/用例的读法零改动。
     /// </summary>
     public sealed class BroadcastAccount
     {
@@ -145,12 +133,7 @@ namespace RoomServer.Application
         }
 
         /// <summary>
-        /// 语义 ACK 验证（P0-4：**旧实现"ack 到达即 AckedBytes=SendQueueBytes 全清"可被任意伪造 ack 清空水位**——
-        /// 慢客户端伪装成快客户端，E1 降级形同虚设）。四道闸全过才释放：
-        /// 非负且单调前进（> <see cref="LastAcceptedAckFrame"/>）→ 不超前（≤ <see cref="LastSentSnapshotFrame"/>，
-        /// 只认真实发送过的帧）→ 命中发送 ledger（取该帧发送后的累计字节）。释放 = <c>AckedBytes = ledger.累计值</c>
-        /// （天然单调）。<see cref="LastAckSnapshot"/>（NeedsFull 判据）**只在验证后**更新——差分器只吃可信值。
-        /// 返回分类结果，App 层据此记 Ops（本类不自持计数器）。
+        /// 语义 ACK 验证（P0-4：**旧实现"ack 到达即 AckedBytes=SendQueueBytes 全清"可被任意伪造 ack 清空水位**—— 慢客户端伪装成快客户端，E1 降级形同虚设）。
         /// </summary>
         public AckResult TryAcceptAck(int ackFrame)
         {

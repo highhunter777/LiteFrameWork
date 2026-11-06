@@ -74,9 +74,7 @@ namespace Tools.DisciplineScan
         public static readonly LintRule[] GameRules =
         {
             LintRule.R8ResourcesLoad,
-            // R12 适配器边界（《客户端总设计》§5.1"形成逻辑边界和依赖测试"）：
-            // YooAsset/xLua/DOTween 的实现只许在各自边界目录内 import——
-            // 阻止新耦合扩散：在一体 asmdef 里，没有它，任何人都能再 import 一次而无人察觉。
+            // R12 适配器边界（《客户端总设计》§5.1"形成逻辑边界和依赖测试"）： YooAsset/xLua/DOTween 的实现只许在各自边界目录内 import—— 阻止新耦合扩散：在一体 asmdef 里，没有它，任何人都能再 import 一次而无人察觉。
             LintRule.R12AdapterBoundary,
             // R15 平台特判收敛：Android 适配的平台差异只走 profile/四个装配收敛点，
             // 别处出现 `#if UNITY_ANDROID` 即报红（否则平台分叉会按文件数蔓延）。
@@ -148,12 +146,7 @@ namespace Tools.DisciplineScan
         };
 
         /// <summary>
-        /// `Assets/LiteGame/` 下**允许存在的顶层目录**（《客户端总设计》§5 顶层分层）；
-        /// 框架侧 `LiteFramework.*` 住 `Packages/com.litegame.framework/Runtime/{Core,Services,Adapters,Hosting}/`（见 <see cref="Default"/> 扫描目标）。
-        ///
-        /// 新增顶层目录在 arch/units.json 的 topLevel.liteGame 登记（本数组由模型投影）。
-        /// 未登记的目录会让本规则报红——**目录一变就红**，与 R12 边界表同一纪律。
-        /// 非代码目录（`Lua`/`link.xml` 等）也在列：它们不是"层"，但要有名有姓。
+        /// `Assets/LiteGame/` 下**允许存在的顶层目录**（《客户端总设计》§5 顶层分层）。
         /// </summary>
         public static readonly string[] LiteGameTopLevelDirs = ScanTargetsGenerated.LiteGameTopLevelDirs;
 
@@ -178,17 +171,6 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// `Assets/` 下**允许存在的顶层目录**（组织级登记；口径＝《客户端架构重构演进路线图》§5.1）。
-        ///
-        /// 分层：L1 原始资源（Animation/Animator/Art/FX/Map/Model）／
-        /// 自研代码与测试根（LiteCodeGen/LiteGame/LiteTesting/RoomServer/Tests/Tools）／
-        /// 收集与工程强制定位（GameData/Scenes/Settings/StreamingAssets/ShareResource）／
-        /// 第三方归拢根（ThirdParty）／例外（Resources＝Unity 特殊目录；TextMesh Pro＝Unity 官方包导入面）。
-        ///
-        /// 收集目录不进本表：模块资源住 `LiteGame/Modules/<模块>/Content/`（Sound 自 B4-4c 起归
-        /// `Modules/Shared/Content/Sound`），L3 共享资源住 `ShareResource/`。
-        ///
-        /// 本表是"当前允许面"，不是永久白名单；目录迁出后同批删旧项。
-        /// 新增顶层目录在 arch/units.json 的 topLevel.assets 登记（本数组由模型投影）。
         /// </summary>
         public static readonly string[] AssetsTopLevelDirs = ScanTargetsGenerated.AssetsTopLevelDirs;
 
@@ -220,9 +202,6 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// 默认扫描目标集合（由 arch/units.json 的 scanTargets 投影；规则集仍在本文件）。
-        /// 口径注意：R6 的 `\byield\s+return\b` 不区分 C# 迭代器与 Unity 协程；
-        /// R13 对 Sim 机制面启用，表现层与读口定义文件经 ConfigPortExcludes 排除；
-        /// R14 的 Editor/Gm 目标显式 IncludeEditorDirs；R8/R12 在框架 Services/Hosting/Adapters 与产品 LiteGame 全域启用。
         /// </summary>
         public static readonly ScanTarget[] Default = BuildDefault();
 
@@ -269,8 +248,6 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// .meta 扫描根（R7 非法 GUID：64 位 base64 guid 会被 Unity 拒收）。
-        /// 任何 .meta 的 guid 都必须是 32 位 hex；Editor 目录**不豁免**（meta 不是 C#，
-        /// <see cref="DisciplineScanner.IsExcluded"/> 的 Editor 排除不适用于 meta 扫描）。
         /// </summary>
         public static readonly string[] MetaRoots =
         {
@@ -280,20 +257,10 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// **客户端对服务端程序集的引用登记表**（《客户端与服务端共享代码范围专项设计》§3 规则 D2）。
-        ///
-        /// 判据（D2）：客户端**可以**依赖服务端程序集，但只在**调试宿主**档位里，
-        /// 且该依赖必须落在**具名程序集**上——不得回流进业务程序集
-        /// （`#if` 只挡调用点，挡不住 asmdef 引用——引用是程序集级的）。
-        ///
-        /// 与 R12 的 <see cref="DisciplineScanner.R12Boundaries"/> 同一纪律：**这是唯一登记点**，
-        /// 新增一行即放行一个程序集；未登记的 asmdef 引了服务端程序集 → 报红。
-        /// 存在性由 <see cref="ValidateDevHostReferences"/> 守卫（路径陈旧 = 静默失效，同 R12 的坑）。
         /// </summary>
         public static readonly string[] DevHostMayReferenceServerAssemblies =
         {
             // 唯一合法档位：开发装配层（离线隔离开发的本地服 + 本地传输工厂 + 投影件）。
-            // 它是 RoomRuntime/SnapshotPipeline 的调试宿主，不进生产路径——该程序集受三宏 defineConstraints
-            // 排除在发布包外，`ProcedureMatch.CreateTransport` 只经 `ILocalTransportFactory` 取实现。
             "Assets/LiteGame/Adapters/Dev",
         };
 
@@ -325,13 +292,6 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// **共享档位表 = 代码**（《共享代码范围专项设计》§2.1 的 S0–S4，§8.1 守卫 G5）。
-        ///
-        /// 钉的是**档位义务**中最容易静默退化的那一条——S1/S2 成员的 asmdef 必须是
-        /// `noEngineReferences: true`（S2 还要求零第三方实现依赖）。一旦有人给共享件加一个
-        /// Unity 引用，它就**编不进 dotnet 侧**，而没有任何东西会红。
-        ///
-        /// 与 G1（S0 源集单源）、D1/D2（方向）合起来，覆盖档位义务的可机械判定部分；
-        /// S0 的"进 hash 源集"由 G1 清单承担，不在此重复。
         /// </summary>
         public static readonly string[] SharedAssemblyDefs =
         {
@@ -343,10 +303,6 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// **S2 档位的额外义务②：零第三方实现依赖**（§2.2）。
-        ///
-        /// `LiteFramework.Core` 的 `references` 只允许**本仓自研程序集**——第三方实现不得进入
-        /// （否则服务端用其契约会被拖进实现级依赖）。
-        /// 判据用白名单（而非黑名单）——新增依赖必须显式登记；有人往 Core 加第三方引用即报红。
         /// </summary>
         public static readonly (string Asmdef, string[] AllowedThirdParty)[] ContractZeroDepDefs =
         {
@@ -418,11 +374,6 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// **G2**：`Assets/` 下不得出现 `bin`/`obj` 构建产物目录（点目录除外）。
-        ///
-        /// 为什么：Unity 会把 `Assets/` 下的 `bin/*.dll` 当插件导入，与 asmdef 编出的同名程序集
-        /// 撞车（CS1704），并扫描 `obj/` 里的生成 `.cs`（CS0579）。各双轨目录靠同目录
-        /// `Directory.Build.props` 重定向到 `.dotnet/`——**漏配就出这事，而漏配不报错**。
-        /// 本判据是预防性的：它会挡住"给新目录建 csproj 时忘配 props"。
         /// </summary>
         public static List<string> ValidateNoBuildOutputsUnderAssets(string projectRoot)
         {
@@ -500,9 +451,7 @@ namespace Tools.DisciplineScan
         }
 
         /// <summary>
-        /// **客户端框架侧纯度**（《客户端总设计》§5.1）：`LiteFramework.*`（通用核心 + 适配器）整体不得引用
-        /// 任何 `LiteGame.*` 程序集——产品面（含 `LuaBridge`）依赖框架，反向一律禁止。
-        /// 方向一旦被破坏，框架侧就只能随产品走（§C5 通用包提取被挡）——本判据把它钉成可执行规则。
+        /// **客户端框架侧纯度**（《客户端总设计》§5.1）：`LiteFramework.*`（通用核心 + 适配器）整体不得引用 任何 `LiteGame.*` 程序集——产品面（含 `LuaBridge`）依赖框架。
         /// </summary>
         public static readonly string[] ClientFrameworkPurityAsmdefs =
         {

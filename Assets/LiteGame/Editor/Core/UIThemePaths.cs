@@ -4,9 +4,7 @@ using LiteGame.Toolchain;
 namespace LiteGame.EditorTools.UI
 {
     /// <summary>
-    /// 主题生成链的路径单源（《UI 编辑器工具链专项设计》§8.1/§8.3）：
-    /// 令牌源 JSON 是**设计态源**，放编辑器目录、不进包；`UIThemeAsset` 是生成物，放 `GameData/Config/UI`（收集组内）。
-    /// 两处路径只在本类声明，工具/规则/夹具都引用这里，不各自拼字符串。
+    /// 主题生成链的路径单源（《UI 编辑器工具链专项设计》§8.1/§8.3）： 令牌源 JSON 是**设计态源**，放编辑器目录、不进包；`UIThemeAsset` 是生成物。
     /// </summary>
     public static class UIThemePaths
     {

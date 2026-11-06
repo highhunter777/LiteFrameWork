@@ -45,10 +45,7 @@ namespace LiteGame.EditorTools.UI
     }
 
     /// <summary>
-    /// 主题资产生成器（《UI 编辑器工具链专项设计》§8.1「令牌源：JSON → 生成 UIThemeAsset（SO）」）：
-    /// 读令牌源 → 校验（一次收集全部问题）→ 规范文本算 `sourceHash` → 与盘上 SO 逐字段比较 →
-    /// 有差异才写（幂等：第二次 `Changed=false` 且不触碰资产）。
-    /// 失败零写盘；资产路径限定 `Assets/` 且后缀 `.asset`；手改资产会被令牌源覆盖并报告变更。
+    /// 主题资产生成器（《UI 编辑器工具链专项设计》§8.1「令牌源：JSON → 生成 UIThemeAsset（SO）」）： 读令牌源 → 校验（一次收集全部问题）→ 规范文本算 `sourceHash` → 与盘上 SO。
     /// </summary>
     public static class UIThemeAssetGenerator
     {

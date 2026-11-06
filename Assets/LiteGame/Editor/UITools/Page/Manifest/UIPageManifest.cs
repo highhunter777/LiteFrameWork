@@ -5,15 +5,7 @@ using Newtonsoft.Json;
 namespace LiteGame.Editor.UITools.Page
 {
     /// <summary>
-    /// 页面清单（《UI 系统总设计》§5.1/§10.3：编辑器清单，不进运行时、不进包；字段语义与对账口径见
-    /// 《UI 编辑器工具链专项设计》§8.5）。
-    ///
-    /// 与纯生成物（页面契约/控件清单）不同：本清单是**工具维护的注册表**——身份字段从 `tbuiform`
-    /// 刷新，维护字段（Owner/状态/设计稿/设备档/备注）由工具 API 更新并在对账时保留。
-    /// 禁手改 JSON；`sourceHash` 用于发现外部写入。
-    ///
-    /// 一个 prefab 可在 `tbuiform` 登记多行（如 `Tmp_Dialog` 的 201 系统错误面 / 206 确认面），
-    /// 因此条目按**页面（prefab）**唯一、`forms[]` 承载登记行。
+    /// 页面清单（《UI 系统总设计》§5.1/§10.3：编辑器清单，不进运行时、不进包；字段语义与对账口径见 《UI 编辑器工具链专项设计》§8.5）。
     /// </summary>
     public sealed class UIPageManifest
     {

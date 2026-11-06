@@ -42,39 +42,24 @@ namespace Tools.DisciplineScan
         /// 禁 Transport/Socket/kcp、系统墙钟/Stopwatch/LongSleep、Console、文件 IO、proto/LiteNet 引用与全局随机。</summary>
         R11RuntimePurity = 11,
 
-        /// <summary>R12 适配器边界（《商业级通用客户端框架总设计》§5.1"先在现有程序集内**形成逻辑边界**
-        /// 和**依赖测试**，稳定后再拆 asmdef/UPM"）：适配器实现只许在各自的边界目录内引用——
-        /// 阻止耦合继续扩散（没有它，新代码可以随意再 import 一次，拆完 asmdef 也照样长回来）。
-        ///
-        /// 边界：YooAsset → `Content/**`（内容适配器）；XLua → `Scripting/**`（脚本运行时与桥）；
-        /// DG.Tweening → `UI/Anim/**`（动效适配）。
-        /// 例外行用 `lint-allow R12` 标注并写明理由（如"该文件本身就是场景适配器"）。</summary>
+        /// <summary>
+        /// R12 适配器边界（《商业级通用客户端框架总设计》§5.1"先在现有程序集内**形成逻辑边界** 和**依赖测试**。）。
+        /// </summary>
         R12AdapterBoundary = 12,
 
-        /// <summary>R13 数值读口禁读（机制面）——技术债 #1 根治的防复辟线（《玩法数值与Luban配置专项设计》数值实例化段）：
-        /// 机制代码（Sim Core / 房间内核 / RoomServer 宿主）不得读静态读口的**可变值**——
-        /// `CombatConfig` 装载面 6 字段+AimMoveSpeed+FireStanceFrames+Loaded/Publish、`MovementConfig` 全类、
-        /// `WeaponConfig` 的 Default/TryGet/Loaded/Publish；**常量面豁免**（烘焙几何/HardMaxSpeed/
-        /// DefaultRifleId 等 const——两端编译期同值）。值一律经 `CombatValues`/`MovementValues`/`WeaponTable`
-        /// 实例参数传递。例外行 lint-allow R13 并写明理由。</summary>
+        /// <summary>
+        /// R13 数值读口禁读（机制面）——技术债 #1 根治的防复辟线（《玩法数值与Luban配置专项设计》数值实例化段）： 机制代码（Sim Core / 房间内核 / RoomServer 宿主）不得读静态读口的**可变值*。
+        /// </summary>
         R13StaticConfigPort = 13,
 
-        /// <summary>R14 投影禁直调调试源（《GM 与调试工具分层专项设计》§7"统一内核与三投影"）：
-        /// 两个投影根（`Assets/LiteGame/Adapters/Dev/Projection` 运行期投影程序集 + `Assets/LiteGame/Editor/Gm` 编辑器 GM 页）内，
-        /// 调试**读数/动作/发现面**一律经 `DebugKernel` 门面——禁直调底层读口（`BattleDiagnostics.Current/Take`、
-        /// `Log.Recent/ErrorCount/Current*`、`DiagTrace.Recent/Total`、`GameEntry.Stats`）与写口
-        /// （`TestModeOptions.Get/Set/All`、`TestModeRuntime.*`、`CommandCenter`、
-        /// `StructuredLogInstaller`、`WeakNetRuntime`/`WeakNetClientTransport`、`FeatureDebugTunables`/`WeaponDebugTunables`）。
-        /// 豁免面：契约类型引用（`TestModeOptions.Id/Info/Group`、`BattleDiagnostics.Snapshot` 等类型位置）、
-        /// 纯格式化助手（`DiagTrace.Line`、`Log.TagName`）、日志门面写口（`Log.Warning/Error/Info`——投影自身运维日志）。
-        /// 例外行 `lint-allow R14` 并写明理由（如场景页＝带参命令专面板）。</summary>
+        /// <summary>
+        /// R14 投影禁直调调试源（《GM 与调试工具分层专项设计》§7"统一内核与三投影"）： 两个投影根（`Assets/LiteGame/Adapters/Dev/Projection` 运行期投影程序集 + `Assets。）。
+        /// </summary>
         R14ProjectionDebugPort = 14,
 
-        /// <summary>R15 平台特判收敛（《商业级通用客户端框架总设计》平台适配：平台差异走 profile/装配点，
-        /// 不堆 `#if`）：第一方代码不得用 `#if UNITY_ANDROID` 分叉。允许面＝四个收敛点
-        /// （构建 profile 是数据不在此列；`DeployBake` 读流、`InputSegment` 意图源装配、
-        /// `BattleViewRig.LookDeltaOf` 喂源选择——见 <see cref="PlatformForkAllowedFiles"/>）。
-        /// 新增收敛点须改登记表并说明它替代了哪条平台假设，而不是就地加 `#if`。</summary>
+        /// <summary>
+        /// R15 平台特判收敛（《商业级通用客户端框架总设计》平台适配：平台差异走 profile/装配点， 不堆 `#if`）：第一方代码不得用 `#if UNITY_ANDROID` 分叉。
+        /// </summary>
         R15PlatformFork = 15,
     }
 
@@ -94,10 +79,6 @@ namespace Tools.DisciplineScan
 
     /// <summary>
     /// 纪律扫描**唯一引擎**（零依赖纯 C#）：Editor 菜单与 dotnet 测试共用，避免规则多处各写一遍。
-    ///
-    /// 规则匹配前先剔除注释（字符串字面量感知）——注释里提到禁用 API 不算违规。
-    /// 豁免：行内出现 <c>lint-allow</c> 时该行全部规则豁免；<c>lint-allow R3</c> 只豁免 R3。
-    /// 另：与常量 0 / null / default 的字面量比较自动豁免 R3。
     /// </summary>
     public static class DisciplineScanner
     {
@@ -140,11 +121,7 @@ namespace Tools.DisciplineScan
         private static readonly Regex R10Regex = new Regex(@"\bINetworkService\b", RegexOptions.Compiled);
 
         /// <summary>
-        /// R11：RoomServer/Core 纯化（§8.1 禁止项——Runtime 只持确定性房间状态，时间经 RoomCommand.Tick 注入、
-        /// 输入经 ClientInputBatch 纯数据、输出经 RoomOutput 纯事件）。命中任一即违规：
-        /// Console / DateTime.Now / Environment.TickCount / Stopwatch / Thread.Sleep / System.Net / Socket / Kcp* /
-        /// IRoomTransport / using LiteNet 或 LiteNet. 限定名（proto 单源在 LiteNet）/ Google.Protobuf /
-        /// System.IO / File.* / new Random()（确定性随机走 Sim 的 RngState）。注释剔除后匹配（本文件命中示例在字符串里）。
+        /// R11：RoomServer/Core 纯化（§8.1 禁止项——Runtime 只持确定性房间状态，时间经 RoomCommand.Tick 注入、 输入经 ClientInputBatch 纯数据。）。
         /// </summary>
         private static readonly Regex R11Regex = new Regex(
             @"\bConsole\s*\.\s*(?:Write|WriteLine|WriteAsync|WriteLineAsync|Error|Out|In|Read|ReadLine|ReadKey)" +
@@ -171,10 +148,7 @@ namespace Tools.DisciplineScan
             RegexOptions.Compiled | RegexOptions.Multiline);
 
         /// <summary>
-        /// R13：数值读口禁读（机制面）——技术债 #1 防复辟（见枚举注释）。命中即违规：
-        /// `CombatConfig` 的可变值（MoveSpeed/Gravity/HitscanRange/BaseDamage/DamageSpread/EntityHp/
-        /// AimMoveSpeed/FireStanceFrames/Loaded/Publish）、`MovementConfig` 任意成员、`WeaponConfig` 的
-        /// Default/TryGet/Loaded/Publish。词边界保证常量面与更长名不误伤（`DefaultRifleId` 不被 `Default` 吞）。
+        /// R13：数值读口禁读（机制面）——技术债 #1 防复辟（见枚举注释）。
         /// </summary>
         private static readonly Regex R13Regex = new Regex(
             @"\bCombatConfig\s*\.\s*(?:MoveSpeed|Gravity|HitscanRange|BaseDamage|DamageSpread|EntityHp|AimMoveSpeed|FireStanceFrames|Loaded|Publish)\b" +
@@ -184,9 +158,6 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// R14：投影禁直调调试源（§7 内核+投影——读数/动作/发现面经 DebugKernel 门面）。
-        /// 成员级禁令：契约类型（Id/Info/Group/Snapshot）与纯格式化助手（DiagTrace.Line、Log.TagName）
-        /// 不在禁列；Log 门面写口（Warning/Error/Info）放行。字符串字面量先行剥离（页面标签/
-        /// Tooltip 常含类型名文案——见 <see cref="StripStrings"/>）。
         /// </summary>
         private static readonly Regex R14Regex = new Regex(
             @"\bBattleDiagnostics\s*\.\s*(?:Current|Take|DescribeCurrent|AppendExtendedCurrent|Attach|Detach)\b" +
@@ -204,19 +175,14 @@ namespace Tools.DisciplineScan
             RegexOptions.Compiled);
 
         /// <summary>
-        /// R15：平台特判收敛——`#if`/`#elif`/`#ifdef` 里的 `UNITY_ANDROID` 只许出现在
-        /// <see cref="PlatformForkAllowedFiles"/> 登记的收敛点。字符串字面量先剥离
-        /// （文档/日志文案可能写示例），注释本就先行剔除。
+        /// R15：平台特判收敛——`#if`/`#elif`/`#ifdef` 里的 `UNITY_ANDROID` 只许出现在 <see cref="PlatformForkAllowedFiles"/> 登记的收敛点。
         /// </summary>
         private static readonly Regex R15Regex = new Regex(
             @"^\s*#\s*(?:if|elif|ifdef)\b[^\n]*\bUNITY_ANDROID\b",
             RegexOptions.Compiled);
 
         /// <summary>
-        /// R15 允许面＝平台差异的收敛点（构建 profile 是数据文件，不在代码扫描面）：
-        /// ①`DeployBake` 读流平台化；②`InputSegment` 意图源按设备/平台选源；
-        /// ③`BattleViewRig.LookDeltaOf` 镜头喂源选择。
-        /// **这是唯一登记点**——新增一处须说明它替代了哪条平台假设，而不是就地加 `#if`。
+        /// R15 允许面＝平台差异的收敛点（构建 profile 是数据文件，不在代码扫描面）： ①`DeployBake` 读流平台化；②`InputSegment` 意图源按设备/平台选源。
         /// </summary>
         public static readonly string[] PlatformForkAllowedFiles =
         {
@@ -227,42 +193,27 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// R12 边界表：适配器 → 允许 import 它的目录前缀（相对**项目根**，正斜杠）。
-        /// <b>这是"形成逻辑边界"的唯一登记点</b>——新增适配器时在这里加一行，
-        /// 而不是到处散写字符串（与动画 Profile 的"ID→状态绑定唯一登记点"同一纪律）。
         /// </summary>
         private static readonly (string Adapter, string[] AllowedRoots)[] R12Boundaries =
         {
-            // 适配器层（《客户端总设计》§5 顶层框图第四层 `Adapters`）：
-            // 框架侧适配器统一住 `Packages/com.litegame.framework/Runtime/Adapters/<程序集后缀>/`，
-            // **目录名 = 层标签**（程序集名不含 Adapters 前缀；asmdef 不要求目录名与程序集名相同）。
+            // 适配器层（《客户端总设计》§5 顶层框图第四层 `Adapters`）： 框架侧适配器统一住 `Packages/com.litegame.framework/Runtime/Adapters/<程序集后缀>/`。
             ("YooAsset", new[] { "Packages/com.litegame.framework/Runtime/Adapters/YooAsset/" }),
             // XLua：宿主（env/预载/校验）住框架侧 Adapters；**Lua 桥**（生命周期/数据门面/注册表）是产品侧绑定层，
             // 住 `Assets/LiteGame/Adapters/LuaBridge/`——同守本边界
             ("XLua", new[] { "Packages/com.litegame.framework/Runtime/Adapters/XLua/", "Assets/LiteGame/Adapters/LuaBridge/" }),
-            // Unity.InputSystem：输入设备适配——框架侧设备源只认 Platform.Unity；**UI 输入适配**
-            // （EventSystem/输入模块建位 + 平台返回键直读）随 UI 服务装配归 UI 框架侧（同下 DOTween 的
-            // `UI/Anim` 判例——UI 框架专属适配住专属子目录，收敛在一个文件）
+            // Unity.InputSystem：输入设备适配——框架侧设备源只认 Platform.Unity。
             ("UnityEngine.InputSystem", new[] { "Packages/com.litegame.framework/Runtime/Adapters/InputSystem/", "Packages/com.litegame.framework/Runtime/Services/UI/Input/", "Assets/LiteGame/Adapters/Unity/InputSystem/" }),
             // Cinemachine：相机适配（同上）——消费者只认 ICameraService 端口，不认识这个包
             ("Cinemachine", new[] { "Assets/LiteGame/Adapters/Unity/Cinemachine/" }),
             // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 UI 框架（LiteFramework.UI）的
             // 专属适配，住其 Anim 子目录（同 InputSystem 的 UI/Input 判例）
             ("DG.Tweening", new[] { "Packages/com.litegame.framework/Runtime/Services/UI/Anim/" }),
-            // Newtonsoft：JSON 序列化器（第三方）。消费方只认 Core 端口——
-            // IJsonSerializer（整对象↔文本，文件/存档）与 IJsonCodec（严格契约读取）；
-            // 实现类与 JToken 映射全部收在此目录，业务/框架代码出现 `using Newtonsoft` 即违规。
+            // Newtonsoft：JSON 序列化器（第三方）。
             ("Newtonsoft", new[] { "Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft/" }),
         };
 
         /// <summary>
         /// R12 边界表的**存在性守卫**：每条 AllowedRoots 必须在 repoRoot 下真实存在，否则报违规。
-        ///
-        /// **为什么需要它**：<see cref="IsAdapterBoundaryAllowed"/> 是纯 `StartsWith` 前缀比较——
-        /// 边界路径一旦陈旧，**不匹配任何真实文件 = 静默失效**：适配器 import 会在
-        /// 本应放行的地方被判违规（或反之），而没有任何东西会红。这与"扫描目标必须存在"
-        /// 防的是同一类失效。
-        ///
-        /// 此守卫让**规则表过期当场可见**，而不是等到某次无关改动意外触发边界判定才暴露。
         /// </summary>
         public static IReadOnlyList<LintViolation> ValidateAdapterBoundaries(string repoRoot)
         {

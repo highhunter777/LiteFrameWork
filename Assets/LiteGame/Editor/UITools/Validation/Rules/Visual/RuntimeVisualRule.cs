@@ -5,10 +5,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 规则：视觉单一来源（《UI框架总设计》§7／《修改指南》§1.7 视觉面）——运行时不得构建用户可见视觉。
-    ///
-    /// **源码面规则**：包 <see cref="LiteGame.Editor.VisualConstructionScanner"/>（不改其纯函数判定——
-    /// 该扫描器是"真实代码面扫描"的既有载体，另由 <c>VisualSingleSourceEditModeTests</c> 直接消费；
-    /// 本条规则只是把它的产出转成统一报告项，供 UI 校验核心汇总）。
     /// </summary>
     public sealed class RuntimeVisualRule : IUIRule
     {

@@ -3,9 +3,7 @@ using LiteGame.Editor.UITools.Page;
 namespace LiteGame.Editor.UITools.Workbench
 {
     /// <summary>
-    /// 页面透视的编辑门面：只改内存清单并经 <see cref="UIPageManifestEditor" /> 校验，**不自动落盘**；
-    /// 保存由窗口显式调用 <see cref="UIPageManifestStore.Save"/>（失败不写盘、保留内存编辑值）。
-    /// 维护字段与状态迁移的校验口径不在此复制——单一真相仍是 <see cref="UIPageManifestEditor"/>。
+    /// 页面透视的编辑门面：只改内存清单并经 <see cref="UIPageManifestEditor" /> 校验，**不自动落盘**。
     /// </summary>
     public static class UIWorkbenchPageEditor
     {

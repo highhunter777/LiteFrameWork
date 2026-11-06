@@ -3,18 +3,7 @@ using LiteSim;
 namespace RoomServer.Runtime
 {
     /// <summary>
-    /// 房间级不可变玩法配置快照（《商业级通用服务端框架总设计》§4 冲突裁定 / §5 P0-5：
-    /// "房间创建时固定不可变玩法配置"）。
-    ///
-    /// **技术债 #1 根治后**：快照从**装载实例**捕获（`Capture(in CombatValues, WeaponTable)`）——
-    /// 不再复制全局静态面；房间创建时把装载产物显式传入
-    /// （`HostAssembly`→`ServerHost`→`RoomInstance`→`RoomRuntime`）。
-    /// 此后本房间的一切消费（Create 侧出生 HP、权威 Sim Step、回溯单系统、准入 AimPoint 距离闸、
-    /// 武器懒装备/节拍/换弹）一律读本快照值——进程内任何后续变化都不可能影响已创建房间。
-    ///
-    /// <see cref="Digest"/> = 创建时刻按**装载产物的判定面表字节基摘要** + 本局规则初值计算的规范化摘要
-    /// （<see cref="CombatConfigDigest.WithTestRules"/>——算法/覆盖面单源在该类）：随 StartGame 下发，
-    /// 客户端按同一份本地装载字节复算比对（批 E 校验点；不等即拒局）。
+    /// 房间级不可变玩法配置快照（《商业级通用服务端框架总设计》§4 冲突裁定 / §5 P0-5： "房间创建时固定不可变玩法配置"）。
     /// </summary>
     public readonly struct FixedCombatConfig
     {

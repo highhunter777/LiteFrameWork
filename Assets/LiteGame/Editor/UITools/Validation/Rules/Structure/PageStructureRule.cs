@@ -9,13 +9,7 @@ using UnityEngine.UI;
 namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
-    /// 结构族：根契约（《UI 编辑器工具链专项设计》§6.2「结构」+《UI 制作规范》§3.1/§3.3 根契约——按制作规范
-    /// 对齐实况口径的裁决版）：三类根各有 MUST 面——
-    /// `Page_*`：Canvas/CanvasScaler/GraphicRaycaster/CanvasGroup 四件套 + 子树 SafeAreaReceiver；
-    /// `Hud_*`：Canvas/CanvasScaler/CanvasGroup（GraphicRaycaster 按需——默认根无输入面，交互角组以子 Canvas 开射线）；
-    /// `Tmp_*`（Screens 系统面）：Canvas/CanvasGroup（**禁** CanvasScaler——继承根缩放；GraphicRaycaster 按需）。
-    /// Tmp_*（Widgets 控件模板）归 <see cref="WidgetSpecRule"/>/词表域，本规则不辖。
-    /// 按文件名前缀识别（目录不限，便于临时/迁移资产）；系统面 Tmp_ 按 Screens 路径段判定。
+    /// 结构族：根契约（《UI 编辑器工具链专项设计》§6.2「结构」+《UI 制作规范》§3.1/§3.3 根契约——按制作规范 对齐实况口径的裁决版）：三类根各有 MUST 面—— `Page_*`：Canvas/Canva。
     /// </summary>
     public sealed class PageStructureRule : IUIRule
     {

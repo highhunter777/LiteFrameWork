@@ -2,8 +2,6 @@ namespace RoomServer.Runtime
 {
     /// <summary>
     /// 对局阶段（《商业级通用服务端框架总设计》§9.1 Match 状态机）。
-    /// 相位词汇与状态机同文件 = 唯一出处；Meta 侧相位闸经 MetaServer.csproj 源链接共编引本枚举——
-    /// 新增相位时两端自动跟随，不存在"字面量绑注释"的静默漂移。
     /// </summary>
     public enum MatchPhase
     {
@@ -19,18 +17,7 @@ namespace RoomServer.Runtime
     }
 
     /// <summary>
-    /// Match 状态机（《商业级通用服务端框架总设计》§9.1）：
-    /// <c>Created → WaitingForPlayers → Starting → Running → Finishing → Settling → Closed</c>；
-    /// 任意阶段可 → <see cref="MatchPhase.Aborted"/>（不可恢复错误 / 运维终止 / 未开局即放弃）。
-    ///
-    /// 规则（§9.1）：
-    /// - 每次迁移由单一触发验证当前状态；非法迁移**拒绝并不改状态**（调用方输出 Reason=Rejected 事件，不抛）；
-    /// - 每次成功迁移记录原因与进入时刻（调用方产出结构化事件：from/to/reason/matchId/frame/nowMs）；
-    /// - 超时策略由调用方（RoomRuntime）按 <see cref="EnteredMs"/> 判定，本类只提供时间轴；
-    /// - 幂等由调用方保证（重复关闭在终态记事件不重迁移）。
-    ///
-    /// 与玩法规则的关系：本机只表达"比赛生命周期"，不含比分/胜负（P1 业务阶段）；R1 术语
-    /// <c>Finishing</c> 冻结结果摘要、<c>Settling</c> 提交已冻结结果，均不重算任何玩法数值。
+    /// Match 状态机（《商业级通用服务端框架总设计》§9.1）： <c>Created → WaitingForPlayers → Starting → Running → Finishing → Settling → C。
     /// </summary>
     public sealed class MatchStateMachine
     {

@@ -6,11 +6,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Compose
 {
     /// <summary>
-    /// 校验分区（《UI编辑器工具专项设计》§5"校验/生成"）：同一校验核心
-    /// <see cref="UIValidator.Run(UIValidationContext)"/> 的窗口入口——**窄档**只查当前 prefab 的资产面
-    /// （快、可点击定位），**全量档**跑默认上下文（源码面 + 全部资产，约 60s，显式触发）。
-    /// 报告列表按 severity 着色，行点击经 <see cref="UIBindingRename.FindByPath"/> 反查并定位节点；
-    /// 未接入规则族显式列出（§4：不显示为自动通过）。
+    /// 校验分区（《UI编辑器工具专项设计》§5"校验/生成"）：同一校验核心 <see cref="UIValidator.Run(UIValidationContext)"/> 的窗口入口——**窄档**只查当前 prefa。
     /// </summary>
     public sealed class UIValidationSection
     {

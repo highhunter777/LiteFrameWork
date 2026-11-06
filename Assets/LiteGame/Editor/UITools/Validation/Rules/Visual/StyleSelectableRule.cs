@@ -9,10 +9,7 @@ using UnityEngine.UI;
 namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
-    /// 样式族：uGUI Selectable 状态色接缝（《UI 系统总设计》§6.2/§6.5，P2-3 B4）。判据：
-    /// ① ColorTint Selectable 缺 `UISelectableTheme`＝Warning；② 组件节点无 Selectable＝Error；
-    /// ③ 5 枚状态令牌任一未知＝Error；④ ColorBlock 当前值与令牌现值不命中＝Warning；
-    /// ⑤ 非 ColorTint（None/SpriteSwap/Animation）不适用，跳过。
+    /// 样式族：uGUI Selectable 状态色接缝（《UI 系统总设计》§6.2/§6.5，P2-3 B4）。
     /// </summary>
     public sealed class StyleSelectableRule : IUIRule
     {

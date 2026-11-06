@@ -4,11 +4,7 @@ using Newtonsoft.Json;
 namespace LiteGame.Editor.UITools.Widgets
 {
     /// <summary>
-    /// 控件清单（《UI 编辑器工具链专项设计》§8.3：`UIWidgetManifest` → `Assets/LiteGame/Editor/UITools/
-    /// UIWidgetManifest.json`，消费者＝控件库/文档/校验）。由 <see cref="UIWidgetManifestGenerator"/>
-    /// 从 `Tmp_*` 模板 + <see cref="LiteFramework.UI.WidgetSpec"/> + 受控属性白名单汇总；生成物只读、禁手改。
-    ///
-    /// 字段序固定、无时间戳、稳定排序——重复生成逐字节一致。
+    /// 控件清单（《UI 编辑器工具链专项设计》§8.3：`UIWidgetManifest` → `Assets/LiteGame/Editor/UITools/ UIWidgetManifest.json`。）。
     /// </summary>
     public sealed class UIWidgetManifest
     {

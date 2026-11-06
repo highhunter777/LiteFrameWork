@@ -32,10 +32,7 @@ namespace LiteGame.EditorTools.UI
     }
 
     /// <summary>
-    /// 文字档读口（《UI编辑器工具专项设计》§3.1；P2-3a 起**值不再住在本类**）：
-    /// 字号/字重从 <see cref="UITokenCatalog"/> 的 `font.*` 令牌物化，对齐/换行/溢出仍是表现档常量
-    /// （设计令牌词表不含对齐，见总设计 §6.1）。`All`/`TryGet` 保留原签名与返回类型，
-    /// 每次调用重新物化（不做静态缓存——域重载/重新生成后必须读到新值）。
+    /// 文字档读口（《UI编辑器工具专项设计》§3.1；P2-3a 起**值不再住在本类**）： 字号/字重从 <see cref="UITokenCatalog"/> 的 `font.*` 令牌物化。
     /// </summary>
     public static class UITextStyle
     {

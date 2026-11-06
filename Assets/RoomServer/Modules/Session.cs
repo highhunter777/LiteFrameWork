@@ -13,20 +13,7 @@ namespace RoomServer.Application
     }
 
     /// <summary>
-    /// 会话（《状态同步实施方案》§4.5 SessionManager 行）：一条 KCP 连接的记账——**连接级**状态
-    /// （背压水位 / ACK 水位 / 发送 ledger）。
-    ///
-    /// R1 分离（§9.2）：本类只表示 <c>Connection</c>（断线即弃、重绑时整体作废）；席位语义
-    /// （playerId 归属、实体 Id、重连窗口保留）在 Runtime 层 <see cref="Runtime.PlayerSession"/>。
-    /// <see cref="PlayerId"/> 仅作 App 层的"连接 → 席位"路由缓存（进房/重绑时由 App 写入），
-    /// 不构成身份——身份事实在席位。
-    ///
-    /// 广播记账（水位/ledger/ACK/背压档）收在 <see cref="Broadcast"/>（<see cref="BroadcastAccount"/>）；
-    /// 本类同时实现 <see cref="IBroadcastSeat"/>——宿主 owner 形态下会话即席位视图，管线直接吃它。
-    /// 历史直用字段的调用面（<c>SendQueueBytes</c> 等）保留为转发成员，语义不变。
-    ///
-    /// 保活由 kcp2k 内建 Ping/Timeout 承担（超时 → OnDisconnected → 本表标记 Disconnected）；
-    /// E3 的连接 cookie 亦由 kcp2k V1.41 内建握手承担（抗 UDP 放大——白得，记录于实施记录）。
+    /// 会话（《状态同步实施方案》§4.5 SessionManager 行）：一条 KCP 连接的记账——**连接级**状态 （背压水位 / ACK 水位 / 发送 ledger）。
     /// </summary>
     public sealed class Session : IBroadcastSeat
     {
@@ -43,11 +30,7 @@ namespace RoomServer.Application
         public int PlayerId = -1;
 
         /// <summary>
-        /// 本会话当前所在房间号（未进房 = null）。多房间下的**路由键**：输入/重连/断线都要先按它
-        /// 找到房间，再按 <see cref="PlayerId"/> 找席位。
-        ///
-        /// 与 <see cref="PlayerId"/> 同为 App 层路由缓存——**不构成身份**（身份在
-        /// <see cref="Principal"/>，席位事实在 Runtime）。会话断线即弃，本字段随会话消失。
+        /// 本会话当前所在房间号（未进房 = null）。
         /// </summary>
         public string RoomId;
 
@@ -55,9 +38,7 @@ namespace RoomServer.Application
         public string BuildHash;
 
         /// <summary>
-        /// 验证通过的 Join 票据主体（§P0-6 身份接缝）。**null = 未走票据验证**（验证器未装配的原型形态）。
-        /// 这是**身份事实**（谁），而 <see cref="PlayerId"/> 是**席位路由**（第几号位）——两者不可互推：
-        /// 席位仍由 RoomRuntime 权威分配，本字段不参与分配。日志不得输出其中任何字段值。
+        /// 验证通过的 Join 票据主体（§P0-6 身份接缝）。
         /// </summary>
         public JoinPrincipal Principal;
 
@@ -73,11 +54,7 @@ namespace RoomServer.Application
         /// <summary>本连接的快照广播记账（水位/ledger/ACK/背压档；见 <see cref="BroadcastAccount"/>）。</summary>
         public readonly BroadcastAccount Broadcast = new BroadcastAccount();
 
-        // ---- 广播记账转发成员（历史直用字段的**读**面保持不变；语义与写面见 BroadcastAccount）----
-        //
-        // P4 计数面封装：这组转发原先**每个都带 setter**，等于把 BroadcastAccount 的私有化重新打开
-        // （十个转发属性放大面积）；七个无人调用的 setter 已删除，只留一个有真实调用方的写口
-        // （BackpressureTier——用例需要"从指定档位起跑"，区间由 BroadcastAccount 夹住）。
+        // ---- 广播记账转发成员（历史直用字段的**读**面保持不变；语义与写面见 BroadcastAccount）---- P4 计数面封装：这组转发原先**每个都带 setter**，等于把 BroadcastAccount 的私有化重新打开 （十个转发属性放大面积）。
 
         /// <summary>E1 背压水位（累计已发快照字节数）——写只在 <see cref="BroadcastAccount.RecordSnapshotSend"/>。</summary>
         public long SendQueueBytes

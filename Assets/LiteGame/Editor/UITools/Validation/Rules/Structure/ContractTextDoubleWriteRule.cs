@@ -10,9 +10,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 契约族：文本双写（工具链设计 §6.2「文本双写」；《UI 逻辑 API 参考》「有静态 key 的节点 Lua 不得再 SetTextKey/SetText」）。
-    /// 契约 `text[]`（`LTextKeyRef` 静态文案节点）的节点名若被页面 Lua 的
-    /// <see cref="UIRuleThresholds.LuaTextWriteApis"/> 调用点名命中＝Error（双写会互相覆盖且语言切换语义分裂）。
-    /// Lua 文件解析默认走 <see cref="UILuaReferenceScanner.TryResolveLuaFile"/>，测试可经构造器注入替代解析。
     /// </summary>
     public sealed class ContractTextDoubleWriteRule : IUIRule
     {

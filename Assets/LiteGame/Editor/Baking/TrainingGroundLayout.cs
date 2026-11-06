@@ -8,19 +8,7 @@ using LiteGame.Modules.Map;
 namespace LiteGame.EditorTools
 {
     /// <summary>
-    /// 训练场布点工具（多图批；第三批 III-b 的一次性构建器 <c>AgentScripts/BuildTrainingGroundMap.cs</c>
-    /// **版本化迁入本件**——《地图数据专项设计》地图场景约定）。布点即内容：掩体代理 ＋ `spawn_NN` ＋
-    /// `map_bounds` 都由本件建/补，改布点有两条路：
-    ///
-    /// - **手工调（首选）**：在场景里拖动/增删 `spawn_NN`、改代理位置尺寸（烘焙器判据：Box/Sphere/Capsule、
-    ///   正缩放、yaw 仅 90° 倍数、禁 MeshCollider）——本件的 <see cref="EnsureSeed"/> **只补缺失件、不删已有**，
-    ///   手工布点不会被重跑抹掉；
-    /// - **回到种子**：<see cref="RebuildSeed"/> 显式全量重建（清旧 `MapCollision` 重建种子布点——原
-    ///   <c>All()</c> 语义，"从零来一遍"用）。
-    ///
-    /// 两条路之后都要走发布链（布点改动＝判定数据改动）：烘焙（烘焙工具箱「地图」页 `SimMapBaker.AllTraining`）
-    /// → `Luban/gen.bat` → `python scripts/codegen/toolbox.py build-hash`。烘焙器对布点做 fail-fast 校验
-    /// （出生点不落障碍内/不越边界、数量 1..16——调点打偏即刻在报告里点名）。
+    /// 训练场布点工具（多图批；第三批 III-b 的一次性构建器 <c>AgentScripts/BuildTrainingGroundMap.cs</c> **版本化迁入本件**——《地图数据专项设计》地图场景约定）。
     /// </summary>
     public static class TrainingGroundLayout
     {

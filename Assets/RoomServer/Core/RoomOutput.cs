@@ -74,9 +74,6 @@ namespace RoomServer.Runtime
 
     /// <summary>
     /// 终态中止（等待超时/运维关闭/未开局全员离场等**无结果可结算**的收尾路径）。
-    /// App：向在座客户端发 <c>MatchEnded</c>（复用既有终局信令面——EndReason 随因、Players 空），
-    /// 让房间页客户端得知房间已散而非永远等待。对局中收尾走 SettlementReady → MatchEnded（带结果），
-    /// 不经本输出。
     /// </summary>
     public sealed class RoomAbortedOutput : RoomOutput
     {

@@ -6,11 +6,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Compose
 {
     /// <summary>
-    /// 编排面板的目标解析（《UI编辑器工具专项设计》§5）：把"prefab 资产 / 是否正开 Prefab Stage / 展示根"
-    /// 三件判据收成**单源**——绑定标记工具与编排面板共用，不各写一套。
-    ///
-    /// 展示根语义：目标 prefab 正在 Prefab Stage 打开＝Stage 实例（活体，编辑走 Unity Undo），
-    /// 否则＝prefab 资产对象（只读展示）。
+    /// 编排面板的目标解析（《UI编辑器工具专项设计》§5）：把"prefab 资产 / 是否正开 Prefab Stage / 展示根" 三件判据收成**单源**——绑定标记工具与编排面板共用，不各写一套。
     /// </summary>
     public sealed class UIComposeTarget
     {
@@ -49,9 +45,7 @@ namespace LiteGame.Editor.UITools.Compose
         }
 
         /// <summary>
-        /// 按校验报告的 <c>node</c> 路径反查节点（面板"定位节点"）：报告口径**含根名**
-        /// （<c>Page_X/Cot_A/Txt_B</c>），绑定树口径**不含根**（<c>Cot_A/Txt_B</c>）——
-        /// 先按报告原样找，未命中则剥掉首段根名再按树口径找；都不中＝null（报告节点可能属模板实例内部）。
+        /// 按校验报告的 <c>node</c> 路径反查节点（面板"定位节点"）：报告口径**含根名** （<c>Page_X/Cot_A/Txt_B</c>）。
         /// </summary>
         public static Transform FindNodeForReport(GameObject displayRoot, string reportNodePath)
         {

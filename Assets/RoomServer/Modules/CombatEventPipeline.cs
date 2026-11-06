@@ -8,23 +8,6 @@ namespace RoomServer.Application
 {
     /// <summary>
     /// 公共战斗事件面的 wire 出口（《状态同步专项设计》§5.2 CombatEvent 面；2026-10-18 批）。
-    ///
-    /// **职责**：把房间内核的 <see cref="CombatEventWindow"/> 打成 <see cref="Proto.CombatEventBatch"/>
-    /// 并经独立包（<see cref="PacketType.CombatEvents"/>）下发。字段映射单源在
-    /// <see cref="CombatEventCodec"/>（本类只管节拍、预算与降级，不碰字段）。
-    ///
-    /// **为什么独立成包**（事故结论，别再合回去）：三个旧窗口随每份快照全量携带，实测把快照顶到
-    /// 1531B &gt; KCP 不可靠上限 1194B ⇒ kcp2k 静默丢弃整份快照 ⇒ 状态流中断。独立后：
-    /// ① 状态面尺寸只随实体数变（可预测）；② 事件面有自己的预算与降级阶梯；③ 两条平面可独立演进。
-    ///
-    /// **每帧构建一次、发给全体席位**：事件批当前**不做 AOI 裁剪**（公共事件本就全房可见，且
-    /// 裁剪会让"视野外发生的击杀在你进入视野时消失"）——同一份 payload 发给所有可播席位，
-    /// 不按席位重建（与 <see cref="SnapshotPipeline"/> 的 per-seat 构建刻意不同，理由在带宽与语义）。
-    ///
-    /// **降级阶梯**（预算见 <see cref="WireBudget"/>，**永不静默丢**）：
-    /// ① 超预算 → <see cref="CombatEventCodec.PackBatch"/> 留新弃旧裁到预算内（计入 <see cref="Trimmed"/>）；
-    /// ② 仍装不下（单条就超——理论不达，容量 24 已按最贵记录推算）→ 整批跳过（计入 <see cref="Skipped"/>）。
-    /// 两个计数进 Ops：长期非零说明 <see cref="CombatEventWindow.Capacity"/> 或老化窗要调。
     /// </summary>
     public sealed class CombatEventPipeline
     {
@@ -60,10 +43,7 @@ namespace RoomServer.Application
         }
 
         /// <summary>
-        /// 到点下发：**每帧调一次**（在快照广播之后）。构建一次 → 发给全部可播席位。
-        /// 席位表由构造注入（与 <see cref="SnapshotPipeline"/> 同一份数组——两种执行形态各自一致）。
-        /// <paramref name="seatBroadcastable"/> 语义与 <see cref="SnapshotPipeline.BroadcastIfDue"/> 一致
-        /// （null = 不抑制；ServerHost 传"席位 == Active"，重连恢复中的席位不投）。
+        /// 到点下发：**每帧调一次**（在快照广播之后）。
         /// </summary>
         public void Publish(int frame, System.Func<int, bool> seatBroadcastable = null)
         {
@@ -91,11 +71,7 @@ namespace RoomServer.Application
         }
 
         /// <summary>
-        /// 重连**不需要**专门的事件面补齐：客户端在收到 <c>ReconnectResponse</c> 时把公共事件面
-        /// <c>Reset()</c>（复位成"未初始化"），重连后的第一份周期事件批按"首份"处理——
-        /// 只标记已见、不重播断线前的事件（与状态快照的首份语义一致）。
-        /// 这样重连响应不必携带事件批：它走可靠通道且体积敏感，多带一个窗口只会让
-        /// <c>ReconnectResponse</c> 也可能撞不可靠/消息上限。
+        /// 重连**不需要**专门的事件面补齐：客户端在收到 <c>ReconnectResponse</c> 时把公共事件面 <c>Reset()</c>（复位成"未初始化"）。
         /// </summary>
         public void ResetForReconnect()
         {

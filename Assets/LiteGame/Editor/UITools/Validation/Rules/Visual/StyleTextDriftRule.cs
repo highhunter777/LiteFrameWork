@@ -8,12 +8,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 样式族：文字档对账（工具链设计 §6.2「裸字号」；§8.1 文字枚举/字号精确应用）。
-    /// 复用 <see cref="UITextStyleTool"/> 对账单源两路：<see cref="UITextStyleTool.ReportTextDrift"/>（有文本组件的节点——
-    /// 未标记/属性漂移/font 缺失）与 <see cref="UITextStyleTool.ReportBrokenRefs"/>（带标记但无文本组件的失效标记）：
-    /// 未标记（Unmarked，无 <c>UITextStyleRef</c>＝裸字号整改清单）＝Warning；
-    /// 属性漂移（Mismatch，有标记但组件属性≠角色档基线）＝Warning（报告不擅改，应用按声明收敛）；
-    /// 标记失效（BrokenRef，无文本组件/TMP font 缺失）＝Error（资源引用失效）。
-    /// 作用域＝上下文资产所在目录（去重），结果按上下文资产面过滤归属。
     /// </summary>
     public sealed class StyleTextDriftRule : IUIRule
     {

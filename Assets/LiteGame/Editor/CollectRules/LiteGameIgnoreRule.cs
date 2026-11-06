@@ -6,12 +6,7 @@ using LiteGame.Modules.Shared;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// 工程忽略规则：**复刻 NormalIgnoreRule 全部行为**，唯一差异＝`/LiteGame/Lua/` 下的
-    /// DefaultAsset（.lua）**放行收集**（否则 Lua 文件被 "Default asset cannot be packed" 拒绝）。
-    /// dev 资产（UI 预览场景/脚手架）住在 `Assets/LiteGame/Editor/` 下，由本规则的 Editor 目录判据
-    /// 自然排除，不需要单独的 dev 资产名单。
-    /// BundleCollectorSetting 包级 `IgnoreRuleName` 切换为本规则。影响面：其余收集目录无 DefaultAsset
-    /// （Config=.bytes / Scenes=.unity / GameMain/Configs）。
+    /// 工程忽略规则：**复刻 NormalIgnoreRule 全部行为**，唯一差异＝`/LiteGame/Lua/` 下的 DefaultAsset（.lua）**放行收集**（否则 Lua 文件被 "Default as。）。
     /// </summary>
     public class LiteGameIgnoreRule : IAssetIgnoreRule
     {

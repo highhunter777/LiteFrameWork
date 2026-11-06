@@ -8,9 +8,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 文本族：富文本标签白名单（工具链设计 §6.2「富文本越界」；制作规范 UI-TEXT-05「作者文本只允许白名单标签」）。
-    /// 检查 tbltext 全部语言列值里的 <c>&lt;tag…&gt;</c> 标签（大小写不敏感），标签不在
-    /// <see cref="UIRuleThresholds.RichTextAllowedTags"/> 内＝Warning（SHOULD 级——可见即整改或例外）。
-    /// 表读取失败显式报一条 Error；种子注入同 <see cref="TextStaticKeyRule"/>。
     /// </summary>
     public sealed class TextRichTextRule : IUIRule
     {

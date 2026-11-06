@@ -4,10 +4,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Compose
 {
     /// <summary>
-    /// 控件模板插入（《UI编辑器工具专项设计》§5"控件库"）：**只在 Prefab Stage 内插入**——
-    /// 复用 Unity 原生嵌套/Variant 作用域与 Undo，不造第二套画布、不生成 prefab。
-    /// 插入**不改名**（§5：不以面板自动重名规则掩盖绑定冲突），命名/标记的下一步交绑定标记工具。
-    /// 纯逻辑面（零 Sirenix）。
+    /// 控件模板插入（《UI编辑器工具专项设计》§5"控件库"）：**只在 Prefab Stage 内插入**—— 复用 Unity 原生嵌套/Variant 作用域与 Undo，不造第二套画布、不生成 prefab。
     /// </summary>
     public static class UIWidgetInstaller
     {

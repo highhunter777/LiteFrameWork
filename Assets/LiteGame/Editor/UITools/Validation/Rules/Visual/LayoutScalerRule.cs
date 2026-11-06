@@ -7,9 +7,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 布局/适配族：CanvasScaler 基线（工具链设计 §6.2「CanvasScaler 不符」；制作规范 UI-LAYOUT-01/§3.1）。
-    /// `Page_*` 根必须 <c>ScaleWithScreenSize</c> + 参考 1920×1080 + Match 0.5（偏离＝Error，一条汇总）；
-    /// 页面子树出现第二套 CanvasScaler＝Error（「页面不得自带第二套缩放——子 Canvas 继承」）。
-    /// 组件缺失归结构族（ui.page-structure），本规则只辖参数与重复面；Canvas 根 RectTransform 受驱动不检查锚点。
     /// </summary>
     public sealed class LayoutScalerRule : IUIRule
     {

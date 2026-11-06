@@ -2,8 +2,6 @@ namespace LiteGame.Editor.UITools.Workbench
 {
     /// <summary>
     /// 工作台共享上下文（《UI 编辑器工具链专项设计》§2.1）：页面选择、目标 prefab、Lane、透视与未保存标记。
-    /// **纯状态**：不引用 UnityEditor 类型；窗口只做绘制与转发；切换透视/角色不丢上下文。
-    /// 变更方法返回“是否真的变化”，避免窗口在无变化时重绘/标脏。
     /// </summary>
     public sealed class UIWorkbenchState
     {

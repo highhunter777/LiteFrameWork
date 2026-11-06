@@ -31,12 +31,7 @@ namespace LiteGame.Editor.UITools.Binding
     }
 
     /// <summary>
-    /// 生成物 hash（《UI编辑器工具专项设计》§2.1.5）：记录源 prefab 绑定面内容指纹；
-    /// CI 侧复算比对——"提交资产却漏生成物"在门禁变红，不靠人眼。
-    ///
-    /// **记录**是作者动作（生成完成后经菜单/窗口记录）；**校验**经校验核心的
-    /// <c>ui.binding-hash</c> 规则跑（三入口共用，CI 走既有 <c>UIValidator.RunCli</c>）。
-    /// 清单＝工程内 JSON 文本（git 可 diff，CI 可直读）；键＝prefab GUID（改名不断链）。
+    /// 生成物 hash（《UI编辑器工具专项设计》§2.1.5）：记录源 prefab 绑定面内容指纹； CI 侧复算比对——"提交资产却漏生成物"在门禁变红，不靠人眼。
     /// </summary>
     public static class UIBindGenerationHash
     {

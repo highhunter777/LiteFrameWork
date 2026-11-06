@@ -17,9 +17,6 @@ namespace LiteGame.Editor.UITools.Page
 {
     /// <summary>
     /// 起页内核（《UI 编辑器工具链专项设计》§3.1）：视觉基线 → 自包含 prefab + 根契约 + 页面清单草稿。
-    /// **不写 Lua、不写 `tbuiform`、不跑 Luban**（归 <see cref="UIPageRegistration"/> 的登记动作）。
-    ///
-    /// 表读写归 <see cref="UIPageTableHelper"/>；本类只负责资产面与页根契约。
     /// </summary>
     public static class UIPageScaffold
     {

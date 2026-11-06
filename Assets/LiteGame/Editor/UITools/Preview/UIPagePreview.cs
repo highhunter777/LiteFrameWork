@@ -10,9 +10,7 @@ using UnityEngine.SceneManagement;
 namespace LiteGame.Editor.UITools.Preview
 {
     /// <summary>
-    /// 单页预览入口（《UI编辑器工具专项设计》§8.4）：布局档。打开编辑器专用预览场景并进 Play，
-    /// 由 <see cref="UIPreviewDriver"/> 实例化目标 prefab；保存 prefab 触发热重载。
-    /// 退出 Play 后自动回到进入预览前的场景。
+    /// 单页预览入口（《UI编辑器工具专项设计》§8.4）：布局档。
     /// </summary>
     [InitializeOnLoad]
     public static class UIPagePreview
@@ -26,9 +24,7 @@ namespace LiteGame.Editor.UITools.Preview
         }
 
         /// <summary>
-        /// 打开目标 prefab 的布局预览；<paramref name="deviceProfileId"/> 为空＝跟随预览（全屏/默认安全区），
-        /// <paramref name="locale"/> 为空＝静态文案保持作者文本（不加载语言表）。
-        /// 返回 false 表示用户取消或目标非法。
+        /// 打开目标 prefab 的布局预览；<paramref name="deviceProfileId"/> 为空＝跟随预览（全屏/默认安全区）。
         /// </summary>
         public static bool Open(string prefabPath, string deviceProfileId = null, string locale = null)
         {

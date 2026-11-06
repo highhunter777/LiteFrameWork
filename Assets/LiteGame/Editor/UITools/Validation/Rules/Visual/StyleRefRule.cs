@@ -9,11 +9,7 @@ using UnityEngine.UI;
 namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
-    /// 样式族：颜色令牌引用对账（《UI 系统总设计》§6.2；工具链设计 §6 校验核心）。五判据：
-    /// ① UIStyleRef 声明的 ID 不在令牌集＝Error（「令牌不存在」）；② 声明值与令牌现值漂移＝Warning
-    /// （阈值单源 <see cref="UIStyleResolver.HitEpsilon"/>）；③ 节点无 Graphic＝Error；
-    /// ④ widget 状态 token 三态（未知＝Error/漂移＝Warning/空＝合法——B4 存量口径）；
-    /// ⑤ 同 GameObject 上 UIStyleRef＋IThemeBound 并存＝Error（双写者——widget 是自身 Graphic 的唯一写者）。
+    /// 样式族：颜色令牌引用对账（《UI 系统总设计》§6.2；工具链设计 §6 校验核心）。
     /// </summary>
     public sealed class StyleRefRule : IUIRule
     {

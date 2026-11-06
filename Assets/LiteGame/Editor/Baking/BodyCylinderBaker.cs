@@ -9,22 +9,7 @@ using UnityEngine;
 namespace LiteGame.EditorTools
 {
     /// <summary>
-    /// 身位圆柱烘焙工具（烘焙工具箱「身位圆柱」页，与 <see cref="MuzzleOffsetBaker"/> 同构）：把
-    /// <see cref="BakeTargets.PrefabPath"/> 根上的 **CharacterController**（美术可调、可视、唯一）写成
-    /// 判定几何表 `#combatgeom` 的 <c>body_radius</c>/<c>hitscan_height</c> 两列——服务端命中柱 /
-    /// 移动去穿插 / 本地视图 CC 三方共用同一份表值（"改一次 CC = 判定联动"）。
-    ///
-    /// **语义映射**：CC 是胶囊（半球端），Sim 物理体是竖直圆柱 <c>[pos.Y, pos.Y + height]</c>——
-    /// 烘焙要求 <c>center.y == height/2</c>（圆柱底 = 脚底）；不满足即 ABORT（不烘半个身位）。
-    ///
-    /// **夹具**：同一次动作把 radius/height 快照写到 <see cref="BakeTargets.BodyCcFixturePath"/>
-    /// （入库，供三方对账与地图烘焙的出生点校验；**Assets 之外的普通文件**，不生成 .meta）。
-    /// 顺序固定为**先写夹具、再写表**：夹具失败不碰表；表失败时报告会明示夹具已更新并给出还原方式。
-    ///
-    /// **口径**：**物理半径/高**是角色资产派生几何——CC 为单源（判定面经 `#combatgeom` 装载进
-    /// <see cref="LiteSim.CombatValues.Geometry"/>）；**命中柱半径是另一根量**（`hitscan_radius`，
-    /// 判定宽容裁决常量，**非本工具产物**）；头部带下沿 = <c>hitscan_height × head_ratio</c>
-    /// （比例单源，随身高自动缩放）。
+    /// 身位圆柱烘焙工具（烘焙工具箱「身位圆柱」页，与 <see cref="MuzzleOffsetBaker"/> 同构）：把 <see cref="BakeTargets.PrefabPath"/> 根上的 **Chara。
     /// </summary>
     public static class BodyCylinderBaker
     {

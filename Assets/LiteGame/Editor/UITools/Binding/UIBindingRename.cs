@@ -37,13 +37,6 @@ namespace LiteGame.Editor.UITools.Binding
 
     /// <summary>
     /// 绑定命名引擎（《UI编辑器工具专项设计》§2.1.2）：前缀组合、改名计划、校验与应用。
-    ///
-    /// 纯逻辑面——窗口只做交互壳，EditMode 用例直测此处。判据单源：
-    /// 文法/词表 = <see cref="UINamingWords"/>（步 2 单源）；同文纪律 = 《UI制作规范》§9.1/§9.5
-    /// （组合出的名字一次写节点名与 BindName，构造性保证同文，不存在只改一处的手工路径）。
-    ///
-    /// 应用面由调用方选择写入通道：Prefab Stage 实例（Unity Undo 生效）或
-    /// <c>PrefabUtility.LoadPrefabContents</c> 内容（资产写经 Pipeline 收口）——本类只改内存对象。
     /// </summary>
     public static class UIBindingRename
     {
@@ -123,9 +116,7 @@ namespace LiteGame.Editor.UITools.Binding
         }
 
         /// <summary>
-        /// 单节点改名计划。BindName 联动纪律（§9.1"与节点名同文"）：
-        /// 有标记且原 BindName 非空 → 新 BindName = 新名（含原不同文的漂移面——构造性同文）；
-        /// 有标记但 BindName 为空（模板标记/私有件）→ 保持为空（§9.4 不预设索引名）。
+        /// 单节点改名计划。
         /// </summary>
         public static RenamePlan PlanRename(Transform node, string newName)
         {
@@ -200,9 +191,7 @@ namespace LiteGame.Editor.UITools.Binding
         }
 
         /// <summary>
-        /// 应用计划集（只改内存对象；写入通道由调用方定）。返回应用条数；
-        /// 目标缺失/中途异常即抛——半改状态由调用方的通道语义兜住（Stage=Undo 可退，资产=不落盘）。
-        /// 按路径段数**降序**应用（深层先改）：父节点改名会使其后代按旧路径寻不到——同批父子计划不互踩。
+        /// 应用计划集（只改内存对象；写入通道由调用方定）。
         /// </summary>
         public static int ApplyPlans(GameObject root, IReadOnlyList<RenamePlan> plans)
         {

@@ -12,12 +12,7 @@ namespace RoomServer.Runtime
     }
 
     /// <summary>
-    /// 玩家席位（§9.2 Connection 与 PlayerSession 分离的席位侧）：
-    /// **与传输连接解耦**——连接断了席位仍在（重连窗口内），playerId/entityId 全程不变
-    /// （§5.6 权威快照恢复的前提）。背压/ACK/发送 ledger 等**连接级**状态不在本类（归 App 层会话）。
-    ///
-    /// 输入去重水位（<see cref="InputGate"/> 的 _lastAcceptedFrame/_lastActionSeq）随席位保留：
-    /// 重连后旧帧不会被重复接受，也不需要重置（§9.2"connectionId 复用不能复活旧身份"的席位侧保证）。
+    /// 玩家席位（§9.2 Connection 与 PlayerSession 分离的席位侧）： **与传输连接解耦**——连接断了席位仍在（重连窗口内）。
     /// </summary>
     public sealed class PlayerSession
     {

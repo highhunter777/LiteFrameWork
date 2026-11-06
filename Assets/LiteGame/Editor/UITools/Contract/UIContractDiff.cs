@@ -32,8 +32,6 @@ namespace LiteGame.Editor.UITools.Contracts
 
     /// <summary>
     /// 契约 diff（《UI 编辑器工具链专项设计》§5.4）：契约 diff 即 UI API diff。
-    /// 新增字段/控件/模板为兼容变更；删除、改名、类型变化、文案 key 变化为破坏性变更；
-    /// 纯样式变化与 sourceHash-only 变化不判 API 破坏。
     /// </summary>
     public static class UIContractDiff
     {

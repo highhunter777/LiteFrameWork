@@ -47,12 +47,7 @@ namespace LiteGame.Editor.UITools.Reference
     }
 
     /// <summary>
-    /// Lua 引用对账数据面（《UI 编辑器工具链专项设计》§5.2「契约只做对账提示」+ §6.2 契约族「controls 越界/未消费、文本双写」）：
-    /// 从页面 Lua 源提取受控 API 调用点与名字字面量，供契约生成（events[]）与契约校验（未消费/越界/双写）共用一份提取结果。
-    ///
-    /// 提取口径：**字面量与可见证据**——只识别字符串字面量形态（单/双引号）与**单行**调用（真实页面接线均为单行）；
-    /// 括号配对跳过字符串内容，闭包内的括号按深度配对不误入顶层参数。动态拼接名不产出、不臆造。
-    /// bindName 消费判定用「全文字面量匹配」以覆盖变量中转（如 <c>_Begin("Button_X",…)</c> → <c>SetInteractable(btn,…)</c>）。
+    /// Lua 引用对账数据面（《UI 编辑器工具链专项设计》§5.2「契约只做对账提示」+ §6.2 契约族「controls 越界/未消费、文本双写」）： 从页面 Lua 源提取受控 API 调用点与名字字面量。
     /// </summary>
     public static class UILuaReferenceScanner
     {

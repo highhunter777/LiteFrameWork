@@ -12,11 +12,7 @@ using UnityEngine;
 namespace LiteGame.EditorTools
 {
     /// <summary>
-    /// `#combatgeom` 表行的编辑器侧读写边界（烘焙工具箱三件几何工具与地图烘焙的唯一表源入口）：
-    /// 进程边界 `<c>python scripts/codegen/_combatgeom_row.py</c>`，stdout 单行 JSON，stderr 原样交回。
-    /// 表源是权威现值——**不要**拿 <see cref="LiteSim.CombatConfig.Geometry"/> 当写入源或初值来源
-    /// （未 Publish 时它只是 <see cref="LiteSim.CombatValues.Default"/> 的展示投影）。
-    /// 写完表不自动跑 Luban：需手动 `Luban/gen.bat`，再跑 `python scripts/codegen/toolbox.py build-hash`。
+    /// `#combatgeom` 表行的编辑器侧读写边界（烘焙工具箱三件几何工具与地图烘焙的唯一表源入口）： 进程边界 `<c>python scripts/codegen/_combatgeom_row.py</c>`。
     /// </summary>
     public static class CombatGeomTableWriter
     {
@@ -61,9 +57,7 @@ namespace LiteGame.EditorTools
         }
 
         /// <summary>
-        /// 带写盘 scope 的表行写入：scope 存在时以其预览标志为准（预览模式强制 `--dry-run`）；
-        /// 无 scope 时由 <paramref name="confirm"/> 决定。表源写入不走 scope 的 Undo 通道
-        /// （表是二进制工作簿，回滚走助手自身的备份目录）。
+        /// 带写盘 scope 的表行写入：scope 存在时以其预览标志为准（预览模式强制 `--dry-run`）； 无 scope 时由 <paramref name="confirm"/> 决定。
         /// </summary>
         public static bool TryWrite(string[][] sets, bool confirm, ToolWriteScope scope,
             out string report, out string error)

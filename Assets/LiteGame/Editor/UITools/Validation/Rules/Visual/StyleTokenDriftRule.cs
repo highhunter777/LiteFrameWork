@@ -9,9 +9,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 样式族：令牌源与主题资产一致性（《UI 编辑器工具链专项设计》§6/§8.1/§8.3）。
-    /// 从上下文取 JSON/SO 路径（缺省走 <see cref="UIThemePaths"/>），按 JSON 重算期望快照并与盘上 SO 逐字段比对：
-    /// 不一致＝Error（SO 过期或手改），文件缺失/JSON 非法＝Error，提示跑 `ui.style.tokens`。
-    /// 判据单源复用 <see cref="UIThemeSnapshot"/>（与生成器的"是否需要写盘"同一个比较）。
     /// </summary>
     public sealed class StyleTokenDriftRule : IUIRule
     {

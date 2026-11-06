@@ -7,17 +7,7 @@ using Object = UnityEngine.Object;
 namespace LiteTesting.Unity
 {
     /// <summary>
-    /// PlayMode 版测试所有权（《UI测试开发专项设计》§2.2 目标目录 `LiteTesting/Runtime`）：
-    /// 覆盖真 Lua/Prefab/动画资源组合运行，取消、暂停、复用、卸载可验证。
-    ///
-    /// 与 Editor 版 <c>UnityTestScope</c> 的差异——**两处都是硬约束，不是风格选择**：
-    /// - 销毁走 <see cref="Object.Destroy"/>，不是 <c>DestroyImmediate</c>：播放态下 Immediate 会破坏
-    ///   正在进行的帧，且销毁要等帧末才能真正落地（"页面关闭 ≠ 资源清理完成"，§7.3）。
-    /// - **不引用 UnityEditor**：本程序集是 Runtime 程序集，Player 测试构建同样链接它。资产类操作
-    ///   （临时 AssetDatabase 目录等）归 Editor 版，PlayMode 用例不构造持久资产。
-    ///
-    /// 清理是**协程式**的：<see cref="DisposeAsync"/> 销毁对象并让出一帧再断言"确实没了"——
-    /// 同步 Dispose 无法证明卸载完成，会把"排队待销毁"误判成"已清理"。
+    /// PlayMode 版测试所有权（《UI测试开发专项设计》§2.2 目标目录 `LiteTesting/Runtime`）： 覆盖真 Lua/Prefab/动画资源组合运行，取消、暂停、复用、卸载可验证。
     /// </summary>
     public sealed class PlayModeTestScope : IDisposable
     {
@@ -64,8 +54,6 @@ namespace LiteTesting.Unity
 
         /// <summary>
         /// 协程清理：销毁全部受管对象，**让出一帧**，再核对确实已销毁。
-        /// PlayMode 用例应以 `yield return scope.DisposeAsync()` 收尾，而不是 `using`
-        /// ——同步 Dispose 看不到帧末才落地的销毁结果。
         /// </summary>
         public IEnumerator DisposeAsync()
         {

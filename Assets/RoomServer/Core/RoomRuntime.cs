@@ -7,27 +7,7 @@ using RoomServer.Runtime.Diagnostics;
 namespace RoomServer.Runtime
 {
     /// <summary>
-    /// 房间运行时（R1：《商业级通用服务端框架总设计》§8.1 RoomRuntime 纯化）——**房间内确定性状态的唯一持有者**：
-    /// 权威 Sim + 席位表 + 输入闸门/预存 + 快照回溯源 + 命中回溯 + 输入历史。
-    ///
-    /// 纯化红线（§8.1 禁止项，L0 纪律扫描 R11 把守）：
-    /// - 不引用 Transport / Socket（发送出口归 App 层 SnapshotPipeline）；
-    /// - 不读系统时钟（时间只从 <see cref="RoomCommand.Tick"/> 的 nowMs 进入）；
-    /// - 不打印 Console、不访问文件/数据库；
-    /// - 不见 proto 类型（输入经 <see cref="ClientInputBatch"/> 纯数据进入，输出经 <see cref="RoomOutput"/> 纯事件产出）；
-    /// - 单线程执行（调用方保证同线程驱动——R2 的有界 Mailbox/Worker Pool 负责该保证）。
-    ///
-    /// 输入/输出契约（§8.1）：命令 = AuthenticatedJoin / ClientInput / Disconnect / Rebind / RestoreAck / Tick / Shutdown；
-    /// 输出 = Signal（PlayerAdmitted / MatchStarted / SeatRestored）/ JoinRejected / CloseConnection / MatchStateChanged / SettlementReady。
-    ///
-    /// 生命周期（§9.1，批② 落地）：<see cref="Match"/> 状态机全表 + 等待/对局时限 + 全员离场收尾
-    /// （对局中 → 结算收尾；未开局 → 中止，房间随终态销毁，不留永驻空房）；
-    /// Finishing 冻结 <see cref="MatchResultSummary"/> 并产 SettlementReady（完整结算信封/Outbox/归档归 R3）。
-    ///
-    /// 重连闭环（§9.2/§9.3，批③ 落地）：Rebind 把席位置 <see cref="SeatPhase.Restoring"/>（原子换绑、
-    /// 旧连接失效）；恢复完成 ACK（RestoreAck）置回 Active 并产 SeatRestored——App 管线在 Restoring
-    /// 期间抑制该席位增量广播。快照差分/AOI/背压/编码/发送归 App 层 SnapshotPipeline
-    /// （§19 禁第二套快照 DTO 的自然推论）。
+    /// 房间运行时（R1：《商业级通用服务端框架总设计》§8.1 RoomRuntime 纯化）——**房间内确定性状态的唯一持有者**： 权威 Sim + 席位表 + 输入闸门/预存 + 快照回溯源 + 命中回溯 + 输入历史。
     /// </summary>
     public sealed class RoomRuntime
     {
@@ -60,13 +40,6 @@ namespace RoomServer.Runtime
 
         /// <summary>
         /// 公共战斗事件窗口（**唯一的公共事件面**：命中/暴击/死亡/开火/着墙/复活全在这一条链上）。
-        ///
-        /// 2026-10-18 批：取代原先三个并行环（<c>Kills</c>/<c>Fires</c>/<c>Hits</c>）——
-        /// 三份同样的有界环、三个 packer、三段捕获调用，且新增事件类型要一路从内核改到客户端；
-        /// 更要命的是它们**只按容量淘汰、无时间老化**，打满后每份快照恒定多带 64 条记录
-        /// （实测 1232B），把快照顶爆 KCP 不可靠上限（1194B）⇒ 整份快照被静默丢弃 ⇒ 状态流中断。
-        /// 现由 <see cref="CombatEventWindow"/> 统一承载：时间老化 + 容量有界 + 同键聚合，
-        /// 并经独立包（<c>PacketType.CombatEvents</c>）下发，与状态面互不挤占预算。
         /// </summary>
         public readonly CombatEventWindow Events;
 
@@ -135,11 +108,9 @@ namespace RoomServer.Runtime
         public long StepsCount;
         public long FireInputsProcessed;        // 走回溯路径的开火输入数
 
-        /// <summary><paramref name="testRules"/> = 测试房规则持有件（LiteGame 本地服形态注入；
-        /// null = 常规对局——免死/无限子弹关闭）。进 <see cref="FixedCombatConfig"/> 摘要的初值由装配方
-        /// 在 <paramref name="combat"/> 里盖章（测试房），运行态读持有件（GM 中局开合同实例生效）；
-        /// <paramref name="gameplayDigestBase"/> = 判定面表字节基摘要（`ServerTableLoad.Digest` 经宿主装配
-        /// 显式传入——技术债 #1 同纪律：身份来自装载产物、不经读口；测试直构传 0 = 无表身份形态）。</summary>
+        /// <summary>
+        /// <paramref name="testRules"/> = 测试房规则持有件（LiteGame 本地服形态注入； null = 常规对局——免死/无限子弹关闭）。
+        /// </summary>
         public RoomRuntime(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null, string matchId = null,
             MatchTestRules testRules = null, uint gameplayDigestBase = 0, RoomRunRecorder recorder = null)
         {
@@ -198,9 +169,7 @@ namespace RoomServer.Runtime
         }
 
         /// <summary>
-        /// 射手当前世界位（<b>AimPoint 距离闸</b>用）：按 playerId 解析实体 → 槽位 → 权威态位置。
-        /// 未开局/实体未解析/槽位越界 ⇒ false（调用方按"跳过该闸"处理，不拒输入）。
-        /// 只读权威态，<b>不改</b>（R11 纪律：本方法只取事实）。
+        /// 射手当前世界位（AimPoint 距离闸用）：按 playerId 解析实体 → 槽位 → 权威态位置。
         /// </summary>
         private bool TryResolveShooterPos(int playerId, out SimVector3 pos)
         {
@@ -284,9 +253,7 @@ namespace RoomServer.Runtime
                 outputs.Add(new JoinRejectedOutput(connectionId, "房间已关闭"));
                 return;
             }
-            // 对局中拒加入（开房裁决）：StartMatch 只给**开局时已入座**的席位生成实体，
-            // 中途加入者会拿到无实体的空席位（EntityId 恒 0——射击/快照/结算全对不上）。
-            // 进房只允许在 Created/WaitingForPlayers 阶段；Running/Finishing/Settling 一律拒。
+            // 对局中拒加入（开房裁决）：StartMatch 只给**开局时已入座**的席位生成实体， 中途加入者会拿到无实体的空席位（EntityId 恒 0——射击/快照/结算全对不上）。
             if (Match.Phase == MatchPhase.Starting || Match.Phase == MatchPhase.Running
                 || Match.Phase == MatchPhase.Finishing || Match.Phase == MatchPhase.Settling)
             {
@@ -294,8 +261,6 @@ namespace RoomServer.Runtime
                 return;
             }
             // 空位分配（未开局离场即释放——空位可复用）：取**最低空位**（确定性），全满才拒。
-            // 此前是 NextPlayerId 顺延（只增不减）——未开局断线席位既不可恢复也不可复用，
-            // 坐满后走一人即恒答"房间已满"直到全员散尽（容量慢性泄漏）。
             int playerId = -1;
             for (int i = 0; i < ExpectedPlayers; i++)
                 if (_seats[i] == null) { playerId = i; break; }
@@ -331,11 +296,7 @@ namespace RoomServer.Runtime
         }
 
         /// <summary>
-        /// 房主开局（**本房唯一的开局入口**——用户裁决取消满员自动开局）：WaitingForPlayers 下
-        /// owner 席位触发 → 立即 <see cref="StartMatch"/>（满员与否皆可；世界只生成已入座实体，
-        /// 缺席席位沿用空输入——内核天然支持）。
-        /// 拒绝面：<see cref="StartRejectedOutput"/>（非 owner / 席位无效），App 映射为
-        /// <c>StartMatchResponse</c> 信令回发起者；Running 后幂等忽略（重复点击/迟到包不炸循环）。
+        /// 房主开局（**本房唯一的开局入口**——用户裁决取消满员自动开局）：WaitingForPlayers 下 owner 席位触发 → 立即 <see cref="StartMatch"/>（满员与否皆可。）。
         /// </summary>
         private void ExecuteStartEarly(int playerId, List<RoomOutput> outputs)
         {
@@ -385,10 +346,7 @@ namespace RoomServer.Runtime
             seat.Phase = SeatPhase.Disconnected;                              // 席位保留（重连窗口内可重绑）
             seat.ConnectionId = -1;
 
-            // 未开局离场：席位**直接释放**（不保留断线态）——等待期席位不可恢复（App 重连要求
-            // 房间已开局，未开局必拒），保留只占容量：坐满后走一人即恒答"房间已满"直到全员散尽。
-            // 释放后空位可被新 Join 复用（最低空位优先，见 ExecuteJoin）；对局中（Running）照旧
-            // 席位保留（重连窗口内可重绑）——两条路径按相位分流。
+            // 未开局离场：席位**直接释放**（不保留断线态）——等待期席位不可恢复（App 重连要求 房间已开局，未开局必拒），保留只占容量：坐满后走一人即恒答"房间已满"直到全员散尽。
             if (Match.Phase == MatchPhase.WaitingForPlayers)
             {
                 ReleaseSeat(playerId, seat, outputs);
@@ -413,10 +371,7 @@ namespace RoomServer.Runtime
         }
 
         /// <summary>
-        /// 未开局离场的席位释放（<see cref="ExecuteDisconnect"/> 的 WaitingForPlayers 分支）：
-        /// owner 位先迁移再摘席（在座者接管开局资格），随后广播缩容后的席位名单（释放者从列表
-        /// 消失——区别于对局中断线的"保留显示离线态"）。全员释放（无人离场例外）照旧 Abort 收尾
-        /// （不留永驻空房）。释放席位的输入去重水位无残留（未开局输入本就不被消费）。
+        /// 未开局离场的席位释放（<see cref="ExecuteDisconnect"/> 的 WaitingForPlayers 分支）： owner 位先迁移再摘席（在座者接管开局资格）。
         /// </summary>
         private void ReleaseSeat(int playerId, PlayerSession seat, List<RoomOutput> outputs)
         {
@@ -428,11 +383,9 @@ namespace RoomServer.Runtime
                 Abort(ShutdownReason.AllPlayersLeft, "all-players-left", outputs);
         }
 
-        /// <summary>owner 位迁移（原房主 <paramref name="departing"/> 离席）：**在线席位（Active/Restoring）
-        /// 优先**，按最低 playerId 取；全断线时退而转最低其余席位（任何相位——防"回来的人都不是房主"死局）。
-        /// 广播 <see cref="OwnerChanged"/> 供 UI 换按钮归属。无其余席位 = no-op（保持原位）。
-        /// 在线优先的判据：未开局席位断线后**不可恢复**（App 重连要求房间已开局）——owner 位若转给
-        /// 断线席位，在座玩家将永远无法开局（唯一开局入口握在回不来的人手里），只能等全员散尽才收尾。</summary>
+        /// <summary>
+        /// owner 位迁移（原房主 <paramref name="departing"/> 离席）：**在线席位（Active/Restoring） 优先**，按最低 playerId 取。
+        /// </summary>
         private void TransferOwner(int departing, List<RoomOutput> outputs)
         {
             for (int pass = 0; pass < 2; pass++)
@@ -571,11 +524,7 @@ namespace RoomServer.Runtime
         private const string StartReasonOwnerStart = "owner-start";
 
         /// <summary>
-        /// 开局（§4.5 权威定序——StartMatch 后循环才消费输入）：WaitingForPlayers → Starting → Running，
-        /// 世界按种子生成，玩家落出生点。
-        /// seed 策略：<see cref="RoomConfig.Seed"/> 非 0 用之；为 0 时由最近一次 Tick 的 nowMs 派生
-        /// （R1：系统墙钟兜底已删除，时间只从命令进入）。
-        /// 迁移审计原因恒为 <see cref="StartReasonOwnerStart"/>。
+        /// 开局（§4.5 权威定序——StartMatch 后循环才消费输入）：WaitingForPlayers → Starting → Running， 世界按种子生成，玩家落出生点。
         /// </summary>
         private void StartMatch(List<RoomOutput> outputs)
         {
@@ -612,8 +561,6 @@ namespace RoomServer.Runtime
 
         /// <summary>
         /// seed=0 的派生（非零、确定性、无墙钟）：以 Tick 时间戳混入黄金比例常量。
-        /// 尚未收到任何 Tick（L1 直驱且未配 Seed）时回退固定常量——测试需确定性应显式配
-        /// <see cref="RoomConfig.Seed"/>；生产恒有 Tick（Loop 先于客户端 Join 启动）。
         /// </summary>
         private static long DeriveSeed(long nowMs)
         {
@@ -622,10 +569,7 @@ namespace RoomServer.Runtime
         }
 
         /// <summary>
-        /// 推进一步权威帧（§4.5-3 权威定序）：消费预存输入（缺席沿用空输入）→ Step → 快照环 Capture
-        /// → 记录历史输入 → 回溯判定（本步各玩家 pending 开火逐个处理）。
-        /// 快照广播**不在此**——App 层 SnapshotPipeline 在 Tick 之后自行拉取
-        /// <see cref="AuthSim"/>/<see cref="Gate"/> 构建下发（§19 禁第二套快照 DTO）。
+        /// 推进一步权威帧（§4.5-3 权威定序）：消费预存输入（缺席沿用空输入）→ Step → 快照环 Capture → 记录历史输入 → 回溯判定（本步各玩家 pending 开火逐个处理）。
         /// </summary>
         private void StepFrame()
         {
@@ -650,9 +594,7 @@ namespace RoomServer.Runtime
                 _hasPendingFire[i] &= fired;
                 _frameInputs[i].Buttons &= ~SimInputFrame.ButtonDeferHit;
             }
-            // 远端火光面：开火事件须在回溯（ConsumePendingFire 会清事件缓冲）之前捕获——
-            // 此刻缓冲仍是前向步进的完整事件集（武器门放行的扣扳机各一条，空仓/被拦/死亡不产）。
-            // 只捕 Fire：命中/死亡在 ConsumePendingFire 里逐段捕（回溯会清缓冲，见该方法的调用点说明）。
+            // 远端火光面：开火事件须在回溯（ConsumePendingFire 会清事件缓冲）之前捕获—— 此刻缓冲仍是前向步进的完整事件集（武器门放行的扣扳机各一条，空仓/被拦/死亡不产）。
             CaptureEvents(AuthSim.Frame, fireOnly: true);
             int steppedFrame = AuthSim.Frame;
             SnapshotHistory.Capture(steppedFrame, AuthSim);   // 每帧捕获（回溯基料）
@@ -667,9 +609,7 @@ namespace RoomServer.Runtime
         }
 
         /// <summary>
-        /// 回溯判定：开火帧的历史态现在已在环里（本步 Capture 覆盖到"开火帧"本身），
-        /// 因此可回溯到所见帧判定；每位射手的命中立即结算，本帧全部完成后再裁决对局结果。
-        /// 死亡事件逐位入窗（<see cref="CaptureEvents"/>——回溯清事件缓冲，捕获必须在其前）。
+        /// 回溯判定：开火帧的历史态现在已在环里（本步 Capture 覆盖到"开火帧"本身）， 因此可回溯到所见帧判定；每位射手的命中立即结算，本帧全部完成后再裁决对局结果。
         /// </summary>
         private void ConsumePendingFire(int frame)
         {
@@ -691,23 +631,6 @@ namespace RoomServer.Runtime
 
         /// <summary>
         /// 公共战斗事件捕获（**唯一入口**——取代原先并行的 CaptureHits/CaptureKills/CaptureFires 三段）。
-        ///
-        /// 遍历本帧 <see cref="SimWorldState.Events"/> 缓冲，把**所有**公共事件写入
-        /// <see cref="Events"/> 窗口：<see cref="FrameEventKind.Fire"/> / <see cref="FrameEventKind.Hit"/> /
-        /// <see cref="FrameEventKind.Crit"/> / <see cref="FrameEventKind.Death"/>，以及未来任何新增 kind
-        /// （新增事件类型**不需要改本方法**——这是词汇单源带来的收益；需要特殊换算的 kind 才在此加分支）。
-        ///
-        /// **两个捕获契约**（沿用原三段各自的纪律，换了实现不失语义）：
-        /// 1. <paramref name="fireOnly"/> = true：**回溯判定之前**调用。此时缓冲仍是前向步进的完整事件集
-        ///    （武器门放行的扣扳机各一条）；只取 Fire——命中/死亡要等回溯结算（<see cref="LagCompensator.CompensateFire"/>
-        ///    会清缓冲并重写为回溯产物），提前取会把"未回溯的前向命中"记成权威结果。
-        /// 2. <paramref name="fireOnly"/> = false：**回溯前后各调一次**（前向一次 + 每位射手结算后一次），
-        ///    因为 <c>ClearFireBuffers</c> 会清空缓冲——单点在环末会漏掉前序射手的死亡/命中事件。
-        ///
-        /// 语义换算（kind 相关，其余字段直传）：
-        /// - Death：<c>Value</c> 存**击杀帧击杀者的装备武器槽**（击杀提示的武器图标下标；-1 = 无归属/未装备）。
-        ///   取击杀帧的公共态是因为切换期武器门会拦开火 ⇒ 击杀帧槽位就是那把枪。
-        /// - Hit/Crit：<c>Value</c> 直传单发伤害；同键多弹丸由窗口聚合（伤害累加、Crit 升档）。
         /// </summary>
         private void CaptureEvents(int frame, bool fireOnly)
         {

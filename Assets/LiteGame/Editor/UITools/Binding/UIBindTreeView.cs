@@ -5,16 +5,12 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Binding
 {
     /// <summary>
-    /// 绑定暴露树的**只读/可勾选**绘制器（《UI编辑器工具专项设计》§8.2 绑定分区）：
-    /// 数据单源＝<see cref="UIBindingRename.BuildTree"/> 的行集，本类只画行、不改资产。
-    /// 编辑动作（前缀预设/批量改名/预览/应用）由 <see cref="UIBindingEditor"/> 在同一分区内承担。
+    /// 绑定暴露树的**只读/可勾选**绘制器（《UI编辑器工具专项设计》§8.2 绑定分区）： 数据单源＝<see cref="UIBindingRename.BuildTree"/> 的行集，本类只画行、不改资产。
     /// </summary>
     public static class UIBindTreeView
     {
         /// <summary>
-        /// 画行集。<paramref name="checkedPaths"/> 非空＝画勾选列（批量操作用）；<paramref name="clicked"/>
-        /// 回传本帧被点选的行（无＝null）。选中态与勾选态就地更新。
-        /// 返回 true＝本帧选中或勾选发生变化（调用方据此作废旧预览）。
+        /// 画行集。
         /// </summary>
         public static bool Draw(IReadOnlyList<UINodeRow> rows, ref Vector2 scroll,
                                 ref string selectedPath, HashSet<string> checkedPaths, out UINodeRow clicked,

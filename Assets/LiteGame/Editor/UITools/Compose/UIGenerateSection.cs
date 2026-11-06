@@ -7,10 +7,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Compose
 {
     /// <summary>
-    /// 生成分区（《UI编辑器工具专项设计》§5"校验/生成"）：路径 B 生成走既有链
-    /// <see cref="BindGenerator.Generate(GameObject)"/>，生成成功即<b>同一作者动作</b>记录
-    /// <see cref="UIBindGenerationHash.Record"/>（§2.1.5 生成物 hash），使 <c>ui.binding-hash</c> 规则就地转绿。
-    /// 无 BindRoot＝路径 B 未启用，显式说明而不报错。
+    /// 生成分区（《UI编辑器工具专项设计》§5"校验/生成"）：路径 B 生成走既有链 <see cref="BindGenerator.Generate(GameObject)"/>。
     /// </summary>
     public sealed class UIGenerateSection
     {

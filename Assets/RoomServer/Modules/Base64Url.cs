@@ -5,15 +5,6 @@ namespace RoomServer.Application
 {
     /// <summary>
     /// Base64Url 编解码的**唯一实现**（P2 单源）：去 padding、<c>+</c>→<c>-</c>、<c>/</c>→<c>_</c>。
-    ///
-    /// **为什么要有它**：票据线格式（<see cref="JoinTicketFormat"/>）与访问令牌线格式
-    /// （Meta 侧 <c>AccessTokenFormat</c>）各手写了一份逐字相同的编解码，重连票据签发
-    /// （<see cref="ReconnectService"/>）又写了第三份字节版。这类"看起来一样的纯函数"最容易被
-    /// 单边修改（例如只在一处补 padding 处理），而症状是**某一条链在特定输入下静默解码失败**。
-    ///
-    /// **约定**：编码结果不含 <c>.</c>（故可安全用作 <c>.</c> 分隔的线格式字段）、不含 padding；
-    /// 解码对非法输入**返回 null 不抛**（调用方转"格式不合法"拒绝）。
-    /// 本文件只依赖 BCL——MetaServer 经源链接共编同一份（见 `Server/MetaServer/MetaServer.csproj`）。
     /// </summary>
     public static class Base64Url
     {

@@ -26,12 +26,6 @@ namespace LiteGame.Editor.UITools.Contracts
 
     /// <summary>
     /// 页面契约生成器（《UI 编辑器工具链专项设计》§5）：prefab + tbuiform 行 → 只读契约 JSON。
-    ///
-    /// 真相与过滤规则：
-    /// - 只收非空 `BindName`；页面内唯一、类型可解析；
-    /// - `Clone_` 子树、嵌套 `BindRoot`、模板内部件不进 `controls[]`；
-    /// - 嵌套 `Tmp_*` 实例只记一条 `templates[]`，不展开内部；
-    /// - 无时间戳、深度优先稳定排序、重复生成零 diff。
     /// </summary>
     public static class UIContractGenerator
     {
@@ -227,9 +221,7 @@ namespace LiteGame.Editor.UITools.Contracts
         }
 
         /// <summary>
-        /// 应用 Lua 事件接线（§5.2「events[] 可选——契约只做对账提示」）：按 <c>bindName|event</c> 稳定排序写入
-        /// <see cref="UIPageContract.Events"/> 并重算 <see cref="UIPageContract.SourceHash"/>（event 行在指纹内，
-        /// §5.2.1）。同一集合重复应用结果一致（幂等）。
+        /// 应用 Lua 事件接线（§5.2「events[] 可选——契约只做对账提示」）：按 <c>bindName|event</c> 稳定排序写入 <see cref="UIPageContract.Events"/> 并重。
         /// </summary>
         public static void ApplyEvents(UIPageContract contract, IReadOnlyList<Reference.UILuaEventWiring> wiring)
         {

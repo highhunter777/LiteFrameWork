@@ -14,10 +14,6 @@ namespace LiteGame.Editor.UITools.Binding
 
     /// <summary>
     /// 引用点扫描（《UI编辑器工具专项设计》§2.1.2"改名时列出 Lua/C# 字符串字面量引用点辅助同步"）。
-    ///
-    /// 只提示、不改写——Lua 页面与 C# 受控 API 的引用同步由作者按清单同批完成（§9.2"改名联动"
-    /// 的联动面是作者责任；工具的责任是让清单可见，不静默替作者改代码）。
-    /// 判据＝行内出现 <c>"名字"</c> 引号形态（字符串字面量），不做语义分析。
     /// </summary>
     public static class UIBindingReferenceScan
     {

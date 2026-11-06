@@ -9,10 +9,7 @@ using LiteNet;
 namespace LiteGame.Toolchain
 {
     /// <summary>
-    /// IL2CPP 符号归档（T0-2）：把构建产物里的调试符号（<c>*.pdb</c>——GameAssembly.pdb 等）按
-    /// buildHash 归档到 <c>Builds/symbols/</c>，分发包不带符号。
-    /// 符号与产物脱节 = 崩溃堆栈不可解——归档目录即固定查找路径（&lt;hash&gt;-&lt;时间戳&gt;/manifest.json 对账）。
-    /// 纯文件操作（EditMode 可测）；构建钩子见 <see cref="SymbolArchivePostBuild"/>。
+    /// IL2CPP 符号归档（T0-2）：把构建产物里的调试符号（<c>*.pdb</c>——GameAssembly.pdb 等）按 buildHash 归档到 <c>Builds/symbols/</c>，分发包不带符号。
     /// </summary>
     public static class SymbolArchiver
     {

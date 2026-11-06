@@ -4,10 +4,7 @@ using System.Linq;
 namespace LiteGame.Toolchain
 {
     /// <summary>
-    /// SimTrig 查表的 public CLI 入口（toolbox trig）：按工具清单 codegen.sim-trig 的
-    /// outputs 组装写盘允许面，转调 <see cref="SimTrigToolActions.Run"/>（经
-    /// <see cref="ToolWriteScope"/>），不绕过写盘契约直写产物。
-    /// 返回单行 "OK: ..."/"FAILED: ..." 文本供 Python 侧映射退出码（失败也返回字符串）。
+    /// SimTrig 查表的 public CLI 入口（toolbox trig）：按工具清单 codegen.sim-trig 的 outputs 组装写盘允许面。
     /// </summary>
     public static class SimTrigCli
     {

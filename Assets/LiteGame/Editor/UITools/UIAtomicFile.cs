@@ -6,8 +6,6 @@ namespace LiteGame.Editor.UITools
 {
     /// <summary>
     /// UI 工具生成物的整文件写入（清单/契约共用）：先写同目录临时件，再替换目标。
-    /// Unity 导入可能短暂持有目标句柄——`File.Replace` 失败时重试并退化为共享读覆盖；
-    /// 任一路径失败都抛原异常，不静默。
     /// </summary>
     public static class UIAtomicFile
     {

@@ -7,9 +7,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 契约族：页面清单与 `tbuiform`/磁盘一致（《UI 编辑器工具链专项设计》§6.2「契约」+ §8.5）。
-    /// 清单缺失＝Warning（注册表应入库）；重对账与磁盘指纹不一致（表改了没重跑 / 被手改）＝Error；
-    /// 对账告警（孤儿非草稿、prefab 缺失、多行 lua 不一致）逐条转 Warning。
-    /// 仅在上下文显式包含 `Page_*` 资产时执行（合成上下文不触发）。
     /// </summary>
     public sealed class PageManifestRule : IUIRule
     {

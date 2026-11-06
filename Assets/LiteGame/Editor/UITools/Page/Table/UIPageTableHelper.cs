@@ -4,11 +4,7 @@ using System.Collections.Generic;
 namespace LiteGame.Editor.UITools.Page
 {
     /// <summary>
-    /// `#uiform.xlsx` 的读写唯一门面（《UI 编辑器工具链专项设计》§3.1/§3.6）：页面清单对账、契约生成、
-    /// 校验与登记都只经这里读表；写表/备份/回滚仍由 `scripts/codegen/_uiform_row.py` 承担。
-    ///
-    /// 路径可注入（`tablePath`）：生产默认 `Luban/Data/#uiform.xlsx`；夹具用副本，绝不触碰真实表。
-    /// 本类不依赖 UnityEditor 语义（表是数据面）；写盘失败**也回传备份句柄**，供登记核验回滚。
+    /// `#uiform.xlsx` 的读写唯一门面（《UI 编辑器工具链专项设计》§3.1/§3.6）：页面清单对账、契约生成、 校验与登记都只经这里读表。
     /// </summary>
     public static class UIPageTableHelper
     {

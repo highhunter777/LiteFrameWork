@@ -8,17 +8,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 规则：绑定命名（《UI制作规范》§9；《UI编辑器工具专项设计》§2.1.3 硬约束子集）。
-    ///
-    /// **资产面规则**：对 <see cref="UIValidationContext.AssetPaths"/> 里每个 prefab 的全部节点判定
-    /// （递归，含未激活）。判据（§9.2/§9.4）：
-    /// 1. `_` 私有件——模板内允许；**页面根（Screens/）节点禁 `_`**（§9.4"页面业务节点不得以 `_` 开头"）；
-    /// 2. 其余节点名须过文法 <c>^[A-Za-z]+_[A-Za-z][A-Za-z0-9]*$</c>（§9.2）；
-    /// 3. 前缀段须属词表（角色词/控件段/模板段，§9.3）——未登记段 = Warning（§1 允许登记扩展）。
-    ///
-    /// **豁免**：UGUI 复合控件"拥有"的子件（Slider 的 fillRect/handleRect、ScrollRect 的 viewport/content）
-    /// ——它们是 UGUI 组件契约的一部分，改名会断内部引用，**不属项目命名面**（按**身份**豁免，非按名）。
-    ///
-    /// 本步**不**做同页同词一致性 / 编号连续性（需词频上下文）。
     /// </summary>
     public sealed class BindingNamingRule : IUIRule
     {

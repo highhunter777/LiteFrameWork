@@ -29,8 +29,6 @@ namespace LiteGame.Editor.UITools.Text
 
     /// <summary>
     /// `tbltext` 编辑器读面（LTextKeyRef Inspector 的 key 下拉/预览用；不进运行时）。
-    /// 装载口径与 `ConfigService` 一致：表清单取 <see cref="TableLayout.Files"/>，数据路径取
-    /// <see cref="TableLayout.TableDataPath"/>，失败显式返回错误而不是伪造空表。
     /// </summary>
     public static class UILTextTable
     {

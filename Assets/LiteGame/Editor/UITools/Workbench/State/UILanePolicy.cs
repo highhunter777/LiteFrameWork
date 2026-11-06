@@ -4,9 +4,7 @@ using System.Collections.Generic;
 namespace LiteGame.Editor.UITools.Workbench
 {
     /// <summary>
-    /// Lane × 动作门控的单源真相（《UI 编辑器工具链专项设计》§2.3）：矩阵表驱动，
-    /// 窗口禁用态、原因文案与夹具断言共用同一份表；禁止在窗口里散落 <c>if (lane == …)</c>。
-    /// 角色 Lane 只表达“UX 分层与默认动作集”，不是权限系统。
+    /// Lane × 动作门控的单源真相（《UI 编辑器工具链专项设计》§2.3）：矩阵表驱动， 窗口禁用态、原因文案与夹具断言共用同一份表；禁止在窗口里散落 <c>if (lane == …)</c>。
     /// </summary>
     public static class UILanePolicy
     {

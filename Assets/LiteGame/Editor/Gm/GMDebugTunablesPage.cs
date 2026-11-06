@@ -5,9 +5,7 @@ using UnityEngine;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// GM 工具箱·调试参数页：按 <see cref="IDebugTunableProvider"/> 的描述自动渲染开关/滑杆/复位，
-    /// 不按功能写专用面板；默认值/范围来自功能 provider（烘焙/表/机制常量）。
-    /// 改动只落本机运行时覆写，不落盘、不进摘要；release 面随三宏剥离。
+    /// GM 工具箱·调试参数页：按 <see cref="IDebugTunableProvider"/> 的描述自动渲染开关/滑杆/复位， 不按功能写专用面板；默认值/范围来自功能 provider（烘焙/表/机制常量）。
     /// </summary>
     internal sealed class GMDebugTunablesPage : IGMPage
     {

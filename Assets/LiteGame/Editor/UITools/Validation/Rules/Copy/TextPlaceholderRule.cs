@@ -12,10 +12,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 文本族：占位符使用相符（工具链设计 §6.2「占位符不符」）。
-    /// 三路判定：① <c>LTextKeyRef</c> 挂到带占位符（<c>{0}</c> 形态）的条目＝Error（静态键无参——契约 <c>args</c> 固定 0）；
-    /// ② Lua <c>SetTextKey</c> 用带占位符条目＝Error（应改 <c>SetTextKeyArgs</c>）；
-    /// ③ <c>SetTextKeyArgs</c> 实参数（名字/key 之后的参数）与条目占位符数不符＝Warning。
-    /// 占位符数取源语言列（Zh）——源语言是源（En 列完整性归语言列规则）。种子注入同 <see cref="TextStaticKeyRule"/>。
     /// </summary>
     public sealed class TextPlaceholderRule : IUIRule
     {

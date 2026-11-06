@@ -10,13 +10,6 @@ namespace LiteGame.EditorTools
 {
         /// <summary>
         /// 烘焙工具箱共享单源：目标资产路径、参考片段、层级查找与预制体编辑域。
-        /// 六件烘焙/调带工具（<see cref="BodyCylinderBaker"/>/<see cref="MuzzleOffsetBaker"/>/
-        /// <see cref="WeaponGripBaker"/>/<see cref="HeadHitLineTuner"/>/<see cref="RootMotionBaker"/>/
-        /// <see cref="SimMapBaker"/>）共用的常量与原语**全部收口在此**——任何工具不得再私有复制同值路径字面量（修改指南 §1.1/§1.2）。
-        /// 三族来源：prefab 采样族（PrefabPath/ControllerPath/ReferenceClip）、片段采样族（RootMotionConfigPath）
-        /// 与场景采样族（MapScenePath——地图烘焙）。
-        /// 产物写盘面：文本产物走 <see cref="WriteArtifact"/>、字节产物走 <see cref="WriteArtifactBytes"/>，
-        /// 两者共用 write-if-changed 原语（<see cref="WriteIfChanged"/>/<see cref="WriteIfChangedBytes"/>）。
         /// </summary>
     public static class BakeTargets          // public：run_script 以本文件为编译单元直调烘焙入口，需可见（Editor 程序集，无产品面）
     {

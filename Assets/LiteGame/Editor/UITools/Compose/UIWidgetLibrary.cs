@@ -17,10 +17,7 @@ namespace LiteGame.Editor.UITools.Compose
     }
 
     /// <summary>
-    /// 控件库清单（《UI编辑器工具专项设计》§5"控件库"）：**目录即清单**——扫
-    /// <see cref="UIValidator.WidgetsDir"/> 下 `Tmp_` 前缀的模板 prefab，不另造清单文件
-    /// （《UI命名词表与控件清单》§1.3 是内容源，模板落盘即登记）。
-    /// 纯逻辑面（零 Sirenix）。
+    /// 控件库清单（《UI编辑器工具专项设计》§5"控件库"）：**目录即清单**——扫 <see cref="UIValidator.WidgetsDir"/> 下 `Tmp_` 前缀的模板 prefab。
     /// </summary>
     public static class UIWidgetLibrary
     {

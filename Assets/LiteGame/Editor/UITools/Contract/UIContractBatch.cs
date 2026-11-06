@@ -8,20 +8,12 @@ using LiteGame.Editor.UITools.Reference;
 namespace LiteGame.Editor.UITools.Contracts
 {
     /// <summary>
-    /// 页面契约批处理（《UI 编辑器工具链专项设计》§5/§8.3）：`tbuiform` 只读一次、按 prefab 去重，
-    /// 生成/对账两入口。生成器仍是单页真相，本类只做编排——不复制接口面定义、不另造 metadata。
-    ///
-    /// 口径：
-    /// - 根名不在 <c>Page_/Hud_/Tmp_</c> 契约面（若未来出现常驻壳）显式跳过并告警，不计失败；
-    /// - 同一 prefab 多行登记取首行，其余行由页面清单 `forms[]` 承担（告警见生成结果）；
-    /// - 输出确定性（无时间戳），重复执行零 diff；负例不写盘。
+    /// 页面契约批处理（《UI 编辑器工具链专项设计》§5/§8.3）：`tbuiform` 只读一次、按 prefab 去重， 生成/对账两入口。
     /// </summary>
     public static class UIContractBatch
     {
         /// <summary>
-        /// 单页「生成 + 清单维护字段投影 + Lua 事件接线」全链（批量入口的组成步）：
-        /// 表行提供身份（formId/lua/layer/fullScreen），页面清单提供维护字段（owner/designRef），
-        /// 事件接线从页面 Lua 源提取后应用进 events[]。清单缺本页条目＝投影留空并告警（不臆造）。
+        /// 单页「生成 + 清单维护字段投影 + Lua 事件接线」全链（批量入口的组成步）： 表行提供身份（formId/lua/layer/fullScreen），页面清单提供维护字段（owner/designRef）。
         /// </summary>
         public static UIContractGenerationResult GenerateRegistered(string prefabPath,
             IReadOnlyList<UIPageTableRow> rows, UIPageManifest manifest)
@@ -33,9 +25,7 @@ namespace LiteGame.Editor.UITools.Contracts
         }
 
         /// <summary>
-        /// 单页全链重生成（**漂移对账的判据单源**）：身份取页面清单条目（forms[0]＝主表单行——清单与表的
-        /// 同步由 `ui.page-manifest` 规则另辖），维护字段与事件接线同批量口径。`ui.contract-drift` 规则与
-        /// 本方法共用一份「什么算与盘上一致」，不另立重生成语义。
+        /// 单页全链重生成（**漂移对账的判据单源**）：身份取页面清单条目（forms[0]＝主表单行——清单与表的 同步由 `ui.page-manifest` 规则另辖），维护字段与事件接线同批量口径。
         /// </summary>
         public static UIContractGenerationResult Regenerate(UIPageManifestEntry entry, bool allowDraft = false)
         {

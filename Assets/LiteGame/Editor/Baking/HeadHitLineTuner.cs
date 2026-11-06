@@ -9,19 +9,7 @@ using LiteGame;
 namespace LiteGame.EditorTools
 {
     /// <summary>
-    /// 爆头区调带器（烘焙工具箱「爆头带」页承载——《固定斜视角射击方案专项设计》§5 的视觉调带裁决工具）：
-    /// Scene 视图里对 <see cref="BakeTargets.PrefabPath"/>（AimIdle 参考姿态）画判定几何——命中柱圈（灰）/
-    /// 爆头柱切片（黄下沿·红上沿）/ 锚点参考线（颈/面顶/帽顶/发冠顶），**拖黄球或滑杆**调爆头带下沿、
-    /// **滑杆**调爆头柱半径（窄于命中柱），导出写判定几何表 `#combatgeom` 的 <c>head_ratio</c>/<c>head_radius</c>
-    /// （下沿比例随表内 hitscan_height 缩放；半径独立值）。
-    ///
-    /// 双模式口径：本工具（编辑器模式）与**GM 面板**（对局内滑杆 + 导出按钮）共用同一导出
-    /// <see cref="Export"/>；对局内实时预调走 <c>MatchTestRules</c> 爆头带覆写（<c>HeadHitLineOverride</c>/
-    /// <c>HeadshotRadiusOverride</c>——判定与身位可视化同读注入实例，滑杆一动即见 Crit 档变化），
-    /// 定型才导出落盘。prefab 不入版本管理——本工具需本地 prefab（同 BodyCylinderBaker 前提）。
-    ///
-    /// **形态**：独立菜单已并入 <see cref="BakingToolbox"/>（统一入口）；本类是可寄宿工具件——
-    /// 由工具箱 <c>Activate/Deactivate/DrawGUI</c> 驱动，不再自带窗口。
+    /// 爆头区调带器（烘焙工具箱「爆头带」页承载——《固定斜视角射击方案专项设计》§5 的视觉调带裁决工具）： Scene 视图里对 <see cref="BakeTargets.PrefabPath"/>（AimIdle 参考。）。
     /// </summary>
     public sealed class HeadHitLineTuner
     {

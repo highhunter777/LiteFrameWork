@@ -6,11 +6,7 @@ using System.Text.RegularExpressions;
 namespace LiteGame.EditorTools.UI
 {
     /// <summary>
-    /// 令牌源校验（《UI 编辑器工具链专项设计》§8.1；规则对齐 `UIStyleTokens.schema.json` 2.0 的约束面）：
-    /// 七组必须存在、令牌 ID 文法与组归属、颜色格式、字号/行高/时长范围、字重枚举。
-    /// 组清单只从 <see cref="UIThemeGroups.Enumerate"/> 取（新增组不散落在多个调用点）；一次收集全部问题。
-    /// "必填但默认值合法"的字段（数值 value / 层级偏移 / 动效时长）由模型的 `Required.Always` 在反序列化时拒绝，
-    /// 本类不重复实现存在性检查。
+    /// 令牌源校验（《UI 编辑器工具链专项设计》§8.1；规则对齐 `UIStyleTokens.schema.json` 2.0 的约束面）： 七组必须存在、令牌 ID 文法与组归属、颜色格式、字号/行高/时长范围。
     /// </summary>
     public static class UIThemeTokenValidator
     {

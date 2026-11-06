@@ -10,12 +10,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Binding
 {
     /// <summary>
-    /// 绑定编辑面（《UI编辑器工具专项设计》§2.1/§8.2）：前缀组合、批量重命名、预览与应用、
-    /// 生成物 hash——作为 **UI 制作主窗口的内嵌分区** 使用，不再单独开窗。
-    ///
-    /// 写入通道两条：目标正在 Prefab Stage 打开 → 直接编辑 Stage 实例，全程 Unity Undo；
-    /// 否则 → <see cref="PrefabUtility.LoadPrefabContents"/> 改后 <c>SaveAsPrefabAsset</c>，
-    /// 故一切操作**预览先行**。选择/勾选变动即作废旧预览。
+    /// 绑定编辑面（《UI编辑器工具专项设计》§2.1/§8.2）：前缀组合、批量重命名、预览与应用、 生成物 hash——作为 **UI 制作主窗口的内嵌分区** 使用，不再单独开窗。
     /// </summary>
     public sealed class UIBindingEditor
     {

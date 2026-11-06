@@ -8,10 +8,7 @@ using Newtonsoft.Json.Linq;
 namespace LiteGame.EditorTools.UI
 {
     /// <summary>
-    /// 令牌源的规范 JSON 口径（单源）：字段序由模型 `JsonProperty(Order)` 决定、组内令牌按 ID `Ordinal` 排序、
-    /// 缩进固定、LF 换行、末尾换行、可选字段省略（null 不写）、未知字段拒绝（`MissingMemberHandling.Error`）、
-    /// 重复键拒绝（`DuplicatePropertyNameHandling.Error`）。
-    /// `sourceHash` 取规范文本的 SHA-256（小写 hex），生成幂等与"SO 过期"判定共用同一指纹。
+    /// 令牌源的规范 JSON 口径（单源）：字段序由模型 `JsonProperty(Order)` 决定、组内令牌按 ID `Ordinal` 排序、 缩进固定、LF 换行、末尾换行、可选字段省略（null 不写）。
     /// </summary>
     public static class UIThemeTokenJson
     {

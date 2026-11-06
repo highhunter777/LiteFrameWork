@@ -21,12 +21,6 @@ namespace LiteGame.Editor.UITools.Page
 
     /// <summary>
     /// 页面清单对账（《UI 编辑器工具链专项设计》§8.5）：`tbuiform` 行 + 已有清单 + 契约存在性 → 清单。
-    ///
-    /// - 条目按**页面（prefab）**唯一，`forms[]` 承载该 prefab 的全部登记行（多行合法，如 Tmp_Dialog 201/206）；
-    /// - 身份字段（forms/luaPath/prefabPath/契约路径）以表为准刷新；
-    /// - 维护字段（Owner/状态/设计稿/设备档/备注）**保留**；
-    /// - 表行新增 → 新条目（`Registered` + 默认 Owner）；清单有而表无：`Draft` 保留、其余告警；
-    /// - 表读失败不伪造空表（显式错误、不写盘）；负例不写盘。
     /// </summary>
     public static class UIPageManifestSync
     {

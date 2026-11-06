@@ -44,10 +44,6 @@ namespace LiteGame.Editor.UITools.Validation
 
     /// <summary>
     /// 例外登记集合：加载 → 校验（字段/日期）→ 过期判定 → 对报告统一降级。
-    ///
-    /// 语义（设计 §6.3）：**问题仍然出现**，只是不再阻断——`Error→Warning`、`Warning→Info`，
-    /// 并在 message 末尾标注「例外：owner，到期 expiry」；过期或非法的例外自身报问题
-    /// （`ui.rule-exception.expired` Warning / `ui.rule-exception.invalid` Error），不得静默通过。
     /// </summary>
     public sealed class UIRuleExceptionSet
     {

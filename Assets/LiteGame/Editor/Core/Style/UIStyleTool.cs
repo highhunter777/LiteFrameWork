@@ -8,20 +8,6 @@ namespace LiteGame.EditorTools.UI
 {
     /// <summary>
     /// 样式工具（"统一色板"的落地执行件；**仅编辑器批量工具**）。
-    ///
-    /// 机制：**最近 token 匹配 + 阈值**——每个 Graphic 的颜色与 token 全集比对，落在阈值内即视为该 token
-    /// 的实例，刷新时改写为 token 现值。由此获得两个关键性质：
-    ///   1. **可重入**：颜色已在 token 值上 → 最近匹配即自身 → 幂等；
-    ///   2. **改值可传播**：改 UIStyle 的 token 值后重跑刷新，旧值落在最近邻阈值内 → 全量迁移到新值。
-    /// 阈值 1e-4（逐通道差平方和）——只吸收浮点噪声与"同一意图的离散变体"，手调出的新色不受影响，
-    /// 由"对账"报告暴露。
-    ///
-    /// - 刷新（ApplyColors）：把扫描面（Widgets + Screens）prefab 中**命中 token** 的 Graphic 颜色改写为 token 现值。
-    /// - 对账（ReportDrift）：报告**不命中任何 token** 的颜色（手调/漂移检测）。
-    /// - 菜单：LiteGame/UI/样式工具/刷新 UI 颜色（按 token 收敛）、LiteGame/UI/样式工具/对账 UI 颜色（漂移报告）。
-    ///
-    /// 边界：作用域＝共享资源层的控件模板与页面夹具（§3.2）；不挂组件、不进运行时、不改结构；
-    /// 手作模板为唯一维护路径。
     /// </summary>
     public static class UIStyleTool
     {
@@ -45,10 +31,7 @@ namespace LiteGame.EditorTools.UI
         }
 
         /// <summary>
-        /// 刷新（给定目录；工具一次装载、逐 prefab 复用，不逐节点重读资产）。三段式（P2-3 B2）：
-        /// ① refs 段——按 <c>UIStyleRef</c> 声明精确应用（权威写者，见 <see cref="UIStyleRefApplier.ApplyRefs"/>）；
-        /// ② widget 迁移段——三 widget 状态色最近匹配填 token ID（不命中不填，见 <see cref="UIStyleRefApplier.MigrateWidgetTokens"/>）；
-        /// ③ 裸值段——未声明节点的裸颜色最近匹配收敛（跳过已声明 refs 与 IThemeBound 节点——单写者）。
+        /// 刷新（给定目录；工具一次装载、逐 prefab 复用，不逐节点重读资产）。
         /// </summary>
         public static (int prefabs, int graphics) ApplyColorsWith(UITokenCatalog catalog, IReadOnlyList<string> scanDirs)
         {

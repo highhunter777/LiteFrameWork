@@ -7,9 +7,7 @@ using UnityEngine;
 namespace LiteGame.EditorTools.UI
 {
     /// <summary>
-    /// 主题快照（纯数据）：从令牌源或从盘上 `UIThemeAsset` 读出同一形状，供两处共用——
-    /// 生成器的"是否需要写盘"判定与校验规则 `ui.style.token-drift` 的"SO 是否过期/被手改"判定。
-    /// 两边只做逐字段比较，不各自实现第二套遍历。
+    /// 主题快照（纯数据）：从令牌源或从盘上 `UIThemeAsset` 读出同一形状，供两处共用—— 生成器的"是否需要写盘"判定与校验规则 `ui.style.token-drift` 的"SO 是否过期/被手改"判定。
     /// </summary>
     public sealed class UIThemeSnapshot
     {

@@ -7,15 +7,7 @@ using UnityEngine.UI;
 namespace LiteGame.EditorTools.UI
 {
     /// <summary>
-    /// 引用声明应用核心（《UI 编辑器工具链专项设计》§8.1「刷新/应用：按令牌应用；幂等、报告」）：
-    /// - refs 段：<see cref="ApplyRefs"/> 按 prefab 上 <c>UIStyleRef</c> 声明写令牌现值（幂等、报告；
-    ///   跳过 IThemeBound 节点——widget 自持其 Graphic 写权（StateButton 写自身节点、TabGroup/StarRating 写子节点 Graphics），双写者由 `ui.style.ref` 规则报 Error）。
-    /// - 迁移段：<see cref="MigrateWidgetTokens"/> 三 widget 状态色字段按最近匹配填 token ID
-    ///   （已填跳过＝幂等；不命中不填＝留空合法，B4 收敛）。
-    /// 两段并入 `ui.style.colors-refresh`（<see cref="UIStyleTool.ApplyColorsWith"/> 编排：refs 先应用＝权威写者，
-    /// 裸值段后跑且跳过已声明/IThemeBound 节点）。批量走 PrefabUtility.LoadPrefabContents 模式（与既有样式工具同型）；
-    /// 回退口径＝幂等重跑零变更＋变更仅经工具落盘（版本管理可回退）。
-    /// 迁移不硬编码"部件→ID"字面映射——ID 由最近匹配（<see cref="UIStyleTool.TryNearestMatch"/>）产生，映射表住设计文档供人审。
+    /// 引用声明应用核心（《UI 编辑器工具链专项设计》§8.1「刷新/应用：按令牌应用；幂等、报告」）。
     /// </summary>
     public static class UIStyleRefApplier
     {

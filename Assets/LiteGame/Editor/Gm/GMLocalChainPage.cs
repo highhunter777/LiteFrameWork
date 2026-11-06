@@ -11,21 +11,7 @@ using UnityEngine;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// GM 工具箱·本地联测页（第五页件）：自开服务器 × 编辑器/exe 联测的**图形化一键面**
-    /// （《项目说明/07-本地联测》§5 的一键链图形版）。
-    ///
-    /// **实时刷新自管**：壳的 <c>Poll</c> 只在 Play 中节拍——本页最有用的恰是编辑态，故自挂
-    /// <c>EditorApplication.update</c>（1s 节流）：重探针（进程/HTTP/TCP/日志尾块）走后台任务写快照字段，
-    /// 主线程消费（不卡编辑器）；完成后请求窗口重绘。探针全部**只读**，不影响两端进程。
-    ///
-    /// **起停语义**：Start = 停旧（如有）→ <c>dotnet build</c>（解锁后再编）→ 写 bin 侧
-    /// appsettings（Meta 密钥——键值只落输出目录，实钥永不入库）→ 起 apphost（进程名
-    /// MetaServer/RoomServer，WorkingDirectory=仓库根——配置/表/Outbox 相对路径与手动运行同形），
-    /// stdout/stderr 重定向到 <c>deploy/logs/*.log</c> 由本页尾随。Stop = Kill——结算 Outbox
-    /// 有重启恢复面（下次启动续投），Kill 不丢已收帧；优雅排空链归控制台/服务化形态。
-    ///
-    /// **单一来源 = deploy/.env**（与 scripts/local/local-chain.ps1 同一份键文件；本页只读它，
-    /// 不另设第二处配置）。
+    /// GM 工具箱·本地联测页（第五页件）：自开服务器 × 编辑器/exe 联测的**图形化一键面** （《项目说明/07-本地联测》§5 的一键链图形版）。
     /// </summary>
     internal sealed class GMLocalChainPage : IGMPage
     {

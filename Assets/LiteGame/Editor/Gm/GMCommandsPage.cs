@@ -8,8 +8,6 @@ namespace LiteGame.Editor
 {
     /// <summary>
     /// GM 工具箱·命令与审计页：调试内核（DebugKernel）的命令发现/无参执行/审计投影。
-    /// 页内不再持有 CommandCenter 或反射执行逻辑；权限门/拦截器/审计链全在内核之后。
-    /// 审计环自动刷新 1s（仅本页在场时轮询——壳只调活动页）。
     /// </summary>
     internal sealed class GMCommandsPage : IGMPage
     {

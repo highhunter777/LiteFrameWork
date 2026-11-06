@@ -3,16 +3,7 @@ using LiteSim;
 namespace RoomServer.Runtime
 {
     /// <summary>
-    /// 预存输入定容环（《商业级通用服务端框架总设计》§5 P0-2：入闸输入的**唯一存储**——
-    /// 字典换定容环：运行期零分配、容量有界（防慢客户端/时钟攻击把预存表撑成无界内存））。
-    ///
-    /// 布局：slot = frame % <see cref="Capacity"/>；每 slot = 帧号 + 每玩家输入数组 + 有效位图。
-    /// **slot 复用必须完整清理**（帧号换代即清空数组与位图）——否则上一代帧的陈旧输入会
-    /// 在环回绕后"复活"（幽灵输入 = 判定分叉，比丢帧严重得多）。
-    ///
-    /// 容量推导：需覆盖 [当前帧 − 冗余窗, 当前帧 + 未来容忍窗] 的全部帧号——
-    /// <c>FutureFrameTolerance(8) + ClientInputBatch.MaxFrames(16) + 1 = 25 ≤ 32</c>（32 = 2 的幂，取模用掩码）。
-    /// 越界帧号在 <see cref="InputGate"/> 先验证后索引（P0-2：验证永远先于索引），环内不会见到窗口外的帧。
+    /// 预存输入定容环（《商业级通用服务端框架总设计》§5 P0-2：入闸输入的**唯一存储**—— 字典换定容环：运行期零分配、容量有界（防慢客户端/时钟攻击把预存表撑成无界内存））。
     /// </summary>
     public sealed class PendingInputRing
     {
@@ -20,11 +11,7 @@ namespace RoomServer.Runtime
         public const int Capacity = 32;
 
         /// <summary>
-        /// 玩家容量上限（= 单 uint 有效位图的位数；见构造校验）。**对外的唯一单源**：
-        /// 宿主侧 <c>RoomServerConfig</c> 的 <c>expected_players</c> 范围校验必须以本常量为上界——
-        /// 曾经两侧各自写死（配置 1..64 / 内核 1..32），33+ 席位配置会让 RoomRuntime 构造抛异常，
-        /// 而宿主建房的 try 只包了配置解析，异常一路窜上 60Hz 权威循环线程（P0-2）。
-        /// 改本值须同步重推位图宽度（当前实现恒为单 uint）。
+        /// 玩家容量上限（= 单 uint 有效位图的位数；见构造校验）。
         /// </summary>
         public const int MaxPlayerCapacity = 32;
 

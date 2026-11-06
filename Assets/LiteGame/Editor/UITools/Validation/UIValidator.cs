@@ -8,13 +8,6 @@ namespace LiteGame.Editor.UITools.Validation
 {
     /// <summary>
     /// UI 校验核心（《UI编辑器工具专项设计》§4）：跑注册的规则集 → <see cref="UIReport"/>。
-    ///
-    /// **唯一核心，三入口共用**（§4 明文"同一校验核心供菜单、窗口和自动测试调用"）：
-    /// 菜单（<c>LiteGame/UI/校验/校验 UI 资产</c>）、CLI（<c>-executeMethod … RunCli</c>，供 CI）、
-    /// EditMode 用例。规则按 <see cref="IUIRule"/> 端口注册，核心只遍历、不写死规则。
-    ///
-    /// **未接入的规则族在报告里显式列出**（§4："未实现的规则标识为待接入，不显示为自动通过"）——
-    /// 六族名单见 <see cref="Families"/>，已接入者由实际规则填充。
     /// </summary>
     public static class UIValidator
     {

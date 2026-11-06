@@ -10,9 +10,6 @@ namespace LiteGame.Editor
 {
     /// <summary>
     /// GM 工具箱·场景操作页：SceneService 加载机制验证（单场景切换 / 叠加 / 卸载）。
-    /// 场景下拉取 EditorBuildSettings 清单（可加载前提之一）；操作经命令中心派发（GmOnly 带参+异步
-    /// 场景命令的专面板——权限门/拦截器/审计环全覆盖；忙碌守卫保留），异常不外泄到编辑器、结果落面板。
-    /// 位置记忆走 EditorPrefs（统一前缀 LiteGame.Gm.*）。
     /// </summary>
     internal sealed class GMScenePage : IGMPage
     {

@@ -5,8 +5,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 性能族：UI 禁 Animator（工具链设计 §6.2「Animator」；制作规范 UI-PREFAB-03「页面根不得挂 Animator——动效走 UIFx/转场」）。
-    /// 页面根挂 Animator＝Error（MUST）；其余任意位置（含模板/HUD/子树）＝Warning（动效统一走 UIFx/转场，
-    /// Animator 带整链状态机与重序列化成本）。每个 Animator 节点一条问题。
     /// </summary>
     public sealed class PerformanceAnimatorRule : IUIRule
     {

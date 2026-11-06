@@ -6,18 +6,6 @@ namespace RoomServer.Runtime.Diagnostics
 {
     /// <summary>
     /// 房间命令日志录制器（纯内存，R11 安全——无 IO/proto/LiteNet/系统时钟）。
-    ///
-    /// 容量有界：命令/步进/规则事件各自封顶；超限置 <see cref="Truncated"/> 并停止追加，
-    /// 绝不抛进权威循环。录制器由宿主按配置注入；null = 零开销关闭。
-    ///
-    /// 世界存档环（容量 &gt; 0 时启用）：RecordStep 时刻深拷一份权威世界（<see cref="SimWorldState.CopyTo"/>
-    /// 逐数组 Array.Copy，环满覆盖最旧帧）——重放分歧帧据此产出字段级差异。内存代价 = 容量 × 单世界大小，
-    /// 由 diagnostics.world_ring_frames 显式给。
-    ///
-    /// 即时快照（mismatch flush）：任意线程 <see cref="RequestSnapshot"/> 置位；房间线程在
-    /// <see cref="PollSnapshot"/> 里消费——事件列表与世界环深拷成独立记录后回调，回调在房间线程上
-    /// 执行且必须无 IO（宿主侧只入队，写盘归后台）。封印（<see cref="Seal"/>）与快照互不干扰：
-    /// 快照后录制继续。
     /// </summary>
     public sealed class RoomRunRecorder
     {
@@ -162,8 +150,6 @@ namespace RoomServer.Runtime.Diagnostics
 
         /// <summary>
         /// 房间线程消费快照请求（StepFrame 末尾调用）：事件与世界环深拷成独立记录后回调。
-        /// 回调在房间线程上执行——只允许入队等轻操作，IO 归宿主后台。异常吞掉并置截断标记：
-        /// 诊断设施不得反噬权威循环。
         /// </summary>
         public void PollSnapshot()
         {

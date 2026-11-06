@@ -48,12 +48,7 @@ namespace LiteGame.Editor.UITools.Compose
     }
 
     /// <summary>
-    /// 受控属性白名单发现（《UI编辑器工具专项设计》§5"受控属性"）：遍历自有控件组件（程序集＝
-    /// <c>LiteFramework.UI</c>，锚点为本单源 attribute 自身），只收带 <see cref="UIWidgetPropertyAttribute"/>
-    /// 的公开实例字段。**未标注成员不进枚举**——UGUI 契约件（Slider/Image/TMP）与 <c>_私有件</c> 天然不在白名单，
-    /// "不改控件内部实现"由此成为机制而非按钮禁用。
-    ///
-    /// 纯逻辑面（零 Sirenix）：编排面板按本结果分流绘制，EditMode 用例直测此处。
+    /// 受控属性白名单发现（《UI编辑器工具专项设计》§5"受控属性"）：遍历自有控件组件（程序集＝ <c>LiteFramework.UI</c>，锚点为本单源 attribute 自身）。
     /// </summary>
     public static class UIWidgetPropertyCatalog
     {

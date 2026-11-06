@@ -7,8 +7,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 性能族：`raycastTarget` 预算（工具链设计 §6.2「raycastTarget 过多」；总设计 §11.6「静态规则」）。
-    /// 单 prefab 开启数超过 <see cref="UIRuleThresholds.RaycastTargetBudget"/>＝一条 Warning（SHOULD 级；
-    /// 非交互装饰件应关 raycastTarget——预算随真实面校准，不在规则写死）。
     /// </summary>
     public sealed class PerformanceRaycastTargetRule : IUIRule
     {

@@ -6,9 +6,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 性能族：布局重建深度（工具链设计 §6.2「LayoutGroup/ContentSizeFitter 过深」）。
-    /// 同轴连续嵌套的 LayoutGroup/ContentSizeFitter 链深度超过 <see cref="UIRuleThresholds.LayoutDepthLimit"/>
-    /// ＝一条 Warning（嵌套布局链是重建成本的主要来源；阈值随真实面校准）。
-    /// 链深按节点向上累计：同节点 LayoutGroup+ContentSizeFitter 记一层。
     /// </summary>
     public sealed class PerformanceLayoutDepthRule : IUIRule
     {

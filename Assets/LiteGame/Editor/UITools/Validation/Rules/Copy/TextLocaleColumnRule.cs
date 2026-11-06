@@ -7,8 +7,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 文本族：语言列完整性（工具链设计 §6.2「语言列缺失」）。
-    /// 源语言（Zh）空＝Error（源缺失无法派生任何语言）；英文列（En）空＝Warning（翻译欠账可见、可提交）。
-    /// 表读取失败显式报一条 Error；种子注入同 <see cref="TextStaticKeyRule"/>。
     /// </summary>
     public sealed class TextLocaleColumnRule : IUIRule
     {

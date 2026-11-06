@@ -3,12 +3,7 @@ using UnityEngine;
 namespace LiteGame.EditorTools.UI
 {
     /// <summary>
-    /// UI 颜色读口（《UI 编辑器工具链专项设计》§8.1）：12 个旧名保留为**只读属性**，值按冻结令牌 ID
-    /// 从 <see cref="UITokenCatalog"/> 读取——本类不再持有任何颜色值，改色板只改令牌 JSON。
-    ///
-    /// 纪律：不做静态缓存（域重载/重新生成后必须读到新值）；工具内部不逐节点走这里，
-    /// 而是每次操作装载一次目录并把实例下传（<see cref="UIStyleTool.ReportDriftWith"/> 等）。
-    /// 本门面只服务既有调用点（规则/夹具）与少量一次性读取。
+    /// UI 颜色读口（《UI 编辑器工具链专项设计》§8.1）：12 个旧名保留为**只读属性**，值按冻结令牌 ID 从 <see cref="UITokenCatalog"/> 读取——本类不再持有任何颜色值。
     /// </summary>
     public static class UIStyle
     {

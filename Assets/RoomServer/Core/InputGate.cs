@@ -5,36 +5,7 @@ using LiteSync.Shared;
 namespace RoomServer.Runtime
 {
     /// <summary>
-    /// 输入闸门（《状态同步实施方案》§4.5-6 两层输入校验的**传输层**；P0 输入面扩展 + R0 正确性收口：
-    /// 《商业级通用服务端框架总设计》§5 P0-2/P0-3）：
-    /// 只挡"传输层可见的非法"，不做语义校验（语义 clamp 在 Sim 内——§4.5-6 第二层，两端一致由 M8 Sim 保证）。
-    ///
-    /// R1 纯化：入参从 proto <c>InputMessage</c> 换为纯数据 <see cref="ClientInputBatch"/>（§8.1
-    /// "RoomRuntime 不见 proto"）——校验语义逐条不变，两端常量一致性由 L1 契约用例钉死。
-    ///
-    /// 职责（2026-09-17 重构：校验/存储与消费分离——客户端按 inputDelay=1 发**未来帧**输入，
-    /// 本类按帧号**预存**，权威帧推进到位时由 <see cref="RoomRuntime"/> 消费）：
-    /// - **消息形状**（R0-P0-3）：repeated frames 数量超冗余窗上限 = 恶意/损坏包，整条丢弃。
-    /// - **帧号合法性**：frame ≤ 0 或 frame > 服务器当前帧 + 容忍窗（未来帧时钟攻击面）丢弃。
-    /// - **同帧更新（未消费则后到生效）**：每帧每玩家一条**预存位**，未消费前允许覆盖——
-    ///   客户端的"最新采样"与之一致；重复只计数（重复账），不重复消费。
-    /// - **未来帧预存**：窗口内 (serverFrame, serverFrame+容忍窗] 的帧逐帧校验后一并入库——
-    ///   客户端"沿用帧预发"（步进前上行即将执行的多余帧）靠它落进预存；超出容忍窗不进。
-    /// - **EntityId 防伪**：客户端上报的 EntityId 一律**覆写**为该会话所属实体 Id。
-    /// - **ackSnapshot**：合法性记账（负值/超前**钳位 + 计数，不丢输入**；语义 ACK 的可信化在
-    ///   App 层会话（发送 ledger 验证）；本处钳位值只供回溯窗口对齐参考）。
-    /// - **已消费帧**（frame ≤ 服务器当前帧）：拒绝（权威只前进，存了就是永不消费的滞留项）。
-    /// - **按键位白名单**：未定义位一律丢弃（客户端不能凭上报任意位影响判定；服务器内部位
-    ///   ClientUnreportable 见 <see cref="SimInputFrame.ButtonFireFlag"/>）。
-    /// - **action_seq 纪律**：离散意图位（Reload/SwitchWeapon/Skill1..3/Pickup/UseItem）必须携带
-    ///   **非零且逐玩家严格递增**的 seq——重放/迟到重复请求丢弃（同帧重复归同帧去重，seq 挡跨帧重放）。
-    /// - **切枪槽位范围**：SwitchWeapon 意图的 selected_weapon_slot 越界丢弃（伪造武器槽拒绝）。
-    /// - **数值边界**（R0-P0-3：非法包不得进入权威状态）：Move 与 AimPoint 浮点必须有限；
-    ///   Move 分量与长度 ≤ 1；Fire/Skill 意图帧 **AimPoint 必须非零**（全零 = 无点；无点开火 = 非法
-    ///   ——方向回退口径已随 AimPoint 单口径退役，《固定斜视角射击方案专项设计》§4）。
-    ///
-    /// 存储（R0-P0-2）：过闸输入进 <see cref="PendingInputRing"/> 定容环（(frame, player) 复合键语义不变——
-    /// 2026-09-22 Sync-P0 已修多玩家同帧互顶缺陷；R0 把字典换定容环：零分配、容量有界、slot 复用全清）。
+    /// 输入闸门（《状态同步实施方案》§4.5-6 两层输入校验的**传输层**；P0 输入面扩展 + R0 正确性收口： 《商业级通用服务端框架总设计》§5 P0-2/P0-3）： 只挡"传输层可见的非法"。
     /// </summary>
     public sealed class InputGate
     {
@@ -48,11 +19,7 @@ namespace RoomServer.Runtime
         public const float MoveComponentLimit = 1f;
 
         /// <summary>
-        /// AimPoint 距离容差（× <c>CombatConfig.HitscanRange</c>）：AimPoint 是**客户端解算的世界点**，
-        /// 用平方比较不开方。1.1 = 射程 100m ⇒ 允许 110m——留一点裕量给"相机射线打到远处地面"
-        /// 这一正常形态（相机俯视时交点常在射程之外，但那不是威胁，只是打不到）。
-        /// **真正的反作弊底线**：点不可来自"任意远"——否则客户端能送一个超远点把服务器射线
-        /// 指向任意方向（含身后）。本闸把方向锁死在射程附近。
+        /// AimPoint 距离容差（× <c>CombatConfig.HitscanRange</c>）：AimPoint 是**客户端解算的世界点**， 用平方比较不开方。
         /// </summary>
         public const float AimPointRangeTolerance = 1.1f;
 
@@ -65,12 +32,7 @@ namespace RoomServer.Runtime
         /// <summary>最近一次收包中（钳位后的）ackSnapshot——审计/回溯窗口对齐用，判定不依赖。</summary>
         public int LastClampedAckSnapshot { get; private set; } = -1;
 
-        // ---- 计数面（P4 同款收口，与 Ops/BroadcastAccount 同口径）----
-        //
-        // 状态私有、只经 <c>Note*</c> 递增：这些是**只增的观测计数**，让它们保持 public 可变字段等于
-        // 允许任意调用点直接改写/清零（Ops 行会打印一个被伪造的数）；"为什么是 0"必须只来自
-        // "没有发生过"。闸门单线程（权威循环内），故用普通读写即可（不引 Interlocked——那只会
-        // 让人误以为它跨线程）。
+        // ---- 计数面（P4 同款收口，与 Ops/BroadcastAccount 同口径）---- 状态私有、只经 <c>Note*</c> 递增：这些是**只增的观测计数**，让它们保持 public 可变字段等于 允许任意调用点直接改写/清零（Ops 行会打印一个被伪造的数）。
 
         private long _acceptedCount;
         private long _droppedDuplicateFrame;
@@ -188,16 +150,6 @@ namespace RoomServer.Runtime
 
         /// <summary>
         /// 校验并**预存**一条输入（frame 可为未来帧——inputDelay=1 语义）。
-        /// EntityId 覆写为会话所属实体（防伪）。返回 false = 校验失败已丢弃（调用方无需处理）。
-        ///
-        /// 判定顺序纪律（P0-2"先验证后索引" + 计数语义）：
-        /// 形状 → 帧号/按键/槽位（结构）→ 同帧去重 → seq → 数值边界 → 接受记账。
-        /// 接受记账（_lastAcceptedFrame/_lastActionSeq）只在**全部通过**时更新——
-        /// 非法包不烧帧槽/seq 槽（同帧的合法重发仍可被接受）。
-        ///
-        /// <paramref name="shooterPos"/>：射手当前世界位（**AimPoint 距离闸用**）。
-        /// 本类是纯校验器、**不持世界状态**，故由调用方传入；传 null =跳过该闸
-        /// （无世界形态/纯协议用例）。R11 纪律：不得为拿位置而给本类引入世界引用。
         /// </summary>
         public bool Store(in ClientInputBatch batch, int playerId, long entityId, int serverFrame,
             out int acceptedFrame, out SimInputFrame acceptedInput,
@@ -235,9 +187,7 @@ namespace RoomServer.Runtime
                 return false;
             }
 
-            // 冗余窗口取帧：优先"服务器当前帧+1"（inputDelay 正常形态），退而取窗口内已消费帧
-            // （只为识别"整包已消费"，不在本包入库）。每包**只把 ≤ 服务器当前帧+1 的帧当作主帧**，
-            // 更高的帧走下面的"未来帧预存"。
+            // 冗余窗口取帧：优先"服务器当前帧+1"（inputDelay 正常形态），退而取窗口内已消费帧 （只为识别"整包已消费"，不在本包入库）。
             int frame = -1;
             bool found = false;
             SimInputFrame wire = default;
@@ -280,10 +230,7 @@ namespace RoomServer.Runtime
             acceptedFrame = frame;
             acceptedInput = input;
 
-            // 未来帧预存：窗口内 (serverFrame+1, serverFrame+容忍窗] 的帧逐帧校验后一并入库。
-            // 客户端"沿用帧预发"（步进前上行即将执行的多余帧）靠这里落进预存——**只发额外帧、不发未来帧**，
-            // 且预发帧与本地沿用逐位同值（见 BattleContext.FeedAndSendInputs）；超出容忍窗的帧不进预存
-            // （时钟攻击面口径不变）。违规帧跳过并计数，不影响主帧与其余帧。
+            // 未来帧预存：窗口内 (serverFrame+1, serverFrame+容忍窗] 的帧逐帧校验后一并入库。)。
             int futureMax = serverFrame + FutureFrameTolerance;
             for (int f = serverFrame + 2; f <= futureMax && f <= batch.Frame; f++)
             {
@@ -308,10 +255,7 @@ namespace RoomServer.Runtime
         }
 
         /// <summary>
-        /// 单帧逐项校验（主帧与预存未来帧同口径；违规即按原因计数并返回 false）：
-        /// 按键白名单 → 武器槽范围 → 离散 seq 纪律 → 数值边界（有限/向量/瞄准点）。
-        /// 帧号相关的检查（形状/窗口/已消费）归调用方——本方法只看单帧内容（<paramref name="frame"/>
-        /// 仅用于 seq 判定的"同帧同 seq 良性重发"配对）。
+        /// 单帧逐项校验（主帧与预存未来帧同口径；违规即按原因计数并返回 false）： 按键白名单 → 武器槽范围 → 离散 seq 纪律 → 数值边界（有限/向量/瞄准点）。
         /// </summary>
         private bool ValidateWire(in SimInputFrame wire, int frame, int playerId, SimVector3? shooterPos)
         {
@@ -364,9 +308,7 @@ namespace RoomServer.Runtime
                 return false;
             }
 
-            // AimPoint：**全零 = 无点**（合法输入形态——相机未就绪/退化帧，不产命中）；
-            // Fire/Skill 意图帧必须带非零点（无点开火/施法 = 非法——瞄准方向字段已删，
-            // 点是非零契约的唯一载体；《固定斜视角射击方案专项设计》§4）。
+            // AimPoint：**全零 = 无点**（合法输入形态——相机未就绪/退化帧，不产命中）； Fire/Skill 意图帧必须带非零点（无点开火/施法 = 非法——瞄准方向字段已删， 点是非零契约的唯一载体；《固定斜视角射击方案专项设计》§4）。
             bool aimPointZero = wire.AimPointX == 0f && wire.AimPointY == 0f && wire.AimPointZ == 0f;
             bool aimNeeded = (wire.Buttons & AimRequiredButtons) != 0u;
             if (aimNeeded && aimPointZero)   // lint-allow R3（点值为零 = 契约边界判定，非浮点精度比较）
@@ -375,11 +317,7 @@ namespace RoomServer.Runtime
                 return false;
             }
 
-            // **AimPoint 距离闸**（反作弊面）：客户端上报世界坐标点，
-            // 权威端必须约束它"打得到"——否则可送超远点让服务器从枪口朝任意方向扫射。
-            // 判据：全零 = 无点（跳过本闸）；非零则须落在
-            //「距射手 ≤ 射程 × 容差」的范围内。射手位由调用方传入（Gate 是纯校验器、不持世界状态；
-            // 无世界形态传 null ⇒ 跳过该闸）。
+            // **AimPoint 距离闸**（反作弊面）：客户端上报世界坐标点， 权威端必须约束它"打得到"——否则可送超远点让服务器从枪口朝任意方向扫射。
             if (shooterPos != null && !aimPointZero)
             {
                 float dxp = wire.AimPointX - shooterPos.Value.X;
@@ -405,8 +343,6 @@ namespace RoomServer.Runtime
 
         /// <summary>
         /// 该玩家最近被接受的输入帧号（作为该客户端已确认的输入下限，随快照 ack_input 下发；-1 = 尚无）。
-        /// 口径说明：这是"最新输入帧"而非"已消费帧"——服务器广播 ack_input 的用途是让客户端知道
-        /// **它的输入已到达服务器**，回滚判定以真实输入帧为准，不依赖此值。
         /// </summary>
         public int LastAcceptedFrame(int playerId) =>
             playerId >= 0 && playerId < _playerCount ? _lastAcceptedFrame[playerId] : -1;

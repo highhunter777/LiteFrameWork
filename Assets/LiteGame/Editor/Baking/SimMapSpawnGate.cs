@@ -8,18 +8,12 @@ using UnityEngine;
 namespace LiteGame.EditorTools
 {
     /// <summary>
-    /// 地图烘焙的**身位几何闸**：身位尺寸三方对账（prefab CC ≡ `#combatgeom` 表行 ≡ 入库夹具）
-    /// 与出生点合法性校验（不落障碍 / 离障碍不小于身位半径 / 不越边界）。
-    ///
-    /// 从 <see cref="SimMapBaker"/> 拆出：地图烘焙器只保留"打开场景 → 采集 → 写盘"的编排，
-    /// 身位几何与布点安全闸独立成件（两处入口共用同一实现，语义不会在编排改动中漂移）。
+    /// 地图烘焙的**身位几何闸**：身位尺寸三方对账（prefab CC ≡ `#combatgeom` 表行 ≡ 入库夹具） 与出生点合法性校验（不落障碍 / 离障碍不小于身位半径 / 不越边界）。
     /// </summary>
     internal static class SimMapSpawnGate
     {
         /// <summary>
-        /// 身位几何三方对账：prefab CharacterController ≡ `#combatgeom` 表行（body_radius/hitscan_height）
-        /// ≡ 入库夹具 <see cref="BakeTargets.BodyCcFixturePath"/>（0 容差）。任一缺失/不一致即失败——
-        /// 地图出生点校验只用这一份值，缺 prefab 不静默跳过。
+        /// 身位几何三方对账：prefab CharacterController ≡ `#combatgeom` 表行（body_radius/hitscan_height） ≡ 入库夹具 <see cref="BakeTarge。
         /// </summary>
         public static bool TryRead(out float radius, out float height, out string error)
         {
@@ -84,13 +78,7 @@ namespace LiteGame.EditorTools
         }
 
         /// <summary>
-        /// 出生点合法性（**布点可调的安全闸**——多图批；**逐图通用，不依赖作者记得留余量**）：
-        /// ① **不落障碍内**（含 y 区间的 2.5D 判据：出生点站立区间与障碍 y 区间相交且 XZ 落在圆/AABB 内 = 出生即卡几何）；
-        /// ② **离障碍不小于身位半径**（<paramref name="bodyRadius"/>——否则出生首帧被移动去穿插推出，
-        /// 落点与场景标记不符；新图不靠"复活点离死亡点够远/出生点恰好宽敞"这类隐含约定）；
-        /// ③ **不越边界**（|x| ≤ half_width、|z| ≤ half_depth）。
-        /// 任一违例 fail-fast（不产半成品；调布点时点位打偏即刻在报告里点名，而不是等进局才发现）。
-        /// 边界判据与视觉地面同源（`map_bounds`：布点必须落在视觉场地内，防"出界出生"）。
+        /// 出生点合法性（**布点可调的安全闸**——多图批；**逐图通用，不依赖作者记得留余量**）： ① **不落障碍内**（含 y 区间的 2.5D 判据：出生点站立区间与障碍 y 区间相交且 XZ 落在圆/AABB 内 = 。）。
         /// </summary>
         public static void Validate(List<(string Name, SimVector3 Pos)> spawns,
             List<SimMapBaker.ObstacleDraft> obstacles, float groundY, float halfWidth, float halfDepth,

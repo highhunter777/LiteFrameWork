@@ -8,13 +8,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
-    /// 规则：表内资源路径必须存在（《UI编辑器工具专项设计》§4 资源族 + 步 5 登记——
-    /// uiform 悬空两次实锤〔201 出生即悬空、批 2 改名漏跟表引用〕的机制化）。
-    ///
-    /// **通用反射面**：装载全部 Luban 表，扫每行**公开字符串字段**——值以 <c>.prefab</c>/<c>.unity</c>
-    /// 结尾即视为资源路径（工程相对，无 <c>Assets/</c> 前缀按表内惯例补前），盘上不存在＝Error。
-    /// 不枚举具体表/列——未来任何表加路径列即被同一门禁罩住（守卫类修法，不是点位补丁）。
-    /// 表文件缺失＝Warning（构建产物未生成属构建环境问题，非资产断链）。
+    /// 规则：表内资源路径必须存在（《UI编辑器工具专项设计》§4 资源族 + 步 5 登记—— uiform 悬空两次实锤〔201 出生即悬空、批 2 改名漏跟表引用〕的机制化）。
     /// </summary>
     public sealed class AssetTablePathRule : IUIRule
     {
@@ -24,9 +18,7 @@ namespace LiteGame.Editor.UITools.Validation.Rules
         /// <summary>表数据目录（Luban bytes 产物落点；尾斜杠口径与 <see cref="TableLayout.DataDir"/> 单源一致）。</summary>
         public static string TableDataDir => TableLayout.DataDir;
 
-        // 表清单 = TableLayout.Files 单源派生（领域路径 + 裸表名→cfg 表类名约定解析）——
-        // 本类曾持手写第二份清单（审计登记：新表只入单源即在此漏登记），改布局常量驱动后不可能漂；
-        // 类名解析失败 fail-fast（布局与生成物漂移当场暴露，不静默跳过）。
+        // 表清单 = TableLayout.Files 单源派生（领域路径 + 裸表名→cfg 表类名约定解析）—— 本类曾持手写第二份清单（审计登记：新表只入单源即在此漏登记），改布局常量驱动后不可能漂； 类名解析失败 fail-fast（布局与生成物漂移当场暴露，不静默跳过）。
         private static readonly (string file, Type type)[] Tables = BuildTables();
 
         private static (string file, Type type)[] BuildTables()

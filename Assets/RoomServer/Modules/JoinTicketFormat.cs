@@ -6,22 +6,6 @@ namespace RoomServer.Application
 {
     /// <summary>
     /// Join 票据的**线格式**（《服务端总设计》§P0-6 六项绑定 + §7"建议最小接口"）。
-    ///
-    /// **单一来源**：签发端与验证端都必须走本类，形状规则（字段序、编码、被签名覆盖的范围）
-    /// 只有这一份。测试用隔离签发器亦调本类——**不得另写一份拼串**，否则签发端漂移时
-    /// 验证端仍是绿的（协议单源红线同一条纪律）。
-    ///
-    /// 形状：<c>v3.kid.playerId.accountId.roomId.matchId.audience.buildHash.simVersion.nonce.expMs.nbfMs.mapId.expectedPlayers.sig</c>
-    /// 共 15 段。自由文本字段走 Base64Url（去 padding、<c>+</c>→<c>-</c>、<c>/</c>→<c>_</c>），
-    /// 故字段内不可能出现分隔符 <c>.</c>；整数（expMs/nbfMs/mapId/expectedPlayers）明文十进制。
-    /// 签名覆盖**除末段（sig）外的全部 14 段**。
-    ///
-    /// **v2（多图批）**：相对 v1 追加 <c>mapId</c> 段（房间创建意图里的地图行键；0 = 未指定）。
-    /// **v3（开房参数批）**：相对 v2 追加 <c>expectedPlayers</c> 段（房间创建意图里的期望人数；
-    /// 0 = 未指定＝按房间模板）。两段都在签名覆盖内——创建意图与其余绑定项同等防篡改。
-    /// **v4（联机测试房批）**：相对 v3 追加 <c>template</c> 段（房间模板名，Base64Url 编码；空 = 未指定＝
-    /// 房间服取 `default_template`）。**授权在 Meta 侧完成**（口令比对），票据只承载结果——
-    /// 房间端据此选模板，不再二次判定权限。旧版票据**不静默接受**（版本段不符即拒）。
     /// </summary>
     public static class JoinTicketFormat
     {

@@ -317,9 +317,7 @@ namespace LiteGame.Toolchain
         }
 
         /// <summary>
-        /// 平面与前置契约（与 scripts/_toolchain_manifest.py 同口径）：
-        /// plane 必填；docs⇔none；editor 不声明 requires；runtime 只声明 play/player 且非空；
-        /// external 需要 command（宿主在编辑器、操作外部环境的页件除外）；hud 必须是 runtime。
+        /// 平面与前置契约（与 scripts/_toolchain_manifest.py 同口径）： plane 必填；docs⇔none；editor 不声明 requires。
         /// </summary>
         private static void ValidatePlane(ToolchainManifestLoadResult result, ToolchainTool tool)
         {

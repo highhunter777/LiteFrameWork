@@ -9,8 +9,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 契约族：控件模板必须声明 `WidgetSpec`（《UI 编辑器工具链专项设计》§6.2「契约」+ §8.4）。
-    /// 缺声明＝Error（P1-2 把「缺 spec」记为 Warning 只为让清单先能生成；校验面按设计应为 Error）。
-    /// 按**文件名前缀** `Tmp_` 识别控件模板（目录不限）。
     /// </summary>
     public sealed class WidgetSpecRule : IUIRule
     {

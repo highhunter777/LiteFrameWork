@@ -43,9 +43,7 @@ namespace LiteGame.Editor.UITools.Preview
     }
 
     /// <summary>
-    /// 设备档案读面（《UI 编辑器工具链专项设计》§7.1「设备档在预览工具栏统一切换；不在多个场景复制配置」）：
-    /// JSON 单源＋校验＋确定性排序（按 id Ordinal、无时间戳——沿 UIStyleTokens 先例）。
-    /// 禁静态缓存（同 UITokenCatalog 口径）：每次操作装载一次、实例下传。
+    /// 设备档案读面（《UI 编辑器工具链专项设计》§7.1「设备档在预览工具栏统一切换；不在多个场景复制配置」）： JSON 单源＋校验＋确定性排序（按 id Ordinal。）。
     /// </summary>
     public static class UIDeviceProfileCatalog
     {

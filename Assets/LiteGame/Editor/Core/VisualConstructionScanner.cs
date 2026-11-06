@@ -8,18 +8,6 @@ namespace LiteGame.Editor
 {
     /// <summary>
     /// 运行时视觉构建扫描器（《UI框架总设计》§7"视觉单一来源"；《UI制作规范》§8 资产静态检查）。
-    ///
-    /// 规则：用户可见的 UI 视觉一律来自 `Assets/LiteGame/Modules/UI/Content/Screens` 与 `Assets/LiteGame/Modules/UI/Content/Widgets` 的模板；运行时代码不得构建
-    /// 视觉结构——不 `new GameObject` 造 Canvas/Graphic/Text/Button，不 `AddComponent` 挂视觉组件。
-    ///
-    /// **层容器节点不在此限**：`UIService` 建 `[UIRoot]` 与各语义层节点是**层级骨架不是视觉**
-    /// （§7 原文），这些调用不带视觉组件参数，故按"是否构造视觉组件"判定而非按 `new GameObject` 判定。
-    ///
-    /// **例外由文件名唯一标识**：引导期错误界面（`ProcedureError`——§7 判据）与 UI 输入底座
-    /// （`UIInput`——§7 输入基础设施例外，与层容器骨架同判据）。
-    /// 新增例外须同时改设计文档与其判据。
-    ///
-    /// 纯函数式：输入源码文本 → 违规列表，便于用例喂合成负例（§4.2"违规负例"）。
     /// </summary>
     public static class VisualConstructionScanner
     {
@@ -35,14 +23,8 @@ namespace LiteGame.Editor
             "EventSystem", "StandaloneInputModule", "InputSystemUIInputModule",
         };
 
-        /// <summary>登记例外的**文件名**（非路径）。新增须同步设计文档 §7 判据。
-        ///
-        /// **为什么用文件名而不是路径**：按完整路径登记时，目录迁移会让登记静默失效——
-        /// 真实源码扫描因"找不到该路径"把唯一的例外文件当普通文件扫（或反之），
-        /// 而 EditMode 用例传的是**合成路径**、仍走放行分支，故全绿掩盖了它。
-        ///
-        /// 例外由**文件名**唯一标识已足够（本仓只有一处）；迁移目录时无需同步本表。
-        /// 若将来出现同名文件，须改为"文件名 + 特征片段"判定，不得退回写死路径。
+        /// <summary>
+        /// 登记例外的**文件名**（非路径）。
         /// </summary>
         public static readonly string[] AllowedFileNames =
         {

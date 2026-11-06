@@ -11,10 +11,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Workbench
 {
     /// <summary>
-    /// UI 工作台（《UI 编辑器工具链专项设计》§2）：**唯一制作入口**——一个宿主窗口 + 五个透视
-    /// （页面/控件库/绑定/契约/校验）+ 共享上下文（页面/目标 prefab/Lane）。
-    /// 绘制层零 Sirenix；判定全部委托给可测内核（<see cref="UILanePolicy"/> / <see cref="UIWorkbenchAvailability"/> /
-    /// <see cref="UIWorkbenchState"/> / <see cref="UIWorkbenchPageList"/> / <see cref="UIContractReportView"/>）。
+    /// UI 工作台（《UI 编辑器工具链专项设计》§2）：**唯一制作入口**——一个宿主窗口 + 五个透视 （页面/控件库/绑定/契约/校验）+ 共享上下文（页面/目标 prefab/Lane）。
     /// </summary>
     public sealed class UIWorkbenchWindow : EditorWindow
     {

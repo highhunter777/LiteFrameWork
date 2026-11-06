@@ -3,11 +3,7 @@ using System.Collections.Generic;
 namespace LiteGame.Editor.UITools.Naming
 {
     /// <summary>
-    /// UI 命名词表单源（《UI编辑器工具专项设计》§2.1.6："词表数据文件化——《制作规范》§9 的类别前缀/
-    /// 类型段/语义词条住单一数据文件，Inspector 预设与校验核心共读"）。
-    ///
-    /// **内容源**＝《UI命名词表与控件清单》（文档）；本类是其**机器可读副本（权威）**——改词表须同步改此处 + 文档。
-    /// 规则本体（判据/同文/私有件/模板层等）以《UI制作规范》§9 为权威，本类只枚举与提供查询口。
+    /// UI 命名词表单源（《UI编辑器工具专项设计》§2.1.6："词表数据文件化——《制作规范》§9 的类别前缀/ 类型段/语义词条住单一数据文件，Inspector 预设与校验核心共读"）。
     /// </summary>
     public static class UINamingWords
     {

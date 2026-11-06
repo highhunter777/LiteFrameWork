@@ -11,10 +11,7 @@ using LiteGame.Modules.Config;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// GM 工具箱·配置诊断页（原三区合一）：运行状态（FSM/AssetService/配置装载）+ 表查询
-    /// （cfg.Tables 反射自动发现，Luban 主键 int 优先退化 string）+ 产物核对（TableDataFiles 逐表预检）。
-    /// 产物核对路径走 <see cref="TableLayout.TableDataPath"/> 单源（领域分类布局——禁第二份拼接）；
-    /// 正式断言权威在测试项目（Luban.Runtime 带引擎依赖进不了 xUnit 双轨），本页为文件级预检。
+    /// GM 工具箱·配置诊断页（原三区合一）：运行状态（FSM/AssetService/配置装载）+ 表查询 （cfg.Tables 反射自动发现。）。
     /// </summary>
     internal sealed class GMConfigDiagnosticsPage : IGMPage
     {

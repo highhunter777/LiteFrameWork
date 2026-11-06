@@ -7,8 +7,6 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
     /// 契约族：控件清单与磁盘生成物一致（《UI 编辑器工具链专项设计》§6.2「契约」+ §8.4）。
-    /// 清单未生成＝Info（提示生成，不阻断）；生成了但与当前模板不一致（`sourceHash` 漂移）＝Error。
-    /// 仅在上下文显式包含 `Tmp_*` 资产时执行（合成上下文不触发）。
     /// </summary>
     public sealed class WidgetManifestRule : IUIRule
     {

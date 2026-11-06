@@ -27,15 +27,7 @@ namespace LiteGame.Editor.UITools.Widgets
     }
 
     /// <summary>
-    /// 控件清单生成器（《UI 编辑器工具链专项设计》§8.3/§8.4）：`Tmp_*` 模板 + <see cref="WidgetSpec"/>
-    /// + 受控属性白名单 + 绑定 hash → 确定性 <see cref="UIWidgetManifest"/>。
-    ///
-    /// 真相与校验口径：
-    /// - 模板清单＝目录（<see cref="UIWidgetLibrary"/>，不另存清单）；
-    /// - 声明＝模板根 `WidgetSpec`；属性＝控件字段上的 `UIWidgetProperty`（不重复声明）；
-    /// - 缺 `WidgetSpec` 只告警（`specPresent=false`；Error 归 P1-4 校验规则）；
-    /// - 插槽/事件/约束声明不一致＝Error（负例不写盘）；
-    /// - 无时间戳、稳定排序、重复生成逐字节一致。
+    /// 控件清单生成器（《UI 编辑器工具链专项设计》§8.3/§8.4）：`Tmp_*` 模板 + <see cref="WidgetSpec"/> + 受控属性白名单 + 绑定 hash → 确定性 <see cref="U。
     /// </summary>
     public static class UIWidgetManifestGenerator
     {
