@@ -9,12 +9,6 @@ namespace LiteSim.Editor
 {
     /// <summary>
     /// SimTrig 查表生成器（《M7 实施指导》§2.2）。
-    /// 入口：菜单「LiteSim/生成 SimTrig 查表」、工具链 Hub（codegen.sim-trig）与
-    /// <c>python scripts/codegen/toolbox.py trig</c>（写盘经 ToolWriteScope）→ 产出并入库
-    /// <c>Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs</c>。
-    ///
-    /// 纪律（§2.1 硬规则）：生成期允许 <c>System.Math</c>（double）填表；运行期严禁超越函数（纪律扫描 R1 执行）。
-    /// 幂等：固定格式 + 固定顺序 → 重复执行产出逐字节一致（验收项）。
     /// </summary>
     public static class SimTrigTableGenerator
     {
@@ -37,9 +31,7 @@ namespace LiteSim.Editor
         }
 
         /// <summary>
-        /// 只读新鲜度判定（toolbox trig --check 的判据）：产物不存在 = false；否则
-        /// 工作区文本与 <see cref="BuildContent"/> 都做行尾归一（\r\n / \r → \n）后比较——
-        /// 工作区行尾随 core.autocrlf 是 CRLF，而 BuildContent() 产 LF，不归一会恒判 stale。
+        /// 只读新鲜度判定（toolbox trig --check 的判据）：产物不存在 = false。
         /// </summary>
         public static bool IsUpToDate()
         {

@@ -9,13 +9,6 @@ namespace LiteSim.Editor
 {
     /// <summary>
     /// Unity 侧 IEEE 基线对账（《测试开发方案》§7.2 缺口 b；《M7 实施指导》§2.6）。
-    ///
-    /// 做法：用 <see cref="IeeeProbe"/>（与 .NET 侧**同一份**样本与运算）算出基线文本，
-    /// 与仓库内 `Tests/LiteSim.Core.Tests/Baselines/IeeeBaseline.txt`（.NET 侧记录）**逐位比较**。
-    /// 不等即说明：Unity 运行时与 .NET 的浮点路径出现了差异——确定性/预测质量的直接证据。
-    ///
-    /// 入口：菜单「LiteSim/对账 IEEE 基线」；CI 入口 <c>RunCli</c>（batchmode 退出码）；
-    /// 另供 EditMode 用例调用 <see cref="Verify"/>（见 `Packages/com.litegame.sim/Core/Tests/Editor`）。
     /// </summary>
     public static class IeeeBaselineChecker
     {
@@ -55,9 +48,7 @@ namespace LiteSim.Editor
         }
 
         /// <summary>
-        /// 逐位对账。(ok, 人类可读报告)。**全部行（含 10k 步 `Chain`）均为硬判据**——
-        /// `SimMath.Sqrt` 是**自研 software sqrt**（纯整数/位运算 + 正确舍入），两侧应逐位一致；
-        /// 任一不一致即失败。
+        /// 逐位对账。
         /// </summary>
         public static (bool ok, string report) Verify()
         {

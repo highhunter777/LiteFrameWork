@@ -3,14 +3,7 @@ using System;
 namespace LiteSim
 {
     /// <summary>
-    /// 输入历史环形缓冲（《状态同步实施方案》§5.5）：
-    /// 保存最近 MaxInputHistory 帧的**全体输入**（每帧独立 SimInputFrame[PlayerCount] 数组 + 逐玩家预测位），
-    /// 供回滚重放取用；真实输入到达 → Overwrite 就地覆盖该帧并清预测位（"预测输入在收到真实值后就地覆盖"）。
-    /// 每帧独立数组、构造期预分配（§11-8 运行期零 new）；32 帧为重连补发（§5.6）留余量。
-    ///
-    /// 注意：TryGet 返回**内部数组**（零拷贝）——SimStep.Step 会就地稳定排序（playerId 升序），
-    /// 排序即规范形（§3.3），不破坏语义；调用方不得越权改写。
-    /// 窗口判定与 SnapshotRing 同款：槽位帧号精确等于请求帧才算在环内。
+    /// 输入历史环形缓冲（《状态同步实施方案》§5.5）： 保存最近 MaxInputHistory 帧的**全体输入**（每帧独立 SimInputFrame[PlayerCount] 数组 + 逐玩家预测位）。
     /// </summary>
     public sealed class InputHistory
     {
@@ -90,9 +83,6 @@ namespace LiteSim
 
         /// <summary>
         /// 该帧存储输入与给定真实输入是否**逐位不同**（回滚判定用）。
-        /// float 位级判等走 BitUtil.Equal（位型比较唯一入口——回滚一致性语义要求逐位一致，非近似比较）；
-        /// 两数组均假定 playerId 升序规范形（Step 就地排序后的形态）。
-        /// 帧未记录返回 true（防御：未模拟帧不应进入回滚判定——由调用方先挡）。
         /// </summary>
         public bool Differs(int frame, SimInputFrame[] real)
         {

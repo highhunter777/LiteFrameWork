@@ -6,13 +6,6 @@ namespace LiteSim
 {
     /// <summary>
     /// IEEE 边界探针（《M7 实施指导》§2.6 / §9 验收②③）——**跨运行时对账的唯一真值源**。
-    ///
-    /// 为什么住在 LiteSim 而不是测试工程：.NET 侧（`Tests/LiteSim.Core.Tests/IeeeBaselineSpec`）与
-    /// Unity 侧（Editor 对账菜单 / EditMode 用例）必须用**同一批输入、同一套运算**逐位比较——
-    /// 各写一份必然漂移（探针本身成了不确定性来源）。故数据与算法只此一份，两侧都调它。
-    ///
-    /// 对账内容：`Sqrt` 逐值 + 相邻对 `Add/Sub/Mul/Div` + 10k 步运算链 checksum（全部只用 IEEE 基本运算，
-    /// 逐位比较 <see cref="BitConverter.SingleToInt32Bits"/>，非容差）。
     /// </summary>
     public static class IeeeProbe
     {

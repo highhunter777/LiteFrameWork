@@ -3,12 +3,7 @@ using System;
 namespace LiteSync.Shared
 {
     /// <summary>
-    /// AOI 广播裁剪参数（《状态同步实施方案》§4.5-7）：**只影响广播，不影响判定与回滚重放**——
-    /// 服务器权威 Sim 永远算全量，本组参数只决定"这一帧给谁发哪些实体"。
-    ///
-    /// **实例化**：参数按房间持有（<c>RoomConfig.Aoi</c>），<see cref="LiteSync.Snapshot.AoiFilter"/>
-    /// 每个实例一份网格并只在构造时派生格数——不存在进程级静态缓存，多房间/多实例互不串味。
-    /// 构造即校验（越界抛 <see cref="ArgumentOutOfRangeException"/>）：坏配置拒启动，不静默兜底。
+    /// AOI 广播裁剪参数（《状态同步实施方案》§4.5-7）：**只影响广播，不影响判定与回滚重放**—— 服务器权威 Sim 永远算全量，本组参数只决定"这一帧给谁发哪些实体"。
     /// </summary>
     public sealed class AoiSettings
     {

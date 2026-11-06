@@ -7,14 +7,6 @@ namespace LiteSync.Events
 {
     /// <summary>
     /// 公共战斗事件的 **Sim 记录 ↔ wire** 单向映射单源（《状态同步专项设计》§5.2 CombatEvent 面）。
-    ///
-    /// **为什么单列**：wire 映射是协议层职责——房间内核（<c>RoomServer.Runtime</c>）只见
-    /// <see cref="CombatEventRecord"/> 纯数据（R11 纯度：禁 proto），客户端也不自己手抄字段。
-    /// 服务端广播、重连响应、本地服三条路都走本件，字段清单只有这一份。
-    ///
-    /// **泛化保证**：<c>kind</c> 是判别字段——新增一种事件只加一个 <see cref="FrameEventKind"/> 值，
-    /// 本类与 proto 都不改（未知 kind 走 <see cref="TryFromProto"/> 的 false 分支丢弃，
-    /// 不会解析错位）。这是它相对旧"每型一个 message"的核心收益。
     /// </summary>
     public static class CombatEventCodec
     {
@@ -50,12 +42,7 @@ namespace LiteSync.Events
             => kind >= (int)FrameEventKind.Fire && kind <= (int)FrameEventKind.ObstacleHit;
 
         /// <summary>
-        /// 窗口 → 事件批（**全窗口**，升序）。装不下预算时**留新弃旧**并回报被裁条数
-        /// （<paramref name="dropped"/>），由调用方计数并降档——**绝不静默丢整包**
-        /// （旧实现的教训：kcp2k 丢弃时只有一行 stderr，监控上完全隐形）。
-        ///
-        /// 裁剪方向的理由：表现面要的是"刚刚发生的事"；最旧的记录客户端多半已消费过。
-        /// 窗口上界 24 条，线性裁剪足够（不引二分）。
+        /// 窗口 → 事件批（**全窗口**，升序）。
         /// </summary>
         public static Proto.CombatEventBatch PackBatch(int frame, ICombatEventSource window, out int dropped)
         {

@@ -6,12 +6,7 @@ using System.Text;
 namespace LiteSim
 {
     /// <summary>
-    /// 地图内容规范化摘要（烘焙产物行内 `content_digest` 的单源）：两端投影后按**同一算法**复算比对——
-    /// 不等即"json→bytes→投影"链路走样（fail-fast 拒载）。
-    ///
-    /// 规范文本：标签行 ＋ 逐字段行（顺序固定、InvariantCulture、数值 "0.###"、'\n' 分隔、无空白）；
-    /// 摘取值 ＝ SHA-256（规范文本）**前 16 hex**（小写）。覆盖面 ＝ 判定载荷（边界/障碍/出生点）——
-    /// 不含 map_id/name（身份字段：改名/换 id 不改几何摘要）。
+    /// 地图内容规范化摘要（烘焙产物行内 `content_digest` 的单源）：两端投影后按**同一算法**复算比对—— 不等即"json→bytes→投影"链路走样（fail-fast 拒载）。
     /// </summary>
     public static class SimMapDigest
     {

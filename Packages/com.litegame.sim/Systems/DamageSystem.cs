@@ -1,11 +1,7 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 伤害结算系统（§3.3 顺序第 4 位，§3.7 当帧延迟命令的消费者）：
-    /// 结算 Damage 命令 → 扣血 → 跨越死亡线（Hp 由正变非正）时写 Kill 命令 + Death 帧事件；
-    /// 测试房免死（<see cref="MatchTestRules.NoDeath"/>，经 <see cref="SimStep"/> 注入）下跨死线保底 Hp=1、
-    /// 不写 Kill/Death（命中反馈保留）。
-    /// Kill 由 ScoreSystem 在下一轮登记 K/D 与复活时刻；掉落由后续道具系统接入。
+    /// 伤害结算系统（§3.3 顺序第 4 位，§3.7 当帧延迟命令的消费者）： 结算 Damage 命令 → 扣血 → 跨越死亡线（Hp 由正变非正）时写 Kill 命令 + Death 帧事件。
     /// </summary>
     public static class DamageSystem
     {

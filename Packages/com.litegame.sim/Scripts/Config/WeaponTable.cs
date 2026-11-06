@@ -1,16 +1,7 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 武器表实例（tb_weapon 装载产物；技术债 #1 家族——与 <see cref="CombatValues"/> 同规：
-    /// 装载链产出实例、经参数显式传入机制消费，**无静态可变存储**）。
-    ///
-    /// - 定容行表（id ∈ [0, <see cref="MaxRows"/>)，越界行装载期忽略并返回 false——行存在性
-    ///   （默认步枪 id=0）由装载链 fail-fast 把守；
-    /// - **槽位默认映射**（tb_weapon <c>slot</c> 列 → 武器 id，<see cref="SetSlotDefault"/>）：
-    ///   切枪装备与懒装备的"槽位 → 武器定义"唯一来源——切到未装备槽/首生懒装备都经它取定义，
-    ///   不用"id 恒等槽位"约定（表行 id 与槽位号解耦，换表不破坏机制）；
-    /// - **装载期填充、此后按约定只读**（实例经参数/装配输入传递；机制禁读静态读口——纪律扫描 R13）；
-    /// - <see cref="Default"/> = 内置默认步枪单行表（未装载兜底——与 tb_weapon 同值，L1 守卫卡漂移）。
+    /// 武器表实例（tb_weapon 装载产物；技术债 #1 家族——与 <see cref="CombatValues"/> 同规： 装载链产出实例、经参数显式传入机制消费，**无静态可变存储**）。
     /// </summary>
     public sealed class WeaponTable
     {

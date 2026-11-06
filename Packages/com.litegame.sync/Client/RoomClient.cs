@@ -29,25 +29,7 @@ namespace LiteSync.Client
     }
 
     /// <summary>
-    /// 房间客户端（§4.5 协议矩阵的 C→S 侧封装）：Join/输入（**未确认段冗余窗口**——锚"最近快照帧+1"，
-    /// 容量 16 帧）/MismatchReport 上报 + JoinAck/StartGame/StateSnapshot 事件化。
-    /// 传输走窄端口 <see cref="IClientTransport"/>（双通道：信令 Reliable / 输入与快照 Unreliable）。
-    /// 纯会话与打包——Sim 预测/和解不在此（客户端 Sim 侧由 RollbackSim 承担，M10 全量预测形态）。
-    ///
-    /// **重连状态机（§9.3）**：断线 → <see cref="ClientSessionPhase.SuspectedLost"/>；
-    /// <see cref="BeginReconnect"/> 凭 JoinAck 下发的一次性票据重拨并自动发 ReconnectRequest；
-    /// 响应 Ok 且版本确认（seed/配置摘要/构建哈希与 StartGame/Join 一致）→ <see cref="ClientSessionPhase.Restoring"/>
-    /// （应用层经 OnReconnectResponse 应用权威快照与输入历史）→ <see cref="CompleteRestore"/> 发
-    /// RestoreComplete（Reliable）→ 回 Connected。拒绝/版本不符/超时 → Failed（不自动重试——应用层决策）。
-    ///
-    /// **方向拆分（路线图 §4.6，M2→M3-6）**：入站解码/分发/快照水位归 <see cref="RoomInbound"/>，
-    /// C→S 打包发送归 <see cref="RoomOutbound"/>，诊断发射点归 <see cref="RoomClientDiagnostics"/>；
-    /// 会话事实与重连凭据归 <see cref="RoomSession"/> / <see cref="ReconnectState"/>，
-    /// 输入冗余窗口与探针各自的件（<see cref="InputWindow"/> / <see cref="NetworkQualityProbe"/>）。
-    /// 本类只留公共 API、会话编排（相位门控/换房重置/重连流程）与事件面。
-    ///
-    /// **生命周期**：传输是**注入依赖、所有权归创建方**——`Dispose` 只退订与
-    /// 释放自身缓冲，**不 Dispose 传输**（持有方〔如 BattleClient〕负责它的生命周期）。
+    /// 房间客户端（§4.5 协议矩阵的 C→S 侧封装）：Join/输入（**未确认段冗余窗口**——锚"最近快照帧+1"。）。
     /// </summary>
     public sealed class RoomClient : IDisposable
     {
@@ -99,9 +81,7 @@ namespace LiteSync.Client
         public NetworkQuality Quality => _probe.Quality(Phase == ClientSessionPhase.Connected);
 
         /// <summary>
-        /// 内容/事务诊断上下文（**组合根注入**；null/空 = 未注入）：发布身份/内容代次/激活事务 ID 的自由文本，
-        /// 进房诊断记录会带上它——本类不认识内容系统，但"这次进房用的是哪份内容"必须能与内容/事务面关联
-        /// （《框架先行》§8「可诊断」）。示例：`release=rel-7;gen=3;txn=txn-abc`。
+        /// 内容/事务诊断上下文（**组合根注入**；null/空 = 未注入）：发布身份/内容代次/激活事务 ID 的自由文本， 进房诊断记录会带上它——本类不认识内容系统。
         /// </summary>
         public string ContentContext { get; set; }
 
@@ -109,8 +89,6 @@ namespace LiteSync.Client
         public event Action<ClientSessionPhase, ClientSessionPhase> OnPhaseChanged;
         /// <summary>
         /// 最近一次收到的**输入确认**（= 服务器已接受本客户端输入到的帧号，快照的 `AckInput` 字段）。
-        /// ⚠️ 它**不是**"最新收到的快照帧号"——别拿它算视点帧（§3.4.1 的"视角帧"要的是快照帧，
-        /// 见 <see cref="LastSnapshotFrame"/>；此处命名沿协议字段避免误用）。
         /// </summary>
         public int LastAckSnapshot => _inbound.LastAckInput;
 
@@ -122,11 +100,7 @@ namespace LiteSync.Client
         public bool HasStartGame => _reconnect.HasStartGame;
 
         /// <summary>
-        /// 最近一次 StartGame（未到达 = null）。**晚订阅者必须先读这里**：
-        /// <see cref="OnStartGame"/> 是**一次性边缘事件**（消息到达那一刻发一次，无订阅者即丢失），
-        /// 而 StartGame 在时序上可能**早于**应用层建好订阅——开局广播（房主发起）与重连迟到帧
-        /// 都可能落在应用层建对局对象之前（应用层往往要等 JoinAck 回来才开始建）。
-        /// 消费范式：先查本属性，为 null 再订阅事件。
+        /// 最近一次 StartGame（未到达 = null）。
         /// </summary>
         public Proto.StartGame StartGame => _session.StartGame;
 
@@ -218,11 +192,7 @@ namespace LiteSync.Client
         }
 
         /// <summary>
-        /// 发送房主开局请求（开房裁决：Reliable 空载荷——服务器按会话映射席位，
-        /// owner 判定在 Runtime；**唯一开局入口**，满员/未满皆可发）。
-        /// 未入房（Phase != Connected）调用为 no-op（UI 按相位禁用按钮，
-        /// 这里再守一道——迟到点击不产生垃圾包）。被拒反馈见 <see cref="OnStartMatchResponse"/>；
-        /// 成功即 <see cref="OnStartGame"/> 广播。
+        /// 发送房主开局请求（开房裁决：Reliable 空载荷——服务器按会话映射席位， owner 判定在 Runtime；**唯一开局入口**，满员/未满皆可发）。
         /// </summary>
         public void SendStartMatchRequest()
         {
@@ -232,17 +202,6 @@ namespace LiteSync.Client
 
         /// <summary>
         /// 发送逐帧输入（**未确认段冗余**；viewFrame = 开火时刻所见帧，延迟补偿回溯点，§3.4.1）。
-        ///
-        /// 冗余语义：包里带的是**本帧 + 往回连续的历史帧**（每帧各自的内容与开火位），窗口下界
-        /// 锚在"<see cref="LastSnapshotFrame"/> + 1"——服务器已广播确认的帧之后都可能还没被消费。
-        /// 为什么锚快照而不是固定"最近 N 帧"：预测领先（本地帧 − 权威帧）在本形态是常态，
-        /// 固定窗一旦被领先甩出，服务器要的 `serverFrame + 1` 永远不在窗内 → 整包被判"越界"丢弃、
-        /// 输入链锁死（现场实测：接受数冻结、越界按包增长、客户端不停和解回滚）。
-        /// 上界双约束：环内连续可用帧数（跳帧后绝不用陈旧帧冒充缺失帧）与窗口容量。
-        /// 服务器按 `InputPacker.TryGetFrame(msg, frame)` 逐帧取用 → 丢一包仍能从后续包补帧。
-        ///
-        /// **ack 语义**：ackSnapshot = **已收最新快照帧号**（<see cref="LastSnapshotFrame"/>，协议注释口径）——
-        /// 服务器按发送 ledger 验证 ACK，未发送过的帧号会被整体忽略；未收到快照时填 0。
         /// </summary>
         public void SendInput(int frame, in SimInputFrame input, int viewFrame)
         {
@@ -261,9 +220,7 @@ namespace LiteSync.Client
         // ---- 重连状态机（§9.3）----
 
         /// <summary>
-        /// 发起重连（SuspectedLost → Reconnecting）：凭 JoinAck 票据重拨传输——连接建立后自动发
-        /// ReconnectRequest（Reliable）。返回 false = 未发起（相位不符，或无票据 → 已转 Failed——
-        /// 票据一次性，耗尽后唯一出路是重新 Join，由应用层决策）。
+        /// 发起重连（SuspectedLost → Reconnecting）：凭 JoinAck 票据重拨传输——连接建立后自动发 ReconnectRequest（Reliable）。
         /// </summary>
         public bool BeginReconnect()
         {
@@ -275,9 +232,7 @@ namespace LiteSync.Client
         }
 
         /// <summary>
-        /// 宣告恢复完成（Restoring → Connected）：应用层已应用权威快照与输入历史（OnReconnectResponse），
-        /// 发送 RestoreComplete（Reliable——丢失即重传；服务器收到前抑制本席位增量广播，§9.3 步骤 6）。
-        /// 返回 false = 相位不符（未在恢复中——重复宣告/未验票成功均无害忽略）。
+        /// 宣告恢复完成（Restoring → Connected）：应用层已应用权威快照与输入历史（OnReconnectResponse）， 发送 RestoreComplete（Reliable——丢失即重传。）。
         /// </summary>
         public bool CompleteRestore()
         {

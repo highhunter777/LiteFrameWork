@@ -9,24 +9,6 @@ namespace LiteSync.Snapshot
 {
     /// <summary>
     /// 增量快照差分器（《M10实施指导》决策 7 + §2.7）。
-    ///
-    /// **两段式 API**：一个房间的多个客户端共享一份差分基线，但各客户端 AOI 视点不同，故
-    /// <see cref="BeginFrame"/> **每广播帧一次**（算变化集 / 判定是否全量 / 推进基线），
-    /// <see cref="BuildFor"/> **每客户端一次**（纯读，把本帧变化集按该客户端可见性过滤）；
-    /// <see cref="Build"/> 是两者的便捷组合，供单客户端/测试路径使用。
-    ///
-    /// **全量帧不裁 AOI**：<see cref="SnapshotReassembler"/> 对全量的语义是"**缺席槽位一律判死**"（以全图为前提），
-    /// 故 AOI 与背压档 3 的实体裁剪只允许作用于**增量帧**（带宽收益全在 30Hz 增量上，≤1Hz 全量整帧可付）。
-    ///
-    /// 基线语义 = "**最近一次广播出去的状态**"。三类情况必须走全量，否则客户端会静默分叉：
-    /// ① 首帧 / 基线未建立；② **活体集合发生变化**（增量只发变化槽位，客户端无法从"缺席"区分"没变"与"死了"）；
-    /// ③ 客户端 ack 落后（<see cref="NeedsFull"/>）。
-    ///
-    /// 金标是**轻量摘要**不是全量 SimWorldState（见 <see cref="SimWorldStateSnapshot"/>）。
-    /// 字段覆盖与 <see cref="SimChecksum"/>（公共口径）对齐：Id/Pos/Vel/Yaw/Hp/Flags/Shield/Kills/Deaths/
-    /// SelectedWeapon + 开火驻留窗 + 尸体期 + 主动作摘要（P0 公共战斗面）；Globals/CustomData 由
-    /// <see cref="GlobalsDiffer"/> 兜底（有变化即转全量），新增公共逻辑字段必须同步扩展摘要。
-    /// 私有面（武器弹药/技能 CD/状态明细/局内包/资源）不走差分——随每份快照全量发本人（SnapshotCodec.PackPrivate）。
     /// </summary>
     public sealed class SnapshotDiffer : ISnapshotSource
     {
@@ -161,10 +143,7 @@ namespace LiteSync.Snapshot
         }
 
         /// <summary>
-        /// **每客户端调一次**：全量帧 = **全图活体**（不裁 AOI——"全量缺席 = 死"的镜像语义只对全图成立，
-        /// 见类注释）；增量帧 = 可见 ∩ 变化集（AOI 只裁增量）+ 比赛状态层 + **本人私有面**
-        /// （<paramref name="viewerEntityId"/> ≠ 0 时附 PrivateState——只发本人）。
-        /// 纯读——不推进任何状态（同帧多次调用结果一致）。
+        /// **每客户端调一次**：全量帧 = **全图活体**（不裁 AOI——"全量缺席 = 死"的镜像语义只对全图成立， 见类注释）。
         /// </summary>
         public Proto.StateSnapshot BuildFor(int frame, SimWorldState state, int ackInput, SimVector3 viewPos, float aoiRadius, long viewerEntityId)
         {
@@ -257,11 +236,7 @@ namespace LiteSync.Snapshot
         }
 
         /// <summary>
-        /// "摘要未覆盖的全局状态"探针：Globals/CustomData（及未来新增的逻辑字段）不在 <see cref="EntitySnapshotEntry"/> 里，
-        /// 差分器发不出去；变了而不转全量 → 客户端**静默分叉**（最难查的一类）。
-        /// 基准每帧推进（含全量帧——否则首帧全量后基准停在初始值，次帧必误报）。
-        /// SimStep 里 Globals/CustomData 恒为零，实际只有 RngState（开火伤害浮动）会动。
-        /// <b>纪律：任何进 checksum 的新状态字段都必须同时进 <see cref="EntitySnapshotEntry"/>。</b>
+        /// "摘要未覆盖的全局状态"探针：Globals/CustomData（及未来新增的逻辑字段）不在 <see cref="EntitySnapshotEntry"/> 里， 差分器发不出去。
         /// </summary>
         private bool GlobalsDiffer(in SimWorldState state)
         {

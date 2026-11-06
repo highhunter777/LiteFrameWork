@@ -4,8 +4,6 @@ namespace LiteSim
 {
     /// <summary>
     /// 地图数据构建单源（烘焙链的注入面）：定长填充 ＋ 越界/NaN fail-fast——坏数据宁拒勿载。
-    /// 两端（`MapTableProjection` 投影、测试夹具）共用同一构建入口；超出定容即抛
-    /// （禁静默截断——截断是静默分叉的入口）。
     /// </summary>
     public static class SimMapBuilder
     {

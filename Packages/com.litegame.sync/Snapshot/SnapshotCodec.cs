@@ -5,23 +5,11 @@ using LiteSync.Snapshot;
 namespace LiteSync.Snapshot
 {
     /// <summary>
-    /// 快照编解码（《状态同步专项设计》§5.2 快照分层）：
-    /// - **公共面**（SlotDelta ↔ EntitySlot + 主动作摘要）：位级精确（协议单源约定）——量化整型是带宽调优项，
-    ///   引入即破坏位级和解机制，需专项评估后另行落。
-    /// - **比赛状态层**（<see cref="PackMatch"/>）：room 级，随每份快照全量携带。
-    /// - **私有面**（<see cref="PackPrivate"/>/<see cref="ApplyPrivate"/>）：只发本人（弹药/技能 CD/状态明细/局内包/资源）。
-    /// 全量快照 = 全部活体槽位 + Match（+ 重连/单测路径按会话附 Private）；
-    /// 客户端可由 SlotDelta.Id 重建分配器 version（Id >> 16），槽位缺席 = 死亡/未生成。
-    /// checksum 口径：**公共口径**（<see cref="SimChecksum.ComputePublicChecksum"/>）——
-    /// 客户端可重建层的和解锚点；私有面不进比对（见 SimChecksum 类注释）。
+    /// 快照编解码（《状态同步专项设计》§5.2 快照分层）。
     /// </summary>
     public static class SnapshotCodec
     {
-        // ---- 公共面 ----
-        // 含**开火驻留窗**（fire_stance_frames=19）与**尸体期**（corpse_frames=20）：分别是
-        // 限速+朝准星语境、尸体表现载体窗的判定输入/权威状态——回滚基线/差分基线/和解锚点必须能重建，
-        // 缺失 ⇒ 窗内预测分叉 ⇒ 逐快照纠偏（橡皮筋）；尸体期缺失 ⇒ 公共口径 checksum 结构性不等
-        // ⇒ 尸体期内每帧假和解。字段清单须与 <see cref="SimChecksum.ComputePublicChecksum"/> 逐项对齐。
+        // ---- 公共面 ---- 含**开火驻留窗**（fire_stance_frames=19）与**尸体期**（corpse_frames=20）：分别是 限速+朝准星语境、尸体表现载体窗的判定输入/权威状态——回滚基线/差分基线/和解锚点必须能重建。
 
         public static Proto.SlotDelta ToDelta(int slot, in EntitySlot e, in ActionRuntime activeAction)
         {

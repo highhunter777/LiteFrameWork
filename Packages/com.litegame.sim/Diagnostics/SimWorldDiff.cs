@@ -6,18 +6,7 @@ using System.Text;
 namespace LiteSim
 {
     /// <summary>
-    /// 两个 <see cref="SimWorldState"/> 的**字段级差异报告**——把"checksum 不符"翻译成
-    /// "哪个槽位、哪个字段、从什么变成什么"。
-    ///
-    /// **为什么需要它**：checksum 是 FNV-1a 折叠值，**不可逆**——它只能回答"是否相同"，
-    /// 回答不了"哪里不同"。跨运行时 1-ulp 分歧下，两个世界可能只差一个 float 的最低有效位，
-    /// 而 checksum 差异看起来同等巨大。本类逐字段比对（float 经位型比较，**不做容差**——
-    /// 确定性分歧恰恰就是位级的分歧，用容差会把要找的答案过滤掉）。
-    ///
-    /// **覆盖范围与 <see cref="SimChecksum.ComputeChecksum"/> 对齐**：实体槽 + 全部分型表行
-    /// + 运行态数组 + Globals/CustomData + Match + 头部（Frame/RngState）。
-    /// 新增进 checksum 的字段必须同步扩展本类——否则报告会漏掉它（漏检 = 回到"不知道为什么"）；
-    /// 此契约由 SimWorldDiffCoverageTests 以扰动法守卫（每个进 checksum 的字段在报告里必须可见）。
+    /// 两个 <see cref="SimWorldState"/> 的**字段级差异报告**——把"checksum 不符"翻译成 "哪个槽位、哪个字段、从什么变成什么"。
     /// </summary>
     public static class SimWorldDiff
     {

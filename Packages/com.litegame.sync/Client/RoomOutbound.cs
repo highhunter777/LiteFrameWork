@@ -9,11 +9,7 @@ using LiteSync.Client;
 namespace LiteSync.Client
 {
     /// <summary>
-    /// C→S 协议动作的打包与发送（RoomClient 的行内件，M3-6 拆分）：Join / 逐帧输入 / 和解上报 /
-    /// 开局请求 / 离场 / 恢复宣告 / 重拨 / 探针心跳——每条动作只做"按协议单源编码 + 交给传输"。
-    ///
-    /// **边界**：不做相位/终局门控（那是 <see cref="RoomClient"/> 的会话策略），不持有会话事实；
-    /// 复用同一 <see cref="PacketWriter"/>（高频输入零分配）。传输是注入依赖，本类**不 Dispose 传输**。
+    /// C→S 协议动作的打包与发送（RoomClient 的行内件，M3-6 拆分）：Join / 逐帧输入 / 和解上报 / 开局请求 / 离场 / 恢复宣告 / 重拨 / 探针心跳——每条动作只做"按协议单源编码 + 交给。
     /// </summary>
     internal sealed class RoomOutbound
     {

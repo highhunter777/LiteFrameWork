@@ -14,10 +14,6 @@ namespace LiteSim
 
     /// <summary>
     /// 单武器槽运行态（《游戏业务系统总设计》§3.1/§5.2 固定布局 WeaponRuntime[entity, 2]）。
-    /// 纯值类型（blittable）：进快照/进校验/Array.Copy 整块深拷的前提（与 <see cref="EntitySlot"/> 同纪律）。
-    /// 数组布局：<c>Weapons[slot * <see cref="SimConfig.WeaponSlotsPerEntity"/> + w]</c>，w 即武器槽位（0=步枪 1=霰弹）。
-    /// 公开/私有边界（§1 P0 阻塞项）：弹药/换弹等属**本人私有面**（PrivateStateSnapshot），不上公共 SlotDelta；
-    /// 其他玩家只见 <see cref="EntitySlot.SelectedWeapon"/>。
     /// </summary>
     public partial struct WeaponRuntime
     {
@@ -68,10 +64,6 @@ namespace LiteSim
 
     /// <summary>
     /// 单动作/技能槽运行态（§3.1 固定布局 ActionRuntime[entity, 4]）。
-    /// 数组布局：<c>Actions[slot * <see cref="SimConfig.ActionSlotsPerEntity"/> + a]</c>——
-    /// <b>0 = 主动作槽</b>（冲刺/技能/交互共用，§6.1 单实体一个主动作），<b>1..3 = Skill1..3</b>（冷却/充能账本）。
-    /// 公开/私有边界：主动作槽的 <c>ActionId/Phase/StartFrame</c> 属公共动作摘要（SlotDelta）；
-    /// 技能槽的 <c>CooldownEnd/Charges</c> 属本人私有面。
     /// </summary>
     public partial struct ActionRuntime
     {
@@ -103,10 +95,6 @@ namespace LiteSim
 
     /// <summary>
     /// 单状态效果槽（§3.1 固定布局 StatusSlot[entity, 4]）。
-    /// 数组布局：<c>Status[slot * <see cref="SimConfig.StatusSlotsPerEntity"/> + i]</c>。
-    /// 公开投影：护盾值落 <see cref="EntitySlot.Shield"/>（公共面）；
-    /// 效果明细（Id/结束帧/参数）属本人私有面（PrivateStateSnapshot.status），远端只看投影值。
-    /// EffectId = 0 表示空槽。
     /// </summary>
     public partial struct StatusSlotData
     {

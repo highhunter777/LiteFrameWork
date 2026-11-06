@@ -5,19 +5,6 @@ namespace LiteSim
 {
     /// <summary>
     /// 一局确定性跑批的**完整可复现记录**：种子 + 初始世界 + 逐帧输入 + 逐帧 checksum。
-    ///
-    /// **为什么需要它**（本工程原有的调试空白）：<see cref="RollbackSim"/> 能在分歧时和解，
-    /// 但和解只告诉你"某一帧的公共口径 checksum 不符"——**不告诉你为什么**。
-    /// 此前排查 1-ulp 分歧只能靠断点跟 10k 步运算链（<see cref="SimMath.Sqrt"/> 注释里
-    /// ".NET 2896875742 / Unity 3683559206" 那条实测即此路径的产物）。
-    /// 本类把"跑一局"变成**可落盘、可离线复算、可逐步比对**的数据。
-    ///
-    /// **口径**：确定性输入 = 种子（<see cref="SimWorldState.RngState"/> 初值）+ 初始世界 + 每帧全体输入。
-    /// 三者相同 ⇒ 逐帧 checksum 必须逐位相同（同运行时内）。故记录 checksum 序列即可定位首个分歧帧，
-    /// 无需保存中间世界（体积 = O(帧数 × 玩家数)，非 O(帧数 × 世界大小)）。
-    ///
-    /// **不参与 Sim 判定**：本类是**诊断侧**只读结构——Sim 不认识它（Core 零依赖纪律），
-    /// 由驱动/测试/沙盒在帧边界调用 <see cref="Capture"/> 落记录。
     /// </summary>
     public sealed class SimRunRecord
     {
@@ -87,17 +74,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 开启记录，**并额外保存最近若干帧的世界存档**（环形）——
-        /// 用于让 <see cref="SimReplayRunner.ReplayAndCompare"/> 能**一键产出字段级报告**
-        /// （否则只定位帧号，字段差异需调用方自备记录方世界）。
-        ///
-        /// **体积代价**：每帧一份完整 <see cref="SimWorldState"/> 深拷
-        /// （约 <c>MaxEntities × (EntitySlot + 各运行态行)</c> ≈ 数十 KB/帧），
-        /// 环容量 N 即 N 倍常驻。故容量按**已知回溯需求**给（如"分歧总在最近 3s 内"→ N = 180），
-        /// 不要给整个对局长度。
-        ///
-        /// **覆盖行为**：环满后覆盖最旧一帧——<see cref="TryGetWorld"/> 对已被覆盖的帧返回 false
-        /// （早于窗口的分歧只有帧号、没有字段报告）。这是刻意的有界内存取舍。
+        /// 开启记录，**并额外保存最近若干帧的世界存档**（环形）—— 用于让 <see cref="SimReplayRunner.ReplayAndCompare"/> 能**一键产出字段级报告** （否则只定位帧号。）。
         /// </summary>
         public static SimRunRecord BeginWithWorlds(SimWorldState initialState, SimMapData map, int playerCount,
             int worldRingCapacity, string label = null)
@@ -118,10 +95,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 取某帧的世界存档（<paramref name="frame"/> = **1 基帧号**，与
-        /// <see cref="SimReplayRunner.Result.FirstDivergenceFrame"/> 同口径）。
-        /// 未启用存档 / 已被环覆盖 / 尚未记录 → false。
-        /// **返回内部对象**（零拷贝）——调用方不得改写（它属于记录）。
+        /// 取某帧的世界存档（<paramref name="frame"/> = **1 基帧号**。）。
         /// </summary>
         public bool TryGetWorld(int frame, out SimWorldState world)
         {

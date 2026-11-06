@@ -3,20 +3,6 @@ namespace LiteSim
 {
     /// <summary>
     /// 全量状态校验（《状态同步实施方案》§3.6）：FNV-1a 32 位，遍历顺序恒定。
-    /// 覆盖 Frame / RngState / 全部槽位逻辑字段 / Globals / CustomData / 武器/动作/状态/局内包/资源运行态 / Match——
-    /// 与 SimWorldState 同源，结构上杜绝漏字段（§3.1 固定布局的红利）。
-    /// 不覆盖：Cmds/Events（帧内瞬态，§3.7）；_versions/_nextFree（分配器状态，非逻辑字段）。
-    /// 开发期每帧算；release 每 10 帧（调用频率由驱动/沙盒决定）。
-    /// 定位：本地调试与复查重放的一致性裁判（不上服务器对账）。
-    ///
-    /// **两套口径**（《状态同步专项设计》§5.2 快照分层 + 《游戏业务系统总设计》§1 阻塞项）：
-    /// - <see cref="ComputeChecksum"/>/<see cref="ComputeStateChecksum"/>：**全量口径**——确定性基线、
-    ///   同种子重放对账、归档复查用（回滚环/服务器内部比较）。任何进判定的新状态必须加进
-    ///   <see cref="MixFullState"/>（漏一个 = 重放对账漏检）。
-    /// - <see cref="ComputePublicChecksum"/>：**公共口径**——只覆盖"全量快照可重建 + 客户端可预测"的层
-    ///   （实体公共面 + 主动作摘要 + Match + 活体位图）。线上 StateSnapshot.checksum 携带此值，
-    ///   客户端和解用它比对（RollbackSim.OnAuthoritativeSnapshot）——私有面（他人弹药/技能 CD/背包/资源、
-    ///   RngState、状态效果明细）客户端**永远无法重建**，进比对口径只会制造永假和解。
     /// </summary>
     public static class SimChecksum
     {
@@ -24,9 +10,7 @@ namespace LiteSim
         private const uint FnvPrime = 16777619u;
 
         /// <summary>
-        /// 全量口径（不含 Frame）：供"跨实例同步位"判定使用
-        /// （差分器的全局状态探针与用例断言：两个同种子同输入的世界应逐位同步，
-        /// 但各跑各的帧号——拿含 Frame 的 checksum 比会永远不等）。
+        /// 全量口径（不含 Frame）：供"跨实例同步位"判定使用 （差分器的全局状态探针与用例断言：两个同种子同输入的世界应逐位同步， 但各跑各的帧号——拿含 Frame 的 checksum 比会永远不等）。
         /// </summary>
         public static uint ComputeStateChecksum(in SimWorldState s)
         {
@@ -41,10 +25,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// **公共口径**（线上和解锚点）：覆盖"全量快照可重建"的层——
-        /// Frame + 活体位图 + 实体公共面（SlotDelta 全字段）+ 主动作摘要 + Match。
-        /// 与 <see cref="SnapshotCodec"/>/<see cref="SnapshotReassembler"/> 的公共面字段清单逐项对齐
-        /// （漏一个 = 该层分叉但和解不报，静默漂移）。
+        /// **公共口径**（线上和解锚点）：覆盖"全量快照可重建"的层—— Frame + 活体位图 + 实体公共面（SlotDelta 全字段）+ 主动作摘要 + Match。
         /// </summary>
         public static uint ComputePublicChecksum(in SimWorldState s)
         {
@@ -56,17 +37,13 @@ namespace LiteSim
 
             for (int i = 0; i < SimConfig.MaxEntities; i++)
             {
-                // 实体公共面：字段清单不在此手写——由 [StateLayer] 标注生成
-                // （EntitySlot.Sync.g.cs，scripts/codegen/gen-sync-code.ps1）。
-                // 加字段只改 EntitySlot 一处，此处自动跟上（漏改 = 编译期可见）。
+                // 实体公共面：字段清单不在此手写——由 [StateLayer] 标注生成 （EntitySlot.Sync.g.cs，scripts/codegen/gen-sync-code.ps1）。
                 h = MixEntityPublic(h, in s.Entities[i], in s.Actions[i * SimConfig.ActionSlotsPerEntity]);
             }
 
             h = MixMatchState(h, in s.Match);
 
-            // 分型表公共面（《Sim组织专项设计》§3）：道具/投掷物/区域是世界可见面（全端可重建），
-            // 与活体位图同判——线上和解口径必须覆盖，漏了 = 该层分叉但和解不报的静默漂移。
-            // 字段清单由 [StateLayer] 标注生成（EntitySlot.Sync.g.cs）——加字段只改结构体一处。
+            // 分型表公共面（《Sim组织专项设计》§3）：道具/投掷物/区域是世界可见面（全端可重建）， 与活体位图同判——线上和解口径必须覆盖，漏了 = 该层分叉但和解不报的静默漂移。
             ItemState[] items = s.Items;
             for (int i = 0; i < items.Length; i++)
                 h = ItemState.MixPublic(h, in items[i]);
@@ -82,9 +59,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 逐槽位公共面折叠（EntitySlot 公共字段 + 主动作摘要）——公共口径的"单实体单元"，
-        /// 供 <see cref="ComputePublicChecksum"/>（全图）、<see cref="ComputeVisibleChecksum"/>（增量可见集）
-        /// 与线上 <c>SlotDelta.checksum</c>（逐槽比对）共用同一份字段清单（漏一个 = 该层分叉但和解不报）。
+        /// 逐槽位公共面折叠（EntitySlot 公共字段 + 主动作摘要）——公共口径的"单实体单元"， 供 <see cref="ComputePublicChecksum"/>（全图）。
         /// </summary>
         internal static uint MixEntityPublic(uint h, in EntitySlot e, in ActionRuntime activeAction)
         {
@@ -98,9 +73,7 @@ namespace LiteSim
             => MixEntityPublic(FnvOffset, in e, in activeAction);
 
         /// <summary>
-        /// 增量帧**可见摘要**：本条消息实际携带的槽位集合（<paramref name="slots"/> 升序、<paramref name="count"/> 项）
-        /// 的公共口径折叠（**不含 Match**——Match 单列 <see cref="ComputeMatchChecksum"/>，空槽位增量只比对 Match）。
-        /// 客户端按同一槽位连同口径复算：不一致 ⇒ 本帧存在差异，再逐槽位比对 <c>SlotDelta.checksum</c> 定位差异槽。
+        /// 增量帧**可见摘要**：本条消息实际携带的槽位集合（<paramref name="slots"/> 升序。）。
         /// </summary>
         public static uint ComputeVisibleChecksum(in SimWorldState s, int[] slots, int count)
         {

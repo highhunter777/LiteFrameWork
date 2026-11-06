@@ -3,9 +3,7 @@ using LiteNet.Diagnostics;
 namespace LiteNet
 {
     /// <summary>
-    /// RTT/丢包探针（RoomClient 的行内件，M2 拆分）：1Hz Unreliable 心跳，服务器原样回显
-    /// client_time——本端据此配对算 RTT，并按滚动窗口统计丢包千分比。
-    /// 纯观测面（表现/诊断），不参与任何游戏逻辑或准入。
+    /// RTT/丢包探针（RoomClient 的行内件，M2 拆分）：1Hz Unreliable 心跳，服务器原样回显 client_time——本端据此配对算 RTT，并按滚动窗口统计丢包千分比。
     /// </summary>
     internal sealed class NetworkQualityProbe
     {

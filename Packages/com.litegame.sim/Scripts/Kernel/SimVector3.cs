@@ -5,9 +5,6 @@ namespace LiteSim
 {
     /// <summary>
     /// Sim 三维向量（x, y, z；y 轴 = 2.5D 向上）。
-    ///
-    /// 值类型（无装箱）；只用 IEEE 基本运算与 <see cref="SimMath.Sqrt"/>，跨运行时逐位确定。
-    /// 语义与 UnityEngine.Vector3 对齐，便于 Sim 层与 View 层对照（但本程序集零引擎依赖）。
     /// </summary>
     public struct SimVector3
     {

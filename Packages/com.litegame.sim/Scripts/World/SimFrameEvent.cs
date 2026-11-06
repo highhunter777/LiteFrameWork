@@ -2,8 +2,6 @@ namespace LiteSim
 {
     /// <summary>
     /// 帧事件（§3.7 帧事件缓冲）：Sim → View 的离散告知（命中/暴击/死亡/开火——状态差分推不出来的）。
-    /// 消费时机是本设计的关键：每个逻辑帧 Step 结束后立即消费并清空（§3.7）——
-    /// 追帧不丢事件、不必进快照、回滚重放天然正确。
     /// </summary>
     public struct FrameEvent
     {

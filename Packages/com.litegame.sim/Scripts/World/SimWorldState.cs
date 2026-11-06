@@ -3,13 +3,7 @@ using System;
 namespace LiteSim
 {
     /// <summary>
-    /// 世界状态容器（《状态同步实施方案》§3.1 固定布局）：
-    /// sealed class 持定长数组——构造期一次分配、运行期零 new；EntitySlot[] 是值类型数组，
-    /// 逐数组 Array.Copy 即深拷（#1：纯托管，不引 unsafe/UnsafeUtility——Core 零引擎依赖的必然推论）。
-    ///
-    /// 布局硬约束（#5，反射自检钉死）：进快照的字段只允许值类型/数组——
-    /// Custom/Globals 落平面数组（#2/#3：struct 内放数组字段会被 Array.Copy 浅拷共享 → 回滚必错）。
-    /// Cmds/Events 为帧内瞬态（§3.7）：不进快照、不进 checksum，每帧末消费清空。
+    /// 世界状态容器（《状态同步实施方案》§3.1 固定布局）： sealed class 持定长数组——构造期一次分配、运行期零 new；EntitySlot[] 是值类型数组。
     /// </summary>
     public sealed class SimWorldState
     {
@@ -21,9 +15,7 @@ namespace LiteSim
         public readonly byte[] Globals;
         public readonly byte[] CustomData;
 
-        // ---- P0 战斗运行态（《游戏业务系统总设计》§3.1 固定布局 + 《状态同步专项设计》§3"明确的 Weapon/Action/Status/Match 状态数组"）----
-        // 纪律与 Entities 相同：值类型定长数组（布局契约 #5），寻址 slot * PerEntity + i；
-        // 公开/私有承载边界见各结构体注释（PublicCombatState / PrivateStateSnapshot 两层，§5.2）。
+        // ---- P0 战斗运行态（《游戏业务系统总设计》§3.1 固定布局 + 《状态同步专项设计》§3"明确的 Weapon/Action/Status/Match 状态数组"）---- 纪律与 Entities 相同：值类型定长数组（布局契约 #5）。
 
         /// <summary>武器运行态：<c>[slot * WeaponSlotsPerEntity + w]</c>（弹药/换弹/节拍——本人私有面）。</summary>
         public readonly WeaponRuntime[] Weapons;
@@ -40,10 +32,7 @@ namespace LiteSim
         /// <summary>技能资源/实体（本人私有面；技能消耗账本，P1 ActionSystem 消费）。</summary>
         public readonly int[] Resources;
 
-        // ---- 分型表（《Sim组织专项设计》§2）----
-        // 行有效 ⟺ 槽位活体且 EntityFlags.Kind* 置位（kind 位 = 迷你 archetype mask）。
-        // 脊柱不动：这些是**平行行表**（每槽位一行），不是每实体子槽阵列——与 P0 运行态同一条
-        // 布局纪律（定容值类型数组，#5），但寻址就是槽位索引本身。
+        // ---- 分型表（《Sim组织专项设计》§2）---- 行有效 ⟺ 槽位活体且 EntityFlags.Kind* 置位（kind 位 = 迷你 archetype mask）。
 
         /// <summary>地面道具行表（<c>[slot]</c>；拾取入包后归 MatchBag，本行清零）。</summary>
         public readonly ItemState[] Items;
@@ -111,9 +100,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 分配实体（#7/#8）：从 _nextFree 起环形线性找空槽，版本递增后组装 Id；
-        /// 入参 slot.Id 被忽略——Id 只能由分配器组装。不做 swap-remove（打乱遍历顺序 = 破确定性）。
-        /// 世界满：返回 0 且 slotIndex = -1。
+        /// 分配实体（#7/#8）：从 _nextFree 起环形线性找空槽，版本递增后组装 Id； 入参 slot.Id 被忽略——Id 只能由分配器组装。
         /// </summary>
         public long Spawn(in EntitySlot slot, out int slotIndex)
         {
@@ -142,10 +129,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 释放槽位（§3.1：清 AliveBitmap 位）。Double-free/已死 Id 静默忽略；
-        /// 槽位数据清零——**含全部每实体运行态数组段**（武器/动作/状态/局内包/资源）：
-        /// 空槽校验值恒定、不随历史漂移（§3.6 全槽位参与校验的前提——上一占用者的残留弹药
-        /// 会让"同种子不同历史"的重放校验值分叉）。
+        /// 释放槽位（§3.1：清 AliveBitmap 位）。
         /// </summary>
         public void Despawn(long id)
         {
@@ -206,10 +190,6 @@ namespace LiteSim
 
         /// <summary>
         /// 深拷快照原语（#1，SnapshotRing 复用）：逐数组 Array.Copy。
-        /// 不拷 Cmds/Events（帧内瞬态，§3.7）；
-        /// _versions/_nextFree 分配器状态随快照走——否则重放期新分配的 Id 会与被恢复的旧 Id 撞车。
-        /// Weapons/Actions/Status/MatchBag/Resources/Match 一并全量拷贝
-        /// （《游戏业务系统总设计》§1 阻塞项 ②：新字段漏 CopyTo = 回滚/重连静默分叉）。
         /// </summary>
         public void CopyTo(SimWorldState dst)
         {
@@ -234,10 +214,6 @@ namespace LiteSim
 
         /// <summary>
         /// 外部重建态（客户端快照和解）的**分配器状态修复**：把位图/槽位设好后调用。
-        /// 两件事：① 逐活体槽位把 <c>_versions</c> 从 <c>Id &gt;&gt; 16</c> 反推回来——
-        /// 否则客户端从快照重建后本地版本表归零，新 Spawn 会分配出与服务器既有实体**同 Id** 的实体（撞车 = 分叉）；
-        /// ② 空闲游标复位到"最高已用槽 + 1"（避免从 0 起扫到已用槽）。
-        /// 分配器状态不进 checksum（§3.6 非逻辑字段），故本操作不破坏校验值。
         /// </summary>
         public void SetAllocatorIdleSlot(int idleSlot)
         {

@@ -143,10 +143,7 @@ namespace LiteNet.Transport
         }
 
         /// <summary>
-        /// 建 AEAD 密码器：优先平台 <see cref="AesGcm"/>；运行时不提供平台实现时回退到逐位互通的
-        /// <see cref="ManagedAesGcmCipher"/>（Unity Mono——Editor Play Mode 与 Mono 桌面包——构造
-        /// <c>new AesGcm(key)</c> 即抛 <see cref="PlatformNotSupportedException"/>）。
-        /// 探测在构造期一次（每会话每方向一次），**无常驻可变状态**。
+        /// 建 AEAD 密码器：优先平台 <see cref="AesGcm"/>；运行时不提供平台实现时回退到逐位互通的 <see cref="ManagedAesGcmCipher"/>（Unity Mono——Editor 。）。
         /// </summary>
         private static IAesGcmCipher CreateCipher(byte[] key)
         {

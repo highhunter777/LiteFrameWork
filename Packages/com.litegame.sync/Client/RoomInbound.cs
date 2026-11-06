@@ -7,12 +7,7 @@ using LiteSync.Client;
 namespace LiteSync.Client
 {
     /// <summary>
-    /// 入站协议分发（RoomClient 的行内件，M3-6 拆分）：解码 → 按包型落到会话件
-    /// （<see cref="RoomSession"/> / <see cref="ReconnectState"/> / <see cref="NetworkQualityProbe"/>），
-    /// 再以事件把协议事实交给 RoomClient 的公开订阅面；重连响应裁决与快照水位（帧号单调守卫）也在此收口。
-    ///
-    /// **边界**：只读协议事实、不持有传输（发包经注入的 send 委托）、不做流程决策；
-    /// RoomClient 仍是公共 API 与生命周期的唯一门面（相位/事件与 M2 前逐项一致）。
+    /// 入站协议分发（RoomClient 的行内件，M3-6 拆分）：解码 → 按包型落到会话件 （<see cref="RoomSession"/> / <see cref="ReconnectState"/> / <see。）。
     /// </summary>
     internal sealed class RoomInbound
     {
@@ -86,9 +81,7 @@ namespace LiteSync.Client
                 case PacketType.StateSnapshot:
                     if (_session.HasMatchResult) break;
                     var snapshot = (Proto.StateSnapshot)msg;
-                    // **帧号单调守卫**：快照走 Unreliable，UDP 可乱序；旧包若继续应用，会把 Hp/
-                    // 死亡/比分/插值窗口整体回退（表现为血条回血、尸体复活、远端角色倒退）。
-                    // 只接收严格新于已应用帧的快照；同帧重复包对镜像无增量语义，一并丢弃。
+                    // **帧号单调守卫**：快照走 Unreliable，UDP 可乱序；旧包若继续应用，会把 Hp/ 死亡/比分/插值窗口整体回退（表现为血条回血、尸体复活、远端角色倒退）。
                     if (snapshot.Frame <= LastSnapshotFrame) break;
                     LastAckInput = snapshot.AckInput;          // 诊断：服务器输入确认（不上报——上报的是快照帧）
                     LastSnapshotFrame = snapshot.Frame;
@@ -144,9 +137,7 @@ namespace LiteSync.Client
         }
 
         /// <summary>
-        /// 重连响应（§9.3 步骤 2~4）：Ok 且版本确认一致 → Restoring（应用层应用快照/历史后
-        /// <see cref="RoomClient.CompleteRestore"/>）；Ok 但版本不符 → Failed（绝不发恢复 ACK——不是同一局）；
-        /// 拒绝 → Failed。响应照常派发（应用层据相位判定是否可应用）。
+        /// 重连响应（§9.3 步骤 2~4）：Ok 且版本确认一致 → Restoring（应用层应用快照/历史后 <see cref="RoomClient.CompleteRestore"/>）。
         /// </summary>
         private void HandleReconnectResponse(Proto.ReconnectResponse response)
         {

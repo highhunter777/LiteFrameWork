@@ -5,8 +5,6 @@ namespace LiteSync.Shared
 {
     /// <summary>
     /// 快照/背压相关常量集中地（《状态同步实施方案》§11-3 常量集中：一处定义，禁散落魔数）。
-    /// 这些都是"广播行为"参数而非"判定"参数——不进 <see cref="SimConfig"/>（Sim 核不该知道网络怎么发），
-    /// 但同样是两端/两端可调旋钮，改这里即改行为。
     /// </summary>
     public static class ProtocolConstants
     {
@@ -38,9 +36,7 @@ namespace LiteSync.Shared
         /// <summary>房级快照频率上限（Hz）。</summary>
         public const int MaxSnapshotHz = 120;
 
-        // ---- E1 背压降级（决策 11；《服务端架构设计》§10-E1：基线无背压，一个慢客户端会拖垮房间）----
-        // 传输层为 kcp2k 内建发送队列（KcpPeer 定长窗口，无慢启动），**队列水位由应用层估算并记账**——
-        // 比读 kcp2k 内部状态更稳（T5 断言"其余客户端不受慢客户端拖累"的前提）。
+        // ---- E1 背压降级（决策 11；《服务端架构设计》§10-E1：基线无背压，一个慢客户端会拖垮房间）---- 传输层为 kcp2k 内建发送队列（KcpPeer 定长窗口，无慢启动）。
 
         /// <summary>背压队列上限（字节）：按连接累计未确认的发送字节，超过即降档。4 KB ≈ 30Hz 下 2 帧快照的水位。</summary>
         public const long BackpressureQueueLimitBytes = 4096;

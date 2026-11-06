@@ -48,14 +48,7 @@ namespace LiteSim
     }
 
     /// <summary>
-    /// 武器常量与读口（技术债 #1 家族收尾——静态可变装载面已拆除）：
-    ///
-    /// - **机制消费经参数接收 <see cref="WeaponTable"/> 实例**（`SimStep`→`WeaponSystem`/`ShootingSystem`；
-    ///   房间快照 `FixedCombatConfig` 携带；回溯/回放/纯驱动同链）；
-    /// - 本类只留**编译期常量**（<see cref="DefaultRifleId"/>、内置默认步枪 <see cref="DefaultRifle"/>）
-    ///   与**客户端单世界读口**（<see cref="Publish"/>/<see cref="Loaded"/> 及兼容便捷读
-    ///   <see cref="Default"/>/<see cref="TryGet"/>——表现面读，**机制禁读：纪律扫描 R13 把守**）；
-    /// - "内置默认 = 表值"漂移由 L1 守卫卡（<see cref="WeaponTable"/> 装载产物同在册面同钉）。
+    /// 武器常量与读口（技术债 #1 家族收尾——静态可变装载面已拆除）。
     /// </summary>
     public static class WeaponConfig
     {

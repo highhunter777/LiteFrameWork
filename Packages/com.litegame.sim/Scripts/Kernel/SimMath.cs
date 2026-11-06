@@ -4,15 +4,6 @@ namespace LiteSim
 {
     /// <summary>
     /// Sim 数值基础件（LiteSim，零依赖纯 C#）。
-    ///
-    /// 单位约定（§1-9）：长度 = 米(m)，时间 = 秒(s)，角度 = 弧度(rad)，
-    /// y 轴 = 2.5D 向上（《状态同步实施方案》§3.5）；逻辑帧步长 <see cref="Dt"/> = 1/60（与 SimConfig 同源）。
-    ///
-    /// IEEE 边界纪律（《状态同步实施方案》§2.1；由 Editor 纪律扫描 R1~R3 执行）：
-    ///   1. 禁超越函数（Sin/Cos/Tan/Atan2/Exp/Log/Pow）——一律走 SimTrig 查表；
-    ///   2. 禁 FMA 显式写法（FusedMultiplyAdd）；
-    ///   3. float 禁精度依赖比较（==/!=），一律用 <see cref="NearlyEqual"/>（绝对容差 1e-6）。
-    /// 只使用 IEEE 基本运算（+ - * / 与 sqrt），保证 .NET 与 Unity 逐位一致。
     /// </summary>
     public static class SimMath
     {
@@ -66,23 +57,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 平方根——**自研 software sqrt**：纯整数/位运算 + 正确舍入，
-        /// 跨运行时逐位确定。
-        ///
-        /// 为什么不再用 BCL `<c>(float)Math.Sqrt</c>`：Unity(2022.3/Mono) 与 .NET 8 的
-        /// <c>Math.Sqrt(double)</c> 实测存在 **ulp 级差异**（116 条逐值样本一致，但 10k 步运算链
-        /// checksum 不同：.NET 2896875742 / Unity 3683559206）——被长链放大后直接抬高和解率。
-        /// ≤ sqrt 属 IEEE 基本运算、要求正确舍入；"BCL 会给出唯一正确结果"的推论**在 Mono 上不成立**，
-        /// 故与查表三角函数同策：**自己实现唯一实现**。
-        ///
-        /// 算法（结果与正确舍入的 IEEE binary32 sqrt 逐位一致，等价于主流 libm）：
-        ///   ① 特例：+0/-0 → 原值；负数 → NaN；+∞/NaN → 原值；
-        ///   ② 归一化取 S ∈ [2^23, 2^25) 与偶数 E，使 x = S·2^E（次正规移位归一化）；
-        ///   ③ 取 shift（12 或 11）使 sqrt(S)·2^shift ∈ [2^23, 2^24)；
-        ///   ④ 整数逐位开方求 V = ⌊sqrt(S<<(2·shift+2))⌋（V ≈ 2·M，多 1 位冗余）；
-        ///   ⑤ 判进位：T &gt; V²+V ⟺ sqrt(T) ≥ V+0.5 → 进位（**精确比较，非 sticky**）；
-        ///   ⑥ 组装指数：结果 = M·2^(E/2−shift)，溢出 → +∞。
-        /// 全流程只用整数与位运算（+ - * / 与移位/比较）——无 BCL 数学调用，跨运行时必然一致。
+        /// 平方根——**自研 software sqrt**：纯整数/位运算 + 正确舍入， 跨运行时逐位确定。
         /// </summary>
         public static float Sqrt(float v)
         {
@@ -128,10 +103,7 @@ namespace LiteSim
             ulong T = S << (2 * shift + 2);
             ulong V = IntegerSqrt(T);
 
-            // ⑤ 正确舍入到 24 位（round-to-nearest-even）：
-            //   设 u = sqrt(S)·2^shift，V = ⌊2u⌋。则 floor(u) = V>>1，小数部分 = (V&1)/2 + r'/2（r' = 2u−V）。
-            //   V 偶 → 小数 ≤ 0.5−ε，恒不进位；V 奇 → 小数 ≥ 0.5，仅当 2u 恰为整数（T = V²，精确半值）
-            //   且 M0 为偶时保留（tie→even），否则进位。
+            // ⑤ 正确舍入到 24 位（round-to-nearest-even）： 设 u = sqrt(S)·2^shift，V = ⌊2u⌋。
             ulong M = V >> 1;                                           // 24 位尾数
             if ((V & 1) != 0)
             {
@@ -171,19 +143,7 @@ namespace LiteSim
             return res;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // 融合安全算术
-        //
-        // **真因**：Mono(Unity 2022.3) 的 JIT 会把 `a*b + c*d` 之类**自动融合成 FMA**（单次舍入），
-        // 而 .NET 8 严格按 IEEE 每步舍入 → 两侧差 1 ulp。实测证据（同一组分量、同一源码）：
-        //   `x*x + y*y + z*z` → .NET 1075435771（逐步）/ Unity 1075435770（融合）；
-        //   显式拆成局部变量**不能**阻止 Mono 融合（实测相同）。
-        //
-        // **修法**：多乘加一律**双精度累积 + 单次舍入**。依据：float×float 的积在 double 里**精确**
-        // （24+24 ≤ 53 位），故任何融合都等于不融合 —— 融合敏感性被彻底消除；
-        // 且两侧都变成"精确和 → 舍入一次"，语义唯一。**只用于中间累积，不落状态**（状态仍只 float + 整型）。
-        // 纪律：Sim 内出现 `a*b + c*d`、`a*b + c`、`a*b - c*d` 一律改用下列件；纯 `+ - * /` 不受影响。
-        // ─────────────────────────────────────────────────────────────────────
+        // ───────────────────────────────────────────────────────────────────── 融合安全算术 **真因**：Mono(Unity 2022.3) 的 JIT 会把 `a*b + c*d` 之类**自动融合成 FMA**（。）。
 
         /// <summary>融合安全：<c>a0*b0 + a1*b1</c>（双精度累积，单次舍入）。</summary>
         public static float MulAdd2(float a0, float b0, float a1, float b1)

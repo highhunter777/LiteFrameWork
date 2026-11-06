@@ -7,8 +7,6 @@ namespace LiteNet.Transport
 {
     /// <summary>
     /// 服务器传输封装（唯一允许碰 kcp2k 的地方——§4.6 分层的 Transport 侧）。
-    /// 窄端口 IRoomTransport 的默认实现；连接保活由 kcp2k 内建 Ping/Timeout 承担（协议级 Heartbeat 留作 RTT 观测）。
-    /// 传输层错误吞日志不打断权威循环——服务器对 socket 垃圾零崩溃（§4.5 健壮性）。
     /// </summary>
     public sealed class KcpTransportServer : IRoomTransport
     {
@@ -65,9 +63,7 @@ namespace LiteNet.Transport
         public void Disconnect(int connectionId) => _server?.Disconnect(connectionId);
 
         /// <summary>
-        /// 规范化远端地址（无端口）。kcp2k 在握手完成、登记 connection **之后**才回调
-        /// OnConnected（KcpServer.cs:273-288），故连接事件内即可取到地址——per-IP 限流
-        /// 在"接受连接"这一拍就有键可用。未握手/已断开返回 null。
+        /// 规范化远端地址（无端口）。
         /// </summary>
         public string GetRemoteAddress(int connectionId)
         {

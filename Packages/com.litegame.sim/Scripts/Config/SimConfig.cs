@@ -23,9 +23,6 @@ namespace LiteSim
 
         /// <summary>
         /// 预测领先上限（帧）：权威快照和解的重放**不得**把本地帧号带过「快照帧 + 本值」。
-        /// 卡顿帧的"同步采纳 + 本地步进"会逐次把领先顶高——越过输入冗余覆盖范围后，
-        /// 服务器再也找不到自己要的帧号（输入整包判"越界"丢弃、回滚锁死，现场实测形态）。
-        /// 取 MaxCatchUp + 1：单次卡顿最多顶 MaxCatchUp 帧，+1 吸收"客户端发未来帧"的余量。
         /// </summary>
         public const int MaxPredictionLead = MaxCatchUp + 1;
 
@@ -66,10 +63,7 @@ namespace LiteSim
         /// <summary>局内背包格数/实体（§7.1：固定 12 格 + 4 快捷栏）。</summary>
         public const int MatchBagSlotsPerEntity = 12;
 
-        // ---- 玩法数值已迁出（手感参数与协议常量分离）----
-        // MoveSpeed/Gravity/Hitscan*/BaseDamage/DamageSpread → CombatConfig（static 属性 + Luban
-        // tb_combat_num 装载接缝）。
-        // 本类只保留确定性架构常量——协议/位布局/回滚深度这类"改了=两端不一致"的锁死项。
+        // ---- 玩法数值已迁出（手感参数与协议常量分离）---- MoveSpeed/Gravity/Hitscan*/BaseDamage/DamageSpread → CombatConfig（static 属性 + Luban tb_combat_num 装载接缝）。
 
         // ---- 广播 / AOI 旋钮不在本类（Sim 核不该知道网络怎么发）----
         // 快照频率是房级参数（RoomConfig.SnapshotHz，随 JoinAck 下发）；AOI 裁剪参数见

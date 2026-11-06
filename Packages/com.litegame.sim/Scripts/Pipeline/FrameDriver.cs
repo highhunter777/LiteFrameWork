@@ -4,10 +4,6 @@ namespace LiteSim
 {
     /// <summary>
     /// 帧驱动器（《状态同步实施方案》§3.2）：累加器 + 追帧（MaxCatchUp = 5）+ 固定 dt。
-    /// 不吃 IGameClock（GameClock 可变速/暂停，服务表现层；逻辑帧恒 60Hz）；
-    /// 不实现 ITickable（Core 零引擎依赖）——测试直接驱动，SimView 包装。
-    /// 每逻辑帧末回调消费方（帧事件交付），随后清空事件缓冲；
-    /// 积压超过 MaxCatchUp 时丢弃余量（防死亡螺旋——追不上就跳过，不累积）。
     /// </summary>
     public sealed class FrameDriver
     {
@@ -18,8 +14,6 @@ namespace LiteSim
 
         /// <summary>
         /// 本帧将推进的逻辑帧数（**纯查询**——与 <see cref="Tick"/> 同判据，不改累加器/不推帧）。
-        /// 预发用：多步渲染帧要提前上行"沿用帧"的输入（进程内权威与客户端共用累加器、且先于
-        /// 客户端步进，多出的帧会被权威用空输入消费）；帧数精确已知 = 只发额外帧、不发未来帧。
         /// </summary>
         public int PeekSteps(float realDelta)
         {
@@ -34,9 +28,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 推进逻辑帧。<paramref name="onLogicalFrame"/> 在每个逻辑帧 Step 结束后、事件清空前回调
-        /// （消费帧事件的唯一时机——追帧时每帧的事件都能交付，§3.7）。
-        /// <paramref name="rules"/> = 本局测试规则（null = 无规则）。
+        /// 推进逻辑帧。
         /// </summary>
         public void Tick(float realDelta, SimWorldState s, in SimMapData map, SimInputFrame[] inputs,
             in CombatValues values, WeaponTable weapons, Action<SimWorldState> onLogicalFrame = null,

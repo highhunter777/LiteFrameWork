@@ -5,19 +5,6 @@ namespace LiteNet.Transport
 {
     /// <summary>
     /// 托管 AES-GCM（NIST SP 800-38D）——安全信封在**没有平台 AEAD 的运行时**上的等价实现。
-    ///
-    /// 为什么需要：Unity 的 Mono 运行时（含 Editor Play Mode 与 Mono 桌面包）没有
-    /// <see cref="System.Security.Cryptography.AesGcm"/> 的实现，构造即抛
-    /// <see cref="PlatformNotSupportedException"/>（编辑器实测：客户端信封建不起来 → JoinAck 永不到）。
-    /// 本件用 <see cref="Aes"/>（ECB/无填充）取单块 E(K,·)，在托管侧实现 CTR 计数与 GHASH。
-    ///
-    /// **互通是硬契约**：与平台实现（及服务端 .NET 8 的 <c>AesGcm</c>）在**同密钥/同 nonce/同 AAD** 下
-    /// 必须产出**逐位相同**的密文与标签——由 L1 交叉对账用例钉住（多尺寸/多 AAD/空明文/空 AAD）。
-    ///
-    /// 常量时间：标签比较按全长累积异或，不因前缀命中提前返回。
-    /// 位数约定：GHASH 走 GCM 的**反射约定**（大端字节内 MSB→LSB 逐位、右移约简常量 <c>0xE1</c>）。
-    /// nonce 长度：本件只支持 12 字节（协议单源 = <c>SecureEnvelopeCrypto.CreateNonce</c> 产出 12 字节）——
-    /// 非 12 字节即抛用法错误，不静默降级。
     /// </summary>
     internal sealed class ManagedAesGcmCipher : IAesGcmCipher
     {

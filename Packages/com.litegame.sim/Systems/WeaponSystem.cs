@@ -1,21 +1,7 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 武器系统（《游戏业务系统总设计》§4.2 顺序：Input → Movement → **Weapon** → Shooting；
-    /// 本系统在 ShootingSystem 之前跑）：
-    /// <list type="number">
-    /// <item><b>懒装备</b>（确定性初始化）：活动且存活、槽 0 未装备的实体 → 按表槽位默认映射装备（满弹）——
-    ///   首生与 Despawn 后的复活同一条规则自动生效（Despawn 清武器行，见 <see cref="SimWorldState.Despawn"/>）；</item>
-    /// <item><b>到帧推进</b>（全槽位）：换弹到帧转移弹药、切枪到帧解除锁定（整数帧倒计，禁浮点）；</item>
-    /// <item><b>离散输入</b>（边沿帧才到；seq 由 InputGate 去重）：处理序 = <b>切枪 → 换弹 → 半自动重臂</b>——
-    ///   切枪打断换弹、换弹请求落在切枪后的新选中槽上（Switching 中被状态门拒）；半自动扳机在
-    ///   <b>未按住开火的帧重臂</b>（松开重臂；缺席帧不重臂——重连后首次按压可能被旧锁存拦下一次，
-    ///   确定性无碍，松开重按即恢复）。</item>
-    /// </list>
-    /// **开火资源与节拍**由 ShootingSystem 经 <see cref="TryConsumeShot"/> 消费（判定点单源不变）——
-    /// 本系统不开火、不算伤害。**未装备实体**（测试/沙盒直调 ShootingSystem 的形态）不经武器门：
-    /// ShootingSystem 维持旧行为（逐帧 + 兜底伤害），装备实体才受节拍/弹匣/换弹/切枪/半自动约束。
-    /// **确定性**：全整数帧运算；懒装备/切枪/重臂只读配置与输入、不回读时钟。
+    /// 武器系统（《游戏业务系统总设计》§4.2 顺序：Input → Movement → **Weapon** → Shooting； 本系统在 ShootingSystem 之前跑）。
     /// </summary>
     public static class WeaponSystem
     {
@@ -118,19 +104,8 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 开火消费（ShootingSystem 判定点调用）：Ready ∧ 半自动击发沿 ∧ 节拍到帧 ∧ （有弹 ∨ 无限子弹）→
-        /// 扣弹、推进 <see cref="WeaponRuntime.NextFireFrame"/>、<see cref="WeaponRuntime.ShotSeq"/>++，
-        /// 返回 true 并给武器定义；否则返回 false（该帧不开火——无 Fire 事件、无 RngState 消费）。
-        ///
-        /// **半自动边沿门**（<see cref="WeaponDef.Automatic"/> = false）：<see cref="EntitySlot.SemiFireArmed"/>
-        /// = 1 即"击发沿"——**消费即解除**（清零），与后续门（节拍/弹匣/状态）结果无关：
-        /// 冷却/换弹中按压同样消费击发沿（按住不放不会在冷却结束时自动击发——半自动要求逐次按压），
-        /// 松开帧由 ③ 重臂。自动武器（true）整段旁路。
-        /// **打空自动换弹**：末发消费后弹匣归零且备弹有余 → 同帧进入 Reloading（打空即补；
-        /// 备弹零则保持空仓 Ready）。**空仓门对无限子弹放行**：规则开启后弹匣 0 也可开火
-        /// （不扣弹、不凭空造弹）——彻底干涸的枪现场开开关即复活，无需换弹/切枪恢复动作。
+        /// 开火消费（ShootingSystem 判定点调用）：Ready ∧ 半自动击发沿 ∧ 节拍到帧 ∧ （有弹 ∨ 无限子弹）→ 扣弹。
         /// </summary>
-        /// <summary>（<paramref name="rules"/> 由 Run 注入传递——测试规则实例热路径唯一读点之一）。</summary>
         public static bool TryConsumeShot(SimWorldState s, int slotIndex, int frame, WeaponTable table, out WeaponDef def,
             MatchTestRules rules = null)
         {
@@ -164,14 +139,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 切枪请求（<see cref="SimInputFrame.ButtonSwitchWeapon"/> 边沿；槽位范围由 InputGate 拒伪造，
-        /// 此处防御性再验）。**选中槽立即翻面**（<see cref="EntitySlot.SelectedWeapon"/> 公共面——
-        /// 远端武器外观随快照切换），目标槽进入 <see cref="WeaponSlotState.Switching"/> 锁定
-        /// （<see cref="WeaponRuntime.EquipEndFrame"/> = frame + 目标武器 switch_frames），到帧由 ② 解除。
-        /// 目标槽未装备过 → 即刻按表满弹装备（数据面）；已装备过 → 弹药/节拍数据保持（切回延续）。
-        /// 旧选中槽换弹被取消（切枪打断换弹——《游戏业务系统总设计》§5.4"换弹中途取消"）。
-        /// 拒绝面：目标 = 当前槽（no-op）/ 当前选中武器在 Switching（举起窗内不再切，防连按刷窗）/
-        /// 目标槽无表默认定义（旧表未落该槽）/ 槽位越界。
+        /// 切枪请求（<see cref="SimInputFrame.ButtonSwitchWeapon"/> 边沿；槽位范围由 InputGate 拒伪造， 此处防御性再验）。
         /// </summary>
         private static void TryStartSwitch(SimWorldState s, int slotIndex, int targetSlot, WeaponTable table, int frame)
         {
@@ -249,8 +217,6 @@ namespace LiteSim
 
         /// <summary>
         /// 写主动作摘要（槽 0 = 公共动作面，《联机同步残差收敛专项设计》§3.2）：换弹开始/自动换弹调用。
-        /// ActionId 数值单源 <see cref="ActionIds"/>；Phase 首版只填 Active（换弹进行中）——
-        /// Windup/Recovery 细分由后续动作系统定稿。摘要进公共快照/差分基线/公共口径 checksum（远端换弹表现载体）。
         /// </summary>
         private static void SetActionSummary(SimWorldState s, int slotIndex, int frame)
         {

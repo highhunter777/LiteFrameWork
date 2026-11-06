@@ -1,17 +1,7 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 每局测试规则持有件（**可变引用**）：免死/无限子弹的**运行态单源**——确定性系统
-    /// （<see cref="DamageSystem"/>/<see cref="WeaponSystem"/>/<see cref="ShootingSystem"/>）
-    /// 经 <see cref="SimStep"/> 脊柱注入读取，不再读任何静态；GM 面板"对局中现场开合"直接写**当前活动局**的实例。
-    /// 判定几何（爆头线/柱径等）自 `#combatgeom` 起只经 <see cref="CombatValues.Geometry"/> 传递，本类不再承载几何覆写。
-    ///
-    /// 生命周期：进房时由入口（ProcedureMatch——LiteGame 侧，框架不引它）按入口初值新建，
-    /// 随会话显式传递（`MatchRulesSeeder` → `MatchTransport` → `AccountSession` → `BattleContext`）供两端绑定
-    /// （客户端预测在 StartGame 一次性绑定，之后热路径只读注入实例）；调试投影经 `IDevSession.MatchRules` 读同一实例。
-    /// 下次进房整体替换（常规入口初值恒 false——与既有"随入口复位"同语义）。
-    /// 入口初值同时进 <see cref="CombatValues"/>（联机身份摘要 + 重放随装载值覆盖）；
-    /// 中局开合属开发操作——不进摘要、不可重放（与既有口径一致）。
+    /// 每局测试规则持有件（**可变引用**）：免死/无限子弹的**运行态单源**——确定性系统 （<see cref="DamageSystem"/>/<see cref="WeaponSystem"/>/<see cref=。）。
     /// </summary>
     public sealed class MatchTestRules
     {

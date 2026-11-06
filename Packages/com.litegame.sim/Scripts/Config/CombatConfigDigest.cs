@@ -7,31 +7,7 @@ using System.Text;
 namespace LiteSim
 {
     /// <summary>
-    /// 战斗/玩法配置规范化摘要（《商业级通用服务端框架总设计》§5 P0-5：协议字段 configHash 的**唯一合法来源**——
-    /// SHA-256；禁止运行时哈希（GetHashCode 有进程随机种子，跨进程必不一致）进入协议）。
-    ///
-    /// **覆盖面**：判定面**表字节**（<c>TableLayout.JudgmentFiles</c> 全量，固定顺序）
-    /// + 本局测试规则初值——即"这一局判据所依赖、两端必须逐字节相同的数据"。三档输入各归其守卫：
-    /// - **代码侧判定常量**（烘焙/导出几何、算法常量……）**不进本摘要**——它们随代码进 buildHash 闭包
-    ///   （AOT 稳定层，永不出面），由 Join 握手把守；
-    /// - **本摘要守数据面**：表 bytes 两端发布（服务端换表重启 + 客户端内容候选），装载后当场复算比对——
-    ///   漏更/回退一端即摘要不等。旧口径只覆盖 <see cref="CombatValues"/> 的投影字段（武器/实体/道具表
-    ///   整表不在内，新列/新表静默漏保）——整表字节入摘要后该形态被构造性消除；
-    /// - **表现/内容表**（<c>tbuiform</c>/<c>tbltext</c>/<c>tbcontententry</c>/<c>tbstrategy</c>/
-    ///   <c>tbanimationprofile</c>）不计入判定面清单——单端可变（热更面），两端不同值不影响判定。
-    ///
-    /// 规范化规则（固定，两端同源——本类同时是服务端 <c>StartGame.ConfigHash</c>/<c>ReconnectResponse.ConfigHash</c>
-    /// 与客户端校验点的单源）：
-    /// - **基摘要** = SHA-256(规范文本) 低 32 位；文本 = <see cref="BaseSchemeTag"/> 标签行
-    ///   + 逐表一行 <c>&lt;相对路径&gt; &lt;表字节 SHA-256 全量 hex&gt;</c>（顺序 = 判定面清单声明序）；
-    /// - **终值** = SHA-256(规范文本) 低 32 位；文本 = <see cref="RulesSchemeTag"/> 标签行 + 基摘要
-    ///   + 本局测试规则位（免死/无限子弹——测试房与常规房身份可区分；中局 GM 开合属开发操作不进摘要）；
-    /// - 文本一律 InvariantCulture、'\n' 分隔、无空白填充——跨文化稳定；
-    /// - 表字节按**原始字节**喂哈希（二进制不做行尾归一化：`.bytes` 由 git 判为 binary（-text），
-    ///   跨机器 checkout 逐字节一致——同 gen-build-hash 对二进制文件的处理口径）。
-    ///
-    /// 生产者：服务端 `FixedCombatConfig`（房间创建时按装载产物固定）；消费者：客户端
-    /// `BattleContext.OnStartGame`（按**本地装载产物**复算比对——不等即拒局，见该类校验点注释）。
+    /// 战斗/玩法配置规范化摘要（《商业级通用服务端框架总设计》§5 P0-5：协议字段 configHash 的**唯一合法来源**—— SHA-256；禁止运行时哈希（GetHashCode 有进程随机种子。））。
     /// </summary>
     public static class CombatConfigDigest
     {

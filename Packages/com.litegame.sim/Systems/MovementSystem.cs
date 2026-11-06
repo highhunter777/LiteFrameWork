@@ -1,18 +1,7 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 移动/重力系统（§3.3 顺序第 2 位，§3.5 2.5D）：
-    /// XZ 平面位移 + y 轴重力积分 + 地面钳制 + 世界边界钳制 + **静态障碍去穿插**。
-    ///
-    /// 障碍碰撞：
-    /// - 判定半 = <see cref="SimObstacle"/>（圆/盒，XZ 平面 + y 区间闸）；视觉网格不参与判定（§18 视觉半）；
-    /// - 身体圆柱 = **物理半径**（<see cref="CombatConfig.BodyRadius"/>，烘焙自 prefab CC）与
-    ///   站姿高 <see cref="CombatConfig.HitscanHeight"/>——与命中柱（<see cref="CombatConfig.HitscanRadius"/>，
-    ///   判定宽容裁决常量）**解耦**：推挡/贴墙贴的是身体，不是判定宽容度；
-    /// - 解析 = 逐障碍**去穿插**（推出而非预先阻挡）：速度不衰减，下帧输入照写——贴墙滑行是
-    ///   积分与去穿插的固有产物，无需显式滑移逻辑；
-    /// - 确定性：先全体积分、再统一解析（第二个循环——避免"谁先解析谁占便宜"的顺序耦合），
-    ///   实体升序 × 障碍升序、每帧单圈；距离算术走 <see cref="SimMath"/>（软件 sqrt/MulAdd2，跨运行时逐位一致）。
+    /// 移动/重力系统（§3.3 顺序第 2 位，§3.5 2.5D）： XZ 平面位移 + y 轴重力积分 + 地面钳制 + 世界边界钳制 + **静态障碍去穿插**。
     /// </summary>
     public static class MovementSystem
     {
@@ -24,9 +13,7 @@ namespace LiteSim
 
                 ref EntitySlot e = ref entities[i];
 
-                // 最大速度硬上限（水平合速度）——服务器代码兜底护栏（"配置只做
-                // 软上限"）：配置错误/增益叠加/未来机制 bug 也不会让实体超速吹飞；用 SimMath 位级
-                // 确定原语（MulAdd2 + Sqrt），护栏本身不引运行时差异。
+                // 最大速度硬上限（水平合速度）——服务器代码兜底护栏（"配置只做 软上限"）：配置错误/增益叠加/未来机制 bug 也不会让实体超速吹飞；用 SimMath 位级 确定原语（MulAdd2 + Sqrt），护栏本身不引运行时差异。
                 float velSq = SimMath.MulAdd2(e.Vel.X, e.Vel.X, e.Vel.Z, e.Vel.Z);
                 float hardSq = values.Geometry.HardMaxSpeed * values.Geometry.HardMaxSpeed;
                 if (velSq > hardSq)

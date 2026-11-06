@@ -1,9 +1,7 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 出生点确定性选择（开局与复活共用）：在**未被占用**的点中按 hash 选一个；
-    /// 调用方按槽位顺序逐个占用，保证同帧/同局互斥。不消费 <see cref="SimWorldState.RngState"/>
-    /// （该随机流是射击系统的确定性审计面）。
+    /// 出生点确定性选择（开局与复活共用）：在**未被占用**的点中按 hash 选一个； 调用方按槽位顺序逐个占用，保证同帧/同局互斥。
     /// </summary>
     public static class SpawnPointSelector
     {

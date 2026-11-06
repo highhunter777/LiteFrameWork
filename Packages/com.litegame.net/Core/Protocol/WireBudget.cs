@@ -6,16 +6,6 @@ namespace LiteNet.Protocol
 {
     /// <summary>
     /// **不可靠信封的载荷预算**（《状态同步专项设计》§5.2）。
-    ///
-    /// 由来：联机实测"打一会儿双方不同步"，根因是快照包被 kcp2k **静默丢弃**——
-    /// `KcpPeer.SendUnreliable` 在 `content.Count > unreliableMax` 时只打一行日志就 `return`，
-    /// 既不重发也不降级。而当时没有任何一处代码知道"这笔载荷还装得下吗"。
-    ///
-    /// 本类把这条上限**单源化**：全部数值都从真实常量推导（MTU / kcp 元数据 / 信封头 / 尾标签），
-    /// 任何一处改了（换 MTU、加信封字段、换传输），预算自动跟着走，不会留下第二个手抄的 1194。
-    ///
-    /// 用法：发送前 <c>WireBudget.FitsUnreliable(msg.CalculateSize())</c> 判定；
-    /// 装不下就走降级阶梯（见 <c>CombatEventPacker</c>/<c>SnapshotPipeline</c>），**永不静默丢**。
     /// </summary>
     public static class WireBudget
     {

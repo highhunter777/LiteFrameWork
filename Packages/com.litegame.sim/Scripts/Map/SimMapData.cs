@@ -54,10 +54,6 @@ namespace LiteSim
 
     /// <summary>
     /// 判定用地图数据（定下并冻结；系统实现可留空）。
-    /// 定长可拷（同 #5）；对局中只读；是常量配置——不进快照、不进 checksum（§3.6 只哈希逻辑状态）。
-    /// 视觉地图与它无关（§18：视觉半属 View，装配期接入）。
-    /// **来源单源**＝Luban 表 `Map/tbmap` 经共享投影（`MapTableProjection`）产出——两端经实例注入
-    /// 接收（服务端 `RoomConfig.Map`／客户端 `BattleContext` 装配参数），本类不再提供内置地图构造。
     /// </summary>
     public sealed class SimMapData
     {

@@ -6,11 +6,7 @@ using LiteSync.Client;
 namespace LiteSync.Client
 {
     /// <summary>
-    /// 输入冗余窗口（RoomClient 的行内件，M2 拆分）：记录本帧输入并生成"本帧 + 往回连续历史帧"
-    /// 的打包窗口——只向前、只取连续段；跳帧绝不用陈旧帧冒充缺失帧。
-    ///
-    /// 窗口下界锚在"最近快照帧 + 1"（服务器已广播确认的帧之后都可能还没被消费），上界双约束：
-    /// 环内连续可用帧数与 <see cref="InputPacker.MaxRedundancy"/>。
+    /// 输入冗余窗口（RoomClient 的行内件，M2 拆分）：记录本帧输入并生成"本帧 + 往回连续历史帧" 的打包窗口——只向前、只取连续段；跳帧绝不用陈旧帧冒充缺失帧。
     /// </summary>
     internal sealed class InputWindow
     {
@@ -31,10 +27,7 @@ namespace LiteSync.Client
         }
 
         /// <summary>
-        /// 记录本帧输入并维护冗余窗口（**只向前**、**只取连续段**）：
-        /// - 重发同帧（frame == _recentFrame）：只覆盖内容，不推进窗口；
-        /// - 更早的帧：忽略（窗口语义是"最近若干帧"，回退无意义）；
-        /// - 跳帧（frame &gt; _recentFrame + 1）：连续性断裂 → 窗口重置为 1。
+        /// 记录本帧输入并维护冗余窗口（**只向前**、**只取连续段**）。
         /// </summary>
         public void Record(int frame, in SimInputFrame input)
         {

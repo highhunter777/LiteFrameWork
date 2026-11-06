@@ -4,16 +4,6 @@ namespace LiteSim
 {
     /// <summary>
     /// Sim 三角函数——查表 + 归约 + 线性插值（《M7 实施指导》§2.2）。
-    ///
-    /// 单位：弧度（与 SimMath 一致）。
-    /// 表：<see cref="SimTrigTables.SinTable"/> 4096 项覆盖 [0, π/2]，线性插值。
-    ///   - Sin/Cos：象限归约到 [0, π/2] 后查表；Cos(x) = Sin(x + π/2)。
-    ///   - Atan2：八分圆（octant）归约 → 反查同一张表 → 线性插值（不引入 CORDIC，不复用第二张表）。
-    ///   - Tan = Sin/Cos（分母容差保护）。
-    /// 运行期严禁 Math./MathF. 超越函数：本文件只出现 IEEE 基本运算（+ - * / 与 SimMath.Sqrt）。
-    /// 归约与插值只用加减法、比较、整型转换——跨运行时逐位确定。
-    ///
-    /// 生成物 SimTrigTables.cs 由 Editor 菜单「LiteSim/生成 SimTrig 查表」产出（勿手改）。
     /// </summary>
     public static class SimTrig
     {

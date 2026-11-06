@@ -2,10 +2,6 @@ namespace LiteSim
 {
     /// <summary>
     /// 局内背包单格（《游戏业务系统总设计》§7.1：固定 12 格、4 快捷栏，不放对象引用）。
-    /// 数组布局：<c>MatchBag[slot * <see cref="SimConfig.MatchBagSlotsPerEntity"/> + i]</c>。
-    /// 私有面：**只发给本人**（PrivateStateSnapshot.bag）——不进公共 SlotDelta（§1 P0 阻塞项：
-    /// 局内包曾无承载位，塞 Globals/CustomData 会重连分叉）。
-    /// ItemDefId = 0 表示空格。
     /// </summary>
     public partial struct MatchBagSlot
     {
@@ -24,11 +20,6 @@ namespace LiteSim
 
     /// <summary>
     /// 比赛状态（§3.1 固定布局 MatchState；room 级单实例）。
-    /// 《状态同步专项设计》§5.2：阶段、倒计时、比分、回合和胜者——比分/回合并的正式契约化
-    /// （Globals 只留版本化扩展，见 §1 P0 阻塞项第 3 条）。
-    /// 公共面：随每份快照全量下发（MatchStateSnapshot 层），全部客户端可见。
-    /// 字段取舍：FFA 个人比分/KDA 在 <see cref="EntitySlot.Kills"/>/<see cref="EntitySlot.Deaths"/>；
-    /// <c>Score</c> 只承载团队模式的单值比分（Team=1 时生效）。
     /// </summary>
     public struct MatchStateData
     {
@@ -57,9 +48,7 @@ namespace LiteSim
         public MatchEndReason EndReason;
 
         /// <summary>
-        /// 权威侧 GM 规则位（联机测试房批；1 = 免死 / 2 = 无限弹药）。**运行态事实**，随每份快照下发——
-        /// 客户端据此让预测与服务端同值（否则免死会"掉血回弹"）。**不进 <c>CombatConfigDigest</c>**：
-        /// 规则不是配置身份（《联机测试房与GM下发专项设计》§3.2）。
+        /// 权威侧 GM 规则位（联机测试房批；1 = 免死 / 2 = 无限弹药）。
         /// </summary>
         public int GmFlags;
     }

@@ -4,11 +4,7 @@ using LiteSync.Client;
 namespace LiteSync.Client
 {
     /// <summary>
-    /// 会话相位与重连凭据（RoomClient 的行内件，M2 拆分）：相位迁移、一次性票据、版本确认基准
-    /// 与重连等待线。**不做 I/O、不碰传输**——重拨/发包仍由 <see cref="RoomClient"/> 编排。
-    ///
-    /// 状态机（§9.3）：Connected → SuspectedLost → Reconnecting → Restoring → Connected；
-    /// Reconnecting 超时/被拒 → Failed（应用层决策，不自动重试）。
+    /// 会话相位与重连凭据（RoomClient 的行内件，M2 拆分）：相位迁移、一次性票据、版本确认基准 与重连等待线。
     /// </summary>
     internal sealed class ReconnectState
     {

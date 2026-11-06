@@ -4,16 +4,7 @@ using System.Collections.Generic;
 namespace LiteSim
 {
     /// <summary>
-    /// 离线回放器：把 <see cref="SimRunRecord"/> 在**当前运行时**上重跑一遍，
-    /// 找出**首个分歧帧**并给出该帧的字段级差异。
-    ///
-    /// **用途（跨运行时一致性验收）**：记录在 A 运行时（如 .NET 8 服务器）跑出的 checksum 序列，
-    /// 在 B 运行时（如 Unity/Mono 客户端）回放——首个不一致的帧号即分歧点，差异报告指出字段。
-    /// 这正是 <see cref="SimMath"/> 里 1-ulp 那类问题**唯一可规模化的排查手段**：
-    /// 不必猜、不必断点跟长运算链，跑一遍就有答案。
-    ///
-    /// **口径**：回放严格按记录顺序 Step（不预测、不回滚、不跳帧）——纯粹是"确定性复算"，
-    /// 把 Play 侧的时序噪声全部排除。故本类只认 <see cref="SimRunRecord"/>，不接 RollbackSim。
+    /// 离线回放器：把 <see cref="SimRunRecord"/> 在**当前运行时**上重跑一遍， 找出**首个分歧帧**并给出该帧的字段级差异。
     /// </summary>
     public static class SimReplayRunner
     {
@@ -41,10 +32,7 @@ namespace LiteSim
             public int RecordedFrames { get; internal set; }
 
             /// <summary>
-            /// 人读结论。分歧时给出**决策信息**：分歧帧号 + 是该帧的哪个字段开始不同
-            /// （字段报告是"与记录源对比"的——注意对比对象是**记录方的世界**，
-            /// 但记录只存 checksum 不存世界，故差异报告需由调用方提供记录方的世界；
-            /// 见 <see cref="SimReplayRunner.ReplayAndCompare"/> 的 <c>expectedWorldAt</c> 参数）。
+            /// 人读结论。
             /// </summary>
             public string ToText()
             {
@@ -64,8 +52,6 @@ namespace LiteSim
 
         /// <summary>
         /// 回放并逐帧比对 checksum（**轻量路径**：只定位首个分歧帧号，不需要记录方世界）。
-        /// <paramref name="values"/>/<paramref name="weapons"/> = 记录期的玩法数值与武器表实例
-        /// （必须与记录源一致，否则复算必然分歧）。
         /// </summary>
         public static Result Replay(SimRunRecord record, in CombatValues values, WeaponTable weapons)
         {
@@ -73,11 +59,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 回放并**一键产出字段级报告**：对比源取自记录自身的世界存档
-        /// （要求记录以 <see cref="SimRunRecord.BeginWithWorlds"/> 开启，且分歧帧仍在环窗口内）。
-        ///
-        /// 这是排查的推荐入口——不必由调用方另外导出"记录方该帧的世界"。
-        /// 分歧帧已被环覆盖时退化为 <see cref="Replay"/> 的等价形态（报告为 null，只给帧号）。
+        /// 回放并**一键产出字段级报告**：对比源取自记录自身的世界存档 （要求记录以 <see cref="SimRunRecord.BeginWithWorlds"/> 开启，且分歧帧仍在环窗口内）。
         /// </summary>
         public static Result ReplayWithRecordedWorlds(SimRunRecord record, in CombatValues values,
             WeaponTable weapons)
@@ -88,14 +70,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 回放并逐帧比对 checksum，且在第 <paramref name="divergentFrame"/> 帧（1 基）
-        /// 提供记录方的世界快照——**用于产出字段级差异报告**。
-        ///
-        /// 用法：先跑 <see cref="Replay"/> 拿到分歧帧号，再用记录里保存的该帧世界（若有）重跑一次。
-        /// 若记录方只存了 checksum（<see cref="SimRunRecord"/> 的默认形态，省体积），
-        /// 则本方法退化为 <see cref="Replay"/> 的等价值（报告为 null）——
-        /// **这是刻意的取舍**：存全世界 = 体积 O(帧数 × 世界)，存 checksum = O(帧数)。
-        /// 排查时用"记录方在同一输入下重跑并导出该帧世界"补齐对比对象。
+        /// 回放并逐帧比对 checksum，且在第 <paramref name="divergentFrame"/> 帧（1 基） 提供记录方的世界快照——**用于产出字段级差异报告**。
         /// </summary>
         public static Result ReplayAndCompare(SimRunRecord record, Func<int, SimWorldState> expectedWorldAt,
             in CombatValues values, WeaponTable weapons)

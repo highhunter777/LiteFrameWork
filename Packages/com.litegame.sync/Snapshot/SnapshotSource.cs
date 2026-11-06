@@ -7,9 +7,6 @@ namespace LiteSync.Snapshot
 {
     /// <summary>
     /// 服务器广播状态（《M10实施指导》决策 7）。
-    ///
-    /// 两段式（多客户端必需）：<see cref="BeginFrame"/> 每广播帧一次（算差分、打包比赛状态层、推进基线），
-    /// <see cref="BuildFor"/> 每客户端一次（纯读，按各自 AOI 视点过滤 + 附本人私有面）——见 <see cref="SnapshotDiffer"/> 注释。
     /// </summary>
     public interface ISnapshotSource
     {

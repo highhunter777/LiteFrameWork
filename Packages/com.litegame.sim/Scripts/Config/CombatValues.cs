@@ -1,17 +1,7 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 玩法数值实例（**技术债 #1 根治面**）：装载面 8 字段从"全局可变静态 + LoadFrom 回填"
-    /// 改为**按值传递的实例**——装载链（服务端 `ServerTableLoader`／客户端 `ConfigService`）解析表产出本实例，
-    /// 经参数显式传入机制消费（`SimStep` → 系统；房间快照 `FixedCombatConfig`）。
-    /// 不再有"装载即回填全局"的顺序问题，测试不再需要串行集 + finally 还原。
-    ///
-    /// - 按值传递；持有点构造后不得再改（约定——实例可自由复制，无共享可变面）。
-    /// - <see cref="Default"/> = 展示/测试兜底（非权威）；运行期权威值来自 `Combat/tbcombatgeom` 等表。
-    /// - 联机身份（摘要）见 <see cref="CombatConfigDigest"/>——**批 E 起按判定面表字节计算**（本实例的字段
-    ///   是那些表的投影：值相同 ⇔ 表相同；值侧唯一独立输入是本局的 <see cref="NoDeath"/>/<see cref="InfiniteAmmo"/>
-    ///   规则位，经 `WithTestRules` 进终值）。
-    /// - 判定几何（13 列）经嵌套 <see cref="CombatGeometry"/> 随实例传递，不读静态读口。
+    /// 玩法数值实例（**技术债 #1 根治面**）：装载面 8 字段从"全局可变静态 + LoadFrom 回填" 改为**按值传递的实例**——装载链（服务端 `ServerTableLoader`／客户端 `ConfigS。）。
     /// </summary>
     public struct CombatValues
     {
@@ -31,23 +21,14 @@ namespace LiteSim
         /// <summary>进房初值的无限子弹规则（测试房；同上）。常规对局恒 false。</summary>
         public bool InfiniteAmmo;
 
-        /// <summary>瞄准态（ADS）移动上限（m/s），表值 tb_combatnum.aim_move_speed。
-        /// 所在判定表进 <see cref="CombatConfigDigest"/>（联机身份）。
-        ///
-        /// **语义（勿按旧式派生推断）**：本值**不是** <see cref="MoveSpeed"/> 的派生——直接落表
-        /// （旧口径 `MoveSpeed × 0.5`、倍率取 2 的幂保位级精确，已随表化退役：直落最终值无乘法、
-        /// 无舍入面）。**代价：调 <see cref="MoveSpeed"/> 不再带动限速档**，两列各自独立。
-        /// 表值默认 2.5＝视图 Walk 档上界（<c>LocomotionBlendMath.WalkFullMps</c>）——
-        /// 瞄准移动只需一套 AimWalk 片段的口径不变。</summary>
+        /// <summary>
+        /// 瞄准态（ADS）移动上限（m/s），表值 tb_combatnum.aim_move_speed。
+        /// </summary>
         public float AimMoveSpeed;
 
-        /// <summary>射击窗长（逻辑帧数）＝开火态时间，表值 tb_combatnum.fire_stance_frames。
-        /// 在 <c>ShootingSystem</c> 判定点置满、<c>InputSystem</c> 逐帧统一递减，
-        /// 并按"瞄准 ∨ 开火态"限速 <see cref="AimMoveSpeed"/>。所在判定表进 <see cref="CombatConfigDigest"/>（联机身份）。
-        /// View 侧驻留窗按 <c>本值 / SimConfig.TickRate</c> 同源派生。
-        ///
-        /// **不变式**：<c>1 &lt;= 本值 &lt;= 255</c>——落进 <c>EntitySlot.FireStanceFrames</c>（<c>public byte</c>，
-        /// 且进公共快照/双口径 checksum/proto），越界会在强转处静默截断。L1 守卫卡该边界。</summary>
+        /// <summary>
+        /// 射击窗长（逻辑帧数）＝开火态时间，表值 tb_combatnum.fire_stance_frames。
+        /// </summary>
         public int FireStanceFrames;
 
         /// <summary>判定几何（`#combatgeom` 13 列投影）；经本实例随 `in CombatValues` 传递。</summary>

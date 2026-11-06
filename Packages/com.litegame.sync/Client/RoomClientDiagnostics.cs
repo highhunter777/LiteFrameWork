@@ -4,11 +4,7 @@ using LiteSync.Client;
 namespace LiteSync.Client
 {
     /// <summary>
-    /// RoomClient 的会话诊断发射点（M3-6 拆分的行内件）：进房尝试/未获应答两条记录——
-    /// 与服务器 RejectJoin 的拒绝记录**同键**（<see cref="DiagTrace.JoinKey"/> 单源），
-    /// 一次失败可把 版本/内容/事务/会话/房间 的记录串起来（《框架先行》§8「可诊断」）。
-    ///
-    /// 本类只写诊断事实，不参与会话状态与判定。
+    /// RoomClient 的会话诊断发射点（M3-6 拆分的行内件）：进房尝试/未获应答两条记录—— 与服务器 RejectJoin 的拒绝记录**同键**（<see cref="DiagTrace.JoinKey"/> 单。）。
     /// </summary>
     internal static class RoomClientDiagnostics
     {

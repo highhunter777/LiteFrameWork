@@ -1,12 +1,7 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 移动数值实例（`tbmovementconfig` 单行表）：与 <see cref="CombatValues"/> 同规——**按值传递**、
-    /// 构造后不得再改、<see cref="Default"/> 必须与表值一致（装载侧对账）。
-    ///
-    /// **机制消费（走/跑/冲/滑铲/空中控制/跳跃/钩爪/闪现）随对应 Sim 系统落地逐项接入**——
-    /// 接入时经参数接收本实例。重力只定义在 tbmovementconfig，
-    /// 当前移动系统经固定对局配置中的 <see cref="CombatValues.Gravity"/> 投影消费。
+    /// 移动数值实例（`tbmovementconfig` 单行表）：与 <see cref="CombatValues"/> 同规——**按值传递**、 构造后不得再改。
     /// </summary>
     public struct MovementValues
     {

@@ -3,17 +3,7 @@ using System;
 namespace LiteSim
 {
     /// <summary>
-    /// 回滚执行器（《状态同步实施方案》§5.3–5.4）：
-    /// 预测推进（沿用上一帧、开火不预测）+ 真实输入判定（不符则 Restore(F-1) → 重放 F..last）
-    /// + 越界退化（停预测前进，§5.4 正确性兜底）+ 单渲染帧回滚上限（防雪崩）。
-    ///
-    /// - FrameDriver 只承担累加器/追帧；逐逻辑帧输入经 onLogicalFrame 回调在帧间刷新
-    ///   （多逻辑帧/渲染帧时每帧各自的预测输入）。
-    /// - 帧号约定：帧号 = 已执行步数（Step 末 Frame 递增）；"输入 k"由第 k 步消费（Frame k-1 → k）；
-    ///   Capture 在每步后记录帧 k，构造期先把初始状态锚定为帧 0——第 1 步的回滚（Restore(0)）天然可用。
-    ///   收到步 F 的真实输入时 Frame ≥ F 即"已用预测跑过"，target = 帧 F-1（= F 步执行前状态），与 §5.4 伪码自洽。
-    /// - 同运行时红线：全部验收在 .NET 侧闭环；跨运行时存在 FMA 1-ULP 底噪。
-    /// - 所有权：initialState 由调用方构造后移交本类（§8.3：BattleContext 显式 new，禁入容器）。
+    /// 回滚执行器（《状态同步实施方案》§5.3–5.4）： 预测推进（沿用上一帧、开火不预测）+ 真实输入判定（不符则 Restore(F-1) → 重放 F..last） + 越界退化（停预测前进。）。
     /// </summary>
     public sealed class RollbackSim
     {
@@ -45,13 +35,7 @@ namespace LiteSim
         public event Action<int> OnReconcile;
 
         /// <summary>
-        /// 帧事件交付（**消费帧事件的唯一时机**——<see cref="FrameDriver"/> 在回调返回后立即清空
-        /// 事件缓冲，事后轮询永远读不到；参数 = 本逻辑帧的状态，事件在 <c>s.Events</c>）。
-        ///
-        /// 与 <see cref="OnRollback"/>/<see cref="OnReconcile"/> 的区别：后两者是**偶发**的和解/重放信号，
-        /// 本回调**每逻辑帧**都来（追帧时一帧一次）——表现层（SimView 的事件静默门）据此消费开火/命中/死亡。
-        /// 重放段（<see cref="ExecuteRollback"/>/<see cref="OnAuthoritativeSnapshot"/> 内部）不走本回调：
-        /// 那些 Step 的事件不消费即清，正是不重播一次性副作用的来源。
+        /// 帧事件交付（**消费帧事件的唯一时机**——<see cref="FrameDriver"/> 在回调返回后立即清空 事件缓冲，事后轮询永远读不到；参数 = 本逻辑帧的状态，事件在 <c>s.Events</c>）。
         /// </summary>
         public event Action<SimWorldState> OnFrameEvents;
 
@@ -87,23 +71,12 @@ namespace LiteSim
         public SnapshotRing Ring => _ring;
 
         /// <summary>
-        /// 本渲染帧将推进的逻辑帧数（纯查询，见 <see cref="FrameDriver.PeekSteps"/>）——
-        /// 预发"即将执行的沿用帧"用：多步渲染帧要把额外帧的输入**先于步进**上行，
-        /// 否则进程内权威先走完的那几帧只能吃空输入兜底（与本地沿用逐帧分叉）。
+        /// 本渲染帧将推进的逻辑帧数（纯查询，见 <see cref="FrameDriver.PeekSteps"/>）—— 预发"即将执行的沿用帧"用：多步渲染帧要把额外帧的输入**先于步进**上行。
         /// </summary>
         public int PeekSteps(float realDelta) => _driver.PeekSteps(realDelta);
 
         /// <summary>
-        /// 读取某帧**已执行**的某玩家输入（追帧补发用）。追帧沿用帧（<see cref="PrepareNext"/> 的
-        /// baseInputs 续行）与真实输入帧同读——多逻辑帧渲染帧里，未上行的沿用帧会让服务器按空输入
-        /// 兜底执行，产生"本地在动、权威已停"的分叉（《状态同步专项设计》两端同帧同值前提），
-        /// 调用方（BattleContext）须把这些帧同样 SendInput。
-        ///
-        /// **按实体 Id 查找**（不是数组下标）：历史数组由 SimStep **就地按 EntityId 排序**（规范形），
-        /// 而远端槽位的输入常携带零身份（客户端填不出远端 Id）——零身份排在数组最前，会把
-        /// "本地玩家在数组里的下标"挤位，按下标读会取到别人的行（旧口径的错）。
-        /// <paramref name="entityId"/> = 目标实体 Id（0 = 无目标，返回 false）。frame 必须 ≤ 当前已执行帧
-        /// （未来帧不在史里）；超出史窗/未记录/未找到 = false。
+        /// 读取某帧**已执行**的某玩家输入（追帧补发用）。
         /// </summary>
         public bool TryGetExecutedInput(int frame, long entityId, out SimInputFrame input)
         {
@@ -131,9 +104,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 真实输入到达（网络层喂入）：入史 → 判定（帧已模拟 且 已用预测输入 且 逐位不符
-        /// → Restore(F-1) → 重放 F..last，§5.4）。早到帧（frame &gt; 已执行帧号）仅入史供模拟时取用，
-        /// 并解锁停预测（确认流越过不可恢复窗口即续跑）。
+        /// 真实输入到达（网络层喂入）：入史 → 判定（帧已模拟 且 已用预测输入 且 逐位不符 → Restore(F-1) → 重放 F..last，§5.4）。
         /// </summary>
         public void OnRealInput(int frame, SimInputFrame[] realInputs)
         {
@@ -228,17 +199,13 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// **全量口径**和解入口（保留）：比对本地预测@frame 的 <see cref="SimChecksum.ComputePublicChecksum"/>
-        /// 与权威值。全量帧/重连/单测直构形态用它；增量帧走
-        /// <see cref="OnAuthoritativeSnapshot(int, SimWorldState, in AuthoritativeFrameInfo)"/>（部分和解）。
+        /// **全量口径**和解入口（保留）：比对本地预测@frame 的 <see cref="SimChecksum.ComputePublicChecksum"/> 与权威值。
         /// </summary>
         public bool OnAuthoritativeSnapshot(int frame, SimWorldState authoritative, uint authoritativeChecksum)
             => Reconcile(frame, authoritative, isFull: true, authoritativeChecksum, 0u, 0u, null, null, 0);
 
         /// <summary>
-        /// **增量感知**和解入口（P2-A）：全量帧走全图口径；增量帧只按**消息携带的槽位集合**做部分和解——
-        /// 视野外实体的变化不再导致每快照失配和解（全图 checksum 不再为 AOI 增量当裁判）。
-        /// 语义见 <see cref="AuthoritativeFrameInfo"/>。
+        /// **增量感知**和解入口（P2-A）：全量帧走全图口径；增量帧只按**消息携带的槽位集合**做部分和解—— 视野外实体的变化不再导致每快照失配和解（全图 checksum 不再为 AOI 增量当裁判）。
         /// </summary>
         public bool OnAuthoritativeSnapshot(int frame, SimWorldState authoritative, in AuthoritativeFrameInfo info)
             => Reconcile(frame, authoritative, info.IsFull, info.FullChecksum, info.VisibleChecksum,
@@ -246,17 +213,6 @@ namespace LiteSim
 
         /// <summary>
         /// 权威快照和解核心（《状态同步实施方案》§5 章头："回退源=权威快照、重放范围=本地输入"）。
-        ///
-        /// - **快照超前/帧太老**（环窗口外）：权威态直接覆盖续跑（快照覆盖兜底语义）。
-        /// - **全量帧**（<paramref name="isFull"/>）：本地预测@frame 公共口径 checksum 与全图权威比对——
-        ///   一致 = 零和解；不符 = 权威整帧覆盖 + 重放。
-        /// - **增量帧**：本地预测的**携带槽位集合**公共口径 + Match 与权威比对——一致 = 零和解；
-        ///   不符 = 逐槽位比对定位差异槽，**只把差异槽位的权威面写回**（视野外保留本地预测，
-        ///   不整帧复制镜像——避免"误回退"），再重放本地历史。
-        /// - 重放终点一律截到**预测领先上限**（<see cref="SimConfig.MaxPredictionLead"/>）：领先随卡顿累积、
-        ///   越过输入冗余覆盖范围后服务器再也找不到要的帧号，输入整包判"越界"、回滚锁死（现场实测形态）。
-        ///   被截帧留在历史里，本地随后按原输入自然重演（状态等价，仅帧号回退到上限）。
-        /// - 私有面（他人弹药/技能 CD/背包/资源、RngState、状态明细）客户端永远无法重建，不进比对口径。
         /// </summary>
         private bool Reconcile(int frame, SimWorldState authoritative, bool isFull, uint fullChecksum,
             uint visibleChecksum, uint matchChecksum, int[] slots, uint[] slotChecksums, int slotCount)
@@ -296,9 +252,7 @@ namespace LiteSim
             uint localMatch = SimChecksum.ComputeMatchChecksum(in _probe.Match);
             if (localVisible == visibleChecksum && localMatch == matchChecksum) return false;   // lint-allow R3
 
-            // 部分和解：只把**差异槽位**的权威面写回探针；视野外槽位保留本地预测（不整帧复制镜像——
-            // 否则会把视野外本地预测拉回旧镜像，问题从"误和解"变成"误回退"）。槽位集在增量下不变
-            // （活体变化必转全量），故不动活体位图。Match 非预测量——以权威为准。
+            // 部分和解：只把**差异槽位**的权威面写回探针；视野外槽位保留本地预测（不整帧复制镜像—— 否则会把视野外本地预测拉回旧镜像，问题从"误和解"变成"误回退"）。
             for (int k = 0; k < slotCount; k++)
             {
                 int slot = slots[k];

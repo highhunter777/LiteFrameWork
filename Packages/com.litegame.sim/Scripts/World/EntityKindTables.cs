@@ -1,12 +1,7 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 地面道具分型行（《Sim组织专项设计》§2）：<c>Items[slot]</c>——行有效 ⟺
-    /// 槽位活体且 <see cref="EntityFlags.KindItem"/> 置位（kind 位 = "该槽位持有哪张分型表数据"的
-    /// 迷你 archetype mask）。携带面不在本表——进背包后是 <c>MatchBag</c> 的事（既有面）。
-    ///
-    /// 布局契约同 P0 运行态：纯值类型 struct、定容数组行、零引擎依赖；进快照/checksum 的字段
-    /// 只允许值类型（<c>SimWorldState</c> 布局硬约束 #5 同款）。消费者＝道具分型系统（尚未实现，G2 排期）。
+    /// 地面道具分型行（《Sim组织专项设计》§2）：<c>Items[slot]</c>——行有效 ⟺ 槽位活体且 <see cref="EntityFlags.KindItem"/> 置位（kind 位 = "该槽位持有哪张。）。
     /// </summary>
     public partial struct ItemState
     {

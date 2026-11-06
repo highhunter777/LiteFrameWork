@@ -5,9 +5,7 @@ using LiteSync.Client;
 namespace LiteSync.Client
 {
     /// <summary>
-    /// 房间会话事实（RoomClient 的行内件，M2 拆分）：席位/房主/地图/期望人数、StartGame 载荷缓存、
-    /// 席位实时面与终局结果的**唯一持有者**。只做"协议事实进、只读事实出"，不碰传输/事件派发；
-    /// 读写侧 Clone 防御（<see cref="MatchResult"/>/<see cref="Seats"/>）在此收口。
+    /// 房间会话事实（RoomClient 的行内件，M2 拆分）：席位/房主/地图/期望人数、StartGame 载荷缓存、 席位实时面与终局结果的**唯一持有者**。
     /// </summary>
     internal sealed class RoomSession
     {
@@ -77,9 +75,7 @@ namespace LiteSync.Client
         public void ApplySeats(Proto.RoomSeats seats) => _seats = seats.Clone();
 
         /// <summary>
-        /// 接受终局（Reliable 且本局匹配）：未开局（StartGame 未达）也接受——等待期房间被服务器中止
-        /// （等待超时/运维关闭/排空）时经 MatchEnded 通知散场；此时判据退为"本次进房已有应答"
-        /// （JoinAck 已回且非新一次 Join 的未决窗口）。返回 false = 丢弃（旧局/重复/未决窗口）。
+        /// 接受终局（Reliable 且本局匹配）：未开局（StartGame 未达）也接受——等待期房间被服务器中止 （等待超时/运维关闭/排空）时经 MatchEnded 通知散场。
         /// </summary>
         public bool TryAcceptMatchEnded(Proto.MatchEnded ended, bool hasStartGame, bool joinAttemptPending)
         {
