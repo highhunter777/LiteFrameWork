@@ -16,11 +16,14 @@
 #   且闭包本来也查不出"两端跑着同一常量、数据却不同源"。数据面守卫归
 #   `TableLayout.JudgmentFiles` + `CombatConfigDigest`（客户端比对 StartGame.ConfigHash）。
 #
-# 算法：按**相对路径（Ordinal）排序**后，逐个喂入 "相对路径\0<内容（行尾归一化）>" 到 SHA-256，
-#       取前 16 个十六进制字符作 hash 值。确定性要点：
+# 算法：按**相对路径（Ordinal）排序**后，逐个喂入 "相对路径\0<内容（行尾归一化 + 注释/空白归一）>"
+#       到 SHA-256，取前 16 个十六进制字符作 hash 值。确定性要点：
 #   ① 排序固定（不依赖文件系统枚举顺序）
 #   ② **行尾归一化**（CRLF/CR → LF）——否则不同机器 clone（git autocrlf）会算出不同 hash
-#   ③ 排除自身输出（BuildHash.g.cs）与 bin/obj/.dotnet/.meta
+#   ③ **注释与排版不计入身份**（2026-11-06）：剥掉 // 与 /* */、空白折叠为单空格，
+#      字符串/字符字面量原样保留。理由：注释/缩进不改变编译产物，改注释不该触发两端重发；
+#      代码 token 的任何变化（含字符串内容）仍会改 hash。
+#   ④ 排除自身输出（BuildHash.g.cs）与 bin/obj/.dotnet/.meta
 #
 # Toolbox entry:  python scripts/codegen/toolbox.py build-hash [--check | --check-shared]
 # Direct entry (deprecated, prints [deprecated]):
@@ -145,6 +148,62 @@ def collect(targets, extra_files=()):
     return files
 
 
+def strip_for_hash(raw):
+    """注释与排版归一：去掉 // 与 /* */（字符串/字符字面量内原样保留），空白折叠为单空格。
+    构建身份只覆盖"会影响两端行为的源码"，注释/缩进不该改握手 hash。"""
+    out = bytearray()
+    i, n = 0, len(raw)
+    state = 'code'
+    pending = False
+
+    def emit(b):
+        nonlocal pending
+        if pending and out and out[-1] != 0x20:
+            out.append(0x20)
+        pending = False
+        out.append(b)
+
+    while i < n:
+        c = raw[i]
+        nxt = raw[i + 1] if i + 1 < n else -1
+        if state == 'code':
+            if c == 0x2F and nxt == 0x2F:
+                state = 'line'; i += 2; pending = True; continue
+            if c == 0x2F and nxt == 0x2A:
+                state = 'block'; i += 2; pending = True; continue
+            if c == 0x22:
+                if out.endswith(b'@'): state = 'vstr'
+                elif out.endswith(b'$'): state = 'istr'
+                else: state = 'str'
+                emit(c); i += 1; continue
+            if c == 0x27:
+                state = 'chr'; emit(c); i += 1; continue
+            if c in b' \t\r\n':
+                pending = True; i += 1; continue
+            emit(c); i += 1; continue
+        if state == 'line':
+            if c == 0x0A: state = 'code'
+            i += 1; continue
+        if state == 'block':
+            if c == 0x2A and nxt == 0x2F: state = 'code'; i += 2; continue
+            i += 1; continue
+        if state == 'chr':
+            out.append(c); i += 1
+            if c == 0x5C and i < n: out.append(raw[i]); i += 1; continue
+            if c == 0x27: state = 'code'
+            continue
+        if state == 'vstr':
+            out.append(c); i += 1
+            if c == 0x22:
+                if i < n and raw[i] == 0x22: out.append(raw[i]); i += 1; continue
+                state = 'code'
+            continue
+        out.append(c); i += 1
+        if c == 0x5C and i < n: out.append(raw[i]); i += 1; continue
+        if c == 0x22: state = 'code'
+    return bytes(out)
+
+
 def normalize(raw):
     """行尾归一化：CRLF/CR → LF（跨机器 clone 一致性）。"""
     return raw.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
@@ -156,7 +215,7 @@ def compute(files):
         h.update(rel.encode('utf-8'))
         h.update(b'\x00')
         with open(full, 'rb') as f:
-            h.update(normalize(f.read()))
+            h.update(strip_for_hash(normalize(f.read())))
     return h.hexdigest()[:16]
 
 
