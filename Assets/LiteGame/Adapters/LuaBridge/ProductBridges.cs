@@ -30,15 +30,13 @@ namespace LiteGame
         {
             var settings = env.NewTable();
 
-            // 既有平铺面（保持兼容：页面与既有用例不破）。
-            settings.Set("Volume", new Func<float>(() => ProductSettings.Current.Volume));
-            settings.Set("SetVolume", new Action<float>(v => ProductSettings.Current.SetVolume(v)));
-            settings.Set("SoundEnabled", new Func<bool>(() => ProductSettings.Current.SoundEnabled));
-            settings.Set("SetSoundEnabled", new Action<bool>(on => ProductSettings.Current.SetSoundEnabled(on)));
-            settings.Set("Quality", new Func<int>(() => ProductSettings.Current.Quality));
-            settings.Set("SetQuality", new Action<int>(tier => ProductSettings.Current.SetQuality(tier)));
-            settings.Set("Save", new Action(() => ProductSettings.Current.Save()));
-            settings.Set("ResetDefaults", new Action(() => ProductSettings.Current.ResetDefaults()));
+            // 音频组。
+            var audio = env.NewTable();
+            audio.Set("Volume", new Func<float>(() => ProductSettings.Current.Volume));
+            audio.Set("SetVolume", new Action<float>(v => ProductSettings.Current.SetVolume(v)));
+            audio.Set("SoundEnabled", new Func<bool>(() => ProductSettings.Current.SoundEnabled));
+            audio.Set("SetSoundEnabled", new Action<bool>(on => ProductSettings.Current.SetSoundEnabled(on)));
+            settings.Set("audio", audio);
 
             // 显示组（桌面专属项由 Supports* 查询，页面据此隐藏——不在 Lua 写平台分支）。
             var display = env.NewTable();
@@ -57,6 +55,8 @@ namespace LiteGame
             display.Set("VSync", new Func<int>(() => ProductSettings.Current.VSync));
             display.Set("SetVSync", new Action<int>(v => ProductSettings.Current.SetVSync(v)));
             display.Set("SupportsVSync", new Func<bool>(() => ProductSettings.Current.SupportsWindowSettings));
+            display.Set("Quality", new Func<int>(() => ProductSettings.Current.Quality));
+            display.Set("SetQuality", new Action<int>(tier => ProductSettings.Current.SetQuality(tier)));
             settings.Set("display", display);
 
             // 控制组（视角手感；键位覆盖为 P2，届时在此加子表）。
@@ -73,6 +73,8 @@ namespace LiteGame
             var general = env.NewTable();
             general.Set("LastTab", new Func<int>(() => ProductSettings.Current.LastTab));
             general.Set("SetLastTab", new Action<int>(i => ProductSettings.Current.SetLastTab(i)));
+            general.Set("Save", new Action(() => ProductSettings.Current.Save()));
+            general.Set("ResetDefaults", new Action(() => ProductSettings.Current.ResetDefaults()));
             settings.Set("general", general);
 
             env.Global.Get<LuaTable>("Bridge").Set("settings", settings);

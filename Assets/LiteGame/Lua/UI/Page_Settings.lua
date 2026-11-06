@@ -1,7 +1,7 @@
 -- UI/Page_Settings.lua：设置页（分组批 2026-10-30，按《设置系统专项设计》§7）
 -- 结构：左分类导航（TabGroup_Settings，5 页签）+ 右面板（Pnl_*，互斥显隐）。
 -- 页签：音频 / 图形 / 显示 / 控制 / 常规；初始页签取 Bridge.settings.general.LastTab()，切换即记忆。
--- 数据：全部经 Bridge.settings（音频平铺 + graphics/display/control/general 子表）；语言走 Bridge.text。
+-- 数据：全部经 Bridge.settings（audio/display/control/general 子表）；语言走 Bridge.text。
 -- 即改即生效（门面 Set 后立即应用）；落盘仍走 SettingService 脏标记三处纪律——关闭/OnHide 调 Save。
 -- 对局中（导航数据 battleExit=true）：显示类三行（模式/分辨率/垂直同步）置灰——窗口重建会卡战斗帧。
 -- 退出对局钮沿既有退场链：确认弹窗 → 先回大厅再 LeaveMatch（不依赖 OnMatchEnded 的页面切换）。
@@ -107,9 +107,9 @@ function M:OnShow(data)
 
     -- 变化通知（只回写设置与生效面；落盘由 Save 承担）
     self.ui:OnTabChanged("TabGroup_Settings", function(index) self:_OnTab(index + 1) end)
-    self.ui:OnSliderChanged("Slider_Volume", function(value) Bridge.settings.SetVolume(value) end)
-    self.ui:OnToggleChanged("Toggle_Sound", function(on) Bridge.settings.SetSoundEnabled(on) end)
-    self.ui:OnDropdownChanged("Dropdown_Quality", function(index) Bridge.settings.SetQuality(index) end)
+    self.ui:OnSliderChanged("Slider_Volume", function(value) Bridge.settings.audio.SetVolume(value) end)
+    self.ui:OnToggleChanged("Toggle_Sound", function(on) Bridge.settings.audio.SetSoundEnabled(on) end)
+    self.ui:OnDropdownChanged("Dropdown_Quality", function(index) Bridge.settings.display.SetQuality(index) end)
     self.ui:OnDropdownChanged("Dropdown_DisplayMode", function(index)
         Bridge.settings.display.SetMode(DISPLAY_MODE_VALUES[index + 1])
         self:_RefreshResolutionRow()
@@ -222,9 +222,9 @@ function M:_PushSensitivityText()
 end
 
 function M:_RefreshControls()
-    self.ui:SetSlider("Slider_Volume", Bridge.settings.Volume())
-    self.ui:SetToggle("Toggle_Sound", Bridge.settings.SoundEnabled())
-    self.ui:SetDropdown("Dropdown_Quality", Bridge.settings.Quality())
+    self.ui:SetSlider("Slider_Volume", Bridge.settings.audio.Volume())
+    self.ui:SetToggle("Toggle_Sound", Bridge.settings.audio.SoundEnabled())
+    self.ui:SetDropdown("Dropdown_Quality", Bridge.settings.display.Quality())
 
     self.ui:SetDropdown("Dropdown_DisplayMode", IndexOf(DISPLAY_MODE_VALUES, Bridge.settings.display.Mode(), 2) - 1)
     self:_RefreshResolutionRow()
@@ -256,14 +256,14 @@ function M:_ConfirmReset()
         Bridge.text.Get("Common.Cancel"),
         function(ok)
             if not ok then return end
-            Bridge.settings.ResetDefaults()
+            Bridge.settings.general.ResetDefaults()
             self:_PushAllOptions()
             self:_RefreshControls()
         end)
 end
 
 function M:_Close()
-    Bridge.settings.Save()
+    Bridge.settings.general.Save()
     Bridge.ui.Close(PAGE_SETTINGS)
 end
 

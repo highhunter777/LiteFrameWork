@@ -15,15 +15,15 @@ namespace LiteGame.Editor
         {
             // 门面导出面（Bridge.Data.BindGlobals / ProductBridges + MetaBridge + ProductSettings 装订）用到的 **全部**委托形——批C-④ 五页首次成为真实 Lua 消费者。
             typeof(System.Func<string, XLua.LuaTable, object>),  // self.ui 派发口（__ui_api_c——get* 回值，其余 nil）
-            typeof(System.Action),                          // Bridge.meta.LeaveMatch / Bridge.settings.Save
+            typeof(System.Action),                          // Bridge.meta.LeaveMatch / Bridge.settings.general.Save
             typeof(System.Action<string>),                  // Bridge.text.SetLocale / Bridge.ui.Close
             typeof(System.Func<string>),                    // Bridge.text.Locale / Bridge.meta.AccountId/ServerUrl/Version
-            typeof(System.Func<bool>),                      // Bridge.meta.IsConfigured / Bridge.settings.SoundEnabled
-            typeof(System.Action<bool>),                    // Bridge.settings.SetSoundEnabled
-            typeof(System.Func<float>),                     // Bridge.settings.Volume
-            typeof(System.Action<float>),                   // Bridge.settings.SetVolume
-            typeof(System.Func<int>),                       // Bridge.settings.Quality
-            typeof(System.Action<int>),                     // Bridge.settings.SetQuality
+            typeof(System.Func<bool>),                      // Bridge.meta.IsConfigured / Bridge.settings.audio.SoundEnabled
+            typeof(System.Action<bool>),                    // Bridge.settings.audio.SetSoundEnabled
+            typeof(System.Func<float>),                     // Bridge.settings.audio.Volume
+            typeof(System.Action<float>),                   // Bridge.settings.audio.SetVolume
+            typeof(System.Func<int>),                       // Bridge.settings.display.Quality
+            typeof(System.Action<int>),                     // Bridge.settings.display.SetQuality
             typeof(System.Func<string, string>),            // Bridge.text.Get
             typeof(System.Func<string, bool>),              // Bridge.ui.IsOpen
             typeof(System.Func<int, XLua.LuaTable>),        // Bridge.data.GetItem、Bridge.content.GetProcessor

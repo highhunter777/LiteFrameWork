@@ -101,22 +101,16 @@ end
 meta.ListRecords = function(cb) meta.cb_records = cb end
 meta.LeaveMatch = function() calls[#calls + 1] = 'LeaveMatch' end
 
-settings = { volume = 0.5, sound = true, quality = 1 }
-settings.Volume = function() return settings.volume end
-settings.SetVolume = function(v) settings.volume = v; calls[#calls + 1] = 'SetVolume:' .. tostring(v) end
-settings.SoundEnabled = function() return settings.sound end
-settings.SetSoundEnabled = function(on) settings.sound = on; calls[#calls + 1] = 'SetSound:' .. tostring(on) end
-settings.Quality = function() return settings.quality end
-settings.SetQuality = function(i) settings.quality = i; calls[#calls + 1] = 'SetQuality:' .. tostring(i) end
-settings.Save = function() calls[#calls + 1] = 'Save' end
-settings.ResetDefaults = function()
-    settings.volume = 0.8; settings.sound = true; settings.quality = 2; settings.tab = 0
-    calls[#calls + 1] = 'ResetDefaults'
-end
+settings = {}
+settings.audio = { volume = 0.5, sound = true }
+settings.audio.Volume = function() return settings.audio.volume end
+settings.audio.SetVolume = function(v) settings.audio.volume = v; calls[#calls + 1] = 'SetVolume:' .. tostring(v) end
+settings.audio.SoundEnabled = function() return settings.audio.sound end
+settings.audio.SetSoundEnabled = function(on) settings.audio.sound = on; calls[#calls + 1] = 'SetSound:' .. tostring(on) end
 
--- 分组批（《设置系统专项设计》§6）：display / control / general 三个子表；取值桩对齐 C# 侧允许值集
+-- 分组批（《设置系统专项设计》§6）：audio / display / control / general 四个子表；取值桩对齐 C# 侧允许值集
 settings.display = {
-    mode = 1, resolutionIndex = -1, frameRate = 0, vsync = -1,
+    mode = 1, resolutionIndex = -1, frameRate = 0, vsync = -1, quality = 1,
     resolutions = { '1920 × 1080', '1600 × 900' },
     frameRates = { 0, 60, 144 },
 }
@@ -137,6 +131,8 @@ settings.display.SetFrameRate = function(v) settings.display.frameRate = v; call
 settings.display.VSync = function() return settings.display.vsync end
 settings.display.SetVSync = function(v) settings.display.vsync = v; calls[#calls + 1] = 'SetVSync:' .. tostring(v) end
 settings.display.SupportsVSync = function() return true end
+settings.display.Quality = function() return settings.display.quality end
+settings.display.SetQuality = function(i) settings.display.quality = i; calls[#calls + 1] = 'SetQuality:' .. tostring(i) end
 
 settings.control = { lookSens = 1.0, adsSens = 1.0, invert = false }
 settings.control.LookSensitivity = function() return settings.control.lookSens end
@@ -155,9 +151,14 @@ end
 settings.general = { tab = 0 }
 settings.general.LastTab = function() return settings.general.tab end
 settings.general.SetLastTab = function(i) settings.general.tab = i; calls[#calls + 1] = 'SetLastTab:' .. tostring(i) end
+settings.general.Save = function() calls[#calls + 1] = 'Save' end
+settings.general.ResetDefaults = function()
+    settings.audio.volume = 0.8; settings.audio.sound = true; settings.display.quality = 2; settings.general.tab = 0
+    calls[#calls + 1] = 'ResetDefaults'
+end
 
 -- room 面（点调用；全局——房主开局批：页面订阅房主事实/发提前开局；席位实时面批：页面订阅席位名单；
--- 测试手动驱动 owner_fn/members_fn 模拟回放与迁移；房规模拉取形同 settings.Quality——房间页等待人数分母）
+-- 测试手动驱动 owner_fn/members_fn 模拟回放与迁移；房规模拉取形同 settings.display.Quality——房间页等待人数分母）
 room = {}
 room.OnOwner = function(fn) room.owner_fn = fn end
 room.StartMatch = function(cb) calls[#calls + 1] = 'StartMatch'; room.start_fn = cb end
