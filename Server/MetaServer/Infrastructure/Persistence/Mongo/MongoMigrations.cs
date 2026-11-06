@@ -98,20 +98,13 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
                     rollback: ct => DropIndexIfExistsAsync<LedgerDoc>(
                         database, MongoCollectionNames.SettlementLedger, "ux_settlement_key", ct)),
 
+                // v2：outbox 功能已退役（2026-11-06）——保留版本号占位、不再建集：
+                // 版本连续性由 SchemaMigrationRunner 校验，删步骤会与已有库的版本状态错位。
                 new MongoStep(
                     version: 2,
-                    description: "outbox 建集 + 待处理扫描索引（status + seq）",
-                    migrate: ct => EnsureCollectionWithIndexAsync(
-                        database,
-                        MongoCollectionNames.Outbox,
-                        "ix_outbox_pending",
-                        Builders<OutboxDoc>.IndexKeys
-                            .Ascending(d => d.Status)
-                            .Ascending(d => d.Seq),
-                        unique: false,
-                        ct),
-                    rollback: ct => DropIndexIfExistsAsync<OutboxDoc>(
-                        database, MongoCollectionNames.Outbox, "ix_outbox_pending", ct)),
+                    description: "outbox 功能退役（保留版本号，无结构动作）",
+                    migrate: _ => Task.CompletedTask,
+                    rollback: _ => Task.CompletedTask),
 
                 new MongoStep(
                     version: 3,

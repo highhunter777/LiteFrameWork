@@ -49,11 +49,6 @@ namespace MetaServer
         /// <summary>数据库名（配置了连接串时必填）。</summary>
         public string MongoDatabaseName { get; set; } = "";
 
-        /// <summary>持久 Outbox 容量上界（§11.2"任何队列必须有显式容量"；满则入队显式拒绝）。
-        /// **当前无消费方**（P3：`IOutboxStore` 装配退役——端口/实现作为 G1 接缝保留，见 `MetaHost` 装配注释）；
-        /// 范围校验照常生效，G3 接入 Meta 外发写时启用。</summary>
-        public int OutboxCapacity { get; set; } = 1024;
-
         /// <summary>
         /// 样例链路开关（`POST /sample/settlement` + `SettlementSampleUseCase`）。
         /// </summary>
@@ -199,11 +194,6 @@ namespace MetaServer
             {
                 errors.Add("未配置 MongoConnectionString 时 MongoDatabaseName 应为空（没有存储可指向）");
             }
-            if (OutboxCapacity < 1 || OutboxCapacity > 1024 * 1024)
-            {
-                errors.Add("OutboxCapacity 必须在 1..1048576，实际：" + OutboxCapacity);
-            }
-
             bool authConfigured = !string.IsNullOrWhiteSpace(AuthSigningKeyBase64);
             if (authConfigured)
             {

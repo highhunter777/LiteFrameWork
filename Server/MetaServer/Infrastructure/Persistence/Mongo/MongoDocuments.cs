@@ -15,12 +15,6 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
         /// <summary>玩家修订号/余额文档（_id = playerId；CAS 目标）。</summary>
         public const string ProfileRevision = "profile_revision";
 
-        /// <summary>持久 Outbox 条目（_id = operationId）。</summary>
-        public const string Outbox = "outbox";
-
-        /// <summary>Outbox 单调序号计数文档（_id 固定，见 <see cref="MongoDocumentNames.OutboxSeq"/>；ListPending 的次序承载）。</summary>
-        public const string OutboxSeq = "outbox_seq";
-
         /// <summary>schema 版本文档（_id 固定，见 <see cref="MongoDocumentNames.SchemaVersion"/>；迁移确认点）。</summary>
         public const string SchemaVersion = "schema_version";
 
@@ -37,9 +31,6 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
     /// </summary>
     public static class MongoDocumentNames
     {
-        /// <summary>Outbox 单调序号计数文档（<c>outbox_seq</c> 集合内）。</summary>
-        public const string OutboxSeq = "outbox";
-
         /// <summary>schema 版本文档（<c>schema_version</c> 集合内；迁移确认点）。</summary>
         public const string SchemaVersion = "meta";
     }
@@ -71,39 +62,6 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
         public long Balance;
     }
 
-    /// <summary>持久 Outbox 条目。Status 存 <see cref="Contracts.Persistence.OutboxStatus"/> 的 int 值。</summary>
-    [BsonIgnoreExtraElements]
-    public sealed class OutboxDoc
-    {
-        [BsonId]
-        public string OperationId;
-
-        public string Payload;
-        public int Status;
-        public int Attempts;
-
-        /// <summary>入队次序（OutboxSeq 原子自增分配；$natural 无排序保证，不使用）。</summary>
-        public long Seq;
-
-        /// <summary>入队时刻（UTC，§5.2"时间字段一律 UTC"）——存储端权威赋值，非调用方播种。</summary>
-        public DateTime CreatedUtc;
-
-        /// <summary>最近一次失败原因（RecordFailure 记录；重试根因可诊断）。</summary>
-        public string LastFailureReason;
-
-        /// <summary>最近一次失败时刻（UTC）。</summary>
-        public DateTime LastFailureUtc;
-    }
-
-    /// <summary>Outbox 序号计数文档（单文档自增）。</summary>
-    [BsonIgnoreExtraElements]
-    public sealed class OutboxSeqDoc
-    {
-        [BsonId]
-        public string Name;
-
-        public long Value;
-    }
 
     /// <summary>schema 当前版本文档（单文档）。</summary>
     [BsonIgnoreExtraElements]

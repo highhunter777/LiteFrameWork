@@ -112,7 +112,6 @@ namespace MetaServer
                 new MongoAccountStore(
                     sp.GetRequiredService<IMongoDatabase>(),
                     () => DateTime.UtcNow));
-            // **Outbox/Inbox 端口「装配退役」（P3）**：`IOutboxStore` + `MongoOutboxStore` 是 G1 的 "只建接缝"交付物（Meta 专项 §14-G1：必要存储端口 + 迁移/幂等约束 + 故障夹具）， 端口契约与实现均已就绪。
             services.AddSingleton<ISchemaVersionStore, MongoSchemaVersionStore>();
             services.AddSingleton<ISchemaMigrator>(sp =>
                 new SchemaMigrationRunner(
