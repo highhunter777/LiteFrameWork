@@ -54,7 +54,21 @@
       Meta HTTP 契约的线形状单源（与客户端 LiteGame.App、MetaServer 编译同一份）：
       注册心跳载荷与房间明细不再在本工程手写镜像 DTO。
     -->
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireContracts.cs" Link="Shared\MetaWire\MetaWireContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaError.cs" Link="Shared\MetaWire\MetaError.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\GuestLoginRequest.cs" Link="Shared\MetaWire\GuestLoginRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\GuestLoginInfo.cs" Link="Shared\MetaWire\GuestLoginInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\JoinTicketRequest.cs" Link="Shared\MetaWire\JoinTicketRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\CreateRoomRequest.cs" Link="Shared\MetaWire\CreateRoomRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\JoinTicketInfo.cs" Link="Shared\MetaWire\JoinTicketInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\RoomsResponse.cs" Link="Shared\MetaWire\RoomsResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\LobbyInstanceView.cs" Link="Shared\MetaWire\LobbyInstanceView.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\LobbyRoomEntry.cs" Link="Shared\MetaWire\LobbyRoomEntry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchesResponse.cs" Link="Shared\MetaWire\MatchesResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchRecordInfo.cs" Link="Shared\MetaWire\MatchRecordInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\InstanceRegisterRequest.cs" Link="Shared\MetaWire\InstanceRegisterRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\InstanceRegisterResponse.cs" Link="Shared\MetaWire\InstanceRegisterResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchResultSubmission.cs" Link="Shared\MetaWire\MatchResultSubmission.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\PlayerResultEntry.cs" Link="Shared\MetaWire\PlayerResultEntry.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
   </ItemGroup>
 

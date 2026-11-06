@@ -159,9 +159,9 @@ GM 页「本地测试模式 → 云端测试房」选地图
 |---|---|---|---|
 | Meta 契约 | `LobbyContracts.cs` | `CreateRoomCommand.Template` | 否 |
 | Meta 用例 | `CreateRoomUseCase.cs` | 模板名文法校验 + 授权判定 | 否 |
-| 票据 | `JoinTicketIssueUseCase.cs`、`JoinTicketFormat.cs`（v3→v4）、`JoinTicket.cs` | 票据带 `Template` 段并验签 | 否（仅 Meta 源链接） |
+| 票据 | `JoinTicketIssueUseCase.cs`、`JoinTicketFormat.cs`（v3→v4）、`JoinContext.cs`/`JoinPrincipal.cs`/`JoinTicketKey.cs` | 票据带 `Template` 段并验签 | 否（仅 Meta 源链接） |
 | 房间服 | `InboundJoinHandlers.cs`、`ServerHost.OpenRoom`、`IRoomGateway.Open` | 按票据选模板；模板不存在 ⇒ 拒绝进房 | 否 |
-| 客户端 | GM 页「本地测试模式」 + `MetaContracts.cs` | 「云端测试房」入口（地图下拉 + 创建并进入） | 是（客户端代码） |
+| 客户端 | GM 页「本地测试模式」 + `Modules/Meta/` 的 Meta 契约（`MetaCall`/`MetaFailure`/`RoomEndpoint`） | 「云端测试房」入口（地图下拉 + 创建并进入） | 是（客户端代码） |
 
 > 票据加字段不触发 BuildHash 共享闭包，但票据版本 v3→v4 **必须两端同批发布**（旧票据一律被拒）。
 

@@ -57,10 +57,28 @@
     Assets/Tests/EditMode/MetaClientEditModeTests 经真实 HTTP 覆盖。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaContracts.cs" Link="Meta\MetaContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaFailureKind.cs" Link="Meta\MetaFailureKind.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaFailure.cs" Link="Meta\MetaFailure.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaCall.cs" Link="Meta\MetaCall.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaErrorCodes.cs" Link="Meta\MetaErrorCodes.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\RoomEndpoint.cs" Link="Meta\RoomEndpoint.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaJson.cs" Link="Meta\MetaJson.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaWireValidator.cs" Link="Meta\MetaWireValidator.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireContracts.cs" Link="Meta\Wire\MetaWireContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaError.cs" Link="Meta\Wire\MetaError.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\GuestLoginRequest.cs" Link="Meta\Wire\GuestLoginRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\GuestLoginInfo.cs" Link="Meta\Wire\GuestLoginInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\JoinTicketRequest.cs" Link="Meta\Wire\JoinTicketRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\CreateRoomRequest.cs" Link="Meta\Wire\CreateRoomRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\JoinTicketInfo.cs" Link="Meta\Wire\JoinTicketInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\RoomsResponse.cs" Link="Meta\Wire\RoomsResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\LobbyInstanceView.cs" Link="Meta\Wire\LobbyInstanceView.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\LobbyRoomEntry.cs" Link="Meta\Wire\LobbyRoomEntry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchesResponse.cs" Link="Meta\Wire\MatchesResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchRecordInfo.cs" Link="Meta\Wire\MatchRecordInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\InstanceRegisterRequest.cs" Link="Meta\Wire\InstanceRegisterRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\InstanceRegisterResponse.cs" Link="Meta\Wire\InstanceRegisterResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchResultSubmission.cs" Link="Meta\Wire\MatchResultSubmission.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\PlayerResultEntry.cs" Link="Meta\Wire\PlayerResultEntry.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireEndpoints.cs" Link="Meta\Wire\MetaWireEndpoints.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireLimits.cs" Link="Meta\Wire\MetaWireLimits.cs" />
   </ItemGroup>
