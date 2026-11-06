@@ -31,7 +31,7 @@ namespace LiteFramework
 
             if (_spec.DurationFrames <= 0 || m.StageFrames < _spec.DurationFrames) return;
 
-            // 到点：走表里配的下一步（M3-7 删抢占机后无"恢复栈顶"路径——AutoResumeOnEnd 不再生效）。
+            // 到点：走表里配的下一步。
             if (_spec.HasNext) m.Request(_spec.NextId);
         }
 

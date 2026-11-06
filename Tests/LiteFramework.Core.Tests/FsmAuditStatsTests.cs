@@ -23,10 +23,6 @@ namespace LiteFramework.Tests
             public void OnLeave(IStageHost<Sid, int> m) { }
         }
 
-        private static TableStage<Sid, int> Table(Sid id, int priority = 0, bool interruptible = true,
-            ResumeMode resume = ResumeMode.Cancel)
-            => new TableStage<Sid, int>(new StageSpec<Sid, int> { Id = id, Priority = priority, CanBeInterrupted = interruptible, Resume = resume });
-
         [Fact]
         public void 审计Kind_自动条件边与快照恢复()
         {

@@ -3,16 +3,6 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 被抢占时原阶段的处置：`Cancel` = 直接丢弃（默认）；`Resume` = 入恢复栈，
-    /// 事后可 <c>TryResume()</c> 回来（受击硬直结束回到被打断的动作这类）。
-    /// </summary>
-    public enum ResumeMode : byte
-    {
-        Cancel = 0,
-        Resume = 1,
-    }
-
-    /// <summary>
     /// 请求被拒的原因：**只描述"正常路径的拒绝"**—— 编程错误（未 Start / 未注册 / 重入 / OnLeave 窗口）仍然抛异常，不走这里。
     /// </summary>
     public enum RejectReason : byte
@@ -42,18 +32,6 @@ namespace LiteFramework
         /// <summary>该行对应的阶段 id。</summary>
         public TId Id;
 
-        /// <summary>表数据兼容字段（M3-7 删抢占机后**无读取方**；保留以免表源/用例大改）。</summary>
-        public int Priority;
-
-        /// <summary>表数据兼容字段（无读取方——恢复栈随抢占机删除）。</summary>
-        public ResumeMode Resume = ResumeMode.Cancel;
-
-        /// <summary>表数据兼容字段（无读取方——抢占准入已删除）。</summary>
-        public bool CanBeInterrupted = true;
-
-        /// <summary>表数据兼容字段（无读取方）。</summary>
-        public Func<TId, bool> CanBeInterruptedBy;
-
         /// <summary>&gt;0 时：本阶段驻留到该帧数即自动迁移（表驱动的"时长"）。</summary>
         public int DurationFrames;
 
@@ -62,9 +40,6 @@ namespace LiteFramework
 
         /// <summary>时长到点后去哪。</summary>
         public TId NextId;
-
-        /// <summary>表数据兼容字段（M3-7 起无读取方：抢占机删除后无恢复栈；`TableStage` 恒走 <see cref="NextId"/>）。</summary>
-        public bool AutoResumeOnEnd;
 
         /// <summary>驻留看门狗（§3.2）：&gt; 0 且无挂起时驻留到该帧数即强制迁往 <see cref="TimeoutTarget"/>。</summary>
         public int TimeoutFrames;

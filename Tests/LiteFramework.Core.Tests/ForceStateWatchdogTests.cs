@@ -21,13 +21,11 @@ namespace LiteFramework.Tests
             public void OnLeave(IStageHost<Tid, int> m) => OnLeaveAction?.Invoke(m);
         }
 
-        private static TableStage<Tid, int> Table(Tid id, int priority = 0, bool interruptible = true,
+        private static TableStage<Tid, int> Table(Tid id,
             int timeoutFrames = 0, Tid timeoutTarget = default)
             => new TableStage<Tid, int>(new StageSpec<Tid, int>
             {
                 Id = id,
-                Priority = priority,
-                CanBeInterrupted = interruptible,
                 TimeoutFrames = timeoutFrames,
                 TimeoutTarget = timeoutTarget,
             });
