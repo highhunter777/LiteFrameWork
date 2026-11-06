@@ -97,7 +97,7 @@ namespace Tools.DisciplineScan
         };
 
         /// <summary>R13 数值读口禁读（机制面）——技术债 #1 防复辟：机制代码不读静态读口
-        /// （`CombatConfig` 可变值 / `MovementConfig` / `WeaponConfig.Default|TryGet|Loaded|Publish`；
+        /// （`CombatConfig` 可变值 / `MovementConfig` / `WeaponConfig.Default|Loaded|Publish`；
         /// 值经 `CombatValues`/`MovementValues`/`WeaponTable` 实例参数传递）。</summary>
         public static readonly LintRule[] ConfigPortRules =
         {

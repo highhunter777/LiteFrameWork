@@ -76,10 +76,8 @@ namespace LiteSim
         /// <summary>当前装载表（表现/工具读口；**机制消费禁读**——经 <see cref="WeaponTable"/> 参数接收）。</summary>
         public static WeaponTable Loaded => _loaded;
 
-        /// <summary>兼容读口：默认步枪定义（表现面/工具便捷读；未在册回落内置默认，同值）。</summary>
+        /// <summary>默认步枪定义（表现面/工具读口；未在册回落内置默认，同值）。</summary>
         public static WeaponDef Default => _loaded.TryGet(DefaultRifleId, out WeaponDef d) ? d : DefaultRifle;
 
-        /// <summary>兼容读口：查武器定义（表现面/工具便捷读；机制用传入表的 <see cref="WeaponTable.TryGet"/>）。</summary>
-        public static bool TryGet(int id, out WeaponDef def) => _loaded.TryGet(id, out def);
     }
 }
