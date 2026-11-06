@@ -57,7 +57,7 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 ### 6.1 三注册表
 
-三个注册表（`Assets/LiteGame/Adapters/LuaBridge/LuaRegistries.cs`）由装配根 `AppComposition` **一次构造**——
+三个注册表（`Assets/LiteGame/Adapters/LuaBridge/` 下 `IUILuaRegistry.cs`、`IContentLuaRegistry.cs`、`IStrategyLuaRegistry.cs` 与同名实现件）由装配根 `AppComposition` **一次构造**——
 UI 段逻辑工厂、流程段填充器、回填服务与 `Bridge` 门面共用同一批实例（模块侧只经端口/接口取，不 `new` 适配器）；
 键为全路径，重复注册抛：
 
