@@ -7,24 +7,7 @@ using UnityEngine;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 统一反馈入口（《UI框架总设计》§6.1"Loading、空状态、错误/重试、Toast 有统一入口；
-    /// 请求失败的反馈可观察，关键错误界面必须可从内置资源启动"）。
-    ///
-    /// 三面（**视觉一律取控件模板**，见 §7 视觉单一来源与服务层职责）：
-    /// - **Loading**（<see cref="BeginLoading"/>）：嵌套计数阻断面——最后一个结束才解除；
-    ///   阻断期间平台 Back 经 <see cref="TryCancelLoading"/> 取消当前操作（§6.1 Back 优先级：
-    ///   "Loading 阻断期间按操作取消规则处理返回，不能悄悄穿透到下层"——经
-    ///   <see cref="UINavigationController.BackInterceptor"/> 接入导航链首位）。
-    /// - **错误/重试**（<see cref="ShowErrorAsync"/>）：经 <see cref="DialogService"/> 落地——
-    ///   同 MergeKey 的重复错误弹窗自动合并（§4.3"重复断线/错误弹窗按键合并"）；返回是否重试。
-    /// - **Toast**（<see cref="ShowToast"/>）：非阻断短提示，**多条并存**各自计时（§6.1），
-    ///   由承载控件 <see cref="Toast"/> 做纵向堆叠与最旧淘汰。
-    ///
-    /// 三者同为 **System 语义层**的 form（layer=3，§6.2"反馈面归 System 层"），经统一排序器分配 order——
-    /// 本服务**不自建 Canvas、不使用私有 sortingOrder**，只持有 <see cref="UIService"/> 打开的实例并驱动其状态。
-    ///
-    /// 层内不互斥：三面均 `full_screen=false`，同组可并行（全屏会触发同组 Replace 语义互相顶掉）。
-    /// Loading 的阻断靠遮罩射线（§6.2"输入禁用、射线阻断和焦点是不同职责"），不靠停组。
+    /// 统一反馈入口（《UI框架总设计》§6.1"Loading、空状态、错误/重试、Toast 有统一入口； 请求失败的反馈可观察，关键错误界面必须可从内置资源启动"）。
     /// </summary>
     public sealed class FeedbackService : IDisposable
     {
@@ -84,11 +67,11 @@ namespace LiteFramework.UI
             _close = close ?? (id => _ui.CloseAsync(id, UIService.CloseReason.User));
             _isOpen = isOpen ?? _ui.IsOpen;
 
-            // Back 链首位：Loading 阻断期消费返回（取消当前操作），其余穿透到模态/页面链
+            // Back 链首位：Loading 阻断期消费返回（取消当前操作），其余穿透到模态/页面链。
             _nav.BackInterceptor = TryCancelLoading;
         }
 
-        // ---- Loading ----
+        // ---- Loading ----。
 
         /// <summary>是否处于加载阻断（嵌套 &gt; 0）。</summary>
         public bool IsLoading => _loadingDepth > 0;
@@ -98,9 +81,6 @@ namespace LiteFramework.UI
 
         /// <summary>
         /// 开始一段加载阻断（嵌套安全：计数 &gt; 0 即阻断，最后一个结束才解除）。
-        /// 返回作用域——Dispose/Using 收尾；**取消**经 <see cref="LoadingToken"/>（Back 触发），
-        /// 由被门控操作自行响应（服务不强行结束操作，只给取消信号）。
-        /// 首次进入时经 <see cref="UIService"/> 打开遮罩表单（异步；失败落日志不阻塞调用方）。
         /// </summary>
         public LoadingScope BeginLoading(string message = null)
         {
@@ -124,10 +104,7 @@ namespace LiteFramework.UI
                 UIForm form = await _open(_loadingFormId);
                 if (epoch != _loadingEpoch)
                 {
-                    // 本段阻断已在开面落地前结束（快路径进房：Begin→End 快于异步入队的开面）：
-                    // - 新段已在场且尚无认领面 → 本面转给当前段（同一表单实例——收养，不留孤儿）；
-                    // - 无新段且无认领面 → 落地即收（不留永久阻断）；
-                    // - 已有认领面 → 不动（可能就是同一实例，抢收会误关活面）。
+                    // 本段阻断已在开面落地前结束（快路径进房：Begin→End 快于异步入队的开面）： - 新段已在场且尚无认领面 → 本面转给当前段（同一表单实例——收养，不留孤儿）； - 无新段且无认领面 → 落地即收（不留永久阻断）； - 已有认领面 → 不动（可能就是同一实例。）。
                     if (_loadingDepth > 0 && _loadingForm == null)
                     {
                         _loadingForm = form;
@@ -145,7 +122,7 @@ namespace LiteFramework.UI
             catch (OperationCanceledException) { /* 遮罩打开被取消（Shutdown/Close）——静默 */ }
             catch (Exception ex)
             {
-                // 反馈面失败不该吞掉被门控操作——只落日志（§6.1"请求失败的反馈可观察"）
+                // 反馈面失败不该吞掉被门控操作——只落日志（§6.1"请求失败的反馈可观察"）。
                 Log.Error($"加载遮罩打开失败[{_loadingFormId}]:{ex.Message}", LogTag.UI);
             }
         }
@@ -168,8 +145,6 @@ namespace LiteFramework.UI
 
         /// <summary>
         /// 推送加载状态（<see cref="LoadingScope.Report"/>——主线程推送式，服务不建每帧泵）。
-        /// 语义（《通用加载页设计》§3）：嵌套期各作用域写同一面**后写胜出**；开面前调用落缓存
-        /// （首写不丢——开面完成时写全量）；文案 null/空回落"加载中…"，progress01 null = 不定态。
         /// </summary>
         public void ReportLoading(string message, float? progress01)
         {
@@ -219,7 +194,7 @@ namespace LiteFramework.UI
             catch (Exception ex) { Log.Error($"加载遮罩关闭失败:{ex.Message}", LogTag.UI); }
         }
 
-        // ---- 错误/重试 ----
+        // ---- 错误/重试 ----。
 
         /// <summary>错误弹窗表单 id（装配面读——模态登记等消费单源取值，不另写数字）。</summary>
         public int ErrorFormId => _errorFormId;
@@ -237,8 +212,6 @@ namespace LiteFramework.UI
 
         /// <summary>
         /// 错误弹窗（统一失败反馈）：可重试 = Ok("重试")/Cancel("退出") 双按钮；否则单按钮确认。
-        /// 返回 true = 用户选择重试。同 <paramref name="mergeKey"/> 的重复错误弹窗由
-        /// <see cref="DialogService"/> 自动合并（§4.3"重复断线/错误弹窗按键合并"）。
         /// </summary>
         public UniTask<bool> ShowErrorAsync(string title, string message, bool retryable,
             string mergeKey = null, CancellationToken ct = default)
@@ -252,9 +225,7 @@ namespace LiteFramework.UI
         }
 
         /// <summary>
-        /// 确认弹窗（双按钮：Ok＝确认 / Cancel＝取消；被外部关闭＝false）：经 <see cref="DialogService"/>
-        /// 落地（互斥组 "confirm"、同 <paramref name="mergeKey"/> 在途合并——重复请求共享同一结果任务）。
-        /// 按钮文案可传 null＝保持 prefab 原文案。**异步结果**：true＝用户确认。
+        /// 确认弹窗（双按钮：Ok＝确认 / Cancel＝取消；被外部关闭＝false）：经 <see cref="DialogService"/> 落地（互斥组 "confirm"。
         /// </summary>
         public UniTask<bool> ConfirmAsync(string title, string message,
             string okText = null, string cancelText = null, string mergeKey = null, CancellationToken ct = default)
@@ -265,7 +236,7 @@ namespace LiteFramework.UI
             return _dialogs.ShowAsync(request, ct).ContinueWith(r => r == DialogResult.Ok);
         }
 
-        // ---- Toast ----
+        // ---- Toast ----。
 
         /// <summary>非阻断短提示（**多条并存**：新提示不替换旧提示，各自计时独立消失）。</summary>
         public void ShowToast(string message, float seconds = DefaultToastSeconds)

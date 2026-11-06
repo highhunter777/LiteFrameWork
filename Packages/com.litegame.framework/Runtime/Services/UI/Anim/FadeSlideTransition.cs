@@ -10,11 +10,6 @@ namespace LiteFramework.UI
 
     /// <summary>
     /// 默认转场：淡入淡出 + 轻位移（灰盒版，动效方案附 A.2 形态）。
-    /// UI 模块扩展（CanvasGroup.DOFade / DOAnchorPos 系）经 DOTween.Modules asmdef 接入。
-    /// 输入锁/恢复由壳统一管（interactable——见 TransitionStageOps/Runner），策略不碰
-    /// blocksRaycasts（遮挡下层射线与"本页可交互"职责分离，§6.2）；
-    /// ct 取消时**先 Complete() 跳终值再 Kill(false) 清理**即复位（§6.3 复位契约）——
-    /// 注意不是 <c>Kill(true)</c>：本仓 DOTween 该调用不复位（详见 <see cref="ITransitionStrategy"/> 注释）。
     /// </summary>
     public sealed class FadeSlideTransition : ITransitionStrategy
     {
@@ -46,8 +41,6 @@ namespace LiteFramework.UI
         {
             var seq = DOTween.Sequence();
             // 生产装配绑定 UIClock：Manual 轨由 DotweenUIClockDriver 派发（时停不停/暂停即停）。
-            // 未绑定且处于 PlayMode（裸建 UIService 的夹具）时回落引擎自动更新——否则 Manual 轨无人泵；
-            // EditMode 夹具仍走 Manual（由用例显式泵 DOTween.ManualUpdate）。
             bool manual = UIAnimationClock.IsBound || !Application.isPlaying;
             seq.SetUpdate(manual ? UpdateType.Manual : UpdateType.Normal, true);
             seq.SetLink(form.Root, LinkBehaviour.KillOnDisable);            // 池化回收/隐藏即杀，防泄漏
@@ -55,17 +48,7 @@ namespace LiteFramework.UI
         }
 
         /// <summary>
-        /// 收尾契约（§6.3 复位 + 终态分类）：
-        ///
-        /// ① **<c>Kill(true)</c> 不复位**：本仓 DOTween 上 <c>Kill(true)</c> 既不跳终值也不派发回调
-        ///    （裸 Tweener 与 Sequence 均如此）。复位为 <c>Complete()</c> 跳终值 → 再 <c>Kill(false)</c> 清理。
-        /// ② **<c>OnKill</c> 不是完成信号**：<c>OnComplete</c>/<c>OnKill</c> 都直接 <c>TrySetResult</c>
-        ///    会让"被 KillOnDisable 杀掉"也报成功。现为 <c>OnComplete</c> 记 Completed、<c>OnKill</c>
-        ///    只兜底完成 TCS（并记 Cancelled），迟到回调不覆盖已写终态。
-        /// ③ 终态经 <see cref="MotionPlayback"/> 写：调用方可区分"播完"与"被杀"。
-        ///
-        /// 取消路径顺序：先写终态（Cancelled）→ 再复位（Complete + Kill）——避免复位触发的回调
-        /// 覆盖已定终态。取消注册在收尾时释放，不留悬挂注册。
+        /// 收尾契约（§6.3 复位 + 终态分类）： ① **<c>Kill(true)</c> 不复位**：本仓 DOTween 上 <c>Kill(true)</c> 既不跳终值也不派发回调 （裸 Tweener 与 Sequ。
         /// </summary>
         private static UniTask ToTask(Sequence seq, MotionPlayback playback)
         {
@@ -79,7 +62,7 @@ namespace LiteFramework.UI
             }
 
             seq.OnComplete(() => Settle(MotionOutcome.Completed));
-            // OnKill 兜底：只保证"任务不悬"（正常完成时 autoKill 也会走这里，但 Settle 幂等不会覆盖）
+            // OnKill 兜底：只保证"任务不悬"（正常完成时 autoKill 也会走这里，但 Settle 幂等不会覆盖）。
             seq.OnKill(() => Settle(MotionOutcome.Cancelled));
 
             if (playback != null && playback.Token.CanBeCanceled)

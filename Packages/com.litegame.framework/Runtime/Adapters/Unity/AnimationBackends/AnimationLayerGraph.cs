@@ -5,35 +5,11 @@ using UnityEngine.Playables;
 namespace LiteFramework.Animation
 {
     /// <summary>
-    /// 分层混合图（《动画模块专项设计》§7"PlayableGraph 采用 Manual 更新"、§12"节点数有界"）：
-    /// **图拓扑、层序常量、连/断线与层权重的唯一持有者**——后端本体只按通道角色调用它，不直接摸 PlayableGraph。
-    ///
-    /// **构造模式取界（均有界，反复打断不增长）**：分层＝6 输入（三通道各一对"当前+尾部"）；
-    /// 不分层＝2 输入（仅基础通道的当前+尾部——交叉淡化是单通道内新旧交替，不属于分层）。
-    /// **图拓扑（分层 6 输入）**：
-    /// <code>
-    /// _output(source = _mixer)
-    /// _mixer = AnimationLayerMixerPlayable.Create(graph, InputCount)
-    ///   [0] base       当前   weight 1（基础层；初值 = 控制器默认姿态）
-    ///   [1] base       尾部   weight 1→0   （旧片段在**上层**淡出——交叉淡化= 旧覆盖新再让位）
-    ///   [2] override   尾部   weight 1（旧片段**在下层**保持）        ┐ 不分层模式不建
-    ///   [3] override   当前   weight 0→1   （新片段淡入；无掩码 → 全量覆盖）│ （输入数止于 [1]）
-    ///   [4] overlay    尾部   weight 1     + 叠加层 LayerMask          │
-    ///   [5] overlay    当前   weight 0→1   + 叠加层 LayerMask          ┘
-    /// </code>
-    /// 基础层的旧片段必须在上层淡出（层 0 的权重被混合器忽略，放下层等于不可见）；
-    /// 上层通道反之——新片段在下层之上淡入，旧片段在下层以权重 1 保持，淡化完成即销毁 →
-    /// 每通道**恰好一个当前 + 一个尾部**，节点数回基线（§12"反复打断后节点数稳定"）。
-    ///
-    /// **层 0 的权重必须显式置 1**：Unity 2022.3 实测——多层混合器上"层 0 权重恒 1、不可改"并不成立
-    /// （不设时 <c>GetInputWeight(0)</c> 读回 0，基础层整体不输出，表现为"通道在播、时间在走，
-    /// 角色姿态纹丝不动"）；未连接的其余层不需要占位。
-    /// **开局默认姿态**：控制器 playable 占基础层（首帧不露 T-pose），第一次基础层播放时让位给片段
-    /// （playable 保留不销毁——节点数恒定，仅不再被采样）。
+    /// 分层混合图（《动画模块专项设计》§7"PlayableGraph 采用 Manual 更新"、§12"节点数有界"）： **图拓扑、层序常量、连/断线与层权重的唯一持有者**——后端本体只按通道角色调用它。
     /// </summary>
     internal sealed class AnimationLayerGraph
     {
-        // ---- 图拓扑层序常量（层序即混合序；不分层模式只建前 2 层）----
+        // ---- 图拓扑层序常量（层序即混合序；不分层模式只建前 2 层）----。
         public const int BaseCurrent = 0;
         public const int BaseTail = 1;
         public const int OverrideTail = 2;

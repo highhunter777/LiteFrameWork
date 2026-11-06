@@ -2,12 +2,7 @@
 namespace LiteFramework
 {
     /// <summary>
-    /// 只读 JSON 节点（Core 端口，零第三方）。**严格类别读取**：取值方法只在类别匹配时成功——
-    /// 数字不隐式转字符串、字符串不隐式转数字。网络契约的"形状不符即判非法响应"依赖这条语义
-    /// （宽松反序列化会把 <c>"5"</c> 读成 5、把缺失字段读成默认值，等于静默放行协议漂移）。
-    ///
-    /// 实现住第三方适配层（<c>Adapters/Newtonsoft/NewtonsoftJsonCodec.cs</c>）；
-    /// 业务代码只认本接口与 <see cref="IJsonCodec"/>。
+    /// 只读 JSON 节点（Core 端口，零第三方）。
     /// </summary>
     public interface IJsonNode
     {

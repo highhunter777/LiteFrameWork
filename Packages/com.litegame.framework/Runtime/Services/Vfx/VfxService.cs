@@ -9,14 +9,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// VFX 服务实现（《VFX服务实施指导》§2）：加载 / 池化 / 挂点跟随 / 预算降级 / 到期回收 / 关闭释放面。
-    ///
-    /// **三条边界**（《动作与特效设计》§2.3）：① UI 动效不并入（走 UIFx+DOTween）
-    /// ② 音效不并入（服务不调用其他服务，编排方分别调）③ 防重播（`silenceUntilFrame`）住 View，不在本服务内。
-    ///
-    /// 加载口 <see cref="VfxAssetLoader"/> 由装配点注入（PrefabLeaseCache——租约通道），
-    /// 本程序集因此不依赖 LiteGame/YooAsset；**prefab 租约归装配层持有与释放**（本服务只缓存引用）。
-    /// 到期回收**不依赖粒子回调**——按世界时钟推算，`Tick` 扫描；宿主关闭走 <see cref="Shutdown"/>
-    /// （真取消在途 + 回收活体 + 排空池）。
     /// </summary>
     public sealed class VfxService : IVfxService, ITickable
     {
@@ -78,7 +70,7 @@ namespace LiteFramework
             else
             {
                 _worldRoot = new GameObject("[VfxWorld]").transform;
-                // DontDestroyOnLoad 仅 Play mode 合法（与 UIService/AudioService/GameObjectPool 同口径：编辑态跳过）
+                // DontDestroyOnLoad 仅 Play mode 合法（与 UIService/AudioService/GameObjectPool 同口径：编辑态跳过）。
                 if (Application.isPlaying)
                     UnityEngine.Object.DontDestroyOnLoad(_worldRoot.gameObject);
             }
@@ -86,12 +78,10 @@ namespace LiteFramework
             Log.Info($"VFX 服务就绪（同屏上限 {_budget.MaxActive} / {_budget.Overflow}）", Tag);
         }
 
-        // ---- IVfxService ----
+        // ---- IVfxService ----。
 
         /// <summary>
-        /// 世界位播放（"打哪留哪"）。**位置必须在实例登记前落定**：<see cref="Play"/> 命中
-        /// prefab 缓存时**同步** Materialize，事后 <c>SetPosition</c> 补写只会躺进表里没人再读
-        /// （特效留在池内原位＝世界原点）——故走带位的内部重载，不做事后补写。
+        /// 世界位播放（"打哪留哪"）。
         /// </summary>
         public VfxHandle PlayAt(string name, Vector3 position, float scale = 1f, object owner = null)
             => PlayInternal(name, attach: null, follow: false, scale, position, hasPosition: true, owner);
@@ -198,15 +188,10 @@ namespace LiteFramework
             _owned.Clear();
         }
 
-        // ---- 关闭释放面（宿主关闭）----
+        // ---- 关闭释放面（宿主关闭）----。
 
         /// <summary>
-        /// 关闭释放面（对齐 EntityService/AudioService 的宿主关闭语义，§5 接缝 1"谁创建、谁取消、谁释放"）：
-        /// 先行取消在途加载（<see cref="LifetimeToken"/>——真取消，不靠等待丢弃）→ 回收全部活体
-        /// （与正常 Stop 同一路径，不留第二套语义）→ 清挂点表 → 排空池（销毁自建池根）→
-        /// 清 prefab 缓存引用（**租约释放归装配层** `PrefabLeaseCache.ReleaseAll`——本服务只持引用）→
-        /// 销毁自建世界容器。幂等；关闭后 <see cref="Play"/> 抛 <see cref="ObjectDisposedException"/>
-        /// （姊妹服务统一契约：EntityService/SceneService/AudioService 同为"关闭即抛"）。
+        /// 关闭释放面（对齐 EntityService/AudioService 的宿主关闭语义，§5 接缝 1"谁创建、谁取消、谁释放"）： 先行取消在途加载（<see cref="LifetimeToken"/>——真取消。
         /// </summary>
         public void Shutdown()
         {
@@ -244,7 +229,7 @@ namespace LiteFramework
             UnityEngine.Object.Destroy(go);
         }
 
-        // ---- ITickable ----
+        // ---- ITickable ----。
 
         /// <summary>到期扫描（不依赖粒子回调）：到点即归还池。</summary>
         public void Tick(float realDelta)
@@ -275,7 +260,7 @@ namespace LiteFramework
             into["迟弃"] = _discardedLateLoads.ToString();
         }
 
-        // ---- 内部 ----
+        // ---- 内部 ----。
 
         private async UniTask LoadAndMaterializeAsync(VfxInstance inst)
         {
@@ -288,7 +273,7 @@ namespace LiteFramework
 
                 if (inst.Cancelled || IsShutdown)
                 {
-                    // 宿主已回收 / 服务已关闭 → 迟到结果就地丢弃：不写缓存、不实例化（不复活已回收对象）
+                    // 宿主已回收 / 服务已关闭 → 迟到结果就地丢弃：不写缓存、不实例化（不复活已回收对象）。
                     _discardedLateLoads++;
                     return;
                 }
@@ -305,7 +290,7 @@ namespace LiteFramework
             }
             catch (OperationCanceledException)
             {
-                // 取消 ≠ 错误（§7.2 口径）：宿主关闭路径取消在途加载——静默收口，不进错误日志
+                // 取消 ≠ 错误（§7.2 口径）：宿主关闭路径取消在途加载——静默收口，不进错误日志。
                 Discard(inst);
             }
             catch (Exception ex)
@@ -329,10 +314,7 @@ namespace LiteFramework
                 return UnityEngine.Object.Instantiate(prefab);
             }, parent);
 
-            // 落位（池复用不残留）：
-            // - 跟随：挂点**本地归零**（束/火光贴挂点出射——池取回件可能带着上一轮的局部位/转）；
-            // - 非跟随 + 显式世界位（PlayAt）：写世界坐标（弹着"打哪留哪"）；
-            // - 非跟随 + 无位：不写位置（落点由调用方/父级决定，本服务不猜）。
+            // 落位（池复用不残留）： - 跟随：挂点**本地归零**（束/火光贴挂点出射——池取回件可能带着上一轮的局部位/转）； - 非跟随 + 显式世界位（PlayAt）：写世界坐标（弹着"打哪留哪"）； - 非跟随 + 无位：不写位置（落点由调用方/父级决定，本服务不猜）。
             if (inst.Follow && inst.Attach != null)
             {
                 go.transform.localPosition = Vector3.zero;

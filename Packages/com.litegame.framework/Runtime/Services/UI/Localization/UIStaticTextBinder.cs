@@ -6,10 +6,6 @@ namespace LiteFramework.UI
 {
     /// <summary>
     /// 页面静态文案绑定：扫描页面根下的 <see cref="LTextKeyRef"/>，在页面打开与语言变更时按 key 写入。
-    /// 关闭时由 <see cref="UIForm"/> 退订——池化复用不得继续被旧语言事件刷新。
-    ///
-    /// 文本目标解析与受控 API 同序：TMP 优先、UGUI Text 回退。缺目标/空 key 只告警一次，
-    /// 不阻断同页其他节点（内容缺失走 Log.Warning + 保持作者文本的降级口径）。
     /// </summary>
     public sealed class UIStaticTextBinder
     {

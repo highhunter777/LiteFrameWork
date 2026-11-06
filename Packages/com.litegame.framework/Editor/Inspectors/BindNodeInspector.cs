@@ -25,14 +25,14 @@ namespace LiteCodeGen.EditorTools
             var customTypeProp = serializedObject.FindProperty("CustomTypeName");
             var bindNameProp = serializedObject.FindProperty("BindName");
 
-            // 成员名提示
+            // 成员名提示。
             EditorGUILayout.HelpBox("该节点将生成为成员: public <类型> " + bind.gameObject.name + ";", MessageType.None);
 
             EditorGUILayout.PropertyField(commentProp, new GUIContent("备注(可选,写入代码注释)"));
             EditorGUILayout.PropertyField(bindNameProp, new GUIContent("索引名(受控 API 用,留空不进运行期索引)"));
             EditorGUILayout.Space(4);
 
-            // ------- 绑定类型选择 -------
+            // ------- 绑定类型选择 -------。
             var components = new List<Component>();
             bind.GetComponents(components);
 

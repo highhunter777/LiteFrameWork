@@ -3,12 +3,7 @@ using System.Collections.Generic;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 界面实例注册表（从 <see cref="UIService"/> 外提的"缓存实例 + 租约 + LRU 记账"域）：
-    /// id → 实例（含池中）／实例租约（持到实例真正销毁）／最近使用序号（LRU 判据）。
-    ///
-    /// **所有权**：<see cref="Register"/> 即租约所有权移交——登记后由本表持有，直到
-    /// <see cref="Detach"/>／<see cref="Unregister"/> 交回调用方释放（"谁登记、谁释放"单一出口）。
-    /// **不承担策略**：预算与 Resident/销毁策略的取舍在 <see cref="UIService"/>（本表只给候选集）。
+    /// 界面实例注册表（从 <see cref="UIService"/> 外提的"缓存实例 + 租约 + LRU 记账"域）： id → 实例（含池中）／实例租约（持到实例真正销毁）／最近使用序号（LRU 判据）。
     /// </summary>
     internal sealed class UIFormStore
     {

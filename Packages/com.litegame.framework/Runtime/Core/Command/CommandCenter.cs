@@ -7,14 +7,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 命令中心（《命令中心专项设计》§2/§3/§6）：类型化意图请求的注册-执行-结果链路。
-    /// 执行序：权限门（GmOnly 且非三宏环境 → GmBlocked 结果不抛）→ 处理器 Execute。
-    /// 无处理器 = 编程错误直接抛（GM 面板从注册清单发现命令，不会踩到）；
-    /// 处理器异常 = 隔离为 Failed 结果（记日志 + 审计留痕，不炸调用方）。
-    /// 命令类型唯一处理器（重复注册抛）；命令对象生命周期归调用方（中心不持有引用）。
-    ///
-    /// gmEnabled（构造注入——Core 不含宏判定的可测接缝）：三宏之内传 true、release 由装配方按宏传入 false。
-    /// 审计环 32 条无条件记录（release 排障同样需要"刚才发了什么命令"）；读取面 Debug 三宏（§6）。
-    /// 主线程 only（框架约定）；零引擎依赖（Core/Command，与 Pool/Event 同层）。
     /// </summary>
     public sealed class CommandCenter : ICommandCenter, IModuleStats, ITickable
     {
@@ -34,7 +26,7 @@ namespace LiteFramework
         private long _gmBlocked;
         private long _failed;
 
-        // ---- 批3 高级执行形态（§4）----
+        // ---- 批3 高级执行形态（§4）----。
 
         private readonly Queue<PendingCommand> _queue = new Queue<PendingCommand>(16);   // 排队/延迟（Tick 驱动）
         private readonly Dictionary<Type, Func<object, CommandResult>> _adapters = new Dictionary<Type, Func<object, CommandResult>>(16);   // 每类型一次闭包（恢复强类型）
@@ -49,7 +41,7 @@ namespace LiteFramework
         public bool CanRedo => _redo.Count > 0;
 
 
-        // 审计环：32 条预分配（无分配记录——字符串 Detail 为引用赋值，非分配）
+        // 审计环：32 条预分配（无分配记录——字符串 Detail 为引用赋值，非分配）。
         private readonly CommandAuditEntry[] _audit = new CommandAuditEntry[AuditCapacity];
         private int _auditNext;             // 环写指针
         private long _auditSeq;
@@ -104,7 +96,7 @@ namespace LiteFramework
                 throw new InvalidOperationException($"命令 {type.Name} 未注册同步处理器（同步/异步互斥——SendAsync 走异步路径）");
 
             _sent++;
-            // 权限门（§3）：GM 能力在三宏之外物理隔离——运行态拒绝，不执行不抛
+            // 权限门（§3）：GM 能力在三宏之外物理隔离——运行态拒绝，不执行不抛。
             if (reg.Options.GmOnly && !_gmEnabled)
             {
                 _gmBlocked++;
@@ -129,7 +121,7 @@ namespace LiteFramework
             if (!result.Ok)
             {
                 _failed++;
-                // 处理器未给 Reason 时归一为 HandlerRejected（审计归因面完整）
+                // 处理器未给 Reason 时归一为 HandlerRejected（审计归因面完整）。
                 if (result.Reason == CommandReject.None)
                     result = CommandResult.Fail(CommandReject.HandlerRejected, result.Detail);
                 RecordAudit(type, false, result.Reason, result.Detail);
@@ -138,7 +130,7 @@ namespace LiteFramework
 
             if (reg.Undoable)
             {
-                // 撤销历史（§4 opt-in）：仅同步 Send 成功进栈；入栈即移交撤销所有权；重做线失效（标准撤销语义）
+                // 撤销历史（§4 opt-in）：仅同步 Send 成功进栈；入栈即移交撤销所有权；重做线失效（标准撤销语义）。
                 _redo.Clear();
                 _undo.Add(new UndoEntry(type, command));
                 while (_undo.Count > 64) _undo.RemoveAt(0);
@@ -147,7 +139,7 @@ namespace LiteFramework
             return result;
         }
 
-        // ---- 批3 高级执行形态方法（§4）----
+        // ---- 批3 高级执行形态方法（§4）----。
 
         /// <summary>排队执行（§4 fire-and-forget）：入队，Tick 驱动到期按入队序执行——无返回结果，
         /// 失败走审计与日志；命令实现 IReference 则执行完由中心回收（入队即移交）。
@@ -305,7 +297,7 @@ namespace LiteFramework
             _auditNext = (_auditNext + 1) % AuditCapacity;
         }
 
-        // ---- 读取面（§6：低频轮询；HUD/GM 面板消费）----
+        // ---- 读取面（§6：低频轮询；HUD/GM 面板消费）----。
 
         /// <summary>注册清单发现面：GM 面板据此列出可用命令（GmOnly/描述/注册时序），不硬编码命令清单。</summary>
         public IReadOnlyList<CommandInfo> GetRegisteredInfos()

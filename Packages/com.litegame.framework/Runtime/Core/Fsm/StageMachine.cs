@@ -6,26 +6,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 阶段状态机（**基础机**）：状态表 + payload + 两段式迁移 + 帧末应用。
-    /// 只负责"状态怎么切"——**不含抢占/恢复/优先级**（M3-7 起抢占型子类已删除——§4.5 无消费者机制）；
-    /// 层级 / 历史 / 冒泡用独立的 <see cref="HierarchicalStageMachine{TId,TReq}"/>。
-    ///
-    /// **迁移语义（守卫/准入/挂起/自动边/看门狗）单源在 <see cref="StageMachineCore{TId,TReq}"/>**
-    /// ——与层级机共享同一内核，改语义只动内核一处；本类只持有平面表示法：单活动态 + 单级进出 + 单 sink。
-    ///
-    /// 迁移语义（7 条）：
-    /// ① `Start` 前 `Tick` 静默；`Start` 前 `Request` 抛；
-    /// ② `Request` 只入队（两段式）；`Tick` = `OnUpdate` → 有挂起则 `Advance`（帧末应用、一帧最多一变）；
-    /// ③ 同帧多次 `Request` = last-wins（payload 同步覆盖）；
-    /// ④ `OnEnter` 内 `Request` → 写 pending，下次 `Advance` 生效（不递归）；
-    /// ⑤ 重入（请求 = 当前）→ 抛；⑥ `OnLeave` 期间 `Request` → 抛；⑦ 未注册 id → 抛。
-    /// 另：`StageFrames` 每次 `Tick` +1（不是 dt 累加）、迁移后归零（帧窗口判据）。
-    ///
-    /// **异常策略不在内核**：阶段回调不捕获异常，由驱动层兜。
-    /// 给子类的扩展点：<see cref="StageMachineCore{TId,TReq}.CanAccept"/>（准入判定）、
-    /// <see cref="StageMachineCore{TId,TReq}.OnStagePreempted"/>（离场前通知）、
-    /// <see cref="StageMachineCore{TId,TReq}.RequestCore"/>（带优先级的请求内核）、
-    /// <see cref="Snapshot"/>（统计）、<see cref="StageMachineCore{TId,TReq}.GetStage"/>、
-    /// <see cref="StageMachineCore{TId,TReq}.InStageCallback"/>。
     /// </summary>
     public class StageMachine<TId, TReq> : StageMachineCore<TId, TReq>, ITickable, IModuleStats, IStageHost<TId, TReq>
         where TId : struct
@@ -97,7 +77,7 @@ namespace LiteFramework
             _audit.RecordEnter(nextId);
         }
 
-        // ---- 快照与恢复（§3.4）----
+        // ---- 快照与恢复（§3.4）----。
 
         /// <summary>结构快照：当前态 + 恢复栈（子类经 <see cref="CaptureCore"/> 补充）+ 驻留/计数；未启动抛。捕获时一次性分配。</summary>
         public FsmCapture<TId> Capture()
@@ -119,10 +99,7 @@ namespace LiteFramework
         protected virtual void CaptureCore(FsmCapture<TId> into) { }
 
         /// <summary>
-        /// 从快照恢复（《状态机专项设计》§3.4）。<see cref="FsmRestoreMode.Hooks"/>（默认）复用迁移事务——
-        /// 目标与当前不同则旧 `OnLeave` → 新 `OnEnter`(default)；<see cref="FsmRestoreMode.Silent"/> 纯结构置换零回调。
-        /// 两模式都**清挂起请求**（结构性裁决，挂起让位）；浮点按位置回。
-        /// 约束：Start 前 / 阶段回调内 / `OnLeave` 窗口内 → 抛；capture 内 id 未注册（结构已变）→ 抛。
+        /// 从快照恢复（《状态机专项设计》§3.4）。
         /// </summary>
         public void Restore(in FsmCapture<TId> capture, FsmRestoreMode mode = FsmRestoreMode.Hooks)
         {
@@ -170,9 +147,7 @@ namespace LiteFramework
         protected virtual void RestoreCore(FsmCapture<TId> from) { }
 
         /// <summary>
-        /// 停止并回到**未启动态**（可再次 `Start`）：对当前阶段调 `OnLeave`（与 `Start` 的 `OnEnter` 对称，
-        /// 让阶段收尾），然后清挂起 / 计时 / 计数（回到"刚构造"状态）。
-        /// `OnLeave` 抛异常时**机器仍保证已复位**（异常继续向外传播，内核不捕获）。
+        /// 停止并回到**未启动态**（可再次 `Start`）：对当前阶段调 `OnLeave`（与 `Start` 的 `OnEnter` 对称， 让阶段收尾），然后清挂起 / 计时 / 计数（回到"刚构造"状态）。
         /// </summary>
         public virtual void Reset()
         {
@@ -211,10 +186,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 事件处理：《状态机专项设计》§3.1 集成序——**先评估迁移边、后问阶段 sink**（公共入口见内核）；
-        /// 未命中则问当前阶段 sink——平面机只有一个活动阶段，故等价于"问它一次"；
-        /// 层级机的冒泡在 <see cref="HierarchicalStageMachine{TId,TReq}.Raise{TEvt}"/>。
-        /// 未注册事件无边零短路。
+        /// 事件处理：《状态机专项设计》§3.1 集成序——**先评估迁移边、后问阶段 sink**（公共入口见内核）； 未命中则问当前阶段 sink——平面机只有一个活动阶段，故等价于"问它一次"。
         /// </summary>
         public bool Raise<TEvt>(in TEvt e)
         {
@@ -222,7 +194,7 @@ namespace LiteFramework
             return _current is IEventSink<TEvt> sink && sink.TryHandle(in e);
         }
 
-        // ---- 钩子包装：执行期间置"_inStageCallback"（= 阶段自身推进；子类抢占规则应放行）----
+        // ---- 钩子包装：执行期间置"_inStageCallback"（= 阶段自身推进；子类抢占规则应放行）----。
 
         private void EnterStage(IStage<TId, TReq> stage, in TReq req)
         {
@@ -238,7 +210,7 @@ namespace LiteFramework
             finally { _inStageCallback = false; }
         }
 
-        // ---- IModuleStats（HUD：注册即发现；禁每帧分配）----
+        // ---- IModuleStats（HUD：注册即发现；禁每帧分配）----。
 
         /// <summary>统计快照（子类可 override 追加自己的项——先调 base 再 Add）。
         /// 诊断计数段单源在内核（§4；既有键不动，HUD 兼容）。</summary>

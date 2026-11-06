@@ -2,8 +2,6 @@ namespace LiteFramework.UI
 {
     /// <summary>
     /// 转场阶段（《UI扩展能力设计》§1.5.2）：平铺三维足够——Replace 的"两组并发"在 In 阶段内部编排。
-    /// **与 <see cref="UIFormState"/> 严格分离**（§1.5.1 硬纪律）：前者是表现阶段，后者是逻辑生命周期；
-    /// 把转场态塞进七态机会污染池化/遮盖语义。
     /// </summary>
     public enum TransitionId
     {

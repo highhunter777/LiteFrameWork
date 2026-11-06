@@ -5,12 +5,7 @@ using LiteFramework;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 缓存预算淘汰（从 <see cref="UIService"/> 外提的"缓存淘汰策略"域，M3-6 §4.5）：
-    /// 池中实例数超过预算时按 LRU 升序淘汰（Resident 不参与；只淘汰未打开实例），
-    /// 淘汰 = 走 <see cref="UIService.Destroy"/> 同一完整销毁路径（租约释放）。
-    ///
-    /// **边界**：只做"选谁淘汰 + 触发销毁"；登记/租约/使用序号由 <see cref="UIFormStore"/> 记账，
-    /// 预算值由服务持有（<see cref="UIService.CacheBudget"/>）。
+    /// 缓存预算淘汰（从 <see cref="UIService"/> 外提的"缓存淘汰策略"域，M3-6 §4.5）： 池中实例数超过预算时按 LRU 升序淘汰（Resident 不参与；只淘汰未打开实例）。
     /// </summary>
     internal sealed class UIFormCacheEvictor
     {
@@ -33,7 +28,7 @@ namespace LiteFramework.UI
                 if (form.State == UIFormState.Recycled) cached++;
             if (cached <= budget) return;
 
-            // 候选 = 池中 LRU 策略实例（Resident 不淘汰），按最近使用序升序（最旧先淘汰）
+            // 候选 = 池中 LRU 策略实例（Resident 不淘汰），按最近使用序升序（最旧先淘汰）。
             _candidates.Clear();
             _store.CollectEvictionCandidates(_candidates);
             _candidates.Sort((a, b) => a.used.CompareTo(b.used));

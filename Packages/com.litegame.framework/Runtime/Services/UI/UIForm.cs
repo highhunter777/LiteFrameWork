@@ -8,11 +8,6 @@ namespace LiteFramework.UI
 {
     /// <summary>
     /// 界面运行时实例：状态机 + 逻辑持有 + 画布就位。
-    /// 状态迁移全部走本类守卫方法（非法迁移当场抛——fail-fast 精神 §3.4）；
-    /// 逻辑回调统一经 SafeCall（单个回调抛 = 该界面降级，不波及其他界面——错误语义同事件桥）。
-    /// 画布契约：prefab 根必须自带 Canvas（overrideSorting）+ CanvasGroup；sortingOrder 由层级组分配。
-    /// 首次与复用共用 <see cref="PrepareForShow"/> 复位；
-    /// Covered/Paused 属"仍打开"，同样可关闭；首次 OnInit/OnShow 失败对外报失败以便壳回滚。
     /// </summary>
     public sealed class UIForm
     {
@@ -27,22 +22,13 @@ namespace LiteFramework.UI
         /// <summary>位置基线（实例化时刻的 anchoredPosition，含 prefab 作者意图）——复用/重开复位用。</summary>
         private readonly Vector2 _baselinePos;
 
-        // ---- 展示作用域（§4.4——"每次打开到关闭"的 CTS 与代次）----
+        // ---- 展示作用域（§4.4——"每次打开到关闭"的 CTS 与代次）----。
 
         private int _displayGeneration;
 
-        /// <summary>本次展示的 <see cref="ClientScope"/>（每次打开重建、关闭 Dispose）。
-        ///
-        /// **为什么是 ClientScope 而不是裸 CTS**（《客户端总设计》§6.2 UI 行"每次展示另有子作用域"）：
-        /// 通用壳的展示期资源不止取消令牌一件——订阅袋、展示期任务都要**同一时点、逆序**收尾。
-        /// 由作用域托管：登记什么就按 LIFO 收什么（§4 原则 4：所有长生命周期对象必须有唯一 Owner）。
-        ///
-        /// 所有权仍在<b>实例</b>（§6.2"实例创建至销毁；每次展示另有子作用域"）：本作用域是
-        /// <see cref="UIForm"/> 的内部展示状态，**不是**池化实例的租约——租约覆盖缓存实例寿命，
-        /// 由 <c>UIService</c> 持到真正销毁。
-        ///
-        /// 不传父作用域：展示的存续由本实例的状态机决定（开→关），不由父级取消驱动——
-        /// 父级驱动的批量清理走 <c>UIService.CloseAllOpen</c>，逐界面正常关闭路径，两条路不混。</summary>
+        /// <summary>
+        /// 本次展示的 <see cref="ClientScope"/>（每次打开重建、关闭 Dispose）。
+        /// </summary>
         private ClientScope _displayScope;
 
         /// <summary>展示代次（每次打开递增）：异步图片/网络结果/动画回调**写入前验证**
@@ -63,9 +49,7 @@ namespace LiteFramework.UI
             Id = info.Id;
             Root = root ? root : throw new ArgumentNullException(nameof(root));
 
-            // 缺失即 fail-fast（§7 视觉单一来源 / 制作规范 §2"页面根具有 Canvas、CanvasGroup"）：
-            // 运行时补的 Canvas 会绕过统一根缩放与排序配置，缺陷被藏到表现层才发现。
-            // 装配错误必须在装配期当场暴露。
+            // 缺失即 fail-fast（§7 视觉单一来源 / 制作规范 §2"页面根具有 Canvas、CanvasGroup"）： 运行时补的 Canvas 会绕过统一根缩放与排序配置，缺陷被藏到表现层才发现。
             Canvas = root.GetComponent<Canvas>()
                 ?? throw new InvalidOperationException(
                     $"表单[{info.Id}] prefab 缺少 Canvas——页面根必须自带（制作规范 §2；运行时不得补建，§7）");
@@ -77,12 +61,10 @@ namespace LiteFramework.UI
             _baselinePos = root.transform is RectTransform rt ? rt.anchoredPosition : Vector2.zero;
         }
 
-        // ---- 生命周期迁移（UIService 编排调用；守卫 + 逻辑回调定序）----
+        // ---- 生命周期迁移（UIService 编排调用；守卫 + 逻辑回调定序）----。
 
         /// <summary>
-        /// 显示前复位（§4.2，首次与复用共用）：激活对象、复位 alpha 与位置基线（默认离场表现会把
-        /// alpha 收成 0，不复位则复用后"页在但看不见"）。
-        /// 输入态此处只回到基线；"转场锁 / 模态 / 暂停"的综合求解属 U1 的输入协调者。
+        /// 显示前复位（§4.2，首次与复用共用）：激活对象、复位 alpha 与位置基线（默认离场表现会把 alpha 收成 0，不复位则复用后"页在但看不见"）。
         /// </summary>
         internal void PrepareForShow()
         {
@@ -259,9 +241,7 @@ namespace LiteFramework.UI
             SafeCall.Invoke(() => Logic.OnHide(), $"UIForm[{Id}].OnHide");
             _staticText?.Unbind();                     // 关闭即退订：池化复用不得继续被语言事件刷新
 
-            // 展示作用域收尾（§4.4 / §6.2 UI 行）：一次 Dispose 取消本次打开的在途异步
-            // （图标/请求/延时任务级联取消）**并**逆序释放登记项（订阅袋等）——
-            // 顺序由作用域保证，不靠本方法手写。幂等，池化复用安全。
+            // 展示作用域收尾（§4.4 / §6.2 UI 行）：一次 Dispose 取消本次打开的在途异步 （图标/请求/延时任务级联取消）**并**逆序释放登记项（订阅袋等）—— 顺序由作用域保证，不靠本方法手写。
             _displayScope?.Dispose();
             _displayScope = null;                      // 置空以支持池化复用：下次显示时重建
 
@@ -272,14 +252,7 @@ namespace LiteFramework.UI
         }
 
         /// <summary>
-        /// 界面级订阅袋：订阅的事件随界面关闭自动清零（**登记进展示作用域**，随
-        /// <see cref="EnterClosing"/> 的作用域 Dispose 一并释放），池化复用安全。
-        /// 用法：<c>form.Subscriptions.Add(events.Subscribe&lt;XxxEvent&gt;(OnXxx));</c>
-        /// C# 侧界面逻辑订阅事件一律挂这里，不要裸订阅——否则关界面后通道仍持回调（泄漏 +
-        /// 复用后回调打进新界面）。Dispose 后误用会当场抛 ObjectDisposedException。
-        /// （Lua 侧界面逻辑不适用：走 <c>events.on</c> 并在界面 OnHide 里调用其返回的注销委托。）
-        /// **归还期护栏**：界面处于 Closing/Recycled 时取袋子 = 往已关闭界面塞订阅（必然泄漏，因为
-        /// 袋子不会再被 Dispose）→ Debug 三宏下当场抛，release 记错误。
+        /// 界面级订阅袋：订阅的事件随界面关闭自动清零（**登记进展示作用域**，随 <see cref="EnterClosing"/> 的作用域 Dispose 一并释放），池化复用安全。
         /// </summary>
         public SubscriptionBag Subscriptions
         {

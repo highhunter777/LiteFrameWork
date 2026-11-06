@@ -4,12 +4,7 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 发布描述（至少含 schemaVersion、releaseId、单调发布修订、
-    /// 目标平台/渠道、兼容维度、依赖、文件路径/长度/摘要、创建/到期策略、keyId/signature、
-    /// 激活策略与安全撤销信息）。
-    ///
-    /// **这是目标契约的类型落点**：字段齐备以便校验器逐条落实；填充由发布流水线承担。
-    /// **规则**（DSL 用中文分号在文档里，这里用换行加入可枚举字符串）：见 <see cref="ReleaseManifest.Validate"/>。
+    /// 发布描述（至少含 schemaVersion、releaseId、单调发布修订、 目标平台/渠道、兼容维度、依赖、文件路径/长度/摘要、创建/到期策略、keyId/signature、 激活策略与安全撤销信息）。
     /// </summary>
     public sealed class ReleaseManifest
     {

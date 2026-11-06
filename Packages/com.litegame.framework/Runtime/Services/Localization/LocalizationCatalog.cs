@@ -4,13 +4,7 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 本地化目录（目标文本链为 `Luban 表源 #ltext.xlsx → tbltext 生成物 → 装配层投射（LTextCatalog）→
-    /// LText 服务 → LTextLabel/页面模型`）。
-    ///
-    /// **单一来源**：一张 key → (locale → 文本) 的表，按 locale 索引。不可变构造后只读——
-    /// 语言切换只换查询的 locale，不重建目录（语言变更刷新本地化组件…不重跑 OnShow）。
-    ///
-    /// 纯数据 + 纯查询，零 Unity 依赖，L1 全覆盖。
+    /// 本地化目录（目标文本链为 `Luban 表源 #ltext.xlsx → tbltext 生成物 → 装配层投射（LTextCatalog）→ LText 服务 → LTextLabel/页面模型`）。
     /// </summary>
     public sealed class LocalizationCatalog
     {
@@ -62,8 +56,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 查询（**带回退信息**）。
-        /// <paramref name="usedFallback"/> = 目标 locale 无此 key，用了源语言；
-        /// <paramref name="missing"/> = 目标 locale 与源语言都没有（调用方据此走缺 key 策略）。
         /// </summary>
         public bool TryGet(string key, string locale, out string text, out bool usedFallback)
         {
@@ -103,9 +95,6 @@ namespace LiteFramework
 
     /// <summary>
     /// key 命名校验（key 命名 `UI.&lt;页面&gt;.&lt;语义&gt;` / `Common.&lt;语义&gt;`）。
-    ///
-    /// 校验而非"约定"：命名跑了会让本地化覆盖率统计与批量替换失效，
-    /// 且是发布期难以回溯的问题——在候选校验阶段就该拦住。
     /// </summary>
     public static class LTextKey
     {

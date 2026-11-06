@@ -5,9 +5,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 帧率上限档（显示设置）：**平台可选档 + 默认值 + 引擎目标值换算**单源。
-    /// 桌面按显示器常见刷新率给档，移动按"射击 60 帧"的既定口径给两档（与
-    /// <see cref="AppLifetime.MobileTargetFrameRate"/> 的历史口径一致——那个常量改为委托本类，避免两处默认值）。
-    /// 取值语义：<see cref="Unlimited"/> 表示不设上限（引擎目标值 -1）。
     /// </summary>
     public static class FrameRateOptions
     {

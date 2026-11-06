@@ -46,14 +46,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 候选脚本集合。**不可变**：构造后只读，激活前不被就地修改——
-    /// 这是"先构建和验证候选集合，失败保留完整旧版本，不发布半套内容"的前提。
-    ///
-    /// 与运行期 <c>LuaPreloader</c> 的区别：那个的清单来自"当前包内容"且字典可被重预载清空；
-    /// 本类持有的是**固定 Release 的文件清单**派生的脚本集合，带依赖闭包与摘要身份。
-    ///
-    /// 零 Unity/Lua 依赖——只做模块名、路径、依赖闭包的**静态**校验，L1 全覆盖。
-    /// **真实语法/执行/Bridge 能力检查需 Lua VM**（Unity 侧），不在本类范围。
+    /// 候选脚本集合。
     /// </summary>
     public sealed class CandidateScriptSet
     {
@@ -78,8 +71,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 从固定清单构建并校验（"检查依赖/语法/导出/Bridge 能力"里**可静态做**的部分）。
-        ///
-        /// 拒绝项：模块名/路径非法或重复、依赖不成环、**依赖必须在同批提供**（同步 require 必须完整预载）。
         /// </summary>
         public static ScriptSetVerdict TryBuild(IEnumerable<ScriptEntry> entries, out CandidateScriptSet set)
         {
@@ -111,7 +102,7 @@ namespace LiteFramework
 
             if (list.Count == 0) return ScriptSetVerdict.Reject("脚本集合为空");
 
-            // 依赖闭包：**每个依赖都必须同批提供**——缺一个就不能整体激活
+            // 依赖闭包：**每个依赖都必须同批提供**——缺一个就不能整体激活。
             foreach (ScriptEntry e in list)
             {
                 if (e.Requires == null) continue;
@@ -123,7 +114,7 @@ namespace LiteFramework
                 }
             }
 
-            // 环检测：require 环在运行期会形成加载死锁或初始化顺序不确定
+            // 环检测：require 环在运行期会形成加载死锁或初始化顺序不确定。
             if (TryFindCycle(byModule, out string cycle))
                 return ScriptSetVerdict.Reject("依赖成环：" + cycle);
 
@@ -171,7 +162,7 @@ namespace LiteFramework
             if (string.IsNullOrEmpty(module)) return ScriptSetVerdict.Reject("模块名为空");
             if (module.Length > 128) return ScriptSetVerdict.Reject($"模块名过长：{module.Length}");
 
-            // 点分标识符，禁止空段（"a..b"）、前导/尾随点、路径分隔符与 .. 穿越
+            // 点分标识符，禁止空段（"a..b"）、前导/尾随点、路径分隔符与 .. 穿越。
             if (module[0] == '.' || module[module.Length - 1] == '.')
                 return ScriptSetVerdict.Reject($"模块名首尾有点：{module}");
             if (module.IndexOf('/') >= 0 || module.IndexOf('\\') >= 0)

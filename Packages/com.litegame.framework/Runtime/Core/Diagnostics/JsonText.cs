@@ -5,8 +5,6 @@ namespace LiteFramework.Diagnostics
 {
     /// <summary>
     /// JSON 字符串转义单源（结构化日志 / 现场包共用）：控制字符走 \uXXXX，常用控制符走短转义。
-    /// 两个出口的差别只在"要不要外围引号"——<see cref="AppendEscaped"/> 写内容，
-    /// <see cref="AppendQuoted"/> 写带引号的完整 JSON 字符串。
     /// </summary>
     public static class JsonText
     {

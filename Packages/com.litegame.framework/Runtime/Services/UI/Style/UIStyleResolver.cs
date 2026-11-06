@@ -23,11 +23,7 @@ namespace LiteFramework.UI
     }
 
     /// <summary>
-    /// 令牌解析核心单源（《UI 系统总设计》§6.1「运行时通过 UIStyleResolver 解析，不读 JSON」）：
-    /// 从 <see cref="UIThemeAsset"/>（生成物 SO）读颜色/文字令牌；编辑器读面 <c>UITokenCatalog</c> 委托本类。
-    /// 纯类、实例传递（禁静态缓存——沿 P2-3a 冻结口径：编辑器每次操作装载一次后逐层下传）；
-    /// 颜色命中阈值（原 UIStyleTool.HitEpsilon）驻本类为单源，工具/规则/阈值面引用同一常量。
-    /// 口径与 P2-3a 的 UITokenCatalog 一致：重复 ID 后写覆盖、空 ID 跳过、未知 ID 不猜默认色。
+    /// 令牌解析核心单源（《UI 系统总设计》§6.1「运行时通过 UIStyleResolver 解析，不读 JSON」）： 从 <see cref="UIThemeAsset"/>（生成物 SO）读颜色/文字令牌。
     /// </summary>
     public sealed class UIStyleResolver
     {

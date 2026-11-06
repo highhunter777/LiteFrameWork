@@ -3,14 +3,7 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 表驱动阶段：**所有同构状态共享这一个实现**，行为全部读
-    /// <see cref="StageSpec{TId,TReq}"/>；与平面机（<see cref="StageMachine{TId,TReq}"/>）配套使用。
-    ///
-    /// **零自身状态**（关键）：驻留帧数从 `host.StageFrames` 读，不自己存——因此同一个 `TableStage` 实例
-    /// 可以被**多个角色/多个机器**同时使用（若自存计数器，两个角色会互相污染）。
-    /// 这与框架一贯的"阶段对象 = 无状态单例"一致。
-    ///
-    /// 时长：`DurationFrames` 到点后走 `NextId`（M3-7 删抢占机后**无恢复栈**——`AutoResumeOnEnd` 已无读取方）。
+    /// 表驱动阶段：**所有同构状态共享这一个实现**，行为全部读 <see cref="StageSpec{TId,TReq}"/>。
     /// </summary>
     public sealed class TableStage<TId, TReq> : IStage<TId, TReq>, IStageTimeout<TId>
         where TId : struct

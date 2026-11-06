@@ -5,18 +5,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// CDN 通道部署配置（《热更与内容发布专项设计》§7 部署配置契约）。
-    ///
-    /// **它决定装配选哪条通道**：<see cref="HasCdn"/> 为 false（未配置基址）= 本地信封通道
-    /// （<c>FileSystemCandidateProvider</c> + <c>LocalDirectoryCandidateFetcher</c>，无网络）；
-    /// 为 true = CDN 通道（<c>HttpCandidateProvider</c> + <c>HttpCandidateFetcher</c>，信封与文件同基址）。
-    ///
-    /// **为什么运行时来源是安全的**：基址**不是信任边界**——任何来源返回的信封都要过
-    /// RSA 锚点验签（根信任编入 <c>ContentTrustAnchors</c> 应用本体）、文件摘要由编排统一复算；
-    /// 被污染的基址只能造成"下载失败/验签拒绝"，进不了权威状态。与 <c>PlayerCapabilities</c>
-    /// "不接受运行时可变来源"的约束不同面——那条管兼容判定，本条只管"从哪里取字节"。
-    ///
-    /// **来源**：命令行参数（部署/测试注入）覆盖字段默认。发布渠道若需烙入基址，
-    /// 由构建流水线写命令行参数——本类不设第二处默认值单源。
     /// </summary>
     public sealed class ContentCdnConfig
     {
@@ -35,16 +23,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 部署配置装载（命令行 → <see cref="ContentCdnConfig"/>）。
-    /// <see cref="Parse"/> 是纯函数（参数数组进、配置出）——可 EditMode 直测；
-    /// <see cref="Load"/> 是 Unity 入口（读进程命令行）。
-    ///
-    /// 参数形态（两种等价支持）：<c>-content.cdnUrl=http://cdn.example.com</c> 或
-    /// <c>-content.cdnUrl http://cdn.example.com</c>；未出现的键保持默认。
-    ///
-    /// **三源装载（发布链）**：<see cref="Load(string[], string)"/> 合并**命令行参数 > 包内烙入文件
-    /// （StreamingAssets/deploy.args——构建流水线按 BuildProfile.endpoints 写入的参数行流）> 字段默认**：
-    /// 命令行是测试/运维临时注入面，烙入是分发渠道的零参数启动面——两者同 token 形态、同解析器
-    /// （<see cref="Tokenize"/> 行流 → <see cref="Parse"/>：烙入文件就是"持久化的命令行参数"）。
     /// </summary>
     public static class ContentDeployConfig
     {
@@ -56,11 +34,9 @@ namespace LiteFramework
         /// <summary>Unity 入口：读进程命令行（Editor/Player 同源）。</summary>
         public static ContentCdnConfig Load() => Parse(Environment.GetCommandLineArgs());
 
-        /// <summary>三源装载：命令行 > 包内烙入（<paramref name="bakedArgsText"/> = deploy.args 全文；
-        /// null/空白 = 无烙入文件，退化为纯命令行装载）。纯函数可直测。
-        /// 实现为 **token 层拼接**（烙入流在前、命令行流在后，<see cref="Parse"/> 顺序覆盖 ⇒ 后见者赢）：
-        /// 字段默认值非空（如 <see cref="ContentCdnConfig.OfferPath"/>），按字段值判"命令行给没给过"
-        /// 结构性不可行——token 层单流无此歧义。</summary>
+        /// <summary>
+        /// 三源装载：命令行 > 包内烙入（<paramref name="bakedArgsText"/> = deploy.args 全文； null/空白 = 无烙入文件，退化为纯命令行装载）。
+        /// </summary>
         public static ContentCdnConfig Load(string[] args, string bakedArgsText)
         {
             string[] baked = Tokenize(bakedArgsText);
@@ -92,7 +68,7 @@ namespace LiteFramework
                 string arg = args[i];
                 if (string.IsNullOrEmpty(arg) || arg[0] != '-') continue;
 
-                // 形态一：-key=value（同 token 内拆）；形态二：-key value（取下一 token）
+                // 形态一：-key=value（同 token 内拆）；形态二：-key value（取下一 token）。
                 string key = arg.TrimStart('-');
                 string value = null;
                 int eq = key.IndexOf('=');

@@ -59,11 +59,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 下载计划。**纯决策，不做 IO**——真正的下载由 YooAsset/平台适配执行
-    /// （YooAsset 负责其擅长的下载与加载实现，项目负责可信发布描述、事务代次与激活决策）。
-    ///
-    /// 职责边界：本类只回答"该下哪些文件、优先用哪个源、失败后怎么办"，
-    /// 与"下载怎么做"完全分离——这可让 L1 覆盖全部分支。
+    /// 下载计划。
     /// </summary>
     public sealed class DownloadPlan
     {
@@ -91,7 +87,7 @@ namespace LiteFramework
             if (_sources.Count == 0)
                 throw new ArgumentException("至少需要一个可用下载来源", nameof(sources));
 
-            // 优先级稳定排序：同优先级保持声明顺序（避免不同平台排序不稳定导致行为漂移）
+            // 优先级稳定排序：同优先级保持声明顺序（避免不同平台排序不稳定导致行为漂移）。
             _sources.Sort((a, b) => a.Priority != b.Priority ? a.Priority.CompareTo(b.Priority) : 0);
 
             Budget = budget ?? new DownloadBudget();
@@ -111,9 +107,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 为一次下载尝试选定条目：**暂态失败换源，确定性失败不再给条目**
-        /// （区分暂态网络错误与签名/兼容错误；不通过反复重试或忽略验证绕过）。
-        /// 返回 false = 该文件已无可试来源（调用方按候选隔离处理）。
+        /// 为一次下载尝试选定条目：**暂态失败换源，确定性失败不再给条目** （区分暂态网络错误与签名/兼容错误；不通过反复重试或忽略验证绕过）。
         /// </summary>
         public bool TrySelect(string path, out DownloadPlanEntry entry, out DownloadFailureInfo failure)
         {

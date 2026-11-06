@@ -2,19 +2,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 网络契约 JSON 编解码端口（Core，零第三方）。
-    ///
-    /// 两种读取面，按消费方语义二选一：
-    /// <list type="bullet">
-    /// <item><see cref="TryParse"/> + <see cref="IJsonNode"/>：**严格类别读取**——类别不符即失败，
-    ///   适合"对端形状不可信"的场景（外部内容清单、探针）；</item>
-    /// <item><see cref="TryDeserialize{T}"/>：**类型化反序列化**——适合"两端共用同一份 DTO"的契约
-    ///   （形状在编译期单源，宽松转换不再是风险来源）。</item>
-    /// </list>
-    ///
-    /// <see cref="Serialize{T}"/> 与 <see cref="Deserialize{T}"/> 共用同一份契约设置
-    /// （`WireJsonSettings`），保证两端字段名/日期/null 行为一致。
-    ///
-    /// 实现住 <c>Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft/</c>：业务代码不得直接引用序列化库。
     /// </summary>
     public interface IJsonCodec
     {

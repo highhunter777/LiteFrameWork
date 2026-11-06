@@ -30,10 +30,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 状态机诊断共用件（《状态机专项设计》§4）：审计环（最近 32 条迁移，预分配零分配）+
-    /// per-stage 进入/驻留累计 + 自动边命中/拒绝/恢复成功计数。平面机与层级机各持一份实例；
-    /// 记录点全部在热路径上的低频事件（迁移/进入/拒绝——一帧至多一次），读取面（GetAudit/GetStageInfos）
-    /// 分配只发生在调用时。诊断统计**不进快照**（§3.4 结构态不含；Restore 不动诊断历史）。
+    /// 状态机诊断共用件（《状态机专项设计》§4）：审计环（最近 32 条迁移，预分配零分配）+ per-stage 进入/驻留累计 + 自动边命中/拒绝/恢复成功计数。
     /// </summary>
     public sealed class FsmAudit<TId> where TId : struct
     {

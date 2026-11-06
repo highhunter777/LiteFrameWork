@@ -32,12 +32,6 @@ namespace LiteCodeGen.EditorTools
 
     /// <summary>
     /// 绑定面遍历**单源**：一次深度优先枚举根下全部节点并标记克隆作用域、嵌套生成单位与模板边界。
-    /// 生成器域（<see cref="BindSearch"/> 的标记收集）与 hash/契约/校验域（LiteGame 侧遍历包装）共用本核心，
-    /// 「哪些节点属于本页/本模板」只此一份语义——禁止各域再写一份遍历。
-    ///
-    /// 语义：子节点上的 <c>BindRoot</c> 是独立生成单位（其子树含根标记 <see cref="BindSurfaceNode.InsideNestedBindRoot"/>）；
-    /// <c>Clone_</c> 前缀进入克隆作用域；prefab 实例根标记模板边界（其子树 <see cref="BindSurfaceNode.InsideTemplate"/>），
-    /// 非 <c>Tmp_</c> 嵌套 prefab 同样按不透明边界处理（是否告警由消费域决定）。
     /// </summary>
     public static class BindSurfaceWalk
     {

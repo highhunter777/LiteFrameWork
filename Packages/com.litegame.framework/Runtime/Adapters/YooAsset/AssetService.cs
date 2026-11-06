@@ -8,16 +8,7 @@ using YooAsset;
 namespace LiteFramework
 {
     /// <summary>
-    /// 资源加载统一门面（沿用 AssetService 静态门面）。业务只依赖此类，不直接依赖 YooAsset；换资源方案只改这一个文件。
-    /// 契约：
-    /// ① location 统一使用资源完整路径（如 "Assets/GameData/Config/tbcombatnum.bytes"）——RawFile location 用完整路径；
-    /// ② UniTask 签名（§7.7），底层 YooAsset 3.0.5（经 UniTaskAssetExtensions 适配）；初始化必须先于一切加载（ProcedurePreload 驱动）；
-    /// ③ EditorSimulateMode（编辑器开发）与 OfflinePlayMode（Player）为当前支持模式；Host/Web 模式与
-    ///    网络下载流程未实现。Player 的 OfflinePlayMode **包根可变**：`builtinPackageRoot` 为空 = 内置包
-    ///    （StreamingAssets/yoo）；非空 = 以该绝对路径为包根（**已确认候选的 `bundle/` 镜像**，
-    ///    根解析见 <see cref="CandidateBundleRootResolver"/>）；
-    /// ④ 每个句柄用完 Release（本类内部完成），无句柄外泄；加载失败抛 InvalidOperationException 带 location——fail-fast 由流程 Fail() 接；
-    /// ⑤ 主线程 only（YooAsset 操作无线程安全承诺）。
+    /// 资源加载统一门面（沿用 AssetService 静态门面）。
     /// </summary>
     public static class AssetService
     {
@@ -39,12 +30,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 初始化资源包。由 ProcedurePreload 调用一次，重复调用幂等。
-        /// Editor：EditorSimulateMode（虚拟构建 + 编辑器文件系统直读，零构建成本）。
-        /// Player：OfflinePlayMode——<paramref name="builtinPackageRoot"/> 为空时读内置包
-        ///         （StreamingAssets/yoo）；非空时以该**绝对路径**为包根（已确认候选的 `bundle/` 镜像）；
-        ///         包根缺版本文件时初始化失败 → 流程 Fail → 错误 UI（可诊断，不静默）。
-        /// 共享尾段：Initialize → 请求版本 → 加载清单（模拟/离线均由对应文件系统应答，3.0 拆分）。
+        /// 初始化资源包。
         /// </summary>
         public static async UniTask InitAsync(string packageName = DefaultPackageName,
             CancellationToken ct = default, string builtinPackageRoot = null)
@@ -57,7 +43,7 @@ namespace LiteFramework
                 package = YooAssets.CreatePackage(packageName);
             s_package = package;
 
-            // 编辑器模拟：先执行模拟构建生成虚拟包根目录，再用编辑器文件系统加载
+            // 编辑器模拟：先执行模拟构建生成虚拟包根目录，再用编辑器文件系统加载。
             PackageBuildResult simulateResult =
                 EditorSimulateBuildInvoker.Build(packageName, (int)EBundleType.VirtualAssetBundle);
             InitializePackageOptions initializeOptions = new EditorSimulateModeOptions
@@ -124,10 +110,7 @@ namespace LiteFramework
             => LoadRawFileCore(location, ct, raw => raw.text);
 
         /// <summary>
-        /// 原生文件加载核心。**EditorSimulateMode 下走 TextAsset**——YooAsset 3.0.5 的模拟清单是单一
-        /// BuildBundleType（VirtualAssetBundle），RawFileObject 只在 RawFile 管线可加载（实测 ABH 路径
-        /// LoadAsset(RawFileObject) 恒 null）。.bytes/.txt 均为 TextAsset，收集器按 PackDirectory 打包；
-        /// 混合包/原生文件策略尚未定。
+        /// 原生文件加载核心。
         /// </summary>
         private static async UniTask<T> LoadRawFileCore<T>(string location, CancellationToken ct, Func<TextAsset, T> extract)
         {

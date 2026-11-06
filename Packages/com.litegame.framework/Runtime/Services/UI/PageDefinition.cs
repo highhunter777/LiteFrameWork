@@ -15,9 +15,7 @@ namespace LiteFramework.UI
     }
 
     /// <summary>
-    /// 页面定义（PageDefinition）：运行时唯一页面制品。由 <c>gen-ui-page.py</c> 从
-    /// <c>#uiform</c> + <c>UIPageManifest</c> + <c>UIPageContract</c> 生成；
-    /// 运行时经 <see cref="IPageCatalog"/> 取件，不读表/契约/清单。
+    /// 页面定义（PageDefinition）：运行时唯一页面制品。
     /// </summary>
     public sealed class PageDefinition
     {

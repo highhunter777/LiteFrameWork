@@ -7,16 +7,7 @@ using System.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// 本地持久化实现（<see cref="IFileStore"/> 的生产实现）。构造注入路径根与 JSON 序列化器；
-    /// 契约：
-    /// ① relPath 禁 .. 段、盘符、绝对开头——release 也校验（字符级零分配）；
-    /// ② 原子写：tmp 写完再替换，进程被杀目标仍是旧档；残留 .tmp = 上次半截写，下次写自然覆盖；
-    ///    同一文件并发写 = 违例（存档走主线程流程；异步逃生口按单飞使用）；
-    /// ③ JSON 二分口径：不存在 → default 静默（首启是正常状态）；损坏 → default + Log.Error；
-    ///    需要区分两者（版本迁移）用 TryReadJson；
-    /// ④ 同步是主路径，异步是逃生口；元数据操作无异步；
-    /// ⑤ 异步签名用 BCL Task（Core 零第三方），业务侧 .AsUniTask() 转签名。
-    /// 主线程同步方法 + 异步逃生口；同文件的异步写必须由调用方 await 串行。
+    /// 本地持久化实现（<see cref="IFileStore"/> 的生产实现）。
     /// </summary>
     public sealed class FileSystem : IFileStore
     {
@@ -32,7 +23,7 @@ namespace LiteFramework
             _json = serializer ?? throw new ArgumentNullException(nameof(serializer));
         }
 
-        // ---- 路径 ----
+        // ---- 路径 ----。
 
         public string PathOf(string first, string second)
         {
@@ -52,7 +43,7 @@ namespace LiteFramework
             return p;
         }
 
-        // ---- 文本/字节 ----
+        // ---- 文本/字节 ----。
 
         public void WriteAllText(string relPath, string content)
         {
@@ -176,7 +167,7 @@ namespace LiteFramework
             }
         }
 
-        // ---- JSON ----
+        // ---- JSON ----。
 
         public void WriteJson<T>(string relPath, T value)
             => WriteAllText(relPath, _json.Serialize(value));
@@ -202,7 +193,7 @@ namespace LiteFramework
             catch (Exception ex) { detail = "parse: " + ex.Message; return false; }
         }
 
-        // ---- 元数据 ----
+        // ---- 元数据 ----。
 
         public bool Exists(string relPath) => File.Exists(Combine(relPath));
 
@@ -224,7 +215,7 @@ namespace LiteFramework
             return result;
         }
 
-        // ---- 异步逃生口 ----
+        // ---- 异步逃生口 ----。
 
         public async Task WriteAllTextAsync(string relPath, string content, CancellationToken ct = default)
         {
@@ -284,7 +275,7 @@ namespace LiteFramework
             }
         }
 
-        // ---- 内部 ----
+        // ---- 内部 ----。
 
         private string Combine(string relPath)
         {

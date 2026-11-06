@@ -5,12 +5,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 候选文件读句柄（下载、候选校验与容量）。
-    ///
-    /// 只暴露校验需要的两件事：**长度**与**完整字节**。为什么不做流式：
-    /// 候选摘要对**原始字节**计算完整 SHA-256，<see cref="ContentHash.Hasher"/> 需整块输入；
-    /// 且 <see cref="ReleaseBudget.MaxFileBytes"/> 已对单文件设上限（默认 512MB），
-    /// 逐文件整体读入有界。流式分块属于大包优化，在有真实包规模数据前不预先引入
-    /// （没有目标包规模与设备数据时不虚构）。
     /// </summary>
     public interface ICandidateFile
     {
@@ -36,8 +30,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 磁盘余量端口（空间预检：计入候选、临时/解压峰值、保留版本及余量）。
-    /// 单独成端口而非并入 <see cref="ICandidateFileSource"/>：余量查询与文件读取的可用性不同
-    /// （平台可能能读文件却拿不到配额），且预检失败必须有明确结果而不是静默跳过。
     /// </summary>
     public interface IDiskSpaceProbe
     {

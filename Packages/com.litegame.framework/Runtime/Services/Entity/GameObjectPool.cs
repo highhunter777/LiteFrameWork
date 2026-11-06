@@ -11,13 +11,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// GameObject 对象池（三池分工的第三件：**包 Core ObjectPool&lt;T&gt; 做底层，
-    /// 不自研第二套池逻辑**；纯数据对象 → ReferencePool，带回调的 C# 逻辑实例 → ObjectPool&lt;T&gt;，
-    /// 会进场景渲染的 GameObject → 本池）。
-    /// prefab 维度（key）分桶，每桶一个 ObjectPool&lt;GameObject&gt;（复用其所有权移交/重复归还检测/
-    /// maxIdle 销毁/统计全套机制）；池根 DontDestroyOnLoad 防切场景误伤。
-    /// 生命周期：Acquire 后 OnSpawn / Release 前 OnRecycle（实现 IPoolLifecycle 即被驱动）。
-    /// 主线程 only（框架约定）。
+    /// GameObject 对象池（三池分工的第三件：**包 Core ObjectPool&lt;T&gt; 做底层， 不自研第二套池逻辑**；纯数据对象 → ReferencePool。）。
     /// </summary>
     public sealed class GameObjectPool
     {
@@ -103,8 +97,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 排空全部桶并销毁闲置实例（池的生命周期释放面——宿主关闭/场景卸载时调用）。
-        /// **只销毁闲置件**：仍在使用中的实例由调用方先归还/回收（谁持有谁负责，池不越权回收使用中的对象）。
-        /// 幂等；桶结构保留（再次 Get 会重建桶）。销毁口径走各桶自己的 onDestroy（UnityEngine.Object.Destroy）。
         /// </summary>
         public void Clear()
         {

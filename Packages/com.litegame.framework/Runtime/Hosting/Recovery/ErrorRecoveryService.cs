@@ -7,17 +7,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 错误恢复执行器（《客户端依赖注入专项设计》§6.2）：分类 → 动作 → **执行**。
-    ///
-    /// 与旧 <c>ClientErrorRecovery</c> 的区别：旧件只做“分类 → 枚举”的静态映射、没有执行器，
-    /// 也没有生产消费者；本件按分类真正执行有界重试/清缓存/导出诊断/退出/阻断，并由装配点注入动作实现。
-    ///
-    /// **Recoverable 的升级阶梯**（《商业级通用客户端框架总设计》§7.2“缓存损坏/旧清单 → 清受控缓存”）：
-    /// 先有界重试（调用点给了重试委托时）；重试耗尽**或**调用点无法重试 → 清受控内容缓存 → 阻断。
-    /// 缓存清理是“下一次启动见效”的动作（不重建运行时），故清理后不再重试；Transient 不清缓存
-    /// （网络抖动与本地缓存无关）。
-    ///
-    /// 取消不是错误：<see cref="OperationCanceledException"/> 直接返回 <see cref="RecoveryResult.Canceled"/>，
-    /// 不触发任何动作（与 <c>ClientHost.ShutdownAsync</c> 的取消口径一致）。
     /// </summary>
     public sealed class ErrorRecoveryService
     {

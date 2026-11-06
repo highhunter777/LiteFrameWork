@@ -3,15 +3,7 @@ using System;
 namespace LiteFramework.Animation
 {
     /// <summary>
-    /// 移动混合权重数学（《动画模块专项设计》§4"权重由 Driver 给"的**纯计算面**）：
-    /// 速度轴三段线性插值 + 瞄准方向轴四向相邻插值——只有 float 入参，不读 Transform、不碰播放器。
-    ///
-    /// **为什么单独成类**：权重公式与"形态提交/迟滞/句柄"是两类变化理由——前者是数值手感
-    /// （改锚点、改插值形状），后者是播放编排；分开后公式可用构造坐标**直接断言权重**，不需要
-    /// 真资源、真视图或逐帧位移（见 <c>CharacterLocomotionEditModeTests</c> 的权重直测用例）。
-    ///
-    /// **调用方职责**：计算角度（`Vector3.SignedAngle(facing, moveDir, up)`）与容器复用归
-    /// <see cref="CharacterLocomotionDriver"/>；本类只填 <paramref name="weights"/>，不分配。
+    /// 移动混合权重数学（《动画模块专项设计》§4"权重由 Driver 给"的**纯计算面**）： 速度轴三段线性插值 + 瞄准方向轴四向相邻插值——只有 float 入参，不读 Transform、不碰播放器。
     /// </summary>
     public static class LocomotionBlendMath
     {
@@ -52,9 +44,7 @@ namespace LiteFramework.Animation
         public const float AimMoveExitMps = 0.3f;
 
         /// <summary>
-        /// **移动事实锁存**（迟滞公式单源——《层次动画机设计》§2：锁存是**原始速度的纯函数**，
-        /// 由驱动器每帧算并作为事实喂状态机；机内无迟滞散字段）：上沿进（≥ 进阈值）、下沿出（> 退阈值），
-        /// 中间带保持上一值。
+        /// **移动事实锁存**（迟滞公式单源——《层次动画机设计》§2：锁存是**原始速度的纯函数**， 由驱动器每帧算并作为事实喂状态机；机内无迟滞散字段）：上沿进（≥ 进阈值）、下沿出（> 退阈值）， 中间带保持上一值。
         /// </summary>
         public static bool UpdateLatch(bool previousMoving, float speed)
             => previousMoving ? speed > AimMoveExitMps : speed >= AimMoveEnterMps;
@@ -93,19 +83,7 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// **移动混合的相位/步幅对齐净速率**（<paramref name="durations"/> = 各片段时长（秒）、
-        /// <paramref name="speeds"/> = 输出净播放速率——逐槽原位写、零分配）。
-        ///
-        /// 槽位约定：**槽 0 = Idle（无步态，豁免恒 1×）；最后一槽 = Run（跑档脚程）；
-        /// 其余非零槽 = 走档**（3 槽形态 <c>{Idle,Walk,Run}</c> 与任意前缀兼容）。
-        ///
-        /// 口径（步幅对齐——"速率＋相位"）：步态片段**相位锁定 + 脚程匹配**——设公共相位速率
-        /// Φ（圈/秒），步态槽净速率 = Φ × 时长（同 Φ ⇒ 各片段归一化相位同步，混合不打滑、不踩乱拍）；
-        /// Φ 由"加权脚程 = 实际速度"反解：<c>Φ = speed / Σ(wᵢ·时长ᵢ·脚程ᵢ)</c>
-        /// （脚程：走档 = <see cref="WalkNaturalMps"/>、Run = <see cref="RunNaturalMps"/>）。
-        /// **退化**：有效加权脚程趋零（全静止/全零权重）→ 全槽 1×。
-        /// Φ 钳制 [<see cref="PhaseRateMin"/>, <see cref="PhaseRateMax"/>]——钳在 Φ 上：
-        /// 各步态槽同乘时长，相位锁定不被逐槽钳制破坏。
+        /// **移动混合的相位/步幅对齐净速率**（<paramref name="durations"/> = 各片段时长（秒）、 <paramref name="speeds"/> = 输出净播放速率——逐槽原位写、零分配）。
         /// </summary>
         public static void BuildMoveSpeeds(float speed, float[] weights, float[] durations, float[] speeds)
         {
@@ -133,12 +111,7 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// 瞄准移动方向轴权重（槽位序 {F, R, B, L}）：把"移动方向 vs 朝向"的夹角换算成槽位坐标
-        /// （F=0 / R=+1 / B=±2 / L=−1，各槽位相隔 90°），取**相邻两片**按小数部分插值——权重连续，
-        /// 跨扇区不跳变（所以不需要方向迟滞）。
-        /// <paramref name="relativeAngleDeg"/> 符号约定：正 = 朝向的右侧
-        /// （与 <c>Vector3.SignedAngle(facing, moveDir, up)</c> 同源）；模型前沿约定 +Z（与
-        /// <c>SimView.Place</c> 的 <c>Quaternion.Euler(0, 90° − yaw)</c> 同源）。
+        /// 瞄准移动方向轴权重（槽位序 {F, R, B, L}）：把"移动方向 vs 朝向"的夹角换算成槽位坐标 （F=0 / R=+1 / B=±2 / L=−1，各槽位相隔 90°）。
         /// </summary>
         public static void BuildAimWeights(float relativeAngleDeg, float[] weights)
         {

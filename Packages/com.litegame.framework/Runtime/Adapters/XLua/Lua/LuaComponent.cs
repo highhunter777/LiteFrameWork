@@ -9,15 +9,7 @@ using XLua;
 namespace LiteFramework
 {
     /// <summary>
-    /// Lua 宿主（框架唯一新增核心模块）。职责四件：
-    /// ① `LuaEnv` + 自定义 loader（**同步签名**，只从 <see cref="LuaPreloader"/> 预载缓存取——
-    ///    "任何'运行时再异步加载'的念头都是错的"，设计方案 §4.2；未命中 = 校验漏项，带路径直接抛）；
-    /// ② tick 派发开关（`env.Tick()`——Lua 不需要时不调，MonoBehaviour.Update 驱动）；
-    /// ③ 执行 `main.lua`（只 require/定义，重复执行抛——重跑走 DevReload §2.7）；
-    /// ④ `Shutdown()`：env.Dispose（OnDestroy 兜底，play 退出自然触发）。
-    /// 附带：`log` 全局表绑定（info/warning/error → LiteFramework.Log，§4.3 日志收口白名单）；IModuleStats（HUD）。
-    /// 热路径纪律（§4.3）：tick 走 env.Tick()；Bridge 查表等低频入口允许动态转换。
-    /// 生命周期：装配点 AddComponent + Init；Shutdown 幂等。
+    /// Lua 宿主（框架唯一新增核心模块）。
     /// </summary>
     public sealed class LuaComponent : MonoBehaviour, ILuaHost, IModuleStats
     {
@@ -122,10 +114,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 清 require 缓存：按**注册表根前缀**清 `package.loaded`
-        /// （`UI.` / `Content.` / `Strategies.` —— 根集合由 `gen_lua_keys.py` 校验收口，是封闭集）。
-        /// 不清 env 级模块（`Bridge`/`log`/LuaPanda/Core.*）——全清会误伤、且无必要。
-        /// 返回实际清掉的键数。**已知边界**：只清三个根下的模块，其跨根依赖（如 `Core.class`）仍走缓存。
+        /// 清 require 缓存：按**注册表根前缀**清 `package.loaded` （`UI.` / `Content.` / `Strategies.` —— 根集合由 `gen_lua_keys.py` 校验收口。）。
         /// </summary>
         public int ClearRequireCacheByRoots(IReadOnlyList<string> roots)
         {
@@ -215,7 +204,7 @@ namespace LiteFramework
                 throw new InvalidOperationException("LuaComponent 未初始化——Init(LuaPreloader) 必须先于一切调用");
         }
 
-        // ---- IModuleStats（HUD 数据源）----
+        // ---- IModuleStats（HUD 数据源）----。
 
         string IModuleStats.StatsName => "Lua";
 

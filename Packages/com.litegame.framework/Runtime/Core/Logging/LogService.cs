@@ -7,8 +7,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 日志实例实现（B0）：环形缓冲 + 输出 helper + 结构化 sink + 作用域上下文。
-    /// 静态 <see cref="Log"/> 只是门面；组合根 Install 本实例后，静态调用全部转发到这里。
-    /// 线程模型沿用原 Log：环形缓冲读写加锁，sink 在锁外调用（实现契约：非阻塞、不抛）。
     /// </summary>
     public sealed class LogService : ILog
     {

@@ -14,9 +14,7 @@ namespace LiteFramework
     public static class ClientDiagnosticsBundle
     {
         /// <summary>
-        /// Unity 托管异常捕获（T0-2）：Exception/Assert 级日志 → 客户端现场包（reason=unity-exception，
-        /// 异常文案与堆栈尾进 ExtraJson）。其余级别（Log/Warning/Error）不捕获——Error 是可恢复面，
-        /// 逐条落盘会被常规错误刷爆限频额度。同对局限频/限量由 writer 承担。
+        /// Unity 托管异常捕获（T0-2）：Exception/Assert 级日志 → 客户端现场包（reason=unity-exception， 异常文案与堆栈尾进 ExtraJson）。
         /// </summary>
         public static string CaptureUnityException(DiagnosticsBundleWriter writer, string condition,
             string stackTrace, UnityEngine.LogType type, string matchId, int frame,

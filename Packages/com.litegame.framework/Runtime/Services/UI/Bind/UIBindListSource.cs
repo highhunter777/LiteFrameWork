@@ -28,8 +28,6 @@ namespace LiteFramework.UI
 
         /// <summary>
         /// 装配列表数据源（**整表替换语义**：更新/缩容同一入口——换数据再调一次即可，内核按新 Count 重算窗口）。
-        /// 目标节点取其**自身或子级**的 VirtualList/SimpleListView（列表节点的组件住 Content 子级，绑定索引存的是
-        /// 根上自动检测组件）。行含文案键而语言服务未注入 = 装配错误（fail-fast——不在滚动回调路径上抛）。G6。
         /// </summary>
         public void Set(string name, IUIListRows rows)
         {
@@ -112,9 +110,7 @@ namespace LiteFramework.UI
         }
 
         /// <summary>
-        /// 行 → 条目投影（G6）：字段按**子节点名**寻址（条目子树不设 BindName——“条目内部不暴露”）；
-        /// 重绑先解除旧监听/旧 key 再写新数据（《UI框架总设计》§8.2 绑定代次纪律）。
-        /// 内核（VirtualList/SimpleListView）只负责窗口与复用，内容投影全在本件。
+        /// 行 → 条目投影（G6）：字段按**子节点名**寻址（条目子树不设 BindName——“条目内部不暴露”）； 重绑先解除旧监听/旧 key 再写新数据（《UI框架总设计》§8.2 绑定代次纪律）。
         /// </summary>
         private sealed class BindListSource : IVirtualListSource, IVirtualListUnbind
         {

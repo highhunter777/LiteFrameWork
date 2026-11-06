@@ -5,35 +5,14 @@ using System.Text;
 namespace LiteFramework
 {
     /// <summary>
-    /// 层级状态机（HSM）：`StageMachine` 的超集——状态空间是一棵**树**（复合态可含子层），
-    /// 共享同一份 <see cref="IStage{TId,TReq}"/> 契约与"帧末应用 / last-wins / 离场禁改道"等语义。
-    /// **迁移语义（守卫/准入/挂起/自动边/看门狗）单源在 <see cref="StageMachineCore{TId,TReq}"/>**
-    /// ——与平面机共享同一内核，改语义只动内核一处；本类只持有层级表示法：活动路径树 +
-    /// LCA 事务 + 事件冒泡 + 复合历史。
-    /// flat 机 = 无复合态时的退化形态（M3-7 起抢占型子类已删除——§4.5 无消费者机制）。
-    ///
-    /// 与平面机的差异（表示法层）：
-    /// ① **一次迁移 = 一次事务**：`Request` 只入队，`Advance` 应用——算出目标路径与当前活动路径的**共同祖先（LCA）**，
-    ///    LCA 之下先按 **深→浅** 退出、再按 **浅→深** 进入，同帧原子完成（平面机的"一帧最多一变"在此改写为"一帧最多一次事务"）；
-    /// ② **OnUpdate 传播：根→叶**；
-    /// ③ **降层不重跑祖先**：目标已是活动路径上的祖先时只退出（不重跑它的 `OnEnter`）；
-    /// ④ **显式目标优先、未指定层级按历史/初始展开**（`CompositeSpec.History`）——"回到父态"即"回到它上次的子页"；
-    /// ⑤ **事件冒泡**：`Raise&lt;TEvt&gt;` 从最深活动态向根问 <see cref="IEventSink{TEvt}"/>，首个消费即停；
-    /// ⑥ **异常不捕获**：事务中途抛 → 立即中止，活动路径保留**已完成部分**（不回滚），置 `Interrupted` 供诊断。
-    ///
-    /// 宿主与快照：`ITickable` + `IModuleStats`。
-    /// 给子类的扩展点：<see cref="StageMachineCore{TId,TReq}.CanAccept"/>（准入判定）、
-    /// <see cref="StageMachineCore{TId,TReq}.OnStagePreempted"/>（被抢占通知——传出被迁走的最深活动态）、
-    /// <see cref="StageMachineCore{TId,TReq}.EnqueueRequest"/>（绕准入入队口）、
-    /// <see cref="StageMachineCore{TId,TReq}.MarkRejected"/>、<see cref="DeepestStage"/>、
-    /// <see cref="StageMachineCore{TId,TReq}.InStageCallback"/>。
+    /// 层级状态机（HSM）：`StageMachine` 的超集——状态空间是一棵**树**（复合态可含子层）。
     /// </summary>
     public class HierarchicalStageMachine<TId, TReq> : StageMachineCore<TId, TReq>, ITickable, IModuleStats, IStageHost<TId, TReq>
         where TId : struct
     {
         private readonly List<TId> _active = new List<TId>(4);      // 根 → 最深活动态
 
-        // ---- 层级树表示法（本机独有；共享内核不持有树语义）----
+        // ---- 层级树表示法（本机独有；共享内核不持有树语义）----。
         private readonly Dictionary<TId, CompositeSpec<TId>> _composite = new Dictionary<TId, CompositeSpec<TId>>();
         private readonly Dictionary<TId, TId> _parent = new Dictionary<TId, TId>();   // 非根 → 父
         private readonly Dictionary<TId, List<TId>> _history = new Dictionary<TId, List<TId>>();   // 复合态 → 上次退出时的子路径
@@ -102,7 +81,7 @@ namespace LiteFramework
             _stageFrames = 0;
         }
 
-        // ---- 快照与恢复（§3.4：层级机含活动路径与复合历史）----
+        // ---- 快照与恢复（§3.4：层级机含活动路径与复合历史）----。
 
         /// <summary>结构快照：活动路径 + 复合历史 + 恢复栈（抢占子类经 <see cref="CaptureCore"/> 补充）+ 驻留/计数；未启动抛。</summary>
         public FsmCapture<TId> Capture()
@@ -127,11 +106,7 @@ namespace LiteFramework
         protected virtual void CaptureCore(FsmCapture<TId> into) { }
 
         /// <summary>
-        /// 从快照恢复（《状态机专项设计》§3.4）。<see cref="FsmRestoreMode.Hooks"/>（默认）：按快照**精确路径**
-        /// （不重展开）走事务回调序——分歧尾深→浅 `OnLeave`、目标尾浅→深 `OnEnter`(default)；
-        /// <see cref="FsmRestoreMode.Silent"/> 纯结构置换零回调。两模式都清挂起请求（结构性裁决）；
-        /// 历史/恢复栈/驻留/计数按快照置回，浮点按位。
-        /// 约束：Start 前 / 阶段回调内 / `OnLeave` 窗口内 → 抛；快照内 id 未注册（结构已变）→ 抛。
+        /// 从快照恢复（《状态机专项设计》§3.4）。
         /// </summary>
         public void Restore(in FsmCapture<TId> capture, FsmRestoreMode mode = FsmRestoreMode.Hooks)
         {
@@ -267,9 +242,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 停止并回到未启动态（可再次 `Start`）：活动路径**深→浅**逐层 `OnLeave`（与 enter 的浅→深对称），
-        /// 然后清路径/历史/挂起/计数/中断标记。钩子抛异常时机器仍保证已复位（异常继续传播）。
-        /// 子类覆写时先清自己的再调 base。
+        /// 停止并回到未启动态（可再次 `Start`）：活动路径**深→浅**逐层 `OnLeave`（与 enter 的浅→深对称）， 然后清路径/历史/挂起/计数/中断标记。
         /// </summary>
         public virtual void Reset()
         {
@@ -307,7 +280,7 @@ namespace LiteFramework
             return false;
         }
 
-        // ---- 迁移事务 ----
+        // ---- 迁移事务 ----。
 
         private void ApplyTransition(TId target, in TReq req)
         {
@@ -315,7 +288,7 @@ namespace LiteFramework
             int lca = CommonPrefix(_active, targetPath);
             int oldLen = _active.Count;
 
-            // ① 先记录历史（读完整旧路径，此时不能弹出）
+            // ① 先记录历史（读完整旧路径，此时不能弹出）。
             for (int i = oldLen - 1; i >= lca; i--)
                 if (_composite.TryGetValue(_active[i], out var spec) && spec.History != HistoryMode.None)
                     RecordHistory(spec, i);
@@ -326,8 +299,6 @@ namespace LiteFramework
                 OnStagePreempted(_active[oldLen - 1]);
 
             // ② 退出：深 → 浅（不含 LCA 层）。
-            // 注意 `_inLeave` 只包住退出阶段——OnEnter 内 Request 必须合法（与平面机语义一致，
-            // 否则"进入即想再迁"这种最自然的写法会被自己拦掉）。
             _inLeave = true;
             try
             {
@@ -340,7 +311,7 @@ namespace LiteFramework
             }
             finally { _inLeave = false; }
 
-            // ③ 进入：浅 → 深（LCA 层已在路径上，不重跑它的 OnEnter）——进入段属自身推进窗口
+            // ③ 进入：浅 → 深（LCA 层已在路径上，不重跑它的 OnEnter）——进入段属自身推进窗口。
             _inStageCallback = true;
             try
             {
@@ -444,7 +415,7 @@ namespace LiteFramework
             return i;
         }
 
-        // ---- IModuleStats ----
+        // ---- IModuleStats ----。
 
         /// <summary>统计快照（子类可 override 追加自己的项——先调 base 再 Add）。
         /// 诊断计数段单源在内核（§4；既有键不动，HUD 兼容）。</summary>
@@ -486,7 +457,7 @@ namespace LiteFramework
                     sb.AppendLine($"  \"{spec.Id}\" -> \"{spec.Children[i]}\" [style=dotted, label=\"child\"];");
         }
 
-        // ---- 层级树构建（本机表示法；共享内核不持有）----
+        // ---- 层级树构建（本机表示法；共享内核不持有）----。
 
         /// <summary>复合树装配与校验（fail-fast）：重复复合态/子态未注册/多父/无根/成环当场抛。
         /// composites = null 时为**全根形态**（多根流程线）——根推导与环检测仍执行。</summary>

@@ -14,14 +14,6 @@ namespace LiteFramework.UI
 
     /// <summary>
     /// 零动效转场（**默认策略**；《客户端总设计》§5.1"形成逻辑边界"）：立刻把视觉落到终态并报告完成。
-    ///
-    /// **为什么要有它**：通用 UI 运行时不得**硬依赖动效适配器**（asmdef 成环）——真实现由
-    /// **装配根**显式注入（生产装配传 `FadeSlideTransition`）。
-    ///
-    /// **语义与真实现对齐**（含取消路径）：Enter 落 `alpha=1`、Exit 落 `alpha=0`；
-    /// 取消已请求时报 <see cref="MotionOutcome.Cancelled"/>，否则 `Completed`——
-    /// 与 <c>FadeSlideTransition</c> 的"先定终态、再复位到终值"同一结果。
-    /// **本类零引擎动效依赖**（只碰 <c>CanvasGroup.alpha</c>），故可住在通用 UI 层。
     /// </summary>
     public sealed class InstantTransition : ITransitionStrategy
     {

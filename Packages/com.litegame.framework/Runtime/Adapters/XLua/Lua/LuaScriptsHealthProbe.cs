@@ -7,14 +7,7 @@ using LiteFramework;
 namespace LiteFramework
 {
     /// <summary>
-    /// Lua 脚本健康探针（《热更与内容发布专项设计》§8"健康确认至少覆盖候选 …Lua/main…"；
-    /// §10 候选验证）。
-    ///
-    /// 把 <see cref="CandidateLuaValidator"/> 接到 <see cref="IHealthProbe"/>：
-    /// 从候选根读脚本字节 → 构建脚本集合（依赖闭包/环检测）→ 受控沙箱内逐脚本语法与模块级执行验证。
-    ///
-    /// **脚本映射由装配点注入**（与 <c>LuaComponent</c> 的 `Func<string[]> listLuaFiles` 同款纪律）：
-    /// "哪些候选文件是 Lua、它们对应什么模块名"属发布约定，Core/探针不硬编码。
+    /// Lua 脚本健康探针（《热更与内容发布专项设计》§8"健康确认至少覆盖候选 …Lua/main…"； §10 候选验证）。
     /// </summary>
     public sealed class LuaScriptsHealthProbe : IHealthProbe
     {
@@ -47,7 +40,7 @@ namespace LiteFramework
             if (!CandidateScriptSet.TryBuild(entries, out CandidateScriptSet set).Accepted)
                 return UniTask.FromResult("脚本集合非法：" + CandidateScriptSet.TryBuild(entries, out _).Reason);
 
-            // 读字节（走 FileSystem——LiteGame 层零 System.IO）
+            // 读字节（走 FileSystem——LiteGame 层零 System.IO）。
             var bytes = new Dictionary<string, byte[]>(StringComparer.Ordinal);
             foreach (ScriptEntry e in set.Entries)
             {

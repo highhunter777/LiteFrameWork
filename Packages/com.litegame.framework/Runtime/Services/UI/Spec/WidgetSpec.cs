@@ -4,12 +4,7 @@ using UnityEngine;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 控件模板能力声明（《UI 系统总设计》§1.4「Widget Spec＝控件模板的能力声明：插槽、属性、状态、
-    /// 事件、约束、Owner」；《UI 制作规范》§3.2 控件模板根 MUST 声明）。
-    ///
-    /// **只声明、不驱动**：运行时零行为、零第三方依赖；清单生成器（编辑器）读本组件汇总
-    /// `UIWidgetManifest`。可配置属性不在此重复声明——属性真相是控件字段上的
-    /// <see cref="UIWidgetPropertyAttribute"/>（`UIWidgetPropertyCatalog` 枚举）。
+    /// 控件模板能力声明（《UI 系统总设计》§1.4「Widget Spec＝控件模板的能力声明：插槽、属性、状态、 事件、约束、Owner」；《UI 制作规范》§3.2 控件模板根 MUST 声明）。
     /// </summary>
     [DisallowMultipleComponent]
     [AddComponentMenu("LiteGame/UI/WidgetSpec 控件规格")]

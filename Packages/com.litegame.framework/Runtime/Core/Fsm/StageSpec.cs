@@ -13,9 +13,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 请求被拒的原因：**只描述"正常路径的拒绝"**——
-    /// 编程错误（未 Start / 未注册 / 重入 / OnLeave 窗口）仍然抛异常，不走这里。
-    /// 读点：`StageMachine.LastReject`（每次请求后刷新，被接受则回 <see cref="None"/>）。
+    /// 请求被拒的原因：**只描述"正常路径的拒绝"**—— 编程错误（未 Start / 未注册 / 重入 / OnLeave 窗口）仍然抛异常，不走这里。
     /// </summary>
     public enum RejectReason : byte
     {
@@ -36,11 +34,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 表驱动阶段的规格：**一行 = 一个状态的"数据"**，行为由通用
-    /// <see cref="TableStage{TId,TReq}"/> 统一承担——这是"状态多而规则同构"（格斗/ARPG 几十上百个动作态）
-    /// 的表达方式：60 个状态 = 1 个实现 + 60 行 spec，而不是 60 个类。
-    ///
-    /// 与"类即状态"的分工判据：**状态少而每个状态的逻辑都不一样 → 写 `IStage` 类；状态多而规则同构 → 写 spec 行。**
+    /// 表驱动阶段的规格：**一行 = 一个状态的"数据"**，行为由通用 <see cref="TableStage{TId,TReq}"/> 统一承担——这是"状态多而规则同构"（格斗/ARPG 几十上百个动作态） 的表达方。
     /// </summary>
     public sealed class StageSpec<TId, TReq>
         where TId : struct
@@ -78,7 +72,7 @@ namespace LiteFramework
         /// <summary>看门狗目标（与 <see cref="TimeoutFrames"/> 配对；TimeoutFrames &lt;= 0 时不读它）。</summary>
         public TId TimeoutTarget;
 
-        // ---- 可选钩子（保持"逻辑薄"：重逻辑仍应写 IStage 类）----
+        // ---- 可选钩子（保持"逻辑薄"：重逻辑仍应写 IStage 类）----。
         public Action<StageSpec<TId, TReq>> OnEnterAction;
         public Action<StageSpec<TId, TReq>> OnUpdateAction;
         public Action<StageSpec<TId, TReq>> OnLeaveAction;

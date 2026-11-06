@@ -14,15 +14,6 @@ namespace LiteFramework.Animation
 
     /// <summary>
     /// Profile/Resolver：动画 ID、角色/武器配置、可用后端能力 → 已验证的状态/资源/通道/混合方案。
-    /// **只做解析，不做播放**——后端与业务都不认识"哪个 ID 对应哪个状态路径"。
-    ///
-    /// 校验纪律（不得到处散写参数字符串）：登记即校验，非法定义显性失败；
-    /// 回退链**限制深度**并禁止成环（限制回退深度，禁止环）。
-    /// 单片段与混合**各有一张 ID 表**（同 ID 不得两栖——解析形态会歧义，登记期即拒绝）；
-    /// 回退链只作用于单片段路径（混合形态不同，不做跨形态回退）。
-    /// **叠加层 Mask 排除子树**（通道之间的 Mask 由 Profile 固定）：遮罩默认由后端从骨架
-    /// 自动派生（人形部位位 + 非腿骨全收），Profile 只登记**按域排除**的子树（布料域骨——
-    /// 动画曲线与布料解算器争抢会让表现打架）。rig 特有知识与绑定同源，后端只消费不散写。
     /// </summary>
     public sealed class AnimationProfile
     {
@@ -93,9 +84,7 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// 登记回退关系（id 缺失时改用 fallback）。**成环在登记期即拒绝**；
-        /// **深度上限在解析期约束**（<see cref="TryFollowFallback"/> 最多走 <see cref="MaxFallbackDepth"/> 跳）——
-        /// 链长是随登记逐步生长的性质，单次登记看不到全貌，放在解析期才是可靠的守卫。
+        /// 登记回退关系（id 缺失时改用 fallback）。
         /// </summary>
         public AnimationProfile RegisterFallback(AnimationId id, AnimationId fallback)
         {
@@ -143,7 +132,7 @@ namespace LiteFramework.Animation
             resolved = default;
             rejectReason = AnimationStartResult.Reason.None;
 
-            // 字段校验先于定义查找：非法请求不该因为"刚好没定义"而报成 InvalidDefinition
+            // 字段校验先于定义查找：非法请求不该因为"刚好没定义"而报成 InvalidDefinition。
             if (!request.Id.IsValid) { rejectReason = AnimationStartResult.Reason.InvalidRequest; return false; }
             if (!IsFinite(request.Speed) || request.Speed <= 0f) { rejectReason = AnimationStartResult.Reason.InvalidRequest; return false; }
             if (!IsFinite(request.StartNormalized) || request.StartNormalized < 0f || request.StartNormalized > 1f)
@@ -153,7 +142,7 @@ namespace LiteFramework.Animation
             {
                 if (Policy == FallbackPolicy.UseFallback && TryFollowFallback(request.Id, out def))
                 {
-                    // 落到回退定义继续校验（速度区间按回退定义判）
+                    // 落到回退定义继续校验（速度区间按回退定义判）。
                 }
                 else
                 {
@@ -201,10 +190,7 @@ namespace LiteFramework.Animation
         public IReadOnlyCollection<AnimationBlendDefinition> BlendDefinitions => _blends.Values;
 
         /// <summary>
-        /// 解析混合请求 → 混合方案。与 <see cref="TryResolve"/> 同一纪律：**先字段校验再查定义**，
-        /// 非法请求不因"刚好没登记"报成 InvalidDefinition；缺定义为 InvalidDefinition（**不参与回退链**）。
-        /// **权重整组校验**（"不能只占一半"的解析面）：任一条不合法（长度与槽位数不符、非有限、负值、
-        /// 总和 ≤ 0 或溢出）即整组拒绝，不做部分接受。混合**不需要装载**——槽位绑定必须已可直接提交。
+        /// 解析混合请求 → 混合方案。
         /// </summary>
         public bool TryResolveBlend(in AnimationBlendRequest request, out AnimationResolvedBlend resolved,
             out AnimationStartResult.Reason rejectReason)

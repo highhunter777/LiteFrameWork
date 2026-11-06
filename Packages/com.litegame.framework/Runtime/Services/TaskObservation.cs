@@ -5,9 +5,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 根任务观测（《客户端架构重构演进路线图》§4.10：".Forget() 只允许带观测回调"）。
-    /// 产品代码用 <see cref="ForgetLogged(UniTask, string)"/> 取代裸 .Forget()：
-    /// 异常落 <see cref="LogTag.Task"/> 的 Error（含操作名），不再是静默丢弃。
-    /// 纯事件回包等外部边界仍可用带回调的 <c>.Forget(ex =&gt; ...)</c>。
     /// </summary>
     public static class TaskObservation
     {

@@ -1,4 +1,4 @@
-// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
+// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab。
 using UnityEngine;
 
 namespace LiteFramework.UI
@@ -31,7 +31,7 @@ namespace LiteFramework.UI
         private void Update()
         {
             if (!_playing || _rect == null) return;
-            // UIClock 步进（时停/暂停即停；未绑定退化真实帧）；角度取模防长跑精度漂移
+            // UIClock 步进（时停/暂停即停；未绑定退化真实帧）；角度取模防长跑精度漂移。
             _angle = Mathf.Repeat(_angle + DegreesPerSecond * UIAnimationClock.Delta, 360f);
             Apply();
         }

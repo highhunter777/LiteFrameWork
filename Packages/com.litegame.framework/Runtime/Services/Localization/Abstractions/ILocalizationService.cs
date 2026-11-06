@@ -5,9 +5,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 本地化查询端口（`Get/Format/Raw` 为目标接口——本类即其实现）。
-    ///
-    /// 与 <see cref="LocalizationCatalog"/> 的分工：目录是**数据**，本服务是**查询策略**
-    /// （当前 locale、缺 key 策略、复数选取、富文本转义）。
     /// </summary>
     public interface ILocalizationService
     {

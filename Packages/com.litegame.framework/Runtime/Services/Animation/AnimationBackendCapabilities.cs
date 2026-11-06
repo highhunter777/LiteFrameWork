@@ -4,9 +4,6 @@ namespace LiteFramework.Animation
 {
     /// <summary>
     /// 后端能力标记（缺失能力要"拒绝、回退或保持"三选一，**不能静默降级**）。
-    /// 单独成件：它是**跨层判据面**——播放器在提交前据此**逐通道**拒绝（<c>CapabilitiesAllow</c>），
-    /// 后端实现按真实构造结果声明（如叠加层 Mask 建不出来就不声明 <see cref="OverlayChannel"/>），
-    /// 测试据它断言"不静默降级"；接口定义（<see cref="IAnimationBackend"/>）不该被这份清单拖着走。
     /// </summary>
     [Flags]
     public enum AnimationBackendCapabilities

@@ -5,9 +5,7 @@ using UnityEngine;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// UI 运行时根与层级组装配（从 <see cref="UIService"/> 外提的"装配"域，M3-6 §4.5）：
-    /// 建 DDoL Root、按语义层名建组节点并分配深度、装输入底座（EventSystem）。
-    /// 只做构建、不持有后续状态；实例由服务持有。
+    /// UI 运行时根与层级组装配（从 <see cref="UIService"/> 外提的"装配"域，M3-6 §4.5）： 建 DDoL Root、按语义层名建组节点并分配深度、装输入底座（EventSystem）。
     /// </summary>
     internal static class UILayerGroupFactory
     {

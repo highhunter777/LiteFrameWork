@@ -14,8 +14,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 失效纪元（实现见 <see cref="LuaRegistry{T}"/>）：Fill 逐项递增、Clear 非空递增。
-        /// **只作读数与自检断言，不作失效判据**——逐项 Fill 也会递增（抖动），且消费方不应为此持有注册表依赖；
-        /// 界面逻辑失效一律走显式 `UIService.MarkLogicStale()`（运行期增量重填）。
         /// </summary>
         int Generation { get; }
     }

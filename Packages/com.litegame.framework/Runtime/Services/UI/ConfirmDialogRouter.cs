@@ -6,14 +6,6 @@ namespace LiteFramework.UI
 
     /// <summary>
     /// 确认框路由器：**先建口、后绑定实现**的可变槽（<see cref="IConfirmDialog"/> 的唯一产品实现）。
-    ///
-    /// 为什么需要：UI 段在装配序里早于装配根（Container），而确认框的真实现
-    /// （<c>FeedbackService.ConfirmAsync → DialogService</c>）由后段建。UI 段直接 <c>Require&lt;FeedbackService&gt;</c>
-    /// 会给模块依赖声明留下"UIService → Container"的反向边（启动期查不出的隐性依赖）；
-    /// 改为：UI 段**产出**本路由器，装配根在后段 <see cref="Bind"/> 真实现。
-    ///
-    /// **未绑定**：按取消返回 false，**只记一条 Warning**（不抛、不悬挂——Lua 回调照常收到 false；
-    /// 装配缺口可见但不阻断起服）。
     /// </summary>
     public sealed class ConfirmDialogRouter : IConfirmDialog
     {

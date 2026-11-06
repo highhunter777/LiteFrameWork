@@ -8,19 +8,7 @@ using UnityEngine;
 namespace LiteFramework
 {
     /// <summary>
-    /// 候选配置健康探针（《热更与内容发布专项设计》§8"健康确认至少覆盖候选 ConfigSnapshot…"；
-    /// §11"候选先解析与验证，再构造不可变 Snapshot"）。
-    ///
-    /// **核验的是"候选文件本身可解析"，不是"已切换成候选"**——健康确认发生在激活之后，
-    /// 但探针应能对**指定清单**独立作答，否则无法在激活前预检、也无法区分
-    /// "候选坏"与"激活过程坏"。
-    ///
-    /// 本探针做的检查（§11 的"schema、外键、资源键"中**可在此层做**的部分）：
-    /// ① 清单声明的配置项**全部存在且非空**；② **JSON 产物**（`.json`）可解析且根形态正确
-    /// （数组/对象之一，非裸标量）。非 JSON 产物（如 Luban 二进制表字节 `.bytes`）在此层只做
-    /// 存在与非空——**真正的反序列化校验归运行时配置加载器**（`ConfigService` 候选建表 +
-    /// `ValidateCandidate`），探针不重复解析假设。
-    /// 更深的表间外键与数值域校验依赖 Luban 生成的 schema，不在本探针覆盖范围。
+    /// 候选配置健康探针（《热更与内容发布专项设计》§8"健康确认至少覆盖候选 ConfigSnapshot…"； §11"候选先解析与验证，再构造不可变 Snapshot"）。
     /// </summary>
     public sealed class CandidateConfigHealthProbe : IHealthProbe
     {
@@ -103,19 +91,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 已发布资源的健康探针（§8"关键 UI/入口及其资源"）——**加载**而非仅存在性。
-    ///
-    /// 经 <see cref="IContentService"/> 租约通道获取并立即释放：走的是与运行时**同一条**加载路径，
-    /// 因此"能取到"本身就是有效证据；若走 AssetDatabase 直读则测不出运行时才会暴露的
-    /// 收集组/依赖/类型问题。
-    ///
-    /// **判据分两类**（靠 <see cref="IContentLocationCatalog"/> 区分；服务未实现该端口时全部按硬校验）：
-    /// - location **不在当前代次清单内**（如内置代次不含候选专属入口）→ **跳过**（不计失败，计入
-    ///   <see cref="LastSkipped"/>）——否则"内置启动"会被误判成失败；
-    /// - location **在清单内** → 必须加载成功（计入 <see cref="LastChecked"/>），失败即问题。
-    ///
-    /// **作用范围如实标注**：检查的是**当前代次**（= 已确认版本）的入口资源，
-    /// **不是候选内容**（候选尚未切换代次）。它验证"入口资源在真实加载路径上可用"，
-    /// 用于捕捉"更新后入口坏了"这类回归；候选专属的资源可加载性需激活后由健康确认覆盖。
     /// </summary>
     public sealed class AssetsHealthProbe : IHealthProbe
     {
@@ -150,7 +125,7 @@ namespace LiteFramework
             {
                 if (ct.IsCancellationRequested) return "入口资源检查已取消";
 
-                // 不属于当前代次 = 跳过（"内置代次没有候选专属入口"不是失败；属于但加载不出才是）
+                // 不属于当前代次 = 跳过（"内置代次没有候选专属入口"不是失败；属于但加载不出才是）。
                 if (catalog != null && !catalog.IsLocationValid(location))
                 {
                     LastSkipped++;
@@ -159,7 +134,7 @@ namespace LiteFramework
                 LastChecked++;
                 try
                 {
-                    // 走真实加载路径；取到即释放（不计入长期持有）
+                    // 走真实加载路径；取到即释放（不计入长期持有）。
                     using (AssetLease<GameObject> lease = await _content.AcquireAsync<GameObject>(location, default, ct))
                     {
                         if (lease == null || lease.Asset == null) problems.Add(location + "：取到空资产");

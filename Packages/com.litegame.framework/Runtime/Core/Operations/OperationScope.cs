@@ -23,14 +23,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 调用方拥有的一次操作上下文（《客户端依赖注入专项设计》§6.1）：
-    /// 同时持有<b>取消、超时、合并键、所有者与状态</b>，<see cref="Dispose"/> 释放链接令牌与计时器。
-    ///
-    /// **不注册进容器**——谁发起谁持有；作用域只提供统一语义，合并/拒绝由消费方按 <see cref="MergeKey"/> 自行裁决
-    /// （例：UI 打开按 formId 合并、导航按 kind+formId 串行）。
-    ///
-    /// **取消口径**（§6.1）：取消只约束"还没开始的步骤"；已开始的清理由消费方照常执行
-    /// （与 <c>ClientHost.ShutdownAsync</c> 同口径——令牌取消不等于跳过释放）。
+    /// 调用方拥有的一次操作上下文（《客户端依赖注入专项设计》§6.1）： 同时持有取消、超时、合并键、所有者与状态，<see cref="Dispose"/> 释放链接令牌与计时器。
     /// </summary>
     public sealed class OperationScope : IDisposable
     {

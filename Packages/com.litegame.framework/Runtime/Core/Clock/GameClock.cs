@@ -6,9 +6,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 时钟唯一实现(表现层,变步长——确定性归 Sim 的 FrameDriver,见回写 5)。
-    /// 纪律:单一缩放源——GameEntry 喂 unscaledDeltaTime,变速只发生在这里;
-    /// Unity Time.timeScale 保持 1 永不触碰(双缩放 = 0.2×0.2 = 0.04 事故)。
-    /// 暂停/变速的全部下游效果经 ScaledDelta 免费传导(调度器/时间轴/FSM)。
     /// </summary>
     public class GameClock : IGameClock
     {

@@ -3,10 +3,7 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 注册表填充报告：逐项 try/catch，单项失败记入继续，
-    /// 整批跑完后统一判定——<see cref="HasFailures"/> 非空 → 阻止进 Main、逐条 Log.Error。
-    /// reason 由填充方区分"未注册"（配置漏配）与"注册失败"（lua 炸了），两者排查方向完全不同。
-    /// 引擎无关（Core），xUnit 双轨可测。
+    /// 注册表填充报告：逐项 try/catch，单项失败记入继续， 整批跑完后统一判定——<see cref="HasFailures"/> 非空 → 阻止进 Main、逐条 Log.Error。
     /// </summary>
     public sealed class RegistryFillReport
     {

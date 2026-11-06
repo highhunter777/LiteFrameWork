@@ -6,8 +6,6 @@ namespace LiteFramework.UI
 
     /// <summary>
     /// 统一队列原语实现（唯一允许 <c>Queue&lt;T&gt;</c> 语义作为 UI 调度器的地方）。
-    /// 内部用 List 承载优先级插入：导航/转场容量小、全默认优先级，行为与 FIFO 完全一致；
-    /// 弹窗按优先级出队（高先出、同级 FIFO）。
     /// </summary>
     public sealed class UIOperationQueue<T> : IUIOperationQueue<T>
     {

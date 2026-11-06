@@ -4,17 +4,7 @@ using System.Threading;
 namespace LiteFramework
 {
     /// <summary>
-    /// 流程阶段基类：**进流程即建 CTS 并跑 `RunAsync`、离场即 Cancel + Dispose**
-    /// （子类只写 `RunAsync`，避免漏掉取消语义）。
-    ///
-    /// 构造时可传入宿主根令牌——阶段 CTS **链接**根令牌：宿主关闭时，
-    /// 在途流程异步与离场取消走同一条取消链。根取消 ≠ 离场：资源释放仍由 Scope 负责。
-    ///
-    /// 每次迁移的数据走 <typeparamref name="TReq"/> payload，编译期强类型。
-    ///
-    /// `RunAsync` 是 void 签名——Core 是 S2 契约层（零第三方实现依赖），引不了 UniTask；
-    /// 子类必须"一行转发"给 async 主体，**禁止 async void**（异常调用方接不住）。
-    /// 流程依赖不从 payload 取（那是服务定位器的变体）——依赖走构造注入存为本类字段。
+    /// 流程阶段基类：**进流程即建 CTS 并跑 `RunAsync`、离场即 Cancel + Dispose** （子类只写 `RunAsync`，避免漏掉取消语义）。
     /// </summary>
     public abstract class ProcedureStageBase<TId, TReq> : IStage<TId, TReq>
         where TId : struct
@@ -29,10 +19,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 宿主根取消令牌（子类只读口）。它把"**宿主关闭**"（关闭序第①步级联取消根令牌）与
-        /// "**阶段离场取消**"（<see cref="OnLeave"/> 取消本阶段 CTS——含被外部 <c>Request</c> 打断）
-        /// 两条路分开：收尾要在这两条路之间分流的子类读它裁决（`RootToken.IsCancellationRequested`
-        /// ＝宿主关闭；无根形态恒 false）。
+        /// 宿主根取消令牌（子类只读口）。
         /// </summary>
         protected CancellationToken RootToken => _rootToken;
 
@@ -40,7 +27,7 @@ namespace LiteFramework
 
         public void OnEnter(IStageHost<TId, TReq> m, in TReq req)
         {
-            // 链接根令牌：离场取消（本阶段 CTS）与宿主关闭（根）共用一条取消链；无根时退化为独立 CTS
+            // 链接根令牌：离场取消（本阶段 CTS）与宿主关闭（根）共用一条取消链；无根时退化为独立 CTS。
             _cts = _rootToken == default
                 ? new CancellationTokenSource()
                 : CancellationTokenSource.CreateLinkedTokenSource(_rootToken);

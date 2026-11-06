@@ -7,22 +7,6 @@ namespace LiteFramework.Animation
 {
     /// <summary>
     /// 叠加层 LayerMask 的构造工厂（《动画模块专项设计》§6"通道之间的 Mask、覆盖和混合关系由 Profile 固定"）。
-    ///
-    /// **自动派生**：
-    /// - humanoid 部位位：开 Body/Head/双臂/手指，关双腿与各 IK；<b>Root 位关闭</b>（Body 已含髋部，
-    ///   避免叠加层连根位移一起覆盖基础层）；
-    /// - transform 段：遍历动画机下整棵层级，**默认全部纳入**，仅三类不进——①动画机根自身（Root 位关闭）
-    ///   与人形根骨（Hips 的动画机直系祖先——根位移只归基础层，transform 项渗入会污染根运动）；
-    ///   ②Avatar 人形映射的**双腿子树**（<c>GetBoneTransform(LeftUpperLeg/RightUpperLeg)</c> 定根，
-    ///   部位位已把腿关在叠加层外，腿上补插骨一并排除）；③Profile 登记的**排除子树**（布料域骨——
-    ///   动画曲线与布料解算器争抢会让表现打架）。
-    ///
-    /// **为什么敢默认全收**：非人形映射骨（武器骨/补插骨等）对没有其曲线的片段是**惰性的**——
-    /// 多纳入不产生任何输出，少纳入才出"开火枪不动、前臂拧歪"这类静默失效；人形映射骨走部位位，
-    /// 其 transform 项对 humanoid 片段同样惰性（人形骨只存肌肉曲线，不存原始曲线）。rig 加骨/改名
-    /// 由此零维护。前提 <c>avatar != null &amp;&amp; avatar.isHuman</c>——否则返回 null（调用方据此
-    /// **不声明** <c>OverlayChannel</c>（叠加层能力位），Overlay 请求被显性拒绝，§4）。
-    /// 注意 <c>new AvatarMask()</c> 默认**全 false**——漏设即"叠加层无输出"的静默失效，故逐位显式设置。
     /// </summary>
     public static class OverlayMaskFactory
     {
@@ -79,7 +63,7 @@ namespace LiteFramework.Animation
             var paths = new List<string>();
             Walk(animator.transform, string.Empty, inLegSubtree: false, rootBone, legRoots, excludedPaths, paths);
 
-            // transform 段逐位显式激活（新 AvatarMask 全 false——与 humanoid 部位位同一"漏设即静默失效"约束）
+            // transform 段逐位显式激活（新 AvatarMask 全 false——与 humanoid 部位位同一"漏设即静默失效"约束）。
             mask.transformCount = paths.Count;
             for (int i = 0; i < paths.Count; i++)
             {

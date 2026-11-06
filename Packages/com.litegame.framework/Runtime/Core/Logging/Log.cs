@@ -7,13 +7,11 @@ namespace LiteFramework
     {
         public readonly LogLevel Level;
         // 本环境无 Environment.TickCount64(需 .NET Core 3.0+ / Unity 2021+),故用 TickCount。
-        // 它是有符号 int,约 24.9 天(2^31 毫秒)即变负——环形缓冲只留最近 32 条且仅用于开发期显示,
-        // 回绕/变负无实际影响。
         public readonly long Tick;       // Environment.TickCount(毫秒);显示层格式化,记录期零分配
         public readonly LogTag Tag;      // 词表见 LogTag(单源);None = 无。Message 不含 tag 前缀——HUD 自行格式化
         public readonly string Message;
 
-        // ---- 关联上下文（T1 日志关联批）：记录时快照，零分配（字符串引用 + 两个 int）----
+        // ---- 关联上下文（T1 日志关联批）：记录时快照，零分配（字符串引用 + 两个 int）----。
         public readonly string SessionId;   // 进程内会话标识（Log 启动时生成一次；空 = 未设）
         public readonly string MatchId;     // 对局标识（StartGame.MatchId；空 = 无对局）
         public readonly int Frame;          // 记录时的逻辑帧（0 = 未开局/未知）
@@ -29,8 +27,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 日志**兼容门面**（Serilog/NLog 式静态 host）：真实 owner 是 <see cref="ILog"/>/<see cref="LogService"/>。
-    /// 组合根调用 <see cref="Install"/> 安装实例；业务新代码应注入 <see cref="ILog"/>，静态工具/Lua/旧代码
-    /// 继续走本门面。B3 再按程序集 allowlist 收敛。
     /// </summary>
     public static partial class Log
     {

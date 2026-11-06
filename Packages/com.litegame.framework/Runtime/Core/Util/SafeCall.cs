@@ -3,10 +3,7 @@
 namespace LiteFramework
 {
     /// <summary>
-    /// 调用即防护（引擎无关）：包住"外部回调"——
-    /// 单个回调抛异常不得中断派发链（xLua 侧薄封装见 LiteFramework.EventBridge）。
-    /// 异常经 Log.Error 落地，调用方存活。
-    /// 仅用于低频入口；每帧热路径不走 try/catch。
+    /// 调用即防护（引擎无关）：包住"外部回调"—— 单个回调抛异常不得中断派发链（xLua 侧薄封装见 LiteFramework.EventBridge）。
     /// </summary>
     public static class SafeCall
     {
@@ -31,9 +28,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 成败可判的调用（无返回值）：异常同样被隔离并记录，但调用方拿得到"这一步失败了"——
-        /// 用于**必须能回滚**的编排步骤（如 UI 首次打开 OnInit/OnShow 失败要清理半成品），
-        /// 避免用返回值伪造成功（"Active + 空逻辑"伪装）。
+        /// 成败可判的调用（无返回值）：异常同样被隔离并记录，但调用方拿得到"这一步失败了"—— 用于**必须能回滚**的编排步骤（如 UI 首次打开 OnInit/OnShow 失败要清理半成品）。
         /// </summary>
         public static bool TryInvoke(Action call, string where)
         {

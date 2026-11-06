@@ -34,17 +34,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 候选内容校验（只下载固定 Release 的不可变文件；
-    /// 文件完整性对实际原始字节计算完整 SHA-256）。
-    ///
-    /// **这是信任链的执行侧**：<see cref="ReleaseManifestValidator"/> 只校验描述的**字段形态**
-    /// （路径合法、长度非负、摘要形状），从不读文件字节；本类负责把清单与**落盘内容**对上——
-    /// 逐文件复算摘要、核对长度、并检出清单与目录的双向差异。
-    ///
-    /// 顺序（先验证描述再依据可信描述计划下载）：调用方必须先通过
-    /// <see cref="ReleaseManifestValidator.Validate"/> 再调用本类——**未验证的清单不可作为下载依据**。
-    ///
-    /// 本类纯规则 + IO 端口，零 Unity 依赖，L1 全覆盖。
+    /// 候选内容校验（只下载固定 Release 的不可变文件； 文件完整性对实际原始字节计算完整 SHA-256）。
     /// </summary>
     public static class CandidateContentVerifier
     {
@@ -54,9 +44,6 @@ namespace LiteFramework
         /// <param name="manifest">**已通过 <see cref="ReleaseManifestValidator"/> 的**清单。</param>
         /// <param name="source">候选根文件访问端口。</param>
         /// <param name="declaredPaths">
-        /// 候选根下实际存在的文件路径集合（相对路径，正斜杠）。
-        /// **为 null 表示调用方不支持目录枚举**——此时跳过"清单外杂散文件"检查，
-        /// 但**摘要复算仍然执行**（摘要复算是不可省的核心检查）。
         /// </param>
         /// <param name="ct">取消；已在循环边界检查。</param>
         public static CandidateVerifyResult Verify(
@@ -74,7 +61,7 @@ namespace LiteFramework
             int verifiedFiles = 0;
             long verifiedBytes = 0;
 
-            // 复用单个 Hasher：批量校验避免每文件一次 SHA256.Create()（ContentHash.Hasher 的设计意图）
+            // 复用单个 Hasher：批量校验避免每文件一次 SHA256.Create()（ContentHash.Hasher 的设计意图）。
             using (var hasher = new ContentHash.Hasher())
             {
                 foreach (ReleaseFileEntry entry in files)
@@ -89,7 +76,7 @@ namespace LiteFramework
                             new DownloadFailureInfo(DownloadFailureKind.FileMissing, entry.Path),
                             verifiedFiles, verifiedBytes);
 
-                    // 长度先于摘要：廉价且能立刻拒掉截断/超长，避免为大文件白算一遍摘要
+                    // 长度先于摘要：廉价且能立刻拒掉截断/超长，避免为大文件白算一遍摘要。
                     if (file.Length != entry.Length)
                         return CandidateVerifyResult.Fail(
                             new DownloadFailureInfo(DownloadFailureKind.LengthMismatch, entry.Path,
@@ -102,14 +89,14 @@ namespace LiteFramework
                             new DownloadFailureInfo(DownloadFailureKind.ReadError, entry.Path, detail: "读取返回空"),
                             verifiedFiles, verifiedBytes);
 
-                    // 端口自报长度可能与实读不符（假件实现错误/文件被并发改写）——以实读为准再核一次
+                    // 端口自报长度可能与实读不符（假件实现错误/文件被并发改写）——以实读为准再核一次。
                     if (bytes.LongLength != entry.Length)
                         return CandidateVerifyResult.Fail(
                             new DownloadFailureInfo(DownloadFailureKind.LengthMismatch, entry.Path,
                                 expected: entry.Length.ToString(), actual: bytes.LongLength.ToString()),
                             verifiedFiles, verifiedBytes);
 
-                    // 复算摘要（原始字节，不做任何换行归一化）
+                    // 复算摘要（原始字节，不做任何换行归一化）。
                     string actual = hasher.ComputeHex(bytes);
                     if (!ContentHash.HexEquals(actual, entry.Sha256))
                         return CandidateVerifyResult.Fail(
@@ -123,8 +110,6 @@ namespace LiteFramework
             }
 
             // 清单外文件检查（双向差异的"多"一侧）：防多源拼接/残留污染把未声明内容带进候选根。
-            // 大小写按 OrdinalIgnoreCase 比较——Windows 文件系统不区分大小写，
-            // 清单声明的 "a.lua" 与落盘的 "A.lua" 在真实平台上无法区分，必须按同一口径判定重复/杂散。
             if (declaredPaths != null)
             {
                 var expected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -149,8 +134,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 检出清单自身的路径重复（大小写/分隔符规范化后同名）。
-        /// <see cref="ReleaseManifestValidator"/> 已做**精确**重复检查；本方法补上平台归一化口径——
-        /// 清单里同时声明 "a/b.lua" 与 "A/B.lua" 在 Windows 上是同一个文件，会让一份候选覆盖另一份。
         /// </summary>
         public static bool TryFindDuplicatePath(ReleaseManifest manifest, out string duplicated)
         {

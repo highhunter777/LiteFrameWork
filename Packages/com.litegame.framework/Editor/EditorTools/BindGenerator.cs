@@ -43,7 +43,7 @@ namespace LiteCodeGen.EditorTools
                 return false;
             }
 
-            // 1. 收集标记并校验
+            // 1. 收集标记并校验。
             var errors = new List<string>();
             var marks = BindSearch.Search(rootObject.transform, errors);
 
@@ -79,7 +79,7 @@ namespace LiteCodeGen.EditorTools
                 return false;
             }
 
-            // 2. 写文件
+            // 2. 写文件。
             var mainPath = folder + "/" + className + ".cs";
             var designerPath = folder + "/" + className + ".Designer.cs";
 
@@ -113,7 +113,7 @@ namespace LiteCodeGen.EditorTools
 
             if (mainChanged || designerChanged)
             {
-                // 3a. 内容有变化:等编译完成后自动回填
+                // 3a. 内容有变化:等编译完成后自动回填。
                 if (prefabPath != null)
                 {
                     BindPostCompile.AddPrefab(prefabPath, ns, className, ancestorChain);
@@ -130,7 +130,7 @@ namespace LiteCodeGen.EditorTools
             }
             else
             {
-                // 3b. 内容没变化:直接回填
+                // 3b. 内容没变化:直接回填。
                 string error;
                 var ok = prefabPath != null
                     ? BindSerializer.TryFillPrefabAsset(prefabPath, ancestorChain, ns, className, out error)
@@ -146,7 +146,7 @@ namespace LiteCodeGen.EditorTools
                 }
             }
 
-            // 首次生成逻辑文件时打开它,方便直接写逻辑
+            // 首次生成逻辑文件时打开它,方便直接写逻辑。
             if (mainChanged)
             {
                 var mainAsset = AssetDatabase.LoadAssetAtPath<MonoScript>(mainPath);
@@ -159,7 +159,7 @@ namespace LiteCodeGen.EditorTools
             return true;
         }
 
-        // ---------------- 工具 ----------------
+        // ---------------- 工具 ----------------。
 
         private static string NormalizeSlash(string s)
         {
@@ -198,10 +198,7 @@ namespace LiteCodeGen.EditorTools
         }
 
         /// <summary>
-        /// 判断当前根节点属于哪个目标:
-        /// 1. prefab 资产本身 → 返回资产路径;
-        /// 2. prefab 编辑模式下 → 先落盘,再返回资产路径;
-        /// 3. 普通场景对象 → 返回 null(走 scene 流程)。
+        /// 判断当前根节点属于哪个目标。
         /// </summary>
         private static string GetPrefabTargetPath(GameObject go)
         {
@@ -222,7 +219,7 @@ namespace LiteCodeGen.EditorTools
             {
                 try
                 {
-                    // 把 Prefab 编辑模式下当前内容先落盘,确保编译后回填读到最新标记
+                    // 把 Prefab 编辑模式下当前内容先落盘,确保编译后回填读到最新标记。
                     var contentsRoot = stage.prefabContentsRoot;
                     if (contentsRoot != null)
                     {

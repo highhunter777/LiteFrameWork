@@ -6,15 +6,7 @@ using LiteFramework;
 namespace LiteFramework
 {
     /// <summary>
-    /// 内容激活器（§8 安全窗口）。把 <see cref="IContentService"/> 的重建能力接到编排端口。
-    ///
-    /// **本实现的能力边界（如实标注）**：
-    /// - <see cref="RebuildConfirmedAsync"/> 走 <c>ShutdownAsync</c> + <c>InitializeAsync</c>——
-    ///   即"释放旧运行时后重建"（§8"首版不具备版本并存证明时，释放旧运行时后使用候选重建"）。
-    /// - <see cref="ActivateAsync"/> 本身**不重建**：代次推进由 <see cref="IGenerationSink"/> 在
-    ///   健康确认后统一执行（见 <c>PatchCoordinator</c>）。此处只留安全窗口钩子——
-    ///   未来的 Match/Scene/UI Scope 退出与在途取消接在这里（§8"停止接受受影响的新操作，
-    ///   退出相关 Scope，取消在途请求，解除旧 Lua 回调和资源引用"）。
+    /// 内容激活器（§8 安全窗口）。
     /// </summary>
     public sealed class ContentActivator : IContentActivator
     {
@@ -37,18 +29,14 @@ namespace LiteFramework
 
         public async UniTask RebuildConfirmedAsync(ContentGeneration confirmed, CancellationToken ct = default)
         {
-            // 释放旧运行时 → 重新初始化（§8"从允许的 Confirmed 版本重建，不使用半成品"）
+            // 释放旧运行时 → 重新初始化（§8"从允许的 Confirmed 版本重建，不使用半成品"）。
             await _content.ShutdownAsync(ct);
             await _content.InitializeAsync(ct);
         }
     }
 
     /// <summary>
-    /// 补丁运行的编排器（§4 流程图）。把"取候选 → 验描述 → 交给 <see cref="PatchCoordinator"/>"串起来。
-    ///
-    /// **信任顺序不可颠倒**（§6"先验证描述的结构/预算与签名，再依据可信描述计划下载"）：
-    /// 候选**必须先过 <see cref="ReleaseManifestValidator"/>**，未通过则根本不进入编排——
-    /// 编排的输入契约正是"已通过校验的清单"。
+    /// 补丁运行的编排器（§4 流程图）。
     /// </summary>
     public sealed class PatchRunner
     {
@@ -61,15 +49,12 @@ namespace LiteFramework
         private readonly Func<ReleaseManifest, SpaceCheckRequest> _spaceRequestFactory;
         private readonly Func<ReleaseManifest, DownloadPlan> _planFactory;
 
-        /// <param name="verifierResolver">
+        /// <summary>
         /// 清单 KeyId → 验签器（受信公钥库的解析接缝，§6"对应 TrustedKeyRing"）。
-        /// 返回 null = keyId 未登记/已撤销 → 校验器按 <see cref="ReleaseRejectReason.UnknownOrRevokedKey"/>
-        /// 拒绝（fail-closed——语义即"未登记/已撤销"，与单验签器形态的 null 语义一致）。
+        /// </summary>
+        /// <param name="verifierResolver">
         /// </param>
         /// <param name="planFactory">
-        /// 下载计划工厂（清单 → 计划；**来源拓扑的唯一装配口**）：CDN 通道传"真实部署基址源"
-        /// （与 <c>HttpCandidateFetcher</c> 同一套 <see cref="DownloadSource"/>）。null = 本地通道
-        /// 默认计划（<c>LocalDirectoryCandidateFetcher</c> 只清点落盘、不消费来源）。
         /// </param>
         public PatchRunner(
             ICandidateProvider provider,
@@ -113,12 +98,6 @@ namespace LiteFramework
                 }
 
                 // §6 信任门：描述未过校验的候选**不得**进入编排。
-                //
-                // 验签器按清单 KeyId 从受信公钥库解析（§6"签名公钥标识（对应 TrustedKeyRing）"）：
-                // 未登记/已撤销 → 解析为 null → 校验器按 UnknownOrRevokedKey 拒（fail-closed）。
-                // 反回退基线取**已确认的发布修订**（非代次）——`ConfirmedRevision` 与 `ConfirmedVersion`
-                // 语义不同，前者才是 §6 说的"已确认修订"。该字段未并入完整性摘要（见 ActivationRecord 注释），
-                // 故它只提高拒绝门槛、不是安全边界；重放防护由签名与发布修订单调性共同承担。
                 ReleaseVerdict verdict = ReleaseManifestValidator.Validate(
                     offer.Manifest, offer.SignedBytes, offer.Signature,
                     _verifierResolver(offer.Manifest.KeyId), _player,

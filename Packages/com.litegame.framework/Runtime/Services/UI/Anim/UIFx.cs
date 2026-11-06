@@ -6,12 +6,7 @@ using UnityEngine.UI;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 动效原语句柄（《动画模块专项设计》§14 原语复位清单 + 《UI框架总设计》§6.3 复位契约）：
-    /// 原语被中断时**属性必须复位**——本仓 DOTween 的 <c>OnKill</c> 不触发，
-    /// 故复位不挂 kill 钩子，而由持有者经本句柄显式收尾：四原语的**完成态即基线**
-    /// （Pulse 呼吸回原 alpha、Flash 回原色、Slide 回原位、CountUp 到目标文本），
-    /// 因此 <see cref="Stop(true)"/>（先 Complete 跳终值再 Kill）即复位；
-    /// <see cref="Stop(false)"/> 停在半途不保证复位（调用方自担）。
+    /// 动效原语句柄（《动画模块专项设计》§14 原语复位清单 + 《UI框架总设计》§6.3 复位契约）： 原语被中断时**属性必须复位**——本仓 DOTween 的 <c>OnKill</c> 不触发。
     /// </summary>
     public sealed class UIFxHandle : IDisposable
     {
@@ -51,10 +46,6 @@ namespace LiteFramework.UI
 
     /// <summary>
     /// 动效原语库（动效设计方案 附 A.1 的实现件）：**全项目唯一碰 DOTween 的地方**。
-    /// **UIClock 轨**：SetUpdate(UpdateType.Manual, true)（经 DotweenUIClockDriver 按 UIClock
-    /// 派发——时停不停、暂停即停）；
-    /// SetLink(KillOnDisable) = 目标禁用即杀（防泄漏）；原语同步返回句柄、不携带任何判定。
-    /// 句柄语义见 <see cref="UIFxHandle"/>（中断复位由持有者显式收尾——OnKill 不触发）。
     /// </summary>
     public static class UIFx
     {

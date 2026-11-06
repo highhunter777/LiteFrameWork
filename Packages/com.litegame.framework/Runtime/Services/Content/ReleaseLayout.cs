@@ -4,14 +4,7 @@ using LiteFramework;
 namespace LiteFramework
 {
     /// <summary>
-    /// 发布布局约定（《热更与内容发布专项设计》§7/§8 的单源——探针装配与候选校验共用，
-    /// "哪些清单文件是配置/脚本/资产包"属发布约定，不散写）。
-    ///
-    /// 候选根布局：`config/**`（Luban 表字节）+ `lua/**.lua`（热更脚本）+ `bundle/**`
-    /// （**资产包根镜像**：YooAsset 包根的版本/清单/Bundle 文件，`bundle/` 本身即一个包根）。
-    /// Lua 模块名 = **require 名**（剥 `lua/` 前缀与 `.lua` 后缀、`/` 归一化为 `.`）——与 Lua 源码
-    /// `require("UI.Page_Login")` 及候选沙箱的 require 匹配同一口径；<c>LuaPreloader</c> 的斜杠键是
-    /// loader 内部缓存键（loader 做 '.'→'/' 转换），不是模块名约定。
+    /// 发布布局约定（《热更与内容发布专项设计》§7/§8 的单源——探针装配与候选校验共用， "哪些清单文件是配置/脚本/资产包"属发布约定，不散写）。
     /// </summary>
     public static class ReleaseLayout
     {

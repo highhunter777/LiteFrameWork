@@ -60,7 +60,7 @@ namespace LiteCodeGen.EditorTools
                 return;
             }
 
-            // 先清空,避免失败后反复在 reload 里重入
+            // 先清空,避免失败后反复在 reload 里重入。
             Save(new BindPendingQueue());
 
             foreach (var item in queue.Items)
@@ -115,7 +115,7 @@ namespace LiteCodeGen.EditorTools
             }
             finally
             {
-                // 2022.3 没有 PrefabUtility.SavePrefabContents,用 SaveAsPrefabAsset + Unload 组合
+                // 2022.3 没有 PrefabUtility.SavePrefabContents,用 SaveAsPrefabAsset + Unload 组合。
                 PrefabUtility.SaveAsPrefabAsset(contentsRoot, item.PrefabPath);
                 PrefabUtility.UnloadPrefabContents(contentsRoot);
             }
@@ -163,7 +163,7 @@ namespace LiteCodeGen.EditorTools
             }
             else
             {
-                // 同名多个:用名字链区分
+                // 同名多个:用名字链区分。
                 foreach (var c in candidates)
                 {
                     if (NamesMatch(c, item.AncestorNames))
@@ -218,7 +218,7 @@ namespace LiteCodeGen.EditorTools
                 return null;
             }
 
-            // prefab 内容根本身就是目标(最常见)
+            // prefab 内容根本身就是目标(最常见)。
             var rootMark = top.GetComponent<BindRoot>();
             if (rootMark != null &&
                 string.Equals(rootMark.ScriptName, item.ClassName, StringComparison.Ordinal) &&
@@ -268,7 +268,7 @@ namespace LiteCodeGen.EditorTools
                 return false;
             }
 
-            // 从 node 向上收集到场景根,与存储的链比对(允许 node 是链上任意一层:统一按链末比)
+            // 从 node 向上收集到场景根,与存储的链比对(允许 node 是链上任意一层:统一按链末比)。
             var chain = new List<string>();
             var cur = node;
             while (cur != null)
@@ -284,7 +284,7 @@ namespace LiteCodeGen.EditorTools
                 return false;
             }
 
-            // 允许 node 位于存储链的更深处(例如存储链是场景根→生成根,node 是生成根)
+            // 允许 node 位于存储链的更深处(例如存储链是场景根→生成根,node 是生成根)。
             var offset = chain.Count - names.Length;
             for (var i = 0; i < names.Length; i++)
             {

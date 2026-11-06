@@ -6,16 +6,7 @@ using UnityEngine;
 namespace LiteFramework
 {
     /// <summary>
-    /// 应用生命周期桥（ClientHost 责任"处理 OnApplicationPause/Focus/Quit、
-    /// 低内存…"）：Unity 平台消息 → <see cref="ClientHost"/> 的转发器与优雅退出的宿主端执行者。
-    ///
-    /// 职责边界：本件只做"桥"——不含任何业务/模块逻辑；ClientHost 是纯 C#（L1 可测），
-    /// UnityEngine.Application/quitting 语义在此翻译成 Host 事件。
-    ///
-    /// 退出序列（关闭前刷新设置、存档、遥测和崩溃前最后日志）：
-    /// <c>OnApplicationQuit → 停止 Host 新事件 → QuitIntent 收集 → 刷新钩子 → 逆序 ShutdownAsync
-    /// → 完成或超时后放行退出</c>。超时保底：退出不能被单个挂死的模块无限拖住（Unity 退出在主线程等
-    /// <see cref="GracefulShutdownMaxMs"/> 后放行）。
+    /// 应用生命周期桥（ClientHost 责任"处理 OnApplicationPause/Focus/Quit。）。
     /// </summary>
     public sealed class AppLifetime : MonoBehaviour
     {
@@ -38,9 +29,7 @@ namespace LiteFramework
         private void OnDisable() => Application.wantsToQuit -= OnWantsToQuit;
 
         /// <summary>
-        /// 退出闸门：**先拦下退出**（主循环仍在跑 ⇒ 关闭链的 UniTask 续体可推进），
-        /// 异步关闭完成后置放行标志并再次 <see cref="Application.Quit"/>——这次直接放行。
-        /// 编辑器停播不走此路（`Application.Quit` 在编辑器不生效）——由 <see cref="OnDestroy"/> 兜底。
+        /// 退出闸门：**先拦下退出**（主循环仍在跑 ⇒ 关闭链的 UniTask 续体可推进）， 异步关闭完成后置放行标志并再次 <see cref="Application.Quit"/>——这次直接放行。
         /// </summary>
         private bool OnWantsToQuit()
         {
@@ -157,7 +146,7 @@ namespace LiteFramework
             }
             catch (Exception)
             {
-                // 退出路径异常不向上抛（Host 已在内部聚合 ShutdownFailures；此处只保证不阻塞退出）
+                // 退出路径异常不向上抛（Host 已在内部聚合 ShutdownFailures；此处只保证不阻塞退出）。
             }
         }
 

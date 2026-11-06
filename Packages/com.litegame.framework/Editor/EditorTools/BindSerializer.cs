@@ -119,7 +119,7 @@ namespace LiteCodeGen.EditorTools
                 }
                 catch
                 {
-                    // 部分程序集在编辑器里 GetType 可能抛异常,忽略继续
+                    // 部分程序集在编辑器里 GetType 可能抛异常,忽略继续。
                 }
 
                 if (t != null)
@@ -165,7 +165,7 @@ namespace LiteCodeGen.EditorTools
             }
             finally
             {
-                // 2022.3 没有 PrefabUtility.SavePrefabContents,用 SaveAsPrefabAsset + Unload 组合
+                // 2022.3 没有 PrefabUtility.SavePrefabContents,用 SaveAsPrefabAsset + Unload 组合。
                 PrefabUtility.SaveAsPrefabAsset(contentsRoot, prefabPath);
                 PrefabUtility.UnloadPrefabContents(contentsRoot);
             }
@@ -217,14 +217,14 @@ namespace LiteCodeGen.EditorTools
                 return comp;
             }
 
-            // 手动指定绑定为 GameObject 类型时,引用节点自身
+            // 手动指定绑定为 GameObject 类型时,引用节点自身。
             var typeName = mark.Bind.ResolvedTypeName;
             if (typeName == "GameObject" || typeName == "UnityEngine.GameObject")
             {
                 return mark.Bind.gameObject;
             }
 
-            // 组件解析失败交给上层报错,避免把错误类型塞进字段
+            // 组件解析失败交给上层报错,避免把错误类型塞进字段。
             return null;
         }
     }

@@ -5,9 +5,7 @@ using UnityEngine;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// UI prefab 租约（《UI框架总设计》§5.2 资源租约与缓存——Unity 对象引用不能代替包引用计数）：
-    /// UI loader 返回**可释放句柄**，与客户端 IContentService 对齐——实例持租约到真正销毁
-    /// （缓存实例也算使用者），禁止"返回对象前 Release 句柄"（Player 加载即悬空引用）。
+    /// UI prefab 租约（《UI框架总设计》§5.2 资源租约与缓存——Unity 对象引用不能代替包引用计数）： UI loader 返回**可释放句柄**。
     /// </summary>
     public interface IUIPrefabLease
     {

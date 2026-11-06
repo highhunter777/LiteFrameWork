@@ -5,29 +5,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 泛型实例池（**机制件**：自研替代 UnityEngine.Pool.ObjectPool）。
-    /// 与静态 <see cref="ReferencePool"/> 的分工：纯数据对象（无创建/回收回调需求）走 ReferencePool 按类型池化；
-    /// 带生命周期回调的实例（Buff、技能实例、GameObject 适配等）走本池（实例化后 DI 注册或由工厂持有）。
-    ///
-    /// 契约（所有权移交制）：
-    /// - Acquire 得到的对象状态未定义，调用方必须完成初始化后使用；
-    /// - **Release 即移交所有权**——调用方归还后禁止再持引用；挂载物清理遵循"谁挂谁清"（对象实现
-    ///   <see cref="IPoolable"/> 时，OnDespawn 是生命周期容器的执行点）；
-    /// - **池满（空闲数达 maxIdle）归还**：DropNewest 销毁新归还件 / EvictOldest 淘汰队首最旧——
-    ///   不自动扩容（调 maxIdle 是配置不是运行时行为）；
-    /// - 重复归还为 UB：Debug（三宏并集）下抛，release 信任 Debug 全绿；
-    /// - 主线程 only（框架约定）。
-    /// **调用顺序（回调与可选接口 IPoolable 共存，职责分层）**：
-    /// - Acquire：空闲件先过 validateOnAcquire（验证失败即销毁、计 Invalidated，**先于** onGet/OnSpawn）→
-    ///   onGet（池策略）→ OnSpawn（对象自初始化）；
-    /// - Release：OnDespawn（对象自清理）→ onRelease（池策略）→ 空闲已满则按淘汰策略走 onDestroy；
-    /// - Trim/Clear/TrimExpired 销毁的是空闲对象（Release 时已 OnDespawn），只走 onDestroy，**不会二次 OnDespawn**。
-    ///
-    /// 统计口径与 ReferencePool 一致（Created/Acquired/Released/Unused/Using/PeakUnused/Dropped，
-    /// 另有 PoolHits/Evicted/Invalidated——Misses = Acquired − PoolHits 不另建键）；
-    /// 计数器不做条件编译——本类作为实例件无条件实现 IModuleStats（HUD 数据源），自增开销可忽略。
-    ///
-    /// **零时钟纪律**：内核不持有任何时钟——空闲过期收缩（<see cref="TrimExpired"/>）由消费方驱动，
-    /// 时刻只从调用方进入（Release/Preload 的可选 nowMs），同 FrameDriver 模式；不自动跑、无后台 Tick。
     /// </summary>
     public sealed class ObjectPool<T> : IModuleStats where T : class
     {
@@ -83,10 +60,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 取对象；空池则 create。空闲件先过 validateOnAcquire（验证失败即销毁、计 Invalidated、继续取下一件，
-        /// 池空转 create）——**验证在 onGet/OnSpawn 之前**（验证的是空闲件；被销毁件只走 onDestroy，与 Trim 同口径）。
-        /// 验证回调抛异常：记日志、销毁该件、继续取下一件（作者代码缺陷不阻塞池可用性）。
-        /// onGet（池策略）→ OnSpawn（对象自初始化）。OnSpawn 抛异常 → 销毁并回滚账目，异常传播。
+        /// 取对象；空池则 create。
         /// </summary>
         public T Acquire()
         {
@@ -162,9 +136,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 归还。流程：重复归还校验（Debug）→ OnDespawn（对象自清理，**作者代码，抛异常则销毁不入池污染**）→
-        /// onRelease（池策略，同前保护）→ 空闲已满则按淘汰策略走 onDestroy，否则入池。
-        /// nowMs：入池时刻（消费方时钟域，供 <see cref="TrimExpired"/> 按龄收缩；不用过期收缩的调用方不传）。
+        /// 归还。
         /// </summary>
         public void Release(T obj, long nowMs = 0)
         {
@@ -198,7 +170,7 @@ namespace LiteFramework
             {
                 if (_eviction == PoolEviction.EvictOldest && _idle.Count > 0)
                 {
-                    // 淘汰队首最旧空闲件（走 onDestroy、计 Evicted），新归还件入池——热点件不被反复重建
+                    // 淘汰队首最旧空闲件（走 onDestroy、计 Evicted），新归还件入池——热点件不被反复重建。
                     EvictedCount++;
                     RunOnDestroy(_idle.Dequeue());
                     _idleAtMs.Dequeue();
@@ -242,9 +214,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 按龄收缩（消费方驱动——时刻只从调用方进入，内核零时钟纪律）：从队首（最旧）销毁空闲时长
-        /// **超过** maxIdleMs 的件，返回裁剪数。与 <see cref="Trim"/>（按量）互补：本方法按龄消灭
-        /// "峰值后池常驻"。不自动跑、无后台 Tick。
+        /// 按龄收缩（消费方驱动——时刻只从调用方进入，内核零时钟纪律）：从队首（最旧）销毁空闲时长 **超过** maxIdleMs 的件，返回裁剪数。
         /// </summary>
         public int TrimExpired(long nowMs, long maxIdleMs)
         {
@@ -273,7 +243,7 @@ namespace LiteFramework
             _onDestroy?.Invoke(obj);
         }
 
-        // ---- IModuleStats（HUD 数据源）----
+        // ---- IModuleStats（HUD 数据源）----。
 
         string IModuleStats.StatsName => _statsName;
 

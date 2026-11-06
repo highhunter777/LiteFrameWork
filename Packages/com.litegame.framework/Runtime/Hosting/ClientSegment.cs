@@ -31,9 +31,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 模块装配窗口（路线图 §4.3）：<see cref="IClientSegment.InitializeAsync"/> 唯一的登记面。
-    /// 每个模块拿到自己的窗口——只有窗口开启期间允许 <see cref="Put{T}"/>；Host 在该模块初始化返回后
-    /// 立即关窗（成功/失败/取消/异步续体晚到一律拒绝），全部模块成功后密封全局装配面。
-    /// 运行期只读（<see cref="Require{T}"/>/<see cref="Get{T}"/>），不提供新增注册。
     /// </summary>
     public sealed class SegmentContext
     {

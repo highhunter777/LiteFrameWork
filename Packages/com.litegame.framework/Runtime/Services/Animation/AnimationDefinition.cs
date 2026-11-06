@@ -19,9 +19,7 @@ namespace LiteFramework.Animation
         public readonly bool RequiresLoad;
 
         /// <summary>
-        /// 自然完成后**保持末帧**（不停止播放、不停用通道）——死亡帧锁定等终态语义；
-        /// 仅对非循环定义有意义（循环不会自然 Completed）。默认 false（完成即收口停机，既有口径）。
-        /// 保持期间后续同通道提交仍走通道仲裁替换。
+        /// 自然完成后**保持末帧**（不停止播放、不停用通道）——死亡帧锁定等终态语义； 仅对非循环定义有意义（循环不会自然 Completed）。
         /// </summary>
         public readonly bool HoldOnFinish;
 

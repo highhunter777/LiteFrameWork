@@ -7,10 +7,7 @@ using UnityEngine.Playables;
 namespace LiteFramework.Animation
 {
     /// <summary>
-    /// 通道上的一个节点（当前/尾部共用同一表示）：**单片段**（<see cref="AnimationClipPlayable"/>）或
-    /// **同通道多片段混合**（普通 <see cref="AnimationMixerPlayable"/>：无 Mask、纯权重）。
-    /// 两者都能直接作为分层混合器的输入（<see cref="Root"/>），因此通道机制（让位 / 淡入淡出 / 回收）
-    /// 对两种形态一视同仁——这也是"普通混合器"不必再建一套通道状态的原因。
+    /// 通道上的一个节点（当前/尾部共用同一表示）：**单片段**（<see cref="AnimationClipPlayable"/>）或 **同通道多片段混合**（普通 <see cref="AnimationMixerP。
     /// </summary>
     internal struct ChannelNode
     {
@@ -82,9 +79,6 @@ namespace LiteFramework.Animation
 
     /// <summary>
     /// 单通道运行态（§6"每通道最多一个当前播放"）：当前节点 + 至多一条混合尾部。
-    /// 基础层的尾部在**上层**淡出（1→0）；上层通道的尾部在**下层**保持（权重 1）而
-    /// 当前节点从 0 淡入——两种角色共用同一对（当前层 / 尾部层）槽位，节点数恒定。
-    /// 断开连线与销毁节点在此收口（权重推进见 <see cref="ChannelBlendAdvance"/>）。
     /// </summary>
     internal sealed class ChannelState
     {

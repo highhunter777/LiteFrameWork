@@ -6,11 +6,7 @@ using Cysharp.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// 单项健康探针：健康确认至少覆盖候选 ConfigSnapshot、Lua/main、
-    /// 全部必需注册表、关键 UI/入口及其资源。
-    ///
-    /// **一项一个探针**（而非一个万能探针）：设计逐项列举了覆盖范围，
-    /// 合并成一个"全都检查"的接口会让失败无法定位到具体项。
+    /// 单项健康探针：健康确认至少覆盖候选 ConfigSnapshot、Lua/main、 全部必需注册表、关键 UI/入口及其资源。
     /// </summary>
     public interface IHealthProbe
     {

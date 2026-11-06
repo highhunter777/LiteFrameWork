@@ -7,17 +7,7 @@ using UnityEngine.Networking;
 namespace LiteFramework
 {
     /// <summary>
-    /// CDN 信封提供者（《热更与内容发布专项设计》§7"各源必须提供同一摘要文件"）：
-    /// 从部署基址取候选信封 <c>{baseUrl}/{offerPath}</c>，交 <see cref="SignedManifestEnvelope.Parse"/>
-    /// 解析——**提供方不代判可信**，签名/预算/兼容判定仍在 <c>ReleaseManifestValidator</c>（§6 信任门）。
-    ///
-    /// **结果语义（与 <see cref="FileSystemCandidateProvider"/> 逐条对齐）**：
-    /// - HTTP 404 = 发布点无候选（= 本地信封文件不存在）→ 空提案（IsEmpty），调用方按
-    ///   "以已确认版本继续"处理；
-    /// - 2xx 但信封畸形 = 解析返回空提案（Parse 的既有契约："畸形信封 = 无候选（不抛、不代判）"）；
-    /// - **网络错/5xx/超时 = 抛出**——"查不到"与"没有"是两回事，网络故障伪装成无候选会让
-    ///   更新被静默跳过（诚实边界：暂态失败交 <c>ProcedurePatch</c> 的既有 catch 进确定错误态留档，
-    ///   由用户/流程重试）。信封多源轮转待发布侧多源就绪（当前单基址）。
+    /// CDN 信封提供者（《热更与内容发布专项设计》§7"各源必须提供同一摘要文件"）： 从部署基址取候选信封 <c>{baseUrl}/{offerPath}</c>。
     /// </summary>
     public sealed class HttpCandidateProvider : ICandidateProvider
     {
@@ -60,7 +50,7 @@ namespace LiteFramework
                 }
                 catch (UnityWebRequestException ex)
                 {
-                    // UniTask 的 WithCancellation 在非 2xx 时自己抛——await 之后的 result 检查对错误路径不可达
+                    // UniTask 的 WithCancellation 在非 2xx 时自己抛——await 之后的 result 检查对错误路径不可达。
                     throw new InvalidOperationException(
                         $"候选信封获取失败：HTTP {ex.ResponseCode}: {url}", ex);
                 }

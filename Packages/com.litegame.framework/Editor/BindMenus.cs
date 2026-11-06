@@ -8,13 +8,13 @@ namespace LiteCodeGen.EditorTools
 {
     public static class BindMenus
     {
-        // 包级入口使用自己的根；组件右键菜单保留上下文形态
+        // 包级入口使用自己的根；组件右键菜单保留上下文形态。
         private const string RootMenuPath = "LiteCodeGen/BindRoot/添加 BindRoot（生成根）";
         private const string BindMenuPath = "LiteCodeGen/BindRoot/添加 BindNode 标记";
         private const string AssetMenuPath = "LiteCodeGen/BindRoot/生成绑定代码";
         private const string ContextBindPath = "CONTEXT/Transform/添加 BindNode 标记";
 
-        // ---------------- 场景/层级菜单 ----------------
+        // ---------------- 场景/层级菜单 ----------------。
 
         [MenuItem(RootMenuPath, false, 12)]
         private static void AddRoot()
@@ -70,7 +70,7 @@ namespace LiteCodeGen.EditorTools
             return Selection.gameObjects != null && Selection.gameObjects.Length > 0;
         }
 
-        // ---------------- 组件右键菜单 ----------------
+        // ---------------- 组件右键菜单 ----------------。
 
         [MenuItem(ContextBindPath, false, 400)]
         private static void AddBindFromContext(MenuCommand cmd)
@@ -87,7 +87,7 @@ namespace LiteCodeGen.EditorTools
             }
         }
 
-        // ---------------- Project 面板:对选中的 Prefab 生成 ----------------
+        // ---------------- Project 面板:对选中的 Prefab 生成 ----------------。
 
         [MenuItem(AssetMenuPath, false, 61)]
         private static void GenerateFromSelectedPrefabs()
@@ -145,7 +145,7 @@ namespace LiteCodeGen.EditorTools
                 return root;
             }
 
-            // prefab 根上没有时,在子物体里找第一个(一个 prefab 含多个生成根时建议分开)
+            // prefab 根上没有时,在子物体里找第一个(一个 prefab 含多个生成根时建议分开)。
             var roots = asset.GetComponentsInChildren<BindRoot>(true);
             return roots != null && roots.Length > 0 ? roots[0] : null;
         }

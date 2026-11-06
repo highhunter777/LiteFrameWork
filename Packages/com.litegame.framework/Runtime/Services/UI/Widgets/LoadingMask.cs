@@ -6,13 +6,6 @@ namespace LiteFramework.UI
 {
     /// <summary>
     /// 加载遮罩控件（反馈面）：全屏阻断面 + 文案。
-    ///
-    /// 与 <see cref="UIDialog"/> 同一模式——**只暴露状态驱动，不自己创建视觉**（§7 视觉单一来源）：
-    /// 遮罩图与文本由模板 prefab 接线，服务层（FeedbackService）持有实例后调 <see cref="SetMessage"/>。
-    ///
-    /// 阻断语义（§6.2"输入禁用、射线阻断和焦点是不同职责"）：阻断面靠 <see cref="Blocker"/> 的
-    /// raycastTarget 吃掉射线，**不是**靠停组或禁页面——Loading 与 Toast 同层不互斥，
-    /// 不能在 System 组内互相顶掉。
     /// </summary>
     public class LoadingMask : MonoBehaviour
     {

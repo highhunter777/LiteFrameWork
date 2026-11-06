@@ -66,9 +66,6 @@ namespace LiteFramework.UI
         private async UniTask FlyAsync(RectTransform rt, TMP_Text label, CancellationToken ct)
         {
             // 淡出走 CanvasGroup.alpha（§3.2）；位置走 transform（纯 transform，不触发 mesh 重建）。
-            // 组件由模板自带 → 取不到（模板缺组件）时守卫语义 = **只跳过淡出**：alpha 写入逐处判空，
-            // 位移与回收照常——缺组件不得中断飞行与归还（守卫不得进循环条件：含 cg 判空会在
-            // 首帧退出，位移/回收全失效且不归还池）。
             var cg = GetCanvasGroup(label);
             if (cg != null) cg.alpha = 1f;
             var start = rt.anchoredPosition;
@@ -77,7 +74,7 @@ namespace LiteFramework.UI
             {
                 if (this == null || label == null || rt == null) return;   // 宿主销毁：直接退出（不归还池）
                 if (await UniTask.NextFrame(ct).SuppressCancellationThrow()) return;   // 取消（销毁/回收）：退出
-                // ★ await 之后复检：销毁可能发生在等待期间
+                // ★ await 之后复检：销毁可能发生在等待期间。
                 if (this == null || label == null || rt == null) return;
 
                 t += Time.unscaledDeltaTime;                 // UI 轨（unscaled：时停不停）

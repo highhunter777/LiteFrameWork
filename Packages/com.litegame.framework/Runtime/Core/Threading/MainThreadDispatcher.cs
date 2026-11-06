@@ -21,8 +21,6 @@ namespace LiteFramework
             => _queue.Enqueue(action ?? throw new ArgumentNullException(nameof(action)));
 
         // 由 GameEntry 驱动 → Tick 必然主线程,消费与 Log 皆线程安全。
-        // 执行中再 Post(嵌套)→ 同帧继续消费;无限嵌套 = 业务 bug,框架不防(与事件环同款)。
-        // 每帧最多消费 MaxActionsPerTick 条（默认 1024，0=不限）：后台洪泛时剩余留队，避免单帧卡死。
         public void Tick(float realDelta)
         {
             int processed = 0;

@@ -4,28 +4,7 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 状态机家族**共享内核**（《状态机专项设计》§3 单源纪律）：平面机（<see cref="StageMachine{TId,TReq}"/>）
-    /// 与层级机（<see cref="HierarchicalStageMachine{TId,TReq}"/>）的**迁移语义**收口在此——
-    /// 请求管线（守卫 → 准入 → 入队）、挂起语义（last-wins + 审计来源）、自动边/看门狗评估序、
-    /// 恢复通道、拒绝上报与诊断读取面（审计环 / per-stage 统计 / DOT 图导出公共段 / Snapshot 计数段）。
-    /// 两机只保留**表示法**差异：平面机 = 单活动态 + 单级进出 + 单 sink；层级机 = 活动路径树 +
-    /// LCA 事务 + 事件冒泡。**树表示法（复合态/父子/历史/根/建树）归层级机**，内核不持有。
-    /// 迁移语义改动只动本文件——此前两内核逐行互抄，是全项目语义漂移风险最高的复制面。
-    ///
-    /// **机器表示法缝**（子类必须实现）：<see cref="Started"/> / <see cref="Current"/> /
-    /// <see cref="ActiveStage"/>（准入、自动边、看门狗、重入判据都问当前活动态）与 <see cref="Advance"/>
-    /// （帧末应用：平面 = 单级进出，层级 = LCA 事务）。
-    /// **扩展点缝**（子类可覆写）：<see cref="CanAccept"/>（准入判定）、<see cref="OnStagePreempted"/>
-    /// （离场前通知）、<see cref="ReentryError"/>（重入提示语）、<see cref="ExportGraphEdges"/>
-    /// （DOT 边段——层级机补复合父子）。
-    ///
-    /// **构造契约**：基类构造只做阶段注册；子类构造尾段必须调用 <see cref="InitializeCore"/>
-    /// （层级机在它之前建树）——迁移表校验/审计/`OnInit` 只在初始化时执行一次；未初始化即 `Start`
-    /// 由 <see cref="EnsureInitialized"/> 显性失败。
-    ///
-    /// **异常策略不在内核**：阶段回调不捕获异常，由驱动层兜。
-    /// 内核实现 <see cref="IStageHost{TId,TReq}"/> 的共享半边（请求/驻留读数）；表示法半边
-    /// （<see cref="Started"/>/<see cref="Current"/>）由机器实现——契约对阶段恒完整。
+    /// 状态机家族**共享内核**（《状态机专项设计》§3 单源纪律）：平面机（<see cref="StageMachine{TId,TReq}"/>） 与层级机（<see cref="HierarchicalStageMac。
     /// </summary>
     public abstract class StageMachineCore<TId, TReq> : IStageHost<TId, TReq>
         where TId : struct
@@ -85,7 +64,7 @@ namespace LiteFramework
                 throw new InvalidOperationException($"{_name}:机器未初始化：子类构造未调用 InitializeCore");
         }
 
-        // ---- 机器表示法缝（子类必答：当前活动态是什么）----
+        // ---- 机器表示法缝（子类必答：当前活动态是什么）----。
 
         /// <summary>是否已 Start（平面机：有当前态；层级机：活动路径非空）。</summary>
         public abstract bool Started { get; }
@@ -99,7 +78,7 @@ namespace LiteFramework
         /// <summary>应用挂起请求（帧末）：平面机 = 单级进出；层级机 = LCA 事务。</summary>
         public abstract void Advance();
 
-        // ---- 共享读数（两机同口径）----
+        // ---- 共享读数（两机同口径）----。
 
         /// <summary>是否有挂起请求。</summary>
         public bool HasPending => _hasPending;
@@ -121,15 +100,13 @@ namespace LiteFramework
 
         /// <summary>
         /// 最近一次请求被拒的原因（每次 `Request`/`TryResume` 刷新；被接受则回 <see cref="RejectReason.None"/>）。
-        /// 基础机无准入恒接受，故恒为 None；抢占型子类会写 <see cref="RejectReason.Priority"/> /
-        /// <see cref="RejectReason.InterruptDisallowed"/> 等。
         /// </summary>
         public RejectReason LastReject { get; private set; }
 
         /// <summary>阶段钩子是否正在执行（子类判定"自身推进"用）。</summary>
         protected bool InStageCallback => _inStageCallback;
 
-        // ---- 请求管线（守卫 → 准入 → 入队；两机同语义）----
+        // ---- 请求管线（守卫 → 准入 → 入队；两机同语义）----。
 
         /// <summary>发起迁移请求（只入队，last-wins）。基础机**恒接受**（返回 true）；抢占型子类可能返回 false。</summary>
         public bool Request(TId nextId, in TReq req) => RequestCore(nextId, in req, int.MinValue);
@@ -139,9 +116,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 强制迁移（《状态机专项设计》§3.2）：**绕过准入判定**（优先级/中断规则）入队。
-        /// 编程错误检查照常（强制不豁免错误）：重入/未注册/Start 前/OnLeave 窗口仍抛。
-        /// 基础机上与 <see cref="Request(TId)"/> 等价（恒接受）；差异在抢占型子类（绕准入）。
-        /// 消费端：GM 跳态、驻留看门狗升级。
         /// </summary>
         public void ForceState(TId nextId, in TReq req)
         {
@@ -154,9 +128,7 @@ namespace LiteFramework
         public void ForceState(TId nextId) => ForceState(nextId, default);
 
         /// <summary>
-        /// 请求内核（守卫 → 准入判定 → 入队）。子类可暴露"带优先级"的公开重载转调它；
-        /// <paramref name="priority"/> 对基础机无意义（<see cref="CanAccept"/> 默认忽略它）；
-        /// <paramref name="kind"/> 为审计来源（§4），公开 `Request` = Manual、自动边转调 = Auto。
+        /// 请求内核（守卫 → 准入判定 → 入队）。
         /// </summary>
         protected bool RequestCore(TId nextId, in TReq req, int priority, TransitionKind kind = TransitionKind.Manual)
         {
@@ -231,7 +203,7 @@ namespace LiteFramework
         /// <summary>注册查询（Restore 校验快照 id 用，不抛）。</summary>
         protected bool IsRegistered(TId id) => _stages.ContainsKey(id);
 
-        // ---- 驱动尾段与事件入口的公共部分 ----
+        // ---- 驱动尾段与事件入口的公共部分 ----。
 
         /// <summary>无挂起时评估自动条件边（显式请求永不被覆盖）→ 驻留看门狗（同帧边命中则让位）→ 应用挂起。
         /// 两机 `Tick` 在各自的 OnUpdate 传播后调用（一帧最多一次迁移/事务）。</summary>
@@ -277,7 +249,7 @@ namespace LiteFramework
             _audit.Reset();
         }
 
-        // ---- IModuleStats 公共段 ----
+        // ---- IModuleStats 公共段 ----。
 
         public string StatsName => _name;
 

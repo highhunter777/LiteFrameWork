@@ -44,10 +44,7 @@ namespace LiteFramework.UI
         }
 
         /// <summary>
-        /// 静默选中（只改选中态与配色，**不触发** <see cref="OnTabChanged"/>）：
-        /// 页面初值/程序重设走这里——与 Slider/Toggle/Dropdown 的"程序 Set 不触发回调"语义对齐，
-        /// 避免"设初值 → 回调 → 再次切换面板"的重入。
-        /// 越界忽略；同值也刷新一次（主题重绑定后需要重绘，但无事件）。
+        /// 静默选中（只改选中态与配色，**不触发** <see cref="OnTabChanged"/>）： 页面初值/程序重设走这里——与 Slider/Toggle/Dropdown 的"程序 Set 不触发回调"语义对齐。
         /// </summary>
         public void SelectSilent(int index)
         {

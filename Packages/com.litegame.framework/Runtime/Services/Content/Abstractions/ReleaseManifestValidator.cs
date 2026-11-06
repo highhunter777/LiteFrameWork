@@ -11,7 +11,7 @@ namespace LiteFramework
     {
         None = 0,
 
-        // ---- 描述结构/预算（路径与预算约束）----
+        // ---- 描述结构/预算（路径与预算约束）----。
         /// <summary>描述为空或 schemaVersion 不受支持。</summary>
         UnsupportedSchema,
         /// <summary>releaseId 缺失/含非法字符。</summary>
@@ -23,7 +23,7 @@ namespace LiteFramework
         /// <summary>条目字段非法（长度负、摘要非 64 位小写 hex）。</summary>
         InvalidEntry,
 
-        // ---- 信任（签名/撤销/过期）----
+        // ---- 信任（签名/撤销/过期）----。
         /// <summary>keyId 未登记或已撤销。</summary>
         UnknownOrRevokedKey,
         /// <summary>签名验证不通过。</summary>
@@ -33,7 +33,7 @@ namespace LiteFramework
         /// <summary>该发布已被安全撤销。</summary>
         Revoked,
 
-        // ---- 版本（反回退 / 兼容）----
+        // ---- 版本（反回退 / 兼容）----。
         /// <summary>修订低于已确认修订（防重放旧清单）。</summary>
         RevisionRollback,
         /// <summary>平台/渠道不匹配。</summary>
@@ -89,13 +89,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 发布描述校验。
-    ///
-    /// **顺序即安全**（先验证描述的结构/预算与签名，再依据可信描述计划下载）：
-    /// ① 结构/schema → ② releaseId → ③ 路径与预算 → ④ 条目字段 → ⑤ 过期 → ⑥ 撤销 → ⑦ 签名 → ⑧ 反回退 → ⑨ 平台 → ⑩ 兼容。
-    /// **签名验证在路径/预算校验之后**：先拒绝明显畸形/超预算的输入（廉价且不涉及信任），
-    /// 再花签名验证的算力；但**在依据描述做任何下载之前**——这是"再依据可信描述计划下载"的落点。
-    ///
-    /// 本类纯规则、零 IO（读文件/取字节由调用方），故 L1 全覆盖。
     /// </summary>
     public static class ReleaseManifestValidator
     {
@@ -115,21 +108,21 @@ namespace LiteFramework
         {
             budget = budget ?? new ReleaseBudget();
 
-            // ① 结构
+            // ① 结构。
             if (manifest == null) return ReleaseVerdict.Reject(ReleaseRejectReason.UnsupportedSchema, "描述为空");
             if (manifest.SchemaVersion != ReleaseManifest.CurrentSchemaVersion)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.UnsupportedSchema,
                     $"schemaVersion={manifest.SchemaVersion}（支持 {ReleaseManifest.CurrentSchemaVersion}）");
 
-            // ② releaseId
+            // ② releaseId。
             var idVerdict = ValidateReleaseId(manifest.ReleaseId);
             if (!idVerdict.Accepted) return idVerdict;
 
-            // ②' Bridge 能力要求（可选；旧清单无字段 = 空）
+            // ②' Bridge 能力要求（可选；旧清单无字段 = 空）。
             var capabilityVerdict = ValidateRequiredCapabilities(manifest.RequiredCapabilities);
             if (!capabilityVerdict.Accepted) return capabilityVerdict;
 
-            // ③ 路径与预算
+            // ③ 路径与预算。
             var files = manifest.Files ?? new List<ReleaseFileEntry>();
             if (files.Count == 0)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.InvalidEntry, "文件清单为空");
@@ -162,16 +155,16 @@ namespace LiteFramework
                         $"总字节超上限:{total}>{budget.MaxTotalBytes}");
             }
 
-            // ⑤ 过期（元数据重放/过期）
+            // ⑤ 过期（元数据重放/过期）。
             if (manifest.ExpiresAtUnix > 0 && nowUnix > 0 && nowUnix > manifest.ExpiresAtUnix)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.Expired,
                     $"描述已过期:{manifest.ExpiresAtUnix} < now {nowUnix}");
 
-            // ⑥ 安全撤销（反回退校验与运营回退分别处理；回退前检查目标未被撤销）
+            // ⑥ 安全撤销（反回退校验与运营回退分别处理；回退前检查目标未被撤销）。
             if (manifest.Revoked)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.Revoked, "该发布已被安全撤销");
 
-            // ⑦ 签名（在计划下载之前）
+            // ⑦ 签名（在计划下载之前）。
             if (verifier == null)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.UnknownOrRevokedKey, "无可用的验签器（keyId 未登记/已撤销）");
             if (signature == null || signature.Length == 0)
@@ -181,12 +174,12 @@ namespace LiteFramework
             if (!verifier.Verify(signedBytes, signature))
                 return ReleaseVerdict.Reject(ReleaseRejectReason.BadSignature, "签名验证不通过");
 
-            // ⑧ 反回退（不接受攻击者重放旧清单）
+            // ⑧ 反回退（不接受攻击者重放旧清单）。
             if (manifest.Revision < confirmedRevision)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.RevisionRollback,
                     $"修订回退:{manifest.Revision} < 已确认 {confirmedRevision}");
 
-            // ⑨ 平台/渠道
+            // ⑨ 平台/渠道。
             if (player == null)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.PlatformMismatch, "缺少 Player 能力描述");
             if (!string.IsNullOrEmpty(manifest.Platform) &&
@@ -223,8 +216,6 @@ namespace LiteFramework
                 }
 
                 // AppVersion 采用**精确匹配**（声明即要求相等）——身份串，不受能力开关影响。
-                // 不在此自造 semver 比较器；"范围匹配"未实现——
-                // 需要时引入受测比较器再放宽，**不得静默失效**（声明了却不生效比不声明更危险）。
                 if (!string.IsNullOrEmpty(compat.AppVersion) &&
                     !string.Equals(compat.AppVersion, player.AppVersion, StringComparison.Ordinal))
                     return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
@@ -244,7 +235,7 @@ namespace LiteFramework
             return ReleaseVerdict.Accept();
         }
 
-        // ---- 内部 ----
+        // ---- 内部 ----。
 
         private static ReleaseVerdict ValidateReleaseId(string releaseId)
         {
@@ -268,8 +259,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 路径约束（文件路径只能落在受控候选目录内，拒绝越界、重复、非法规范化路径和超预算长度/数量）。
-        /// 只接受**正斜杠分隔的相对路径**——反斜杠一律拒绝（避免 Windows 归一化歧义，
-        /// 统一规范化）；".."/"."/空段/前导斜杠/盘符/UNC 全部拒绝。
         /// </summary>
         private static ReleaseVerdict ValidatePath(ReleaseFileEntry f, ReleaseBudget budget)
         {

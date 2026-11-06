@@ -17,10 +17,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 键盘状态/文本输入的平台能力（**无开发宏**）：Input System 可用时走 <c>Keyboard.current</c>，
-    /// 否则旧 <c>Input</c>。放在平台适配层是因为 R12 禁 App/Dev 直接 import InputSystem；
-    /// 消费方（DevHud/开发控制台）在 `LiteGame.Dev` 内，发布构建不编译消费者 = 本类无产品调用点。
-    /// 切 New only 时不会回退旧 Input（<c>Input.GetKeyDown</c> 会抛）。
+    /// 键盘状态/文本输入的平台能力（**无开发宏**）：Input System 可用时走 <c>Keyboard.current</c>， 否则旧 <c>Input</c>。
     /// </summary>
     public static class PlatformKeyInput
     {

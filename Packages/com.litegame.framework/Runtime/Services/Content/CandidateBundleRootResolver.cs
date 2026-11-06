@@ -4,16 +4,7 @@ using LiteFramework;
 namespace LiteFramework
 {
     /// <summary>
-    /// 候选资产包根判定（《热更与内容发布专项设计》§7/§8）：资源包初始化时决定"是否以**已确认候选**的
-    /// 资产包根启动"。
-    ///
-    /// 判据（两条齐备才用候选根，任一不满足即退回内置包根——fail-safe）：
-    /// ① 激活记录的已确认发布身份**不是内置**（<see cref="ContentGeneration.Default"/> 的 ReleaseId）；
-    /// ② 候选资产包**版本文件已就位**（`&lt;候选&gt;/bundle/&lt;包名&gt;.version`）——
-    ///    它是 YooAsset 内置文件系统初始化最先应答的文件，缺失即包不完整；退回内置比让初始化裸失败更安全
-    ///    （错误态由既有流程呈现）。
-    ///
-    /// 纯规则（相对路径存在性经 <paramref name="fileExists"/> 注入）——零 IO 依赖，可单测。
+    /// 候选资产包根判定（《热更与内容发布专项设计》§7/§8）：资源包初始化时决定"是否以**已确认候选**的 资产包根启动"。
     /// </summary>
     public static class CandidateBundleRootResolver
     {

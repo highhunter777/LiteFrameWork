@@ -27,14 +27,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 平台基础设施装配入口：把"池 → 文件 → JSON 编解码 → 日志安装"的**构造顺序**收回框架，
-    /// 装配段只调一次 <see cref="Create"/> 并登记产物（不再 `new ReferencePoolService(...)` 手拼）。
-    ///
-    /// 为什么需要：顺序本身是契约（`Log.Install` → `SetHelper` → 条件结构化日志；`FileSystem` 需要
-    /// 路径提供者 + JSON 序列化器），散在装配段里等于要求每个装配点背下同一串构造细节。
-    ///
-    /// 所有权：本对象持有池/日志的关闭责任（`ILog`/`IReferencePool` 为进程级常驻），
-    /// `Files`/`Json` 由装配段按需 `Scope.Register`。
+    /// 平台基础设施装配入口：把"池 → 文件 → JSON 编解码 → 日志安装"的**构造顺序**收回框架。
     /// </summary>
     public sealed class FrameworkInfrastructure : IDisposable
     {

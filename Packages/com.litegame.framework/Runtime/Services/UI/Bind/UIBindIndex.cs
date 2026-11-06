@@ -15,14 +15,7 @@ namespace LiteFramework.UI
     }
 
     /// <summary>
-    /// 名字 → 控件索引：受控 API 的查询底座。来源＝BindNode 标记（BindIndexBuilder 构建）。
-    /// 受控语义在此收口：
-    /// 绑按钮 = 替换式（重绑先移除旧监听，池化复用安全）；SetText = TMP 优先回退 UGUI Text；未命中/类型不符 = 抛。
-    /// **所有权互斥**（设计方案 §4.7/§453）：每个控件登记驱动方式，Bind 后禁命令式、命令式后禁 Bind——
-    /// Debug 三宏下违例当场抛（"谁最后生效"竞态极难复现，必须启动期/使用期当场暴露）。
-    ///
-    /// 域状态按协作件外提（本类只做门面与所有权登记）：本地化 → <see cref="UIBindLocale"/>、
-    /// 输入控件订阅 → <see cref="UIBindEvents"/>、列表源 → <see cref="UIBindListSource"/>。
+    /// 名字 → 控件索引：受控 API 的查询底座。
     /// </summary>
     public sealed partial class UIBindIndex
     {
@@ -99,11 +92,11 @@ namespace LiteFramework.UI
             foreach (var c in _controls.Values)
                 if (c is Button btn) btn.onClick.RemoveAllListeners();
 
-            // 本地化绑定与订阅一并解除——池化复用不得留旧订阅（否则旧页继续被语言事件刷新）
+            // 本地化绑定与订阅一并解除——池化复用不得留旧订阅（否则旧页继续被语言事件刷新）。
             _localeBinder.Clear();
             _localeBinder.Detach();
 
-            // 输入控件订阅与列表条目一并解除（同上纪律；页面 OnShow 会重推数据与控件值）
+            // 输入控件订阅与列表条目一并解除（同上纪律；页面 OnShow 会重推数据与控件值）。
             _eventBinder.ClearAll();
             _listBinder.Clear();
         }
@@ -128,7 +121,7 @@ namespace LiteFramework.UI
             else owner.GetComponent<UnityEngine.UI.Text>().text = value;
         }
 
-        // ---- LText：按 key 设文本 + 语言变更自动刷新（《UI框架总设计》§9）----
+        // ---- LText：按 key 设文本 + 语言变更自动刷新（《UI框架总设计》§9）----。
 
         /// <summary>
         /// 绑定语言服务（装配点注入）。切换语言时经 <see cref="UIBindLocale.Changed"/> 刷新全部已绑定项。
@@ -184,7 +177,7 @@ namespace LiteFramework.UI
             throw new InvalidOperationException($"绑定索引[{name}] 无 Selectable / UIWidget / IUIInteractable 组件（无法设置可交互）");
         }
 
-        // ---- 受控 API 扩展（《UI控件Lua用法表》G3/G7/G10）----
+        // ---- 受控 API 扩展（《UI控件Lua用法表》G3/G7/G10）----。
 
         /// <summary>进度条：归一化值（0~1）。G7。</summary>
         public partial void SetProgress(string name, float value01)
@@ -255,10 +248,7 @@ namespace LiteFramework.UI
             ResolveRect(name).anchoredPosition = pos;      // 走 ResolveRect：BindNode 不产 RectTransform，Get<RectTransform> 必抛
         }
 
-        // ---- 输入控件族（G15～G17，《UI控件Lua API 参考》§4/§5）----
-        // 语义（§5"输入控件"）：**程序 Set 不触发用户变化回调**（Set*WithoutNotify）；
-        // 变化通知只在**用户操作**时回调（回调带值）；重复登记替换旧回调；UnbindAll 退订全部
-        // （池化复用不留旧回调——与本地化绑定同纪律）；防递归：程序 Set 静默，回调内再 Set 不会自激。
+        // ---- 输入控件族（G15～G17，《UI控件Lua API 参考》§4/§5）---- 语义（§5"输入控件"）：**程序 Set 不触发用户变化回调**（Set*WithoutNotify）； 变化通知只在**用户操作**时回调（回调带值）；重复登记替换旧回调。
 
         /// <summary>滑块设值（0~1，程序 Set——不触发变化回调）。G15。</summary>
         public partial void SetSlider(string name, float value01)
@@ -334,12 +324,10 @@ namespace LiteFramework.UI
         /// <summary>下拉变化通知（用户选择；回调带索引）。重复登记替换；<c>null</c> = 仅退订。G17。</summary>
         public partial void OnDropdownChanged(string name, Action<int> handler) => _eventBinder.OnDropdownChanged(name, handler);
 
-        // ---- 列表（G6，《UI控件Lua API 参考》§5"SetList"）----
+        // ---- 列表（G6，《UI控件Lua API 参考》§5"SetList"）----。
 
         /// <summary>
         /// 装配列表数据源（**整表替换语义**：更新/缩容同一入口——换数据再调一次即可，内核按新 Count 重算窗口）。
-        /// 目标节点取其**自身或子级**的 VirtualList/SimpleListView（列表节点的组件住 Content 子级，绑定索引存的是
-        /// 根上自动检测组件）。行含文案键而语言服务未注入 = 装配错误（fail-fast——不在滚动回调路径上抛）。G6。
         /// </summary>
         public partial void SetList(string name, IUIListRows rows) => _listBinder.Set(name, rows);
 
@@ -357,9 +345,7 @@ namespace LiteFramework.UI
             return list != null;
         }
 
-        // ---- 动效口（《动效设计方案》附 A.3）----
-        // 纪律：动效只写表现（透明度/位置），不携带任何判定；原语层的 SetUpdate(true)/SetLink(KillOnDisable)
-        // 已写死在 UIFx 里（UIClock 轨 + 界面隐藏即杀）。所有权：与 SetText 等同属命令式驱动。
+        // ---- 动效口（《动效设计方案》附 A.3）---- 纪律：动效只写表现（透明度/位置），不携带任何判定；原语层的 SetUpdate(true)/SetLink(KillOnDisable) 已写死在 UIFx 里（UIClock 轨 + 界面隐藏即杀）。
 
         /// <summary>脉冲：透明度快速呼吸两次（图标/红点提醒）。返回 true = tween 已创建。G20。
         /// 缺省参单源＝<see cref="UIFxDefaults"/>（与 Lua shim 同表）。</summary>
@@ -384,10 +370,7 @@ namespace LiteFramework.UI
         }
 
         /// <summary>
-        /// 动效目标解析（**不走 <see cref="Get{T}"/>**）：索引里存的是 BindNode 自动检测到的组件，
-        /// 带 Button 的节点存的是 <see cref="Button"/>（AutoTypeCandidates 里 Button 优先于 Image）→ Get&lt;Graphic&gt; 会抛。
-        /// 三级回退：自身 Graphic → Button.targetGraphic → 自身/子级 Graphic。
-        /// 未命中 = KeyNotFoundException；命中但拿不到 Graphic = InvalidOperationException（与既有受控方法同语义）。
+        /// 动效目标解析（**不走 <see cref="Get{T}"/>**）：索引里存的是 BindNode 自动检测到的组件。
         /// </summary>
         public Graphic ResolveGraphic(string name)
         {
@@ -402,9 +385,7 @@ namespace LiteFramework.UI
         }
 
         /// <summary>
-        /// RectTransform 解析：UI 层级下任何组件的 transform 都是 RectTransform——
-        /// **不要用 Get&lt;RectTransform&gt;**（BindNode.ResolveTarget 不产 RectTransform，必抛）。
-        /// 手法同 <see cref="ShowFlyText"/>（`transform as RectTransform`）。
+        /// RectTransform 解析：UI 层级下任何组件的 transform 都是 RectTransform—— **不要用 Get&lt;RectTransform&gt。
         /// </summary>
         public RectTransform ResolveRect(string name)
         {

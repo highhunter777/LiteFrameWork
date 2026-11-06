@@ -6,11 +6,7 @@ using Cysharp.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// 组合根执行器（Host 装配末段的协作件）：持 <c>AppComposition.ComposeAfter</c> 回调，负责
-    /// 开一个与模块同语义的**装配窗口**（<c>Put</c> 合法）+ 独立资源作用域，并在关闭/回滚时先于模块释放。
-    ///
-    /// 为什么独立成件：组合根语义（窗口开关、失败即回收自身作用域、逆序第一的释放位）属于装配主线，
-    /// 但不必让 <see cref="ClientHost"/> 本体继续变胖（类行数冻结预算只许降）。
+    /// 组合根执行器（Host 装配末段的协作件）：持 <c>AppComposition.ComposeAfter</c> 回调，负责 开一个与模块同语义的**装配窗口**（<c>Put</c> 合法）+ 独立资源作用域。
     /// </summary>
     internal sealed class ComposeRootRunner
     {

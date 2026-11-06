@@ -14,16 +14,7 @@ namespace LiteFramework.Animation
     }
 
     /// <summary>
-    /// 片段结束边界的**纯判定逻辑**（Completed 的判定方式必须写入定义，
-    /// 不读资产 loop 设置；时间归属分离）。
-    ///
-    /// **为什么单独成类**：判定只有三个输入——定义是否循环、片段时长、上一帧时间——不含任何引擎对象，
-    /// 故与 `AnimatorAnimationBackend` 分离后：① 后端只管引擎调用（`GetTime`/`SetTime`），
-    /// 判定不与图拓扑混在同一个类里；② 四个象限（定义为循环×资产循环/不循环）可用假时长直接单测，
-    /// 不需要 Animator 与真资产。
-    ///
-    /// 时间用 <see cref="double"/> 接收（`AnimationClipPlayable.GetTime()` 的原生类型），
-    /// 内部按 `float` 往返以与片段时长同精度比较。
+    /// 片段结束边界的**纯判定逻辑**（Completed 的判定方式必须写入定义， 不读资产 loop 设置；时间归属分离）。
     /// </summary>
     public struct ClipCompletionTracker
     {
@@ -52,9 +43,7 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// 推进一次判定。`time` 为当前片段时间、`epsilon` 为回卷判定容差（秒）。
-        /// 循环定义**永不**返回 <see cref="ClipTickAction.Completed"/>；一次性定义在到达边界或检测到
-        /// 资产自回绕（时间倒退）时返回一次 Completed，之后恒为 None。
+        /// 推进一次判定。
         /// </summary>
         public ClipTickAction Advance(double time, float epsilon)
         {
@@ -67,7 +56,7 @@ namespace LiteFramework.Animation
             {
                 if (t >= Length)
                 {
-                    // 定义为循环但资产不循环：手工回绕（不依赖 FBX 导入设置）
+                    // 定义为循环但资产不循环：手工回绕（不依赖 FBX 导入设置）。
                     float wrapped = t - Length * (float)Math.Floor((double)(t / Length));
                     WrapTarget = wrapped;
                     _previousTime = wrapped;
@@ -77,7 +66,7 @@ namespace LiteFramework.Animation
                 return ClipTickAction.None;
             }
 
-            // 一次性定义：到边界，或资产在循环（检测到回卷）→ 都算自然结束
+            // 一次性定义：到边界，或资产在循环（检测到回卷）→ 都算自然结束。
             bool wrappedAround = t + epsilon < _previousTime;
             _previousTime = t;
             if (wrappedAround || t >= Length - epsilon)

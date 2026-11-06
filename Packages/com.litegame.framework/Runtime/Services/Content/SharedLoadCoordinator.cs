@@ -6,19 +6,7 @@ using Cysharp.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// 共享加载协调器（同 generation/location/type 的并发请求合并）：
-    ///
-    /// - **合并**：同 key 的多个获取者共享**一次**底层加载（loader 只被调用一次）；加载完成后，新获取者走
-    ///   已完成路径（同步拿到租约，不重复加载）。
-    /// - **等待者取消 ≠ 底层取消**：取消单个等待者只退出**本人**等待（其余等待者不受影响）；
-    ///   全部等待者退出后该次加载被标记**弃置**（键移除、可重试）并尽力取消底层（loader 收到的取消源——
-    ///   YooAsset 操作不可中途取消，故"迟到结果不复活"由完成续延兜底：迟到的成功结果就地卸载，不发出租约）。
-    /// - **失败**：全部等待者收到同一异常；键移除（重试 = 新的一次加载）。
-    /// - **引用计数**：Acquire 返回的租约即一份持有；全部持有者释放后 unloader 恰好执行一次
-    ///   （引用归零即移除——**无保留缓存**）。
-    /// - **释放面**：<see cref="Dispose"/> = 关闭路径：已加载条目就地卸载、在途加载尽力取消、迟到结果丢弃。
-    ///
-    /// 线程模型：全部状态变更在锁内；loader/unloader 一律在锁外调用（实现方可回调本类而无死锁）。
+    /// 共享加载协调器（同 generation/location/type 的并发请求合并）。
     /// </summary>
     public sealed class SharedLoadCoordinator<TKey, TAsset> : IDisposable
         where TKey : IEquatable<TKey>
@@ -110,7 +98,7 @@ namespace LiteFramework
                     _unloader(toUnload[i].Key, toUnload[i].Asset);
         }
 
-        // ---- 内部 ----
+        // ---- 内部 ----。
 
         private async UniTask RunLoaderAsync(Entry entry)
         {
@@ -135,7 +123,7 @@ namespace LiteFramework
             TAsset asset;
             try
             {
-                // 外部取消只约束本次等待（AttachExternalCancellation 不触碰底层任务——底层由全员退出/Dispose 决定）
+                // 外部取消只约束本次等待（AttachExternalCancellation 不触碰底层任务——底层由全员退出/Dispose 决定）。
                 asset = await entry.LoadSource.Task.AttachExternalCancellation(ct);
             }
             catch

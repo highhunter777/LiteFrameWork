@@ -3,12 +3,7 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 阶段宿主：`IStage` 的钩子只认这个**窄接口**，因此同一份阶段实现可以挂在
-    /// **平面机**（<see cref="StageMachine{TId,TReq}"/>）与**层级机**（<see cref="HierarchicalStageMachine{TId,TReq}"/>）上。
-    ///
-    /// 只暴露阶段真正需要的能力（发起请求 + 读当前态）；**机器专属能力不进本接口**：
-    /// 层级机的 `ActivePath` / `Raise` / `Interrupted` 等，由阶段自行
-    /// `if (m is HierarchicalStageMachine&lt;TId,TReq&gt; hsm) { ... }` 取用（M3-7 起抢占机/恢复端口已删除）。
+    /// 阶段宿主：`IStage` 的钩子只认这个**窄接口**，因此同一份阶段实现可以挂在 **平面机**（<see cref="StageMachine{TId,TReq}"/>）与**层级机**（<see cref="Hi。
     /// </summary>
     public interface IStageHost<TId, TReq> where TId : struct
     {

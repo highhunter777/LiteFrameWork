@@ -5,17 +5,7 @@ using LiteFramework;
 namespace LiteFramework
 {
     /// <summary>
-    /// 受信公钥库（《热更与内容发布专项设计》§6"客户端只带信任公钥，私钥由受控发布签名环境持有"、
-    /// "必须定义根信任、密钥轮换/撤销"）。
-    ///
-    /// **信任根的形态决策**：内置锚点（编译进包）+ 可选的外部撤销清单。
-    /// 不采用"完全远程可更新的信任根"——那需要信任根自己签名自己（先有鸡还是先有蛋）。
-    /// 轮换靠**同时内置新旧两把公钥**，用 <see cref="TrustedKeyRing.Revoke"/> 停止接受旧签名；
-    /// 撤销清单随内容发布下发（它本身不构成新信任，只能**收回**既有信任）。
-    ///
-    /// **当前状态**：未配置任何内置锚点时 <see cref="ProbeCount"/> 为 0，
-    /// 所有候选都会因"无可用的验签器"被拒——这是刻意的 fail-closed，
-    /// 与"无健康探针即判不健康"同款纪律。生产锚点由发布流水线的密钥生成产物填入。
+    /// 受信公钥库（《热更与内容发布专项设计》§6"客户端只带信任公钥，私钥由受控发布签名环境持有"、 "必须定义根信任、密钥轮换/撤销"）。
     /// </summary>
     public sealed class TrustedKeyStore
     {
@@ -39,8 +29,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 按清单声明的 keyId 解析验签器。
-        /// **未登记或已撤销 → null**，调用方据此拒绝候选（<see cref="ReleaseManifestValidator"/>
-        /// 会把 null 判为 <see cref="ReleaseRejectReason.UnknownOrRevokedKey"/>）。
         /// </summary>
         public ISignatureVerifier Resolve(string keyId)
             => RsaSignatureVerifier.FromKeyRing(_ring, keyId);

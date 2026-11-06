@@ -7,24 +7,7 @@ using UnityEngine.UI;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// LTextLabel：本地化文本控件的**打字机表现行为**（《UI框架总设计》§9——"LTextLabel 打字机为
-    /// 表现行为，关闭/语言变化取消旧任务；不改变业务数据"；U2-⑤d）。
-    ///
-    /// - **数据不变**：只决定"可见多少"，不改变最终文本——完成态逐字符等于全量文本；
-    ///   取消（组件禁用）同样落全量——页面关闭/隐藏后重开**不残留半截文本**；
-    /// - **取消语义**：新 <see cref="Reveal"/> 即取消旧任务；组件禁用（页面关闭/隐藏）即取消（不触发
-    ///   OnCompleted——取消不是完成）；语言变更经绑定层重写文本 → 再次 <see cref="Reveal"/> →
-    ///   旧任务自然取消（§9"关闭/语言变化取消旧任务"）；
-    /// - **未激活登记待播**：组件隐藏时 <see cref="Reveal"/> 不在暗处跑完——登记后 <c>OnEnable</c>
-    ///   起播（页面打开才看得见打字过程）；
-    /// - **驱动者唯一**（§8.1"AutoTick 与外部 Tick，任一时刻只有一个驱动者"）：AutoTick 由
-    ///   <c>Update</c> 自驱（步进取 <see cref="UIAnimationClock.Delta"/>——UIClock 分域时钟语义）；
-    ///   关闭 AutoTick 后由外部 ticker 调 <see cref="Tick"/>（双驱动 Debug 下显性报错并忽略）；
-    /// - **富文本安全**：截点既不落 `<…>` 标签内部（半截标签不当字面显示），也不在开标签未闭合期间
-    ///   截断（可见段富文本始终配平——中间态不留未闭合开标签；作者文本允许富文本标签——§9）；
-    ///
-    /// 路由：节点挂本组件时，<c>UIBindIndex.SetText</c>（命令式/本地化路径）经 <see cref="Reveal"/>
-    /// 进打字机；**数据绑定路径（BindText）保持瞬时**——数值类文本不走打字机（表现行为只属于叙事文本）。
+    /// LTextLabel：本地化文本控件的**打字机表现行为**（《UI框架总设计》§9——"LTextLabel 打字机为 表现行为，关闭/语言变化取消旧任务；不改变业务数据"；U2-⑤d）。
     /// </summary>
     [ExecuteAlways]
     public sealed class LTextLabel : MonoBehaviour
@@ -41,7 +24,7 @@ namespace LiteFramework.UI
         private bool _playing;
         private bool _pending;                // 未激活时登记待播（OnEnable 起播）
 
-        // 文本目标（延迟解析——组件齐全性不保证于 Awake；TMP 优先、回退 UGUI Text，与绑定层同序）
+        // 文本目标（延迟解析——组件齐全性不保证于 Awake；TMP 优先、回退 UGUI Text，与绑定层同序）。
         private TMPro.TMP_Text _tmp;
         private Text _legacy;
         private bool _targetResolved;
@@ -152,7 +135,7 @@ namespace LiteFramework.UI
             {
                 _progress -= 1f;
                 _cutIndex++;
-                // 推进到末截点下标（Length-1 = 全量可见）即完成——不必等再一次步进去"越过"它
+                // 推进到末截点下标（Length-1 = 全量可见）即完成——不必等再一次步进去"越过"它。
                 if (_cutIndex >= _cutPoints.Length - 1) { Finish(); return; }
                 ShowAt(_cutIndex);
             }
@@ -203,14 +186,7 @@ namespace LiteFramework.UI
             => full.Substring(0, visibleChars);
 
         /// <summary>
-        /// 安全截点表（升序；每项 = 可见到的字符数）。**首项恒 0＝"未显示"哨兵**——
-        /// 下标即推进进度（0 = 未显示，1 = 首个可见截点），起播/推进按下标寻值不偏一。
-        ///
-        /// 合法截点两条（缺一不可）：
-        /// ①不在 `<…>` 标签内部——半截标签会当字面显示；
-        /// ②可见段富文本**配平**——开标签未闭合期间不截（`&lt;color=red&gt;红` 这类留下未闭合
-        /// 开标签的中间态不合法，须截到对应闭合标签之后）。自闭合标签（`&lt;sprite… /&gt;`）净计数为零。
-        /// 空文本 = [0]；无配平截点的文本（作者未闭合标签）= [0]——皆无步进意义（Reveal 直接全量）。
+        /// 安全截点表（升序；每项 = 可见到的字符数）。
         /// </summary>
         private static int[] BuildCutPoints(string text)
         {

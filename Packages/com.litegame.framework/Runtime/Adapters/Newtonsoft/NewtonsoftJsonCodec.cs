@@ -6,16 +6,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// <see cref="IJsonCodec"/> 的 Newtonsoft 实现（第三方收口点）。
-    ///
-    /// 两种读取面都实现：
-    /// <list type="bullet">
-    /// <item><see cref="TryParse"/>：节点按需包装 <see cref="JToken"/>，取值先比 <see cref="JTokenType"/>
-    ///   （严格类别，用于"对端形状不可信"的场景）；</item>
-    /// <item><see cref="TryDeserialize{T}"/> / <see cref="Serialize{T}"/>：走 <see cref="WireJsonSettings"/>，
-    ///   与 MetaServer 同一份设置（camelCase + 禁日期自动解析 + 未知字段报错）。</item>
-    /// </list>
-    ///
-    /// **不得**给类型化路径另建 settings：换 resolver 就是换协议。
     /// </summary>
     public sealed class NewtonsoftJsonCodec : IJsonCodec
     {

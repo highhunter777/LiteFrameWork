@@ -24,7 +24,7 @@ namespace LiteCodeGen.EditorTools
             EditorGUILayout.Space(6);
             EditorGUILayout.LabelField("生成工具(子节点上的 BindNode 标记会成为类字段)", EditorStyles.boldLabel);
 
-            // 输出目录:可直接把文件夹拖到下方
+            // 输出目录:可直接把文件夹拖到下方。
             var folderProp = serializedObject.FindProperty("ScriptsFolder");
             var currentFolder = folderProp != null ? folderProp.stringValue : string.Empty;
 

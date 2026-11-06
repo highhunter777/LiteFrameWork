@@ -8,9 +8,6 @@ namespace LiteFramework
     {
         /// <summary>
         /// 数值能力位的兼容判定模式。
-        /// **只有两种合法状态**：`Enforce`（各轴为真实能力值，逐轴比较下限）或 `Off`（能力位未接入，
-        /// 显式关闭数值下限校验）——不允许"全 0 值 + 逐轴比较"的半实现（0 会被当成真实能力值）。
-        /// 身份串（Platform/Channel/AppVersion）不受本开关影响：它们描述"是不是同一个产品/渠道/版本"。
         /// </summary>
         public enum CapabilityMode
         {

@@ -6,11 +6,7 @@ using Cysharp.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// Lua 宿主端口（框架服务侧契约）：产品模块只经本端口消费脚本环境，
-    /// **不出现 XLua 适配器类型**（LuaComponent / LuaEnv / LuaPreloader）。
-    /// 实现归 <c>LiteFramework.Adapters</c> 的 XLua 适配层，由装配点登记进容器。
-    /// 绑定委托的环境参数以 <see cref="object"/> 表达（实现侧转 <c>LuaEnv</c>），
-    /// 使本契约所在程序集不引 XLua——模块签名因此也不出现脚本后端类型。
+    /// Lua 宿主端口（框架服务侧契约）：产品模块只经本端口消费脚本环境， **不出现 XLua 适配器类型**（LuaComponent / LuaEnv / LuaPreloader）。
     /// </summary>
     public interface ILuaHost
     {

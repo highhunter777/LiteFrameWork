@@ -18,9 +18,7 @@ namespace LiteCodeGen.EditorTools
     }
 
     /// <summary>
-    /// 绑定标记收集（生成器域）：遍历语义复用 <see cref="BindSurfaceWalk"/> 单源——
-    /// 根自身不入成员、嵌套 <c>BindRoot</c> 子树独立、<c>Clone_</c> 子树与模板（prefab 实例）边界不入本页；
-    /// 本类保留生成器域特有的成员资格校验（C# 标识符合法性/关键字/重名）与层级遍历序（OrderIndex）。
+    /// 绑定标记收集（生成器域）：遍历语义复用 <see cref="BindSurfaceWalk"/> 单源—— 根自身不入成员、嵌套 <c>BindRoot</c> 子树独立。
     /// </summary>
     public static class BindSearch
     {
@@ -74,7 +72,7 @@ namespace LiteCodeGen.EditorTools
             return marks;
         }
 
-        // ---------------- C# 标识符校验 ----------------
+        // ---------------- C# 标识符校验 ----------------。
 
         public static bool IsValidIdentifier(string name, out string reason)
         {

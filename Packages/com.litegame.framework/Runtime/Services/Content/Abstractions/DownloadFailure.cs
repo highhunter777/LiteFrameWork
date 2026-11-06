@@ -5,22 +5,18 @@ namespace LiteFramework
 {
     /// <summary>
     /// 下载/校验失败的稳定分类（区分暂态网络错误与签名/兼容错误）。
-    ///
-    /// **分类决定动作**，不是一个笼统的"失败"：
-    /// - 暂态类可重试/切源；确定性类重试无效，必须拒绝候选或提示更新（不通过反复重试或忽略验证绕过）。
-    /// - 因此本枚举带 <see cref="DownloadFailureInfo.IsTransient"/> 判定，调用方据此选择重试策略。
     /// </summary>
     public enum DownloadFailureKind
     {
         None = 0,
 
-        // ---- 暂态（可重试/可切源）----
+        // ---- 暂态（可重试/可切源）----。
         /// <summary>网络超时/连接失败（暂态网络/CDN：有界重试/切源）。</summary>
         TransientNetwork,
         /// <summary>数据源不可用（单源故障；可切源）。</summary>
         SourceUnavailable,
 
-        // ---- 确定性（重试无效）----
+        // ---- 确定性（重试无效）----。
         /// <summary>文件缺失（候选损坏/解析失败：隔离该候选、保留旧版本）。</summary>
         FileMissing,
         /// <summary>文件长度与清单不符。</summary>

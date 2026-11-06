@@ -7,8 +7,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 主线程显式单例装配器：构造注入、声明图预检、注册冻结、服务所有权与显式帧驱动序。
-    /// 构造和工厂只创建对象；异步初始化/关闭归 ClientHost 模块。
-    /// AOT 构造反射的实现类型须纳入目标平台保留清单。
     /// </summary>
     public sealed class ServiceContainer : IServiceContainer, IModuleStats, IDisposable
     {

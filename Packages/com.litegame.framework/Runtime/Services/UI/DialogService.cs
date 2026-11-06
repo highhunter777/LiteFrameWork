@@ -19,24 +19,7 @@ namespace LiteFramework.UI
     }
 
     /// <summary>
-    /// 弹窗服务（《UI框架总设计》§4.3"ShowDialogAsync 返回确认/取消/关闭原因，支持有界队列、
-    /// 优先级、互斥组和 Scope 取消。重复断线/错误弹窗按键合并，不无限堆叠"）。
-    ///
-    /// 语义：
-    /// - **互斥组**：同组（<see cref="Request.Group"/>，null = default）同时只展示一个；组空闲才出队
-    ///   （展示中与打开在途都占组）。不同组可并行展示（各自是独立模态）。
-    /// - **优先级**：同组出队按 <see cref="Request.Priority"/> 降序，同优先级 FIFO。
-    /// - **合并**（"重复断线/错误弹窗不无限堆叠"）：同 <see cref="Request.MergeKey"/> 的在途请求
-    ///   （排队或展示中）**共享同一结果任务**——后来的调用方并入等待，不产生新队列条目。
-    /// - **有界队列**：排队走统一原语 <see cref="IUIOperationQueue{T}"/>（M2 全量迁移）——
-    ///   排队数达 <see cref="QueueCapacity"/> 拒绝（类型化 Rejected——与导航同语义），
-    ///   出队按 <see cref="Request.Priority"/> 降序、同级 FIFO（互斥组忙的条目留在队里，不阻塞其他组）。
-    /// - **收口**：对话框被非按钮路径关闭（Back/Shutdown/其他 Close）→ 结果落 <see cref="DialogResult.Closed"/>
-    ///   （经 <see cref="UIService.FormClosed"/> 单一漏斗）；等待者自身的 Scope 取消只解除本人等待
-    ///   （<c>AttachExternalCancellation</c>），不影响对话框与其他等待者。
-    ///
-    /// 驱动：实现 <see cref="ITickable"/>（容器注册即自动驱动；测试直接泵 <see cref="Tick"/>）——
-    /// 每 Tick 至多启动一个展示（多组并行时逐 Tick 启动，无实际差异）。
+    /// 弹窗服务（《UI框架总设计》§4.3"ShowDialogAsync 返回确认/取消/关闭原因，支持有界队列、 优先级、互斥组和 Scope 取消。）。
     /// </summary>
     public sealed class DialogService : ITickable, IDisposable
     {
@@ -116,7 +99,7 @@ namespace LiteFramework.UI
             if (request == null) throw new ArgumentNullException(nameof(request));
             ct.ThrowIfCancellationRequested();
 
-            // 重复弹窗合并：同 MergeKey 在途（排队或展示中）→ 并入既有等待（不堆叠）
+            // 重复弹窗合并：同 MergeKey 在途（排队或展示中）→ 并入既有等待（不堆叠）。
             if (request.MergeKey != null && _byMergeKey.TryGetValue(request.MergeKey, out Entry pending))
                 return pending.Result.Task.AttachExternalCancellation(ct);
 
@@ -153,7 +136,7 @@ namespace LiteFramework.UI
             string group = entry.Request.Group;
             try
             {
-                // 打开（加载/实例化/初始化可能失败或被权威取消——全部落为该条目的失败/取消）
+                // 打开（加载/实例化/初始化可能失败或被权威取消——全部落为该条目的失败/取消）。
                 UIForm form = await OpenFormAsync(entry.Request.FormId);
                 _openingGroups.Remove(group);
 

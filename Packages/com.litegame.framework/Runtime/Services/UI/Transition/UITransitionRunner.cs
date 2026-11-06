@@ -6,16 +6,6 @@ namespace LiteFramework.UI
 {
     /// <summary>
     /// 转场编排层（《UI扩展能力设计》§1.5，Layer 2）：通用状态机 + 待办队列（容量 1）+ 超时兜底 + 交互门 + 统计。
-    ///
-    /// **不注册 `ITickable`**——由 <see cref="UIService"/> 在自身 Tick 的**帧末**转发：既避免双驱动，
-    /// 也让界面 `OnUpdate` 里发起的请求能在同一帧帧末被推进（§1.5.2"帧末 Advance 应用"）。
-    ///
-    /// 与既有 `_loading`/`_closing` 守卫**正交**：那两个按 formId 防"同一界面并发开/关"，
-    /// 本层管"全局表现编排"（同一时刻只有一个事务）。
-    ///
-    /// 四条硬规则（§1.5.4）：① 同帧 last-wins（首个请求立即开始，后续走排队/丢弃，不重复 Request 给机器）
-    /// ② 排队 1 个（目标 = 当前 Incoming 则忽略；再来的丢弃并计数）③ 交互门由壳在阶段钩子里统一管
-    /// ④ 超时（默认 2s）强制收尾并广播 <c>Completed=false</c>。
     /// </summary>
     public sealed class UITransitionRunner : IModuleStats
     {
@@ -52,7 +42,7 @@ namespace LiteFramework.UI
             _machine.Start(TransitionId.Idle);
         }
 
-        // ---- 诊断读数（DevHud / 验收）----
+        // ---- 诊断读数（DevHud / 验收）----。
 
         /// <summary>当前转场阶段。</summary>
         public TransitionId Phase => _machine.Current;
@@ -85,7 +75,7 @@ namespace LiteFramework.UI
                 Outgoing = outgoing,
                 Incoming = incoming,
                 MaxDuration = _maxDuration,
-                // 本事务操作作用域：取消/超时/合并键/状态统一走 M3-5 的 OperationScope（超时仍由 Tick 判定）
+                // 本事务操作作用域：取消/超时/合并键/状态统一走 M3-5 的 OperationScope（超时仍由 Tick 判定）。
                 Scope = OperationScope.Start("ui.transition",
                     $"transition:{mode}:{(outgoing != null ? outgoing.Id : 0)}->{(incoming != null ? incoming.Id : 0)}"),
             };
@@ -126,11 +116,6 @@ namespace LiteFramework.UI
 
         /// <summary>
         /// 帧末驱动（<see cref="UIService"/> 的 Tick 末尾调用）。
-        /// 顺序：超时/完成判定 → 机器 Tick（推进迁移）→ 收尾 → 取队列。
-        ///
-        /// **调用方约定**：收尾会同步 `TrySetResult`，从而可能在本方法内同步恢复
-        /// `ShowAsync/CloseAsync` 的续体（进而关闭/回收界面）。所以本方法必须位于其余帧逻辑之后——
-        /// UIService 已保证（`RaiseUpdate` 循环结束后才转发），届时 `foreach (_forms.Values)` 已结束，重入安全。
         /// </summary>
         public void Tick(float realDelta)
         {
@@ -139,9 +124,7 @@ namespace LiteFramework.UI
                 var c = _current;
                 bool inTransition = _machine.Current != TransitionId.Idle;
 
-                // 页面在事务进行中被回收/销毁（缓存淘汰、Destroy、低内存清理）：本条策略没有
-                // 可靠的回调源——本仓 DOTween 的 KillOnDisable 与显式 Kill **都不触发 OnKill**，
-                // 靠超时兜底会让任务白悬最多 MaxDuration。故由壳主动取消：策略复位 → 记 Cancelled → 立即收尾。
+                // 页面在事务进行中被回收/销毁（缓存淘汰、Destroy、低内存清理）：本条策略没有 可靠的回调源——本仓 DOTween 的 KillOnDisable 与显式 Kill **都不触发 OnKill**， 靠超时兜底会让任务白悬最多 MaxDuration。
                 if (inTransition && !c.TimedOut && !c.Done && IsOwnerGone(c))
                 {
                     c.OwnerGone = true;
@@ -170,14 +153,14 @@ namespace LiteFramework.UI
                 Finalize(_current);
             }
 
-            // 队列取出放帧末最后一步：保证"一帧最多一变"（§1.5.2）
+            // 队列取出放帧末最后一步：保证"一帧最多一变"（§1.5.2）。
             if (_current == null && _queued.TryDequeue(out TransitionContext next))
             {
                 Start(next);
             }
         }
 
-        // ---- 内部 ----
+        // ---- 内部 ----。
 
         /// <summary>事务锁定的页面是否已离开"可播"生命周期（回收/销毁 = 表现宿主已不可靠）。
         /// 只认 <see cref="UIFormState.Recycled"/>/<see cref="UIFormState.Disposed"/>——
@@ -224,11 +207,7 @@ namespace LiteFramework.UI
         }
 
         /// <summary>
-        /// 结果分类。**分工**：超时/丢弃两种"事务级"事实优先（它们由 Runner 判定）；
-        /// 其余交给策略写下的**播放终态**（<see cref="MotionPlayback.Outcome"/>）——
-        /// 这样"策略被取消但未超时"会如实报 <see cref="TransitionResultKind.Cancelled"/>，
-        /// 而不是落到含糊的兜底值（动画专项 §10"播放终态与 UI 操作结果分层映射"）。
-        /// 未实现带终态签名的策略：<c>Playback.Finished</c> 恒 false → 按完成处理。
+        /// 结果分类。
         /// </summary>
         private static TransitionOutcome OutcomeOf(TransitionContext ctx)
         {
@@ -247,7 +226,7 @@ namespace LiteFramework.UI
             }
             else if (ctx.OwnerGone)
             {
-                // 页面被回收：表现未播完但也不是超时——按取消分类（策略已复位并在 Playback 记 Cancelled）
+                // 页面被回收：表现未播完但也不是超时——按取消分类（策略已复位并在 Playback 记 Cancelled）。
                 kind = TransitionResultKind.Cancelled;
             }
             else if (ctx.Playback != null && ctx.Playback.Finished)
@@ -270,7 +249,7 @@ namespace LiteFramework.UI
                 Outgoing = ctx.Outgoing,
                 Incoming = ctx.Incoming,
                 Kind = kind,
-                // Completed 语义 = "表现正常播完"（§6.3）；超时/取消/异常/丢弃都不算
+                // Completed 语义 = "表现正常播完"（§6.3）；超时/取消/异常/丢弃都不算。
                 Completed = kind == TransitionResultKind.Completed,
                 TimedOut = ctx.TimedOut,
             };

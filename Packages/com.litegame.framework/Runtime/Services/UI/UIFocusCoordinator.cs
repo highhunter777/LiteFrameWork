@@ -9,21 +9,7 @@ using UnityEngine.UI;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 焦点协调者（《UI框架总设计》§6.2"焦点保存/恢复、键盘/手柄 Submit/Cancel 和平台返回统一处理"；
-    /// U2-⑦）。由 <see cref="UIService"/> 持有并在生命周期迁移处驱动；纯簿记类（无 MonoBehaviour），
-    /// EditMode 可直测。
-    ///
-    /// - **焦点事实单源** = EventSystem 当前选择（<c>currentSelectedGameObject</c>）；
-    ///   焦点可见 = Selectable 的 Selected 过渡态（引擎原生渲染，不建第二套焦点视觉）；
-    /// - **保存/恢复**：遮盖/暂停时若焦点在被遮页内 → 保存并清选择（键盘不再驱动不可交互页）；
-    ///   恢复（揭示/续跑）时**不抢占**——当前选择为空或在本人页内才还原（更高层模态持有焦点时不动）；
-    /// - **打开接管**：新顶页无条件聚焦首个可交互 Selectable（层级骨架深度优先序——确定性）；
-    /// - 平台返回输入侧经 <see cref="UIInput"/> 隔离层（R12 边界——设备直读收敛在
-    ///   <c>Packages/com.litegame.framework/Runtime/Services/UI/Input/</c>），语义侧（Back 目标推导/拦截链）归
-    ///   <see cref="UINavigationController"/>——协调者经 <see cref="PlatformBack"/> 转发，不重复实现 Back 判据；
-    /// - 键盘/手柄导航与 Submit/Cancel 由 <c>InputSystemUIInputModule</c> 默认动作集驱动
-    ///   （引擎半部，见 <see cref="UIInput"/>）；输入锁（转场/模态/暂停）语义由壳层既有
-    ///   协调链承担——协调者只在生命周期迁移点写选择。
+    /// 焦点协调者（《UI框架总设计》§6.2"焦点保存/恢复、键盘/手柄 Submit/Cancel 和平台返回统一处理"； U2-⑦）。
     /// </summary>
     public sealed class UIFocusCoordinator
     {

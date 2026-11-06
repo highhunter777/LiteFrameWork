@@ -22,15 +22,7 @@ namespace LiteFramework.UI
     }
 
     /// <summary>
-    /// 文字样式**声明标记**（《UI编辑器工具专项设计》§3.1"样式表 → UITextStyleRef 等可枚举标记 →
-    /// 批处理应用/对账"）：挂本组件＝声明"该文本按 <see cref="Role"/> 角色档"——档位基线值
-    /// （字号/对齐/换行/溢出策略/字重）住编辑器单源 <c>UITextStyle</c>，由样式工具**批量应用**写入
-    /// 文本组件、或**对账**报告属性漂移。
-    ///
-    /// 与 <see cref="UIStyle"/>（颜色 token）分工：本标记只辖文字档，不复制颜色值（§3.1）。
-    /// **只声明、不驱动**：组件不进运行时表现路径——工具按声明写组件属性，运行时按状态改实例合法
-    /// （§3.1"运行时按状态改实例合法，样式对账只读盘上资产"）；空 <see cref="Role"/> 无默认档
-    /// （起名作者面必须显式选档，工具不得猜语义）。
+    /// 文字样式**声明标记**（《UI编辑器工具专项设计》§3.1"样式表 → UITextStyleRef 等可枚举标记 → 批处理应用/对账"）：挂本组件＝声明"该文本按 <see cref="Role"/> 角色档"——。
     /// </summary>
     [AddComponentMenu("LiteGame/UI/UITextStyleRef 文字档标记")]
     public sealed class UITextStyleRef : MonoBehaviour

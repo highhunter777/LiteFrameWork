@@ -5,16 +5,7 @@ using System.Threading;
 namespace LiteFramework
 {
     /// <summary>
-    /// 客户端作用域原语：Cancellation、Disposable 和
-    /// 资源租约的 **LIFO 释放**。这是 Root/Account/Match/Scene/UI 五层 Scope 树的轻量底座。
-    ///
-    /// 语义：
-    /// - <see cref="Token"/> 随 <see cref="Cancel"/> 或**父 Scope 取消**而失效（链接 CTS——
-    ///   根取消必须级联到全部子孙，跨帧异步应绑定它）。
-    /// - <see cref="Register"/> 登记可释放资源，<see cref="Dispose"/> 按**登记逆序**释放
-    ///   （后创建的先释放——先建者可能被后建者依赖）。
-    /// - 单项释放异常**不阻断其余**（聚合上报）；重复 Dispose 幂等。
-    /// - Dispose 只做本 Scope 的释放与取消；父 Scope 的释放不由子触发（所有权单向）。
+    /// 客户端作用域原语：Cancellation、Disposable 和 资源租约的 **LIFO 释放**。
     /// </summary>
     public sealed class ClientScope : IDisposable
     {

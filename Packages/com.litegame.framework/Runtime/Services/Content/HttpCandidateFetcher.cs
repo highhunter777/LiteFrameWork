@@ -9,28 +9,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 真实候选下载器（《热更与内容发布专项设计》§7"只下载固定 Release 的不可变文件"）。
-    ///
-    /// **分工**（§7 原文"YooAsset 负责其擅长的下载与加载实现，项目负责可信发布描述、
-    /// 事务代次与激活决策"）：本类负责**逐文件获取 + 归属校验 + 原子落盘**；
-    /// 交付路径（contentRoot/releaseId/相对路径）由发布流水线保证与清单一致。
-    ///
-    /// **来源与重试（端口契约："按 <see cref="DownloadPlan"/> 的选定来源取字节"）**：
-    /// 下载基址来自计划选定源（<see cref="DownloadSource.BaseLocation"/>，装配点经
-    /// <see cref="ContentDeployConfig"/> 注入）；逐文件走 <see cref="DownloadPlan.TrySelect"/> →
-    /// 尝试 → 暂态失败 <see cref="DownloadPlan.RecordAttempt"/> 计数 → <see cref="DownloadPlan.BackoffMs"/>
-    /// 退避后再选源——单源即"同源重试"，多源即轮转换源（§7 换源/退避语义）；
-    /// 确定性失败（4xx/写入失败）立即终止（重试与换源都无意义，不通过反复重试绕过验证）。
-    ///
-    /// **断点续传**（§7"验证临时文件的 Release/长度/摘要归属；完成后全文件校验，
-    /// **不能只信已传字节计数**"）：
-    /// - 临时文件路径**归属到具体 Release**（含 releaseId 段）——换 Release 不会误用旧半截文件；
-    /// - 续传前校验"已有长度 ≤ 清单长度"，超出即弃置重下（吞掉的旧字节无归属价值）；
-    /// - **完成判据是摘要复算**，不是字节计数——本类只在完整拿到后交上层，摘要由
-    ///   <see cref="CandidateContentVerifier"/> 统一复算（不在此重复实现摘要）。
-    ///
-    /// **暂态 vs 确定性失败**（§7"区分暂态网络错误与签名/兼容错误"）：
-    /// 网络/HTTP 5xx/超时 → <see cref="DownloadFailureKind.TransientNetwork"/>（可重试换源）；
-    /// HTTP 4xx/本地写入失败 → 确定性（重试无效）。
     /// </summary>
     public sealed class HttpCandidateFetcher : ICandidateFetcher
     {
@@ -74,7 +52,7 @@ namespace LiteFramework
                 OnProgress?.Invoke(done, files.Count, entry.Path);
             }
 
-            // 落盘文件清点（清单外文件一并返回，交由校验器判 UnexpectedFile）
+            // 落盘文件清点（清单外文件一并返回，交由校验器判 UnexpectedFile）。
             var paths = new List<string>(files.Count);
             foreach (ReleaseFileEntry f in files) paths.Add(f.Path);
             foreach (string extra in FileSystemCandidateFileSource.ListAll(_files, _candidateRoot))
@@ -89,12 +67,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 回收该发布的临时目录（<see cref="TempPath"/> 的 Release 隔离根：
-        /// <c>&lt;候选根&gt;/.tmp/&lt;releaseId&gt;</c>）——§8 表行 1"清理属于该候选的临时文件"。
-        ///
-        /// 幂等（目录不存在 = no-op）；按端口契约**不抛**：清理失败吞掉——清理是恢复的次要目标，
-        /// 不得阻断"以 Confirmed 继续"；残留垃圾被隔离在该发布的 .tmp 目录内，
-        /// 下次同发布清理会幂等重试。
+        /// 回收该发布的临时目录（<see cref="TempPath"/> 的 Release 隔离根： <c>&lt;候选根&gt;/.tmp/&lt;releaseId&gt。
         /// </summary>
         public UniTask CleanupTempAsync(string releaseId, CancellationToken ct = default)
         {
@@ -116,12 +89,12 @@ namespace LiteFramework
         private async UniTask<DownloadFailureInfo> FetchOneAsync(
             string releaseId, ReleaseFileEntry entry, DownloadPlan plan, CancellationToken ct)
         {
-            // 已完整落盘（长度一致）则跳过——幂等重跑不重复下载
+            // 已完整落盘（长度一致）则跳过——幂等重跑不重复下载。
             string target = _candidateRoot + "/" + entry.Path;
             if (_files.GetFileLength(target) == entry.Length)
                 return default;
 
-            // 临时文件归属到 Release（§7：换 Release 不误用旧半截）
+            // 临时文件归属到 Release（§7：换 Release 不误用旧半截）。
             string temp = TempPath(releaseId, entry.Path);
             long have = _files.GetFileLength(temp);
             if (have > entry.Length)
@@ -129,7 +102,7 @@ namespace LiteFramework
 
             while (true)
             {
-                // 选源（含预算判定）：暂态失败轮转换源，确定性失败不在此路径（下方即止）
+                // 选源（含预算判定）：暂态失败轮转换源，确定性失败不在此路径（下方即止）。
                 if (!plan.TrySelect(entry.Path, out DownloadPlanEntry selected, out DownloadFailureInfo selectFailure))
                     return selectFailure;             // 达尝试上限/不在清单 → SourceUnavailable
 
@@ -170,7 +143,7 @@ namespace LiteFramework
                 }
                 catch (OperationCanceledException)
                 {
-                    // 超时与调用方取消都表现为取消；按作用域原因区分（超时是暂态，可重试/换源）
+                    // 超时与调用方取消都表现为取消；按作用域原因区分（超时是暂态，可重试/换源）。
                     return scope.IsTimedOut
                         ? new DownloadFailureInfo(DownloadFailureKind.TransientNetwork, entry.Path,
                             detail: $"超时 {_timeoutSeconds}s")
@@ -190,15 +163,15 @@ namespace LiteFramework
                 if (body == null)
                     return new DownloadFailureInfo(DownloadFailureKind.ReadError, entry.Path, detail: "响应为空");
 
-                // 长度核对在写盘前：不符即拒，不落半截
+                // 长度核对在写盘前：不符即拒，不落半截。
                 if (body.LongLength != entry.Length)
                     return new DownloadFailureInfo(DownloadFailureKind.LengthMismatch, entry.Path,
                         expected: entry.Length.ToString(), actual: body.LongLength.ToString());
 
-                // 内容摘要由上层 CandidateContentVerifier 统一复算——本类不重复实现摘要
+                // 内容摘要由上层 CandidateContentVerifier 统一复算——本类不重复实现摘要。
                 _files.WriteAllBytes(temp, body);
 
-                // 原子提交到目标路径（临时件随即移除）
+                // 原子提交到目标路径（临时件随即移除）。
                 byte[] committed = _files.ReadAllBytes(temp);
                 _files.WriteAllBytes(target, committed);
                 _files.Delete(temp);
@@ -208,8 +181,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 传输失败分类（§7"区分暂态网络错误与签名/兼容错误"）。
-        /// **4xx 是确定性**（资源不存在/无权限，重试无效）；**5xx 与网络错是暂态**（可重试/换源）；
-        /// **0 = 未拿到响应**（连接失败/DNS/超时）同样按暂态处理。
         /// </summary>
         internal static DownloadFailureInfo Classify(long responseCode, string error, string path)
         {
@@ -221,10 +192,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 临时文件路径（**相对 FileSystem 根**）：`&lt;候选根&gt;/.tmp/&lt;releaseId&gt;/&lt;相对路径&gt;`。
-        /// 归属到 Release——换 Release 不会误用旧半截（§7"验证临时文件的 Release 归属"）。
-        /// 完成后必须移到目标路径，否则会被清点判为清单外文件。
-        ///
-        /// **public 供诊断与测试断言**（它是纯路径换算，无副作用）。
         /// </summary>
         public string TempPath(string releaseId, string relativePath)
             => _candidateRoot + "/.tmp/" + releaseId + "/" + relativePath;

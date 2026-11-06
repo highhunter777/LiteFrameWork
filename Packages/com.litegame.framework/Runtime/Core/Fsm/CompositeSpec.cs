@@ -15,9 +15,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 复合态声明（层级状态机）：**纯描述树形状**——只写"谁是它的子态、默认从哪个子态进、要不要历史"，
-    /// 不含行为。行为由该复合态自己的 <see cref="IStage{TId,TReq}"/>（在 `stages` 里注册）承担。
-    /// 职责分离的好处：树的形状可以独立于钩子实现被审阅/测试，且不会出现"两处都声明子集"的漂移。
+    /// 复合态声明（层级状态机）：**纯描述树形状**——只写"谁是它的子态、默认从哪个子态进、要不要历史"， 不含行为。
     /// </summary>
     public sealed class CompositeSpec<TId> where TId : struct
     {

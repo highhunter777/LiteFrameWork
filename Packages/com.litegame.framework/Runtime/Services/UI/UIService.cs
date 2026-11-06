@@ -8,30 +8,7 @@ using UnityEngine;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// UI 服务：栈 / 层级组 / 状态机 / 实例化管线
-    /// + 策略三件（构造注入，默认实现服务内自带——服务零策略硬编码）
-    /// + 转场编排层（§1.5：状态机 + 排队 1 + 超时兜底 + 服务统一管交互门；策略只是"表现体"）
-    /// + 逻辑解析器（LuaBehaviourAdapter 接线；解析失败降级 NullLogic）。
-    /// 本服务 = DI 注册的普通服务（设计方案 §1.3），装配点构造。
-    /// 驱动：ITickable（GameEntry 统一喂）——仅 Active 态转发 OnUpdate（快照迭代——回调内开关界面安全）；
-    /// 遮盖语义（组级批量暂停的灰盒形态）：全屏界面打开 → 更低层级组的 Active 界面批量 Covered，
-    /// 关闭后按"仍开着的最高全屏"重算（多全屏叠开不误恢复）。
-    /// 首次与复用合流成 <see cref="FinishOpenAsync"/> 一条管线；
-    /// 打开失败回滚；Close/CloseAll 覆盖 Covered/Paused；env 重建走 <see cref="DropAllLogic"/> 清旧引用。
-    /// （§4.3）：在途打开操作合流（并发 Show 共享一份工作，不返回 null）；数据冲突 Busy；
-    /// 调用方 token 只取消本人、全员退出撤工作；Close 对在途加载发权威取消；失败类型化（<see cref="UIOpenException"/>）。
-    ///
-    /// **职责边界（单一职责）**：本类只做**开关管线编排**（校验 → 取/建实例 → 转场 → 落池 →
-    /// 重算遮盖/模态遮蔽）与缓存记账（登记/租约/预算）。七个协作件各管一件，本类不重复它们的机制：
-    /// - <see cref="UIFormStore"/>（实例 + 租约 + LRU 记账 + 淘汰候选）——缓存域；
-    /// - <see cref="UICoverageResolver"/>（遮盖推导与焦点联动）——在开关事务序内调用；
-    /// - <see cref="UIModalStack"/>（模态栈/射线遮蔽/Back 目标）——独立输入协调子域，
-    ///   本类经 <see cref="IUIFormQuery"/> 提供窄查询口（RegisterModal/IsModalOpen/
-    ///   TryGetBackTarget 等是**转发面**——公共 API 不变）；
-    /// - <see cref="UITransitionRunner"/>（转场状态机 + 排队 + 超时兜底）。
-    /// - <see cref="UIFormLogicBinder"/>（逻辑解析/注入缝/换表标记）——换表时机仍由本类在事务序里驱动；
-    /// - <see cref="UIFormCacheEvictor"/>（预算淘汰选谁）与 <see cref="UIFormStats"/>（统计投影）；
-    /// - <see cref="UILayerGroupFactory"/>（运行时根与层级组装配）。
+    /// UI 服务：栈 / 层级组 / 状态机 / 实例化管线 + 策略三件（构造注入，默认实现服务内自带——服务零策略硬编码） + 转场编排层（§1.5：状态机 + 排队 1 + 超时兜底 + 服务统一管交互门。）。
     /// </summary>
     public sealed class UIService : ITickable, IModuleStats, IUIFormQuery
     {
@@ -127,13 +104,9 @@ namespace LiteFramework.UI
             Log.Info("UI 服务就绪:层级组 Bottom/Window/Top（策略三件默认实现）", LogTag.UI);
         }
 
-        /// <summary>打开界面（§4.2 统一流程：校验请求 → 获取或创建实例 → 校验初始化 → 复位视觉 →
-        /// 排序/遮盖 → OnShow → 入场/替换 → 返回结果）。首次与复用**同一条管线**：复用只省略实例初始化。
-        /// 幂等：已打开（含 Covered/Paused）直接返回；池中复用重跑 OnShow 但不重跑 OnInit。
-        /// （§4.3）：同一界面**并发 Show 合流共享一次加载/打开**（不返回 null 表示进行中）；
-        /// 在途且数据不同 → <see cref="UIOpenException"/>(Busy)；调用方 token 只取消本人等待，
-        /// 全员退出才撤销工作；Close 对在途打开发权威取消。失败抛类型化异常（Reason 分类）。
-        /// 数据传参收口 <see cref="IUIData"/>（禁 object）。</summary>
+        /// <summary>
+        /// 打开界面（§4.2 统一流程：校验请求 → 获取或创建实例 → 校验初始化 → 复位视觉 → 排序/遮盖 → OnShow → 入场/替换 → 返回结果）。
+        /// </summary>
         public UniTask<UIForm> ShowAsync(int formId, IUIData data = null, CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
@@ -156,7 +129,7 @@ namespace LiteFramework.UI
                     case UIFormState.Active:
                     case UIFormState.Covered:
                     case UIFormState.Paused:
-                        // 已打开即幂等返回；不暗中再次 OnShow（更新数据用显式刷新操作，§4.2）
+                        // 已打开即幂等返回；不暗中再次 OnShow（更新数据用显式刷新操作，§4.2）。
                         Log.Warning($"UIForm[{formId}] 已打开（{existing.State}）——ShowAsync 幂等返回", LogTag.UI);
                         return UniTask.FromResult(existing);
                     default:
@@ -165,7 +138,7 @@ namespace LiteFramework.UI
                 }
             }
 
-            // 在途打开操作合流：并发 Show 共享同一次加载/打开——等待者各自可取消，工作只有一份
+            // 在途打开操作合流：并发 Show 共享同一次加载/打开——等待者各自可取消，工作只有一份。
             if (_openOps.TryGetValue(formId, out var op))
             {
                 if (!ReferenceEquals(op.Data, data))
@@ -235,9 +208,7 @@ namespace LiteFramework.UI
 
                 if (!form.EnterActiveFromLoading(op.Data))
                 {
-                    // 打开回滚（§4.1）：撤销登记 → 释放逻辑/Lua 引用 → 销毁对象 → 对外报失败
-                    // （禁止"Active + NullLogic 伪装成功"）。租约同步释放（§4.4 所有权清理——
-                    // 登记后 lease 已置 null，finally 兜底不覆盖此路径，必须就地释放）
+                    // 打开回滚（§4.1）：撤销登记 → 释放逻辑/Lua 引用 → 销毁对象 → 对外报失败 （禁止"Active + NullLogic 伪装成功"）。
                     _store.Unregister(op.FormId, out _, out IUIPrefabLease failedLease);
                     failedLease?.Release();
                     group.Stack.Remove(form);
@@ -253,7 +224,7 @@ namespace LiteFramework.UI
             }
             catch (OperationCanceledException)
             {
-                // 权威取消（Close 对在途 / 全员退出）：半成品就地回滚，全部等待者收类型化取消
+                // 权威取消（Close 对在途 / 全员退出）：半成品就地回滚，全部等待者收类型化取消。
                 if (form != null)
                 {
                     _store.Unregister(op.FormId, out _, out IUIPrefabLease canceledLease);
@@ -279,11 +250,9 @@ namespace LiteFramework.UI
             }
         }
 
-        /// <summary>摘除在途登记（幂等、只摘自己的——取消路径可能已摘、或已被新 Show 顶替）。
-        /// **必须早于 <c>Completion</c> 交付**：交付是内联同步链（<c>UniTaskCompletionSource</c> 默认同线程续延），
-        /// 等待者在 <c>TrySet*</c> 的调用栈内就拿到结果；若此刻登记仍在，等待者紧接着发起的 Close 会撞进
-        /// "在途打开 = 权威取消"分支——只取消、不关闭，**刚落地就被要求关闭的界面静默留存**
-        /// （进房快路径加载遮罩永久阻断即此坑）。</summary>
+        /// <summary>
+        /// 摘除在途登记（幂等、只摘自己的——取消路径可能已摘、或已被新 Show 顶替）。
+        /// </summary>
         private void Retire(OpenOperation op)
         {
             if (_openOps.TryGetValue(op.FormId, out var current) && ReferenceEquals(current, op))
@@ -350,7 +319,7 @@ namespace LiteFramework.UI
         /// 且不必播离场——但 OnHide 与释放照常完成。</summary>
         public async UniTask CloseAsync(int formId, CloseReason reason = CloseReason.User)
         {
-            // 关闭在途加载 = 权威取消（页面从未打开，Close 即完成——不抛"未打开"）
+            // 关闭在途加载 = 权威取消（页面从未打开，Close 即完成——不抛"未打开"）。
             if (_openOps.TryGetValue(formId, out var op))
             {
                 op.Scope.Cancel();                      // 先取消再摘登记：新 Show 不会并入将死操作
@@ -373,7 +342,7 @@ namespace LiteFramework.UI
             }
             if (system)
             {
-                // 系统清理：无离场表现，直接落库（OnHide/订阅清理/展示令牌取消照常）
+                // 系统清理：无离场表现，直接落库（OnHide/订阅清理/展示令牌取消照常）。
                 CloseFormInternal(form);
                 Log.Info($"UIForm[{formId}] 系统关闭（{reason}）", LogTag.UI);
                 return;
@@ -418,8 +387,6 @@ namespace LiteFramework.UI
 
         /// <summary>
         /// 销毁一个缓存实例（缓存页面完整销毁——GameObject Destroy + 租约释放 + 登记摘除）。
-        /// 仅允许销毁**非打开**（Recycled）实例——打开中的先 Close；在途加载先等待/取消。
-        /// DestroyOnClose 策略与低内存清理走同一路径（§5.2）。
         /// </summary>
         public void Destroy(int formId)
         {
@@ -441,7 +408,7 @@ namespace LiteFramework.UI
             if (_shutdown) return;                         // 幂等
             _shutdown = true;                              // ① 停止接入（Show 即拒）
 
-            // ② 取消全部在途打开（等待者收类型化 Canceled；半成品由工作侧就地回滚）
+            // ② 取消全部在途打开（等待者收类型化 Canceled；半成品由工作侧就地回滚）。
             if (_openOps.Count > 0)
             {
                 var cancelling = new List<OpenOperation>(_openOps.Values);
@@ -449,15 +416,15 @@ namespace LiteFramework.UI
                 foreach (var op in cancelling) op.Scope.Cancel();
             }
 
-            // ③ 全关（系统语义：不播离场、跳过拦截——OnHide/订阅/展示令牌照常清理）
+            // ③ 全关（系统语义：不播离场、跳过拦截——OnHide/订阅/展示令牌照常清理）。
             await CloseAllOpen(CloseReason.Shutdown);
 
-            // ④ 销毁全部缓存实例 + 释放全部租约（完整销毁路径）
+            // ④ 销毁全部缓存实例 + 释放全部租约（完整销毁路径）。
             var cachedIds = new List<int>(_store.Count);
             foreach (var f in _store.All) cachedIds.Add(f.Id);
             foreach (var id in cachedIds) DestroyFormInternal(id);
 
-            // ⑤ 销毁 DDoL Root
+            // ⑤ 销毁 DDoL Root。
             if (_root != null)
             {
 #if UNITY_EDITOR
@@ -471,9 +438,7 @@ namespace LiteFramework.UI
         }
 
         /// <summary>
-        /// 逻辑全体落空（§10.2 env 重建前置）：逐个释放适配器持有的旧 Lua 引用、逻辑置空并把界面标记为
-        /// "复用前需重新解析 + 补跑 OnInit"。**必须在 `LuaComponent.Shutdown()`（env.Dispose）之前调用**
-        /// ——释放 Lua 引用要趁 env 还活着；不落空则池中界面下次复用会拿已 Dispose 的 LuaFunction 打进死环境。
+        /// 逻辑全体落空（§10.2 env 重建前置）：逐个释放适配器持有的旧 Lua 引用、逻辑置空并把界面标记为 "复用前需重新解析 + 补跑 OnInit"。
         /// </summary>
         public void DropAllLogic()
         {
@@ -511,10 +476,7 @@ namespace LiteFramework.UI
         /// <summary>查询打开状态（IsOpen = Active/Covered/Paused——对 Lua 语义"界面上没关"）。</summary>
         public bool IsOpen(int formId) => _store.TryGet(formId, out var f) && f.IsOpen;
 
-        // ---- 模态栈（§6.2）----
-        // 模态登记/顶模态推导/射线遮蔽/Back 目标是一套自洽的输入协调子域，已独立为 UIModalStack
-        // （窄查询口注入，本类不把"谁开着"的判据泄漏出去）。以下四行是**转发面**——保持
-        // UIService 的既有公共 API 不变（DialogService/UINavigationController/装配点零改动）。
+        // ---- 模态栈（§6.2）---- 模态登记/顶模态推导/射线遮蔽/Back 目标是一套自洽的输入协调子域，已独立为 UIModalStack （窄查询口注入，本类不把"谁开着"的判据泄漏出去）。
 
         /// <summary>登记模态（幂等；同 formId 重复登记无副作用）。</summary>
         public void RegisterModal(int formId) => _modals.Register(formId);
@@ -535,9 +497,7 @@ namespace LiteFramework.UI
         public bool TryGetBackTarget(out int formId) => _modals.TryGetBackTarget(out formId);
 
 
-        // ---- 逻辑换表：运行期增量重填（§2.3）----
-        // 标记/换表判定/解析与降级归 UIFormLogicBinder；本类只保留**时机**（关闭事务序 / 复用前 /
-        // env 重建前置）——顺序不能反：OnHide 跑完前换表会让界面"一半旧一半新"。
+        // ---- 逻辑换表：运行期增量重填（§2.3）---- 标记/换表判定/解析与降级归 UIFormLogicBinder；本类只保留**时机**（关闭事务序 / 复用前 / env 重建前置）——顺序不能反：OnHide 跑完前换表会让界面"一半旧一半新"。
 
         /// <summary>
         /// 全量打标"逻辑已过期"（幂等）。由重填服务在**清注册表之前**调用——先标后清，窗口内界面仍能用旧表跑完。
@@ -556,11 +516,9 @@ namespace LiteFramework.UI
         /// <summary>仍带"待更新"标记的界面数（HUD 读数：&gt;0 = 新逻辑尚未在该界面生效）。</summary>
         public int StaleLogicCount => _logic.StaleCount;
 
-        // ---- 内部 ----
+        // ---- 内部 ----。
 
-        // ---- IUIFormQuery：模态栈的窄查询口 ----
-        // 只暴露两个事实（谁仍开着 / 某层已打开栈），不把实例字典与生命周期交出去——
-        // 模态推导因此可独立测试（替身实现本接口即可）。
+        // ---- IUIFormQuery：模态栈的窄查询口 ---- 只暴露两个事实（谁仍开着 / 某层已打开栈），不把实例字典与生命周期交出去—— 模态推导因此可独立测试（替身实现本接口即可）。
 
         void IUIFormQuery.CollectOpen(List<UIForm> into)
         {
@@ -609,17 +567,12 @@ namespace LiteFramework.UI
         }
 
         /// <summary>
-        /// 页面关闭通知：<see cref="CloseFormInternal"/> 是全部关闭路径的单一漏斗
-        /// （用户/系统/替换），打开中的页面真正离场时在此广播。消费者（弹窗服务等）据此对
-        /// "被外部关闭"的在途等待收口——否则等待任务永久悬挂。
-        /// 重入约束同 Tick 快照：回调内**禁止再开关界面**（先记账，出回调后再操作）。
+        /// 页面关闭通知：<see cref="CloseFormInternal"/> 是全部关闭路径的单一漏斗 （用户/系统/替换），打开中的页面真正离场时在此广播。
         /// </summary>
         public event Action<int> FormClosed;
 
         /// <summary>
         /// 落库关闭：EnterClosing → 出栈 → 落池 → 换表 → 重算遮盖 → LRU 记账 → 预算淘汰。
-        /// 由 <see cref="CloseAsync"/>（Pop 转场收尾后）与 Replace 自动关闭旧界面共用。
-        /// 顺序不能反：OnHide 跑完前换表会让界面"一半旧一半新"（§2.3）。
         /// </summary>
         private void CloseFormInternal(UIForm form)
         {
@@ -633,7 +586,7 @@ namespace LiteFramework.UI
             if (form.Info.FullScreen) RecomputeCovering();
             _modals.RecomputeBlocking();                  // 模态射线遮蔽随关闭重算（关掉模态 → 下方恢复可命中）
 
-            // per-form 缓存策略（§5.2 U2 表列）：DestroyOnClose 关即销毁（不进池）
+            // per-form 缓存策略（§5.2 U2 表列）：DestroyOnClose 关即销毁（不进池）。
             if (form.Info.CacheStrategy == UICacheStrategy.DestroyOnClose)
             {
                 DestroyFormInternal(form.Id);
@@ -657,7 +610,7 @@ namespace LiteFramework.UI
             lease?.Release();                              // 最后一个依赖实例已销毁——底层引用归零（§5.2）
         }
 
-        // ---- ITickable / IModuleStats ----
+        // ---- ITickable / IModuleStats ----。
 
         public void Tick(float deltaTime)
         {

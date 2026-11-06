@@ -7,9 +7,6 @@ namespace LiteFramework.UI
 {
     /// <summary>
     /// 多态按钮：normal / pressed / disabled / selected 四态色彩 + 长按 + 连点保护。
-    /// 不依赖 uGUI Selectable——色彩与语义全自持（灰盒：色块多态，贴图换皮随美术）。
-    /// 事件：OnClick（经连点保护）、OnLongPress、OnSelectedChanged。
-    /// 状态色令牌化（P2-3 B2）：各态色旁伴生 token 字段（空＝未令牌化用序列化色；装配期经 <see cref="IThemeBound"/> 注入解析）。
     /// </summary>
     public class StateButton : UIWidget, IPointerDownHandler, IPointerUpHandler, IThemeBound, IThemeGraphicWriter
     {

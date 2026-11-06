@@ -3,9 +3,7 @@ using System.Collections.Generic;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// UI 运行统计投影（从 <see cref="UIService"/> 外提的"统计"域，M3-6 §4.5）：
-    /// 把实例状态分布、待换表数、转场相位/队列摊平成 HUD/诊断读数的键值对。
-    /// 只读投影——不改任何状态；契约同 <see cref="LiteFramework.IModuleStats"/>（Clear + 填）。
+    /// UI 运行统计投影（从 <see cref="UIService"/> 外提的"统计"域，M3-6 §4.5）： 把实例状态分布、待换表数、转场相位/队列摊平成 HUD/诊断读数的键值对。
     /// </summary>
     internal static class UIFormStats
     {

@@ -6,19 +6,7 @@ using Cysharp.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// 客户端宿主：真正的启动与关闭持有者，
-    /// MonoBehaviour 侧只留引导适配器（GameEntry）与平台事件桥（AppLifetime）。
-    ///
-    /// 职责：
-    /// - 根取消源与模块所有权表：<see cref="_rootScope"/> + 按注册序的模块列表。
-    /// - **按依赖顺序初始化**（依赖顺序 = 注册顺序，由装配方表达；不推断依赖图）；**失败只关闭已成功模块**（逆序回滚）。
-    /// - **逆序关闭**；**单模块关闭失败不得阻断其余**（异常聚合上报，不抛出）。
-    /// - 平台事件（Pause/Focus/LowMemory/Quit 意图）经订阅方法转发——Host 只持回调集合，
-    ///   Unity 生命周期消息由 AppLifetime 桥接进来（L1 可用假事件测试全部语义）。
-    /// - 退出前刷新钩子 <see cref="AddPreShutdownFlush"/>（设置/存档/遥测/最后日志）。
-    ///
-    /// 静态状态纪律：Host 不设静态单例；编辑器关闭 Domain Reload 的静态清理由
-    /// <see cref="ResetForEditorReload"/> 承担（AppLifetime 以 RuntimeInitializeOnLoadMethod(SubsystemRegistration) 调用）。
+    /// 客户端宿主：真正的启动与关闭持有者， MonoBehaviour 侧只留引导适配器（GameEntry）与平台事件桥（AppLifetime）。
     /// </summary>
     public sealed class ClientHost
     {
@@ -116,9 +104,7 @@ namespace LiteFramework
         public ClientHost SubscribeQuitIntent(Func<UniTask> handler) { lock (_gate) { _quitIntentHandlers.Add(handler); } return this; }
 
         /// <summary>
-        /// 按注册顺序初始化全部模块。任一失败：**立即逆序关闭已成功模块**（含根 Scope 释放），然后抛出原异常
-        /// （调用方进入确定错误态：启动任一阶段取消或失败都能回到确定状态）。
-        /// ct 取消同理回滚（模块以 OperationCanceledException 穿透）。
+        /// 按注册顺序初始化全部模块。
         /// </summary>
         public async UniTask InitializeAsync(CancellationToken ct = default)
         {
@@ -172,10 +158,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 优雅关闭：**先行取消根令牌**（统一取消链——级联流程/任务在途异步）→ 按登记顺序执行刷新钩子
-        /// （设置/存档/遥测/最后日志）→ **逆序**关闭全部已初始化模块，最后释放根 Scope。
-        /// 单模块/单钩子失败不阻断其余（异常聚合进 <see cref="ShutdownFailures"/>，不抛出）；
-        /// 幂等（并发/重复调用收敛为一次）。
+        /// 优雅关闭：**先行取消根令牌**（统一取消链——级联流程/任务在途异步）→ 按登记顺序执行刷新钩子 （设置/存档/遥测/最后日志）→ **逆序**关闭全部已初始化模块，最后释放根 Scope。
         /// </summary>
         public async UniTask ShutdownAsync(CancellationToken ct = default)
         {
@@ -208,13 +191,13 @@ namespace LiteFramework
             //    消除"宿主逆序关闭模块"与"流程仍持旧设施继续跑"的竞态；资源释放仍在末尾 Dispose。
             _rootScope?.Cancel();
 
-            // ② 刷新钩子（登记顺序）：失败聚合不阻断
+            // ② 刷新钩子（登记顺序）：失败聚合不阻断。
             await RunFlushHooksAsync(flushes, ct);
 
-            // ③ 组合根作用域先释放（最后一步装配 = 逆序第一），再逆序关闭模块
+            // ③ 组合根作用域先释放（最后一步装配 = 逆序第一），再逆序关闭模块。
             ReleaseComposeScope();
 
-            // ④ 逆序关闭已初始化模块（未初始化者跳过——启动失败回滚后再次关闭不应触碰未初始化模块）
+            // ④ 逆序关闭已初始化模块（未初始化者跳过——启动失败回滚后再次关闭不应触碰未初始化模块）。
             List<(IClientSegmentHandle handle, SegmentScope scope)> handles;
             lock (_gate) handles = new List<(IClientSegmentHandle, SegmentScope)>(_handles);
             try
@@ -236,7 +219,7 @@ namespace LiteFramework
                     }
                     finally
                     {
-                        // 模块资源作用域随模块关闭释放（先句柄后资源；取消/失败路径同样释放）
+                        // 模块资源作用域随模块关闭释放（先句柄后资源；取消/失败路径同样释放）。
                         ReleaseModuleScope(handles[i]);
                     }
                 }
@@ -452,9 +435,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 编辑器静态清理（关闭 Domain Reload 场景）：AppLifetime 经 RuntimeInitializeOnLoadMethod(SubsystemRegistration)
-        /// 调用。Host 自身无静态可变状态——此方法存在是为①钉死该纪律②给静态兼容门面一个唯一清理入口。
-        /// 任何时候调用都安全。
+        /// 编辑器静态清理（关闭 Domain Reload 场景）：AppLifetime 经 RuntimeInitializeOnLoadMethod(SubsystemRegistration) 调用。
         /// </summary>
         public static void ResetForEditorReload()
         {

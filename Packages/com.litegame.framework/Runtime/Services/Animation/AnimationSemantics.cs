@@ -35,10 +35,7 @@ namespace LiteFramework.Animation
     }
 
     /// <summary>
-    /// 通道集合掩码（Graph Evaluate 只由一个驱动器调用）——单次 <c>Tick</c> 采样后，
-    /// 用它回报"本次采样中自然到达结束边界的通道集合"，避免逐通道驱动导致时间被重复推进。
-    /// <b>语义位与 <see cref="AnimationChannel"/> 枚举序解耦</b>：禁止散写 <c>1 &lt;&lt; channel</c>，
-    /// 统一走 <see cref="AnimationChannelMasks.Of(AnimationChannel)"/>。
+    /// 通道集合掩码（Graph Evaluate 只由一个驱动器调用）——单次 <c>Tick</c> 采样后， 用它回报"本次采样中自然到达结束边界的通道集合"，避免逐通道驱动导致时间被重复推进。
     /// </summary>
     [Flags]
     public enum AnimationChannelMask

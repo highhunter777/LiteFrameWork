@@ -5,9 +5,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 迁移表（《状态机专项设计》§3.1）：状态机上的"自动迁移"配置——三种边共用一份**声明序**评估。
-    /// 边 = 配置：Start 前完成注册；机器 Start 封板后加边当场抛；守卫失败 = 边不触发（静默正常路径）。
-    /// 平面机/层级机组合挂载同一实例，两机的三种边语义一致；评估由机器转调
-    /// （命中 = From 匹配当前态（或 Any）&& guard 通过；声明序首个命中生效）。
     /// </summary>
     public sealed class TransitionTable<TId, TReq>
         where TId : struct

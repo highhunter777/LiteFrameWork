@@ -5,13 +5,7 @@ using LiteFramework;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 页面逻辑绑定与换表（从 <see cref="UIService"/> 外提的"逻辑生命周期"域，M3-6 §4.5）：
-    /// 解析（prefab 自带 C# 逻辑优先 → LuaPath → 降级 NullLogic）、注入缝（语言/主题）、
-    /// 运行期换表（标记 / 池中立即换 / 打开中关闭后换 / env 重建落空与补解析）。
-    ///
-    /// **边界**：只动 <see cref="UIForm"/> 的逻辑与注入字段 + 待换表标记；不碰实例注册、转场、
-    /// 遮盖与开关时序（那些归 <see cref="UIService"/>）。换表时机仍由服务在关闭/复用事务序里驱动——
-    /// 顺序不能反：OnHide 跑完前换表会让界面"一半旧一半新"。
+    /// 页面逻辑绑定与换表（从 <see cref="UIService"/> 外提的"逻辑生命周期"域，M3-6 §4.5）： 解析（prefab 自带 C# 逻辑优先 → LuaPath → 降级 NullLogic）。
     /// </summary>
     internal sealed class UIFormLogicBinder
     {
@@ -104,9 +98,7 @@ namespace LiteFramework.UI
         public void Forget(int formId) => _stale.Remove(formId);
 
         /// <summary>
-        /// 逻辑解析（§3.4 降级口径）：**prefab 自带 C# 逻辑组件优先**（UIBindBase 派生页挂 prefab 根，
-        /// 生成器登记控件——显式挂件优先于表行 Lua 逻辑）；空 LuaPath = 纯展示面（正常降级**不打日志**，
-        /// 否则纯展示面会凭空制造"Console 新增 Error"的 UI Lane 红灯）；resolver 失败 → 降级 NullLogic。
+        /// 逻辑解析（§3.4 降级口径）：**prefab 自带 C# 逻辑组件优先**（UIBindBase 派生页挂 prefab 根， 生成器登记控件——显式挂件优先于表行 Lua 逻辑）。
         /// </summary>
         private IUIFormLogic Resolve(PageDefinition info, UnityEngine.GameObject root)
         {

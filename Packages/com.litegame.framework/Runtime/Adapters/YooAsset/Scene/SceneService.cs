@@ -11,16 +11,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 场景句柄的租约包装（《客户端总设计》§8.2 四件之一的 `SceneLease`）。
-    ///
-    /// **为什么是包装而不是直接登记 <see cref="SceneHandle"/>**：<see cref="ClientScope.Register{T}"/>
-    /// 要求 <c>T : IDisposable</c>，而 <see cref="SceneHandle"/> 的 <c>Dispose</c> **只释放 YooAsset 引用、
-    /// 不卸场景**。卸载路径要的是"先 <c>UnloadSceneAsync</c> 再 Dispose"——借租约把这两步绑成一个
-    /// 可登记对象，作用域的 LIFO 收尾即"卸场景 + 释放资源"（§6.2 Scene 行退出动作）。
-    ///
-    /// **正常卸载路径不用它**：卸载走 <see cref="SceneService.UnloadSingleAsync"/> /
-    /// <see cref="SceneService.UnloadAdditiveAsync"/> 的显式 <c>UnloadHandleAsync</c>（因为要 await
-    /// 卸载完成）；本租约服务**宿主关闭路径**（<see cref="SceneService.ReleaseAll"/>，退出不卸场景、
-    /// 只归还引用）与作用域的登记语义。两条路径都幂等（<see cref="AssetLease{T}"/> 同款守卫）。
     /// </summary>
     internal sealed class SceneLease : IDisposable
     {
@@ -41,17 +31,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 场景服务（DI 单例，ProcedureLaunch 注册）。**只提供机制，切换决策归 Procedure**——
-    /// 业务禁止裸调 AssetService.LoadSceneAsync（设计方案 §1.3 场景行）。
-    /// 加载方式（两种，语义各自钉死）：
-    /// ① **单场景** `LoadSingleAsync/UnloadSingleAsync`——切换语义（先卸后载）；Unity Single 模式会销毁全部已开场景，
-    ///    故切换成功/失败后**叠加登记一律随之失效**（句柄 Dispose 释放 YooAsset 引用，不再 Unload——场景已不在）；
-    /// ② **叠加** `LoadAdditiveAsync/UnloadAdditiveAsync`——并发多场景（关卡叠加/UI 叠加）；
-    ///    同 location 重复加载 = Warning + no-op（幂等宽容，同事件注销口径）；卸载未加载 = no-op。
-    /// 契约：location 为场景资源完整路径；失败抛 InvalidOperationException（含 location，fail-fast 由流程 Fail() 接）；
-    /// 句柄全由本类持有不外泄（业务拿不到 SceneHandle，无泄漏窗口）；主线程 only；加载并发不设守卫（并发语义是调用方的策略）；
-    /// **叠加场景的 AudioListener/Camera 冲突由场景制作者处理**（机制层不代管策略——实测叠加后会出现
-    /// "multiple audio listeners" 警告，属被叠加场景自带监听器所致）。
+    /// 场景服务（DI 单例，ProcedureLaunch 注册）。
     /// </summary>
     public sealed class SceneService : ISceneService
     {
@@ -64,9 +44,7 @@ namespace LiteFramework
         private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
 
         /// <summary>
-        /// 宿主代次：<see cref="ReleaseAll"/> 时递增。在途加载据此判定"我已过期"——
-        /// 底层加载不可中途取消时，迟到的结果必须**释放自己的租约**而不是回写已释放的服务
-        /// （《动画模块专项设计》§9 同款纪律；《客户端总设计》§5"旧回调不能修改新实例"）。
+        /// 宿主代次：<see cref="ReleaseAll"/> 时递增。
         /// </summary>
         private int _generation;
 
@@ -93,7 +71,7 @@ namespace LiteFramework
             => !string.IsNullOrEmpty(location)
                && (_singleLocation == location || _additives.ContainsKey(location));
 
-        // ---- 单场景（切换） ----
+        // ---- 单场景（切换） ----。
 
         /// <summary>加载单场景并激活（先卸旧单场景；叠加登记随之清理——见类注释①）。</summary>
         public async UniTask LoadSingleAsync(string location, CancellationToken ct = default)
@@ -116,15 +94,15 @@ namespace LiteFramework
                 }
                 catch
                 {
-                    // 失败路径也要清理叠加登记（Single 语义可能已销毁旧场景）——见 finally 的说明
+                    // 失败路径也要清理叠加登记（Single 语义可能已销毁旧场景）——见 finally 的说明。
                     ClearAdditiveRegistry();
                     throw;
                 }
 
-                // Single 语义已销毁全部旧场景：无论成败，叠加登记都失效（Dispose 释放引用，不再 Unload）
+                // Single 语义已销毁全部旧场景：无论成败，叠加登记都失效（Dispose 释放引用，不再 Unload）。
                 ClearAdditiveRegistry();
 
-                // 迟到检查（§9）：等待期间宿主可能已 ReleaseAll——此时不得回写已释放的服务
+                // 迟到检查（§9）：等待期间宿主可能已 ReleaseAll——此时不得回写已释放的服务。
                 if (generation != _generation || IsReleased)
                 {
                     handle.Dispose();
@@ -136,9 +114,7 @@ namespace LiteFramework
 
                 _single = handle;
                 _singleLocation = location;
-                // 场景作用域（§6.2"Scene：场景加载到卸载"）：句柄登记进作用域后，
-                // 卸载/释放路径**只 Dispose 作用域**就完成了"卸场景 + 释放引用"两件事——
-                // 顺序与容错由 ClientScope 保证（先 UnloadSceneAsync 再 Dispose，见 SceneLease 的 LIFO 语义）。
+                // 场景作用域（§6.2"Scene：场景加载到卸载"）：句柄登记进作用域后， 卸载/释放路径**只 Dispose 作用域**就完成了"卸场景 + 释放引用"两件事—— 顺序与容错由 ClientScope 保证（先 UnloadSceneAsync 再 Dispose。）。
                 _singleScope = new ClientScope($"Scene.Single[{location}]");
                 _singleScope.Register(new SceneLease(handle));
                 operation.MarkSucceeded();
@@ -187,13 +163,11 @@ namespace LiteFramework
             }
         }
 
-        // ---- 叠加（并发） ----
+        // ---- 叠加（并发） ----。
 
-        /// <summary>叠加加载场景并激活；同 location 已加载 = Warning + no-op。
-        /// **同名场景已在 SceneManager 在场（预置场景开发形态）= 不再叠加**：编辑器里开着目标场景
-        /// 进 Play 时，再叠加会得到 Unity 的**第二份同名实例**（相机/监听器/场景对象全部翻倍）。
-        /// 命中 → 跳过加载，登记为**领养场景**（句柄 = null，属编辑器会话，本服务不卸不释放）；
-        /// `IsLoaded` 从此返回 true（后续重进走幂等早退），`UnloadAdditiveAsync` 对领养实例 = no-op 警告。</summary>
+        /// <summary>
+        /// 叠加加载场景并激活；同 location 已加载 = Warning + no-op。
+        /// </summary>
         public async UniTask LoadAdditiveAsync(string location, CancellationToken ct = default)
         {
             ValidateLocation(location);
@@ -221,7 +195,7 @@ namespace LiteFramework
                 int generation = _generation;
                 SceneHandle handle = await LoadHandleAsync(location, LoadSceneMode.Additive, operation.Token);
 
-                // 迟到检查（§9）：等待期间宿主已释放 / 已发生单场景切换清理 → 就地释放引用
+                // 迟到检查（§9）：等待期间宿主已释放 / 已发生单场景切换清理 → 就地释放引用。
                 if (generation != _generation || IsReleased || _additives.ContainsKey(location))
                 {
                     handle.Dispose();
@@ -287,13 +261,10 @@ namespace LiteFramework
             }
         }
 
-        // ---- 释放（宿主关闭面） ----
+        // ---- 释放（宿主关闭面） ----。
 
         /// <summary>
-        /// 释放全部在持场景句柄（单场景 + 全部叠加），**不执行场景卸载**——本方法只用于宿主关闭路径
-        /// （Container 模块 ShutdownAsync 逆序调用，§6.2 Scene 域"释放资源租约"退出动作）：
-        /// 进程已在退出，卸场景无意义，但 YooAsset 引用必须归零（编辑器 Domain-Reload-Off 的重复 Play、
-        /// 退出复跑不能累积半开句柄）。幂等；正常路径的单/叠加卸载不经过本方法。
+        /// 释放全部在持场景句柄（单场景 + 全部叠加），**不执行场景卸载**——本方法只用于宿主关闭路径 （Container 模块 ShutdownAsync 逆序调用。）。
         /// </summary>
         public void ReleaseAll()
         {
@@ -333,7 +304,7 @@ namespace LiteFramework
         /// 已释放时返回已取消令牌。</summary>
         public CancellationToken LifetimeToken => _lifetime.Token;
 
-        // ---- 内部 ----
+        // ---- 内部 ----。
 
         private void ThrowIfReleased(string operation)
         {

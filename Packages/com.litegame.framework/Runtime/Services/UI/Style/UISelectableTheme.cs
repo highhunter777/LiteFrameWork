@@ -5,10 +5,7 @@ using UnityEngine.UI;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// uGUI Selectable 状态色令牌接缝（P2-3 B4 / D3）：5 个状态色令牌常量，装配期经 <see cref="IThemeBound"/>
-    /// 注入后一次性写 <see cref="Selectable.colors"/>（保留 colorMultiplier/fadeDuration）；仅 ColorTint 生效。
-    /// 未注入/未知令牌保持 prefab 现值；只写状态 tint，不写 Graphic 基色（可与 `UIStyleRef` 共存）。
-    /// 不 RequireComponent：无 Selectable 由 `ui.style.selectable` 报 Error（可测的显式判据，避免自动补组件掩盖配置问题）。
+    /// uGUI Selectable 状态色令牌接缝（P2-3 B4 / D3）：5 个状态色令牌常量。
     /// </summary>
     [AddComponentMenu("LiteGame/UI/UISelectableTheme Selectable 状态色")]
     [DisallowMultipleComponent]

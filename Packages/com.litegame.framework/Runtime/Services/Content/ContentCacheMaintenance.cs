@@ -34,13 +34,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 受控内容缓存清理（《热更与内容发布专项设计》§8 失败隔离；恢复动作面）。
-    ///
-    /// **顺序不可颠倒**：先 <see cref="IContentService.ShutdownAsync"/> 释放运行时句柄（候选包根正指向
-    /// 待删目录——带着句柄删文件会留下半删状态），再删候选根，最后把激活记录回退 builtin：
-    /// 记录若不回退，下次启动仍声称"已确认候选"，而文件已不在，恢复链会把用户留在不确定态。
-    ///
-    /// **调用语境**：只在"运行时内容可丢弃"的恢复语境调用（启动失败/错误页阻断态）；运行中的对局/页面
-    /// 不得调用——本类不重建内容，重启由流程决定。内置包根（StreamingAssets）不在删除范围。
     /// </summary>
     public sealed class ContentCacheMaintenance : IContentCacheMaintenance
     {
@@ -63,10 +56,10 @@ namespace LiteFramework
         {
             ct.ThrowIfCancellationRequested();
 
-            // ① 释放运行时句柄（幂等）——候选包根的 YooAsset 句柄必须先归零再删文件
+            // ① 释放运行时句柄（幂等）——候选包根的 YooAsset 句柄必须先归零再删文件。
             await _content.ShutdownAsync(ct);
 
-            // ② 清点后删除候选根（下载产物；不存在 = 空清，幂等）
+            // ② 清点后删除候选根（下载产物；不存在 = 空清，幂等）。
             string[] files = _files.GetFilesRecursive(ReleaseLayout.CandidateRootRelative);
             long bytes = 0;
             for (int i = 0; i < files.Length; i++)
@@ -76,7 +69,7 @@ namespace LiteFramework
             }
             _files.DeleteDirectory(ReleaseLayout.CandidateRootRelative);
 
-            // ③ 激活记录回退 builtin（记录与磁盘一致；序号/完整性照常落盘）
+            // ③ 激活记录回退 builtin（记录与磁盘一致；序号/完整性照常落盘）。
             _activations.RollbackToBuiltin(RollbackReason);
 
             var result = new ContentCacheClearResult(files.Length > 0, files.Length, bytes, true);

@@ -6,18 +6,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 内容服务端口：用可注入 IContentService 取代静态所有权。
-    ///
-    /// 实现方职责：
-    /// - InitializeAsync 幂等（重复调用直接返回）。
-    /// - AcquireAsync 成功 → 返回带引用计数的租约；失败 → 抛（含 location 诊断）。
-    /// - ct 取消贯穿加载全程；取消后不得残留部分加载状态。
-    /// - ShutdownAsync 释放全部剩余租约与缓存。
-    /// YooAsset 适配与 Offline/Host 模式归适配层；本接口不感知后端。
-    ///
-    /// 本端口用 <c>UniTask</c> 表达异步契约，故随 `LiteFramework.Async` 程序集落位，**不在** `LiteFramework.Core`
-    /// （S2 契约层，义务是零第三方实现依赖、可被服务端引用）。同文件的 <see cref="ContentGeneration"/> 与
-    /// <see cref="AssetLease{T}"/> **零异步依赖**，留在 Core——`ActivationTransactionStore` 消费前者，
-    /// 不必反向依赖 Async。
     /// </summary>
     public interface IContentService
     {
@@ -31,10 +19,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 按 tag 列出内容路径（如 "lua" → 全部 .lua 资产路径）。
-        ///
-        /// **为什么在契约里**：TAG 是**发布约定**（收集组打标），实现方各不相同
-        /// （YooAsset 走 <c>GetAssetInfos</c>；热更批走发布清单）。放在内容服务契约里，
-        /// 调用方（装配点）不必认识任何具体后端的包类型。
         /// </summary>
         IReadOnlyList<string> ListAssetPathsByTag(string tag);
 

@@ -7,10 +7,7 @@ namespace LiteFramework
 {
 
     /// <summary>
-    /// 健康确认聚合。逐项执行**全部**探针——不短路：
-    /// 一次报告全部不健康项，避免"修一个报一个"的反复试错（与 <see cref="MetaConfig"/> 校验同款纪律）。
-    ///
-    /// 本类实现 <see cref="ICandidateHealthCheck"/>，直接供 <see cref="PatchCoordinator"/> 使用。
+    /// 健康确认聚合。
     /// </summary>
     public sealed class CompositeHealthCheck : ICandidateHealthCheck
     {
@@ -36,10 +33,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 逐项检查。返回 null = 全部健康；否则为**全部失败项的合并说明**。
-        ///
-        /// 探针自身抛异常按"该项不健康"处理——健康检查不应因某个探针实现缺陷而中断整条链路，
-        /// 更不应把异常当成"健康"。
+        /// 逐项检查。
         /// </summary>
         public async UniTask<string> CheckAsync(ReleaseManifest candidate, CancellationToken ct = default)
         {
@@ -62,7 +56,7 @@ namespace LiteFramework
                 }
                 catch (Exception ex)
                 {
-                    // 探针缺陷按不健康处理，且带上类型便于定位
+                    // 探针缺陷按不健康处理，且带上类型便于定位。
                     reason = $"{probe.Name}：探针异常 {ex.GetType().Name}：{ex.Message}";
                 }
 

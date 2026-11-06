@@ -9,43 +9,7 @@ using UnityEngine.Playables;   // PlayableExtensions：GetTime/SetTime/SetInputW
 namespace LiteFramework.Animation
 {
     /// <summary>
-    /// Animator 后端（《动画模块专项设计》§7"PlayableGraph 采用 Manual 更新"）：**Clip 直驱**——
-    /// 绑定键 → <see cref="AnimationClip"/> → 片段 Playable 直连分层图（§4 允许的「Clip 资源键」分支，
-    /// 不走控制器参数/Trigger 驱动）。**RuntimeAnimatorController 可选**：存在时①占图基础层作开局
-    /// 默认姿态②其片段自动按名索引（便利源）；缺失时（**直 Clip 模型**——带片段无控制器资产）无默认姿态位、
-    /// 片段经 <see cref="RegisterClip"/> 外部登记（T-pose 由驱动层"机 Start 即提交"的同帧落位兜底）。
-    /// 姿态推进只经 <see cref="Tick"/>（Graph.Evaluate——§7"Graph Evaluate 只由一个驱动器调用"）。
-    ///
-    /// **本类只做编排 + 能力声明 + 诊断聚合**，机制各有归属：
-    /// - 图拓扑 / 层序 / 层权重 / 开局默认姿态 → <see cref="AnimationLayerGraph"/>（分层 6 输入 / 不分层 2 输入——
-    ///   按构造模式取，均有界；反复打断不增长）；
-    /// - 节点两形态（单片段 / 普通混合器）、通道运行态、断线与销毁 → <see cref="ChannelNode"/>；
-    /// - 层权重推进与落位回收 → <see cref="ChannelBlendAdvance"/>；
-    /// - 结束边界判定 → Core 的 <see cref="ClipCompletionTracker"/>（读定义的 Loop，不读资产 loop 设置）。
-    ///
-    /// **分层混合（三通道）**：在 Clip 直驱（可播任意 Clip）之上引入
-    /// AnimationLayerMixerPlayable——通道叠加/叠加层混合落地，同时保持"不回到控制器参数/Trigger 驱动"
-    /// （该资产参数全是 Trigger、多层无 Mask，§7 字面的控制器参数驱动在本资产上不成立，
-    /// 走 §4 允许的「Clip 资源键」分支）。
-    /// **Override 不需要"记忆并恢复旧移动动作"**：Base 从未离开层 0、时间持续推进，
-    /// Override 权重归零即自然回到当前移动姿态（不引 shadow、不恢复过期旧动作——§6）。
-    ///
-    /// **能力位诚实声明（§4）**：<c>Looping | StartAtNormalized | SpeedOverride | ClipBlending</c>
-    /// ＋分层模式下的 <c>OverrideChannel</c>（覆盖层不需 Mask——任何 rig 可用）＋Mask 构造成功时的
-    /// <c>OverlayChannel</c>（非 humanoid 无 Mask ⇒ 叠加层请求被播放器提交前拒绝）。
-    /// 速度经 <c>SetSpeed</c>；<see cref="Tick"/> 只把已缩放的 delta 交给 Evaluate，不再乘 Speed（§7 归属分离）。
-    ///
-    /// **构造模式（分层/不分层）**：`layered: true`（默认）＝三通道分层图（6 输入）＋Mask 叠加——多通道消费者
-    /// （角色等）的形态；`layered: false`＝**仅基础通道**（2 输入图：当前+尾部交叉淡化——淡化是单通道内
-    /// 新旧交替，不属于分层）＋跳过 Mask 构造（省骨架遍历）——门/物件等单通道直放消费者的精简形态，
-    /// Override/Overlay 通道请求经 <see cref="ChannelOf"/> 返回 null 被显性拒绝（非分层不声明两位能力位）。
-    ///
-    /// **普通混合器（同通道多片段按权重混合）**：<see cref="TryPlayBlend"/> 用 <c>AnimationMixerPlayable</c>
-    /// （无 Mask、纯权重，典型用途 Walk↔Run 按速度连续混合），**且是唯一的混合提交入口**——
-    /// 语义 ID → 槽位绑定的解析归 Profile，经 <c>AnimationPlayer.PlayBlend</c> 进入本方法
-    /// （不存在"绕过播放器直接按名字播"的第二条路径）；**混合节点按循环对待，不产生 Completed**。
-    /// **淡化时长**：由构造函数显式传入（<see cref="DefaultBlendSeconds"/> 只是默认值，**不是**淡化数学里的常量），
-    /// 并在构造时分发给每个通道（<see cref="ChannelState.BlendSeconds"/>）；`0` = 瞬时落位。
+    /// Animator 后端（《动画模块专项设计》§7"PlayableGraph 采用 Manual 更新"）：**Clip 直驱**—— 绑定键 → <see cref="AnimationClip"/> → 片段 Pla。
     /// </summary>
     public sealed class AnimatorAnimationBackend : IAnimationPlaybackBackend
     {
@@ -75,19 +39,13 @@ namespace LiteFramework.Animation
         /// 已分发给每个通道（<see cref="ChannelState.BlendSeconds"/>），淡化数学不读任何常量。</summary>
         public float BlendSeconds { get; }
 
+        /// <summary>
+        /// 控制器存在时——①占图基础层作开局默认姿态（首帧不露 T-pose）②其片段自动按名索引（便利源）； 控制器缺失时（**直 Clip 模型**）——无默认姿态位。
+        /// </summary>
         /// <param name="animator">视图实例上的 Animator。**不要求 RuntimeAnimatorController**：
-        /// 控制器存在时——①占图基础层作开局默认姿态（首帧不露 T-pose）②其片段自动按名索引（便利源）；
-        /// 控制器缺失时（**直 Clip 模型**）——无默认姿态位，片段必须经 <see cref="RegisterClip"/>
-        /// 外部登记（T-pose 由驱动层"机 Start 即提交"的同帧落位兜底）。</param>
         /// <param name="blendSeconds">淡入/淡出时长（秒）：**当作必填对待**——默认值只是常见手感的兜底，
-        /// 调用方应显式给（0 = 瞬时落位，测试与"直接切"用）。该值在构造时分发给每个通道，
-        /// 每个通道的淡化数学只用自己的那一份。</param>
         /// <param name="overlayMaskExclusions">叠加层 Mask 的排除子树（Profile 登记面，见
-        /// <see cref="OverlayMaskFactory"/>；null/空 = 无排除——transform 段由骨架自动派生，
-        /// 排除面只承载"动画层不得触碰"的域，典型为布料骨。仅在分层模式下消费）。</param>
         /// <param name="layered">构造模式：true（默认）＝三通道分层图＋Mask 叠加；false＝仅基础通道
-        /// （2 输入精简图、不构造 Mask、不声明 <c>OverrideChannel</c>/<c>OverlayChannel</c>——
-        /// 门/物件等单通道直放消费者的精简形态，误用非基础通道被显性拒绝）。</param>
         public AnimatorAnimationBackend(Animator animator, float blendSeconds = DefaultBlendSeconds,
             IReadOnlyList<string> overlayMaskExclusions = null, bool layered = true)
         {
@@ -98,7 +56,7 @@ namespace LiteFramework.Animation
             BlendSeconds = blendSeconds;
             _layered = layered;
 
-            // 图拓扑按构造模式取界（分层 6 输入 / 不分层 2 输入，见 AnimationLayerGraph）
+            // 图拓扑按构造模式取界（分层 6 输入 / 不分层 2 输入，见 AnimationLayerGraph）。
             _layers = new AnimationLayerGraph(_animator, layered); // 控制器可选（默认姿态/片段索引见类注释）
 
             if (_animator.runtimeAnimatorController != null)
@@ -113,7 +71,7 @@ namespace LiteFramework.Animation
                 _overlay = new ChannelState(AnimationChannel.Overlay, isBase: false,
                     AnimationLayerGraph.OverlayCurrent, AnimationLayerGraph.OverlayTail, BlendSeconds);
 
-                // 纯函数（含排除路径存在性诊断），见 OverlayMaskFactory——不分层跳过（省骨架遍历）
+                // 纯函数（含排除路径存在性诊断），见 OverlayMaskFactory——不分层跳过（省骨架遍历）。
                 _overlayMask = OverlayMaskFactory.TryBuild(_animator, overlayMaskExclusions);
                 if (_overlayMask != null)
                 {
@@ -124,7 +82,7 @@ namespace LiteFramework.Animation
 
         }
 
-        // ---- 能力位（§4 诚实声明，不静默降级）----
+        // ---- 能力位（§4 诚实声明，不静默降级）----。
 
         public AnimationBackendCapabilities Capabilities
             => AnimationBackendCapabilities.Looping
@@ -134,7 +92,7 @@ namespace LiteFramework.Animation
              | (_layered ? AnimationBackendCapabilities.OverrideChannel : AnimationBackendCapabilities.None)      // 覆盖层不需 Mask——任何 rig
              | (_overlayMask != null ? AnimationBackendCapabilities.OverlayChannel : AnimationBackendCapabilities.None); // 叠加层需 Mask 构造成功
 
-        // ---- 诊断（§11；零分配，调用方复用容器）----
+        // ---- 诊断（§11；零分配，调用方复用容器）----。
 
         /// <summary>未知绑定被拒次数（§13-4；后端不认识该片段名）。</summary>
         public int UnknownBindings { get; private set; }
@@ -189,7 +147,7 @@ namespace LiteFramework.Animation
                 ? (ch.Current.IsBlend ? (float)ch.Current.Mixer.GetSpeed() : (float)ch.Current.Clip.GetSpeed())
                 : 0f;
 
-            // 混合节点逐输入倍率（引擎真值——TrySetBlendInputSpeeds 就地可见；单片段节点 = 0 项）
+            // 混合节点逐输入倍率（引擎真值——TrySetBlendInputSpeeds 就地可见；单片段节点 = 0 项）。
             int inputSpeeds = 0;
             float inSpeed0 = 0f, inSpeed1 = 0f, inSpeed2 = 0f, inSpeed3 = 0f;
             if (hasNode && ch.Current.IsBlend)
@@ -206,7 +164,7 @@ namespace LiteFramework.Animation
             return true;
         }
 
-        // ---- 提交 / 停止 ----
+        // ---- 提交 / 停止 ----。
 
         /// <summary>登记控制器引用到的全部片段（按片段名索引）——控制器存在时的"播放任意 Clip"便利源；
         /// 直 Clip 模型无控制器，片段走 <see cref="RegisterClip"/> 外部登记。</summary>
@@ -233,8 +191,6 @@ namespace LiteFramework.Animation
 
         /// <summary>
         /// 装配期逐键登记片段清单（去 AC 主路径——§4 片源载体裁决的唯一登记面）：键→Clip 显式引用。
-        /// 引用缺失（null）是资源缺失态（缺包克隆）——跳过并计数，不猜、不拦其余键生效。
-        /// 与控制器便利源并存时**后注册为权威**（构造期索引先行、本方法覆盖同名键——清单是声明的配置面）。
         /// </summary>
         public void RegisterManifest(AnimationClipManifest manifest)
         {
@@ -247,11 +203,7 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// 查询已登记绑定的**片段时长**（秒）——消费方：驱动器装配期派生**换弹播放倍率**
-        /// （倍率 = 片段时长 ÷ Sim 换弹时长，使动画收势与弹药回国同帧；见
-        /// <c>SlotAnimContext.ReloadPlaybackSpeed</c>）。**时长单一来源 = 片段资产**——不在 Profile/驱动里写时长。
-        /// 未知绑定 / 空片段 / 零长 → false（调用方据此显性处理，不猜兜底时长）。
-        /// **原生时长**（不受播放倍率影响；倍率由调用方自行相除）。
+        /// 查询已登记绑定的**片段时长**（秒）——消费方：驱动器装配期派生**换弹播放倍率** （倍率 = 片段时长 ÷ Sim 换弹时长，使动画收势与弹药回国同帧。）。
         /// </summary>
         public bool TryGetClipSeconds(string binding, out float seconds)
         {
@@ -284,22 +236,6 @@ namespace LiteFramework.Animation
 
         /// <summary>
         /// 提交"**同通道多片段按权重混合**"（**普通混合器**路径：<see cref="AnimationMixerPlayable"/>——无 Mask、纯权重）。
-        ///
-        /// **谁给权重**：调用方（Driver/消费者）——后端不解释业务优先级（§6"业务优先级由 Sim/Driver 解释"）；
-        /// 本方法只做三件事：解析绑定、按权重总和归一化、把相位对齐后接进该通道（典型用途：Walk↔Run 按速度连续混合）。
-        /// **唯一的混合提交入口**（<see cref="IAnimationBackend.TryPlayBlend"/>）——语义 ID → 绑定的解析归 Profile，
-        /// 不存在"绕过播放器直接按名字播"的第二条路径。
-        ///
-        /// **原子性**（§6"不能只占一半"）：任何一条不合法（通道未知 / Overlay 无 Mask / 条目数 0 或超过
-        /// <see cref="MaxBlendInputs"/> / 权重数与条目数不符 / 起点或速度非法 / 任一绑定未知 / 任一权重非有限或为负 /
-        /// 权重和为 0）→ **整组拒绝**，通道保持原播放不动、不建任何节点。
-        ///
-        /// **语义**：混合节点按**循环**对待——**不产生 <c>Completed</c>**（混合集合没有单一结束边界，§5）；
-        /// 输入片段共用同一 `speed`、起点按 `startNormalized × 自身时长` 对齐（**长度不同的片段其归一化相位
-        /// 会随时间漂移**：需要严格步态同步时应用等长片段，或后续再加"按归一化速率对齐"选项）；
-        /// **输入片段的回绕沿用资产自身设置**（不逐输入强制回绕：槽位应当是循环片段——见
-        /// <see cref="AnimationBlendDefinition"/>）。
-        /// 混合节点与单片段节点可互相打断，走同一套"一个当前 + 至多一条尾部"规则（§12 节点有界）。
         /// </summary>
         public bool TryPlayBlend(in AnimationResolvedBlend blend)
         {
@@ -315,7 +251,7 @@ namespace LiteFramework.Animation
             if (float.IsNaN(blend.StartNormalized) || blend.StartNormalized < 0f || blend.StartNormalized > 1f) return false;
             if (float.IsNaN(blend.Speed) || float.IsInfinity(blend.Speed) || blend.Speed <= 0f) return false;
 
-            // 绑定与权重先**整体校验**（原子：不合法时一个节点都不建、通道不动）
+            // 绑定与权重先**整体校验**（原子：不合法时一个节点都不建、通道不动）。
             float weightSum = 0f;
             for (int i = 0; i < count; i++)
             {
@@ -462,7 +398,7 @@ namespace LiteFramework.Animation
             _layers.Destroy();                                      // §9 销毁序的最后引擎步骤
         }
 
-        // ---- 内部：提交（两条路径共用"让位 → 落位 → 接层"三段）----
+        // ---- 内部：提交（两条路径共用"让位 → 落位 → 接层"三段）----。
 
         /// <summary>单片段提交（<see cref="TryPlay"/> 的落地）：建 Clip 节点并在通道上落位。</summary>
         private void StartOnChannel(ChannelState ch, AnimationClip clip, in AnimationResolvedPlayback playback)
@@ -484,16 +420,14 @@ namespace LiteFramework.Animation
         /// <summary>让位（旧当前 → 尾部）→ 落位（新节点成为当前）→ 接层（含基础层权重显式置 1）。</summary>
         private void CommitNode(ChannelState ch, in ChannelNode node, string binding, float speed)
         {
-            // 确定性截断（§12）：已有在途尾部 → 立刻销毁，不排第二个尾巴（上限恒为每通道一条）
+            // 确定性截断（§12）：已有在途尾部 → 立刻销毁，不排第二个尾巴（上限恒为每通道一条）。
             if (ch.Tail.IsValid)
             {
                 TruncatedBlends++;
                 ch.DestroyTail(_layers);
             }
 
-            // 旧当前 → 尾部（每通道恰好一条）：基础层尾部在**上层**淡出 1→0；
-            // 上层通道尾部在**下层**以权重 1 保持，由新当前从 0 淡入完成交叉淡化。
-            // 槽位换了层，必须先断开原层再连到尾部层（同一输入不能同时连两个源）。
+            // 旧当前 → 尾部（每通道恰好一条）：基础层尾部在**上层**淡出 1→0； 上层通道尾部在**下层**以权重 1 保持，由新当前从 0 淡入完成交叉淡化。
             if (ch.Current.IsValid)
             {
                 _layers.Disconnect(ch.CurrentLayer);
@@ -513,7 +447,7 @@ namespace LiteFramework.Animation
             ch.Active = true;
 
             _layers.Connect(ch.CurrentLayer, ch.Current.Root);
-            // 基础层（层 0）必须显式置 1（默认值 0，见 AnimationLayerGraph 注释）；上层通道从 0 淡入（旧片段由尾部在下层保持）
+            // 基础层（层 0）必须显式置 1（默认值 0，见 AnimationLayerGraph 注释）；上层通道从 0 淡入（旧片段由尾部在下层保持）。
             ch.CurrentWeight = ch.IsBase ? 1f : 0f;
             ch.TargetWeight = 1f;
             _layers.SetWeight(ch.CurrentLayer, ch.IsBase ? 1f : ch.CurrentWeight);
@@ -527,7 +461,7 @@ namespace LiteFramework.Animation
             return binding;
         }
 
-        // ---- 内部：完成检测（判定逻辑在 Core 的 ClipCompletionTracker，本类只做引擎读写）----
+        // ---- 内部：完成检测（判定逻辑在 Core 的 ClipCompletionTracker，本类只做引擎读写）----。
 
         private static bool CheckCompletion(ChannelState ch)
         {

@@ -7,18 +7,7 @@ using UnityEngine;
 namespace LiteFramework
 {
     /// <summary>
-    /// 音频服务：**组 + 代理模型**。组 = 类别（Effect/UI/Voice/Bgm），每组 N 个 AudioSource 代理轮转
-    /// （并发通道，同组音效可叠加），组音量/静音组级控制；**同优先级不被替换**——全忙时仅"更高优先级"
-    /// 抢占最低优先级代理，否则丢弃（日志可观测）。句柄在代理被抢占/自然播完后失效（Stop 对失效句柄安全忽略）。
-    ///
-    /// 设计取舍：
-    /// - Stop **不建句柄索引**（O(总代理数)）——总代理数构造期定死，Stop 为低频操作，
-    ///   索引反而要维护"自然播完/抢占"的失效清理。
-    /// - 句柄单调递增且永不复用——被抢占的旧句柄必然失效，Stop(旧句柄) 安全忽略；Source.Play 换 clip 自动停旧音。
-    /// - 支持 Play(fadeIn)/Stop(fadeOut)（Bgm 组 2 代理支持交叉淡切）与 Play3D（spatialBlend + 一次性世界坐标）。
-    /// - **同源重触发** <see cref="PlayRetrigger"/>：按 (组, voiceKey) **恒占同一代理**、重复调用重启 clip——
-    ///   自动武器开火音等高频同源专用（连发节奏 = 调用节奏，不堆叠、不吃代理预算）。丢弃走**限频日志**
-    ///   （首条 + 每 <see cref="DropLogEvery"/> 条一条）＋累计计数（<see cref="DroppedCount"/>），热路径不刷屏。
+    /// 音频服务：**组 + 代理模型**。
     /// </summary>
     public sealed class AudioService : IModuleStats
     {
@@ -81,10 +70,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 分域时钟注入（《动画模块专项设计》§7 时钟表 + 《状态同步专项设计》§6.2"世界/UI 暂停"）：
-        /// 音效随世界暂停/变速，UI 音与 BGM 随 UI 暂停——**不读 <c>Time.deltaTime</c>**。
-        /// 本工程 <c>Time.timeScale</c> 恒为 1（<see cref="GameClock"/> 纪律），读它等于永不暂停。
-        /// 未注入时退化为真实帧步进（编辑器/测试兜底）。
+        /// 分域时钟注入（《动画模块专项设计》§7 时钟表 + 《状态同步专项设计》§6.2"世界/UI 暂停"）： 音效随世界暂停/变速。
         /// </summary>
         public void BindClocks(IWorldClock world, IUIClock ui)
         {
@@ -94,9 +80,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 是否已关闭（<see cref="Shutdown"/> 幂等判据即 <c>_root</c> 置空）。
-        /// 关闭后再调用 <see cref="Play"/>/<see cref="Play3D"/> 或写组音量/静音 → 抛
-        /// <see cref="ObjectDisposedException"/>（与 EntityService/SceneService/VfxService 姊妹服务统一契约）；
-        /// <see cref="Stop"/> / <see cref="StopAll"/> / <see cref="Snapshot"/> 保持安全幂等（收尾/诊断可后置调用）。
         /// </summary>
         public bool IsShutdown => _root == null;
 
@@ -184,11 +167,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 同源重触发播放（自动武器开火音等**高频同源**专用）：每个 (组, <paramref name="voiceKey"/>)
-        /// **恒占同一代理**——重复调用重启该代理当前 clip（<c>AudioSource.Play()</c> 对在播源即从头重播），
-        /// 连发节奏 = 调用节奏，不堆叠、不占新代理（代理预算恒 1）；空闲期不占并发（源闲置时可被他人取用）。
-        /// 首次调用、或绑定已被抢占/停止（句柄变）时：走与 <see cref="Play"/> 相同的
-        /// "空闲轮转 → 优先级抢占 → 丢弃"取代理规则。
+        /// 同源重触发播放（自动武器开火音等**高频同源**专用）：每个 (组, <paramref name="voiceKey"/>) **恒占同一代理**——重复调用重启该代理当前 clip（<c>AudioSource.Pl。
         /// </summary>
         /// <returns>句柄（同源重触发返回同一句柄；被抢占即失效——与 <see cref="Stop"/> 语义一致；0 = 丢弃）。</returns>
         public int PlayRetrigger(Group group, string voiceKey, AudioClip clip, float volume = 1f, int priority = 0,
@@ -281,9 +260,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 停止指定句柄。<paramref name="fadeOut"/> &gt; 0 时先淡出再停（淡出期间代理仍占用，
-        /// 可被更高优先级抢占——抢占会取消淡出）。失效句柄安全忽略。
-        /// O(总代理数) 有界遍历（构造期定死）；Stop 为低频操作，不建句柄索引。
+        /// 停止指定句柄。
         /// </summary>
         public void Stop(int handle, float fadeOut = 0f)
         {
@@ -365,7 +342,7 @@ namespace LiteFramework
             }
         }
 
-        // ---- 内部 ----
+        // ---- 内部 ----。
 
         private void ApplyVolume(GroupDef g, Proxy p, float k)
         {
@@ -391,9 +368,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 音量淡变（fire-and-forget）：k 从 from 到 to 线性过渡，音量 = BaseVolume × 组音量 × k。
-        /// **时钟域**：按组取 <see cref="DeltaSeconds"/>——Effect/Voice 吃 WorldClock（世界暂停即停），
-        /// UI/Bgm 吃 UIClock。暂停期间 dt 为 0，淡变原地保持（不推进也不误判完成）。
-        /// 自检退出：句柄被抢占/停止即取消（不靠时钟推进来发现失效）。
         /// </summary>
         private async UniTask FadeAsync(GroupDef g, Proxy p, int handle, float fromK, float toK, float duration)
         {

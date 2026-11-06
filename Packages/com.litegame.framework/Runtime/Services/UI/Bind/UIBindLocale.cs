@@ -6,8 +6,6 @@ namespace LiteFramework.UI
 {
     /// <summary>
     /// 绑定索引的**本地化域**：语言服务注入/退订、控件名 → key 的绑定表、语言变更通知与复数解析。
-    /// 只持有本地化状态，不反向依赖 <see cref="UIBindIndex"/>——索引在 <see cref="Changed"/> 里
-    /// 用自己的受控写口重刷文本（所有权断言仍归索引）。
     /// </summary>
     internal sealed class UIBindLocale
     {

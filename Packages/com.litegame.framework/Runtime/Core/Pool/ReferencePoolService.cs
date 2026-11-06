@@ -5,8 +5,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 引用池实例实现（B0）：把原静态桶搬进实例，按持有者/作用域管理生命周期。
-    /// 契约与原 <see cref="ReferencePool"/> 一致：Release 时 Clear、池满按 per-type 淘汰、
-    /// Debug 下检测重复归还；主线程 only。`Dispose` = 清空全部空闲件（在途件按归还契约回收）。
     /// </summary>
     public sealed class ReferencePoolService : IReferencePool, IModuleStats, IDisposable
     {

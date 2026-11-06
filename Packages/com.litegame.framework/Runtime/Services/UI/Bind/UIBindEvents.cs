@@ -7,12 +7,7 @@ using UnityEngine.UI;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 绑定索引的**输入控件订阅域**：滑块/开关/下拉/页签的用户变化回调登记与退订
-    /// （同名替换、<c>UnbindAll</c> 全退——池化复用不留旧回调）。
-    /// 控件解析仍走索引的受控查询面（保持 <c>UIDropdownWrap</c> 优先语义）。
-    ///
-    /// **异常隔离单点**：所有用户回调经 <see cref="Call{T}"/> 进 <c>SafeCall</c>——一处包裹替代每族写一遍
-    /// （《任务观测守卫》按文件数 SafeCall 出现次数；单点是可收紧方向）。
+    /// 绑定索引的**输入控件订阅域**：滑块/开关/下拉/页签的用户变化回调登记与退订 （同名替换、<c>UnbindAll</c> 全退——池化复用不留旧回调）。
     /// </summary>
     internal sealed class UIBindEvents
     {

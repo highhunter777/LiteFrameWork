@@ -6,10 +6,6 @@ namespace LiteFramework.UI
 {
     /// <summary>
     /// 一次转场事务的可变状态 + 表现入口（§1.5.2 的 payload 载荷）。
-    ///
-    /// **为什么是引用类型**：<c>StageMachine</c> 的 <c>OnUpdate/OnLeave</c> 拿不到 payload（只有 <c>OnEnter</c> 有），
-    /// 而阶段对象是**无状态单例**（禁实例字段）→ 跨帧状态只能挂在 payload 携带的引用上，
-    /// 由 <see cref="UITransitionRunner"/> 在帧末 Tick 里轮询与收尾（机器只管"状态怎么切"）。
     /// </summary>
     public sealed class TransitionContext
     {

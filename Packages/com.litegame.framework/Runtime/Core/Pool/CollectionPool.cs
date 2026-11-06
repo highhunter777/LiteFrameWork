@@ -3,10 +3,7 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 集合池内核（《对象池专项设计》§4）：组合 <see cref="ObjectPool{T}"/>，不新写池逻辑——
-    /// 高频临时集合（每帧/每广播的 List/Dictionary/HashSet）的借还走与实例池同一套
-    /// 所有权移交/重复归还检测/容量销毁/统计机制；onRelease = Clear()（归还即自清，防陈旧数据回带）。
-    /// 借用方须 Release 同一实例（所有权移交制同内核）；既有"调用方持实例 Clear 复用"的调用点不强制迁移。
+    /// 集合池内核（《对象池专项设计》§4）：组合 <see cref="ObjectPool{T}"/>。
     /// </summary>
     public sealed class CollectionPool<TCollection, TItem> where TCollection : class, ICollection<TItem>, new()
     {

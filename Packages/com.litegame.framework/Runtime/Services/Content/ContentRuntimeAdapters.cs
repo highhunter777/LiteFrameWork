@@ -8,14 +8,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 候选文件访问的 FileSystem 适配（《热更与内容发布专项设计》§7）。
-    ///
-    /// **路径契约**：<see cref="ICandidateFileSource.Open"/> 收到的是**相对候选根的路径**
-    /// （即 <see cref="ReleaseFileEntry.Path"/> 原样）——本类内部拼上候选根解析。
-    /// 这样 <see cref="CandidateContentVerifier"/> 保持"零根路径概念"的纯规则，
-    /// 根路径只在装配层出现一次。
-    ///
-    /// 走 <see cref="FileSystem"/> 而非直接 <see cref="System.IO"/>：IO 唯一入口是 FileSystem
-    /// （本程序集内不出现直接 System.IO 调用——磁盘余量探测同此纪律，见 DiskSpaceProbes）。
     /// </summary>
     public sealed class FileSystemCandidateFileSource : ICandidateFileSource
     {
@@ -105,11 +97,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 本地目录候选获取（§7 的最小实现）。
-    ///
-    /// **定位**：把"已落盘的候选文件"按清单清点出来交给编排——覆盖
-    /// **本地/内置候选**与**已由其它通道下载完成的候选**两种场景。
-    /// **真实 CDN 下载**（HTTP/Host 模式、断点续传、多源）属 H3-b，不在本实现内，
-    /// 也不伪造：本实现不发起任何网络请求。
     /// </summary>
     public sealed class LocalDirectoryCandidateFetcher : ICandidateFetcher
     {
@@ -135,9 +122,7 @@ namespace LiteFramework
                 return UniTask.FromResult(CandidateFetchResult.Fail(
                     DownloadFailureKind.SourceUnavailable, detail: $"候选根不存在：{_candidateRoot}"));
 
-            // 逐清单项核对落盘存在性；**清单外文件一并返回**，交由 CandidateContentVerifier
-            // 做双向差异——本实现不替校验器下结论。
-            // 返回的是**相对候选根的路径**，与校验器的清单口径一致（见 FileSystemCandidateFileSource 路径契约）。
+            // 逐清单项核对落盘存在性；**清单外文件一并返回**，交由 CandidateContentVerifier 做双向差异——本实现不替校验器下结论。
             var paths = new List<string>();
             foreach (ReleaseFileEntry f in manifest.Files)
             {
@@ -152,8 +137,6 @@ namespace LiteFramework
             }
 
             // 追加清单外文件（路径同样相对候选根）——校验器按清单比对时会判 UnexpectedFile。
-            // 比对口径 **Ordinal**：清单路径由发布方生成、大小写受控；忽略大小写会在
-            // 大小写敏感的目标文件系统上把"同名不同大小写"判为已声明而漏报差异。
             var declared = new HashSet<string>(StringComparer.Ordinal);
             foreach (ReleaseFileEntry f in manifest.Files) declared.Add(f.Path);
 

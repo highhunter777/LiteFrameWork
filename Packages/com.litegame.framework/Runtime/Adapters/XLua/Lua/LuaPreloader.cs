@@ -7,18 +7,7 @@ using LiteFramework;
 namespace LiteFramework
 {
     /// <summary>
-    /// Lua 全量预载器。**loader 是同步签名 → 启动期全量预载是咽喉**（设计方案 §4.2）：
-    /// require 链上任何一个未缓存文件都意味着运行中途炸——不能带缺口进 Main（§3.4 致命级）。
-    /// 清单来源：**tag `lua` 经 `GetAssetInfos("lua")`**——3.0.5 该重载即按 tag 查询，
-    /// 无目录枚举 API（收集器 AssetTags 必须配 `lua`）。
-    /// key = require 路径：剥注入的 Lua 根前缀与 `.lua` 后缀（如 `ui/Page_Login`、`cfg/tbuiform`）。
-    /// 生命周期：Preload 锚点构造并填充，DevReload 时清空重载（§2.7）。
-    ///
-    /// 候选通道（《热更与内容发布专项设计》§10）：
-    /// - **字节通道可注入**：主链经 IContentService 租约（代次/引用统一；提取字节即释放源资产，§9）；
-    ///   两个通道都**必须注入**（本类不回落静态门面）。
-    /// - **候选完整性**：预载集合即依赖闭包（全量 .lua 进缓存——require 不可能落空）；重复 key 显性拒绝
-    ///   （静默覆盖 = 候选集合被污染）。深度候选验证（语法/导出/Bridge 能力/受控验证 env）另属热更流程。
+    /// Lua 全量预载器。
     /// </summary>
     public sealed class LuaPreloader
     {
@@ -88,9 +77,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 清单来源：**必须注入** <c>listLuaFiles</c>（装配点绑定内容适配器）。
-        ///
-        /// 不回落静态门面——那会让 **Lua 层硬依赖 YooAsset 类型**（`AssetService.Package` 是
-        /// `ResourcePackage`），asmdef 拆不开（成环）。需要读清单时组装配点的委托，本类只认 `Func<string[]>`。
         /// </summary>
         private string[] ListLuaFilePaths()
         {

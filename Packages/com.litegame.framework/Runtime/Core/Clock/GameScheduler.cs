@@ -6,10 +6,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 调度器实现（契约 = <see cref="IScheduler"/>）：动作点/定时注册、到期触发、可取消。
-    /// 决策落点：①推进量 = 注入时钟的 ScaledDelta（不自读 Time）；
-    /// ③到期判定 = 注入时钟的 Now。回调安全：单个回调抛经 SafeCall 隔离，不炸调度器；
-    /// 同帧到期按注册序 FIFO；回调内可再 Schedule/Cancel，新注册项下一 tick 才处理。
-    /// 内部使用最小堆按到期时间排序，取消采用惰性删除，避免每帧 O(n) 扫描。
     /// </summary>
     public class GameScheduler : IScheduler
     {

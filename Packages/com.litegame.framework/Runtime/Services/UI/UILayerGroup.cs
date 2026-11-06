@@ -6,10 +6,6 @@ namespace LiteFramework.UI
 {
     /// <summary>
     /// 层级组：组内栈 + Depth 分配（分配规则经 <see cref="ILayerStrategy"/> 注入）。
-    /// 组间深度以 BaseDepth 步进 100 隔离。
-    /// （§6.2 统一排序）：**开序即深序**——排序按当前打开顺序计算，每次入栈、移除、
-    /// BringToFront、复用后统一重算（<see cref="RecalculateOrders"/>）。
-    /// 组容量不足（栈超 <see cref="DepthStride"/>）由调用方在入栈前拒绝并诊断，禁止悄悄复用 order。
     /// </summary>
     public sealed class UILayerGroup
     {

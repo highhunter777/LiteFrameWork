@@ -39,14 +39,6 @@ namespace LiteFramework
 
     /// <summary>
     /// 资源租约：对已加载资产的一份**可释放持有权**。
-    ///
-    /// 契约：
-    /// - **对称释放**：Acquire 成功 → Release 恰好一次；重复 Release 幂等（不抛）。
-    /// - **引用计数由 Host（内容服务实现方）维护**：租约只是持有权的令牌——Release 通知服务方递减；
-    ///   最后一个使用者 Release 后，服务方才可卸载底层资产（Prefab 租约从加载完成持有至最后一个依赖实例销毁）。
-    /// - **资产对象在 Release 后不可再使用**（<see cref="Asset"/> 读数由实现方决定置 null 或保留——
-    ///   消费方必须在 Release 前取好引用；异步回调写入前核对代次/有效性）。
-    /// - 泛型参数 **不约束 UnityEngine.Object**（Core 零引擎依赖）；Unity 侧以 <c>AssetLease&lt;GameObject&gt;</c> 使用。
     /// </summary>
     public sealed class AssetLease<T> : IDisposable where T : class
     {

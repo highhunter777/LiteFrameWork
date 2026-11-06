@@ -1,10 +1,7 @@
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 动效默认值单源表：C# 原语默认参（<see cref="UIFx"/>）、绑定索引默认参（<see cref="UIBindIndex"/>）、
-    /// 控件调用点（<see cref="UIWidget"/> 按压微动效）、气泡控件（<see cref="UIBubble"/>）与
-    /// Lua shim（<see cref="LuaBridge.LuaBehaviourAdapter"/> 内嵌 ui-API 的缺省参）全部引用这里——
-    /// 改动效手感只动这一处，杜绝"改 C# 默认漏改 Lua shim"的多副本漂移。
+    /// 动效默认值单源表：C# 原语默认参（<see cref="UIFx"/>）、绑定索引默认参（<see cref="UIBindIndex"/>）、 控件调用点（<see cref="UIWidget"/> 按压微动效）。
     /// </summary>
     public static class UIFxDefaults
     {

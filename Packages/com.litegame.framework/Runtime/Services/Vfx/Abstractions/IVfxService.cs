@@ -6,18 +6,12 @@ using UnityEngine;
 namespace LiteFramework
 {
     /// <summary>
-    /// 特效资源加载口（可注入）。装配点绑定 <c>AssetService.LoadAssetAsync&lt;GameObject&gt;</c>。
-    /// **为什么用委托而不是直接调 AssetService**：① LiteView 不依赖 LiteGame（防程序集环）
-    /// ② EditMode 测试可注入替身，零素材验证。
+    /// 特效资源加载口（可注入）。
     /// </summary>
     public delegate UniTask<GameObject> VfxAssetLoader(string location, CancellationToken ct);
 
     /// <summary>
-    /// VFX 服务（《动作与特效设计》§2 /《VFX服务实施指导》§2）：**表现层服务**——
-    /// 无玩法状态、不参与判定、不改 Sim；**服务不调用其他服务**（音效由编排方分别调）。
-    ///
-    /// 只管**世界空间**粒子/prefab（加载/池化/挂点跟随/预算降级）；UI 动效走 <c>UIFx</c>+DOTween（不并入）。
-    /// 接缝在 View 观察层（SimView）：命中/暴击/死亡与开火即时反馈；实体视图回收 → <see cref="StopAll"/>（谁挂谁清）。
+    /// VFX 服务（《动作与特效设计》§2 /《VFX服务实施指导》§2）：**表现层服务**—— 无玩法状态、不参与判定、不改 Sim；**服务不调用其他服务**（音效由编排方分别调）。
     /// </summary>
     public interface IVfxService : IModuleStats
     {

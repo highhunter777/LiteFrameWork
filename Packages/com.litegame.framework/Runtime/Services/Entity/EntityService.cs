@@ -15,9 +15,7 @@ namespace LiteFramework
         public GameObject GameObject { get; internal set; }
 
         /// <summary>
-        /// 实体级作用域（《商业级通用客户端框架总设计》§6.2 实体域；《框架先行》§5 接缝 1）：
-        /// **谁创建谁取消**——实体随宿主（场景/对局/展示）退出而回收，其上的异步与定时器的取消源就是这里。
-        /// 与下方订阅袋同址：取消令牌、资源登记、事件订阅三项都随实体回收一并收口，不留裸根任务。
+        /// 实体级作用域（《商业级通用客户端框架总设计》§6.2 实体域；《框架先行》§5 接缝 1）： **谁创建谁取消**——实体随宿主（场景/对局/展示）退出而回收，其上的异步与定时器的取消源就是这里。
         /// </summary>
         public ClientScope Scope { get; internal set; }
 
@@ -26,10 +24,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 实体级订阅袋（C# 对象的事件订阅生命周期归属）：**随实体回收自动清零**（HideInternal 统一 Dispose）。
-        /// 用法：<c>handle.Subscriptions.Add(events.Subscribe&lt;XxxEvent&gt;(OnXxx));</c>
-        /// 骨架/玩法系统为某实体订阅事件时一律挂这里，不要裸订阅——否则实体回收后通道仍持回调（泄漏 +
-        /// 池化复用后回调打进新占用者）。句柄不复用（Reserve 每次递增），Dispose 后误用会当场抛 ObjectDisposedException。
-        /// **归还期护栏**：已回收句柄上取袋子 = 往已回收实体塞订阅（必然泄漏）→ Debug 三宏下当场抛，release 记错误。
         /// </summary>
         public SubscriptionBag Subscriptions
         {
@@ -62,10 +56,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 实体服务：句柄制实体管理叠在通用 <see cref="GameObjectPool"/> 之上（池化内核归通用池，
-    /// 本类只留实体语义——Reserve/竞态表/句柄制）。实体 = 视觉表现件，逻辑回 C# 玩法系统——**不转发 Lua**。
-    /// 竞态语义：加载在途收到 Hide → 记入竞态表 → 加载完成后取消显示（直接出返回 null）。
-    /// 生命周期回调 = IPoolLifecycle（通用池驱动）。
+    /// 实体服务：句柄制实体管理叠在通用 <see cref="GameObjectPool"/> 之上（池化内核归通用池， 本类只留实体语义——Reserve/竞态表/句柄制）。
     /// </summary>
     public sealed class EntityService : IModuleStats
     {
@@ -160,7 +151,7 @@ namespace LiteFramework
             if (_active.ContainsKey(handleId))
                 throw new InvalidOperationException($"实体句柄 {handleId} 已在使用（先 Hide 再 Show，§3.4 fail-fast）");
 
-            // 池命中：零加载直取（生命周期 OnSpawn 由通用池驱动）
+            // 池命中：零加载直取（生命周期 OnSpawn 由通用池驱动）。
             if (_pool.TryGet(location, out var pooled, parent))
             {
                 var pooledHandle = new EntityHandle(handleId, location, pooled) { Scope = NewEntityScope(handleId) };
@@ -169,7 +160,7 @@ namespace LiteFramework
                 return pooledHandle;
             }
 
-            // 未命中：加载在途登记（竞态窗口开启）；加载口同时挂调用方取消与服务生命周期——关闭即真取消
+            // 未命中：加载在途登记（竞态窗口开启）；加载口同时挂调用方取消与服务生命周期——关闭即真取消。
             _inFlight.Add(handleId);
             CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetime.Token);
             try
@@ -185,7 +176,7 @@ namespace LiteFramework
                 }
                 if (_releaseOnLoad.Remove(handleId))
                 {
-                                    // 加载期间被 Hide（竞态表命中）——不实例化不显示，直接取消
+                                    // 加载期间被 Hide（竞态表命中）——不实例化不显示，直接取消。
                     Log.Info($"实体[{handleId}] 加载期间已被 Hide——取消显示（竞态表）", LogTag.Entity);
                     return null;
                 }

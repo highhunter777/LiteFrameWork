@@ -5,8 +5,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 本地持久化端口（B0/B1）：路径安全 + 文本/字节/JSON 读写 + 目录与磁盘余量。
-    /// 实现为进程级实例（<see cref="FileSystem"/>），由组合根注册；消费者一律构造注入。
-    /// 同步方法是主路径（小文件），异步是逃生口；路径一律为 RootPath 下的相对路径。
     /// </summary>
     public interface IFileStore
     {

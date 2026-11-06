@@ -6,9 +6,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// ICandidateLuaSource 的文件系统实现：候选根 lua/ 全量脚本 → require 缓存键字节。
-    ///
-    /// 代次由装配点委托注入（生产 = () =&gt; activation.ActiveGeneration）；未确认/内置 → IsActive=false。
-    /// 只遍历候选目录，不读 YooAsset；是否整套由发布侧全量暂存 + LuaScriptsHealthProbe 保证。
     /// </summary>
     public sealed class FileSystemLuaCandidateSource : ICandidateLuaSource
     {

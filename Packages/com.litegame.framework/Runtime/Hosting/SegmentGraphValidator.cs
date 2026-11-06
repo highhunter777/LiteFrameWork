@@ -5,8 +5,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 模块图校验（路线图 M1）：模块名重复、依赖缺失、依赖环——全部 fail-fast，且早于任何副作用。
-    /// **只校验已声明依赖**（实现 <see cref="IClientSegmentGraph"/> 的模块）；未声明者按注册序初始化。
-    /// 依赖按**模块名**寻址（同一模块类可有多个实例，名字才是唯一身份）。
     /// </summary>
     internal static class SegmentGraphValidator
     {

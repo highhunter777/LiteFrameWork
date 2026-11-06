@@ -7,12 +7,7 @@ using System.Threading;
 namespace LiteFramework.Diagnostics
 {
     /// <summary>
-    /// 结构化日志出口：把 <see cref="LogEntry"/> 写成 **JSON Lines**（每行一个对象，UTF-8 无 BOM），
-    /// 供 `scripts/logs/query.py` 按对局/席位/帧/标签/级别检索。
-    ///
-    /// **调用线程只入队**（有界环形；满则丢最旧并计数），格式化/落盘在后台线程；按大小轮转、
-    /// 按文件数清理。格式化复用 StringBuilder + char 缓冲（不逐行 ToString）；Sink 自身故障只记
-    /// <see cref="LastError"/>，不向业务抛异常。线程随 <see cref="Dispose"/> 收口。
+    /// 结构化日志出口：把 <see cref="LogEntry"/> 写成 **JSON Lines**（每行一个对象，UTF-8 无 BOM）。
     /// </summary>
     public sealed class StructuredLogSink : ILogSink, IDisposable
     {

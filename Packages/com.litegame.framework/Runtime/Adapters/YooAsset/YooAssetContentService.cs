@@ -8,16 +8,7 @@ using YooAsset;
 namespace LiteFramework
 {
     /// <summary>
-    /// IContentService 的 YooAsset 适配（《商业级通用客户端框架总设计》§8.1"用可注入
-    /// IContentService 取代静态所有权，YooAsset 作为后端" + §8.2 资源租约）：
-    ///
-    /// - **租约持有句柄**：AssetHandle 加载完成后不立即 Release——句柄由 <see cref="SharedLoadCoordinator{TKey,TAsset}"/>
-    ///   持有到引用归零，租约 Dispose → handle.Release()（YooAsset 引用计数递减，实际卸载由包调度）。
-    /// - **并发合并**：同 (代次, location, 类型) 的并发获取共享一次底层加载；单人取消不取消共享任务；
-    ///   全员退出后迟到结果就地卸载（YooAsset 操作不可中途取消——UniTaskAssetExtensions 边界检查语义）。
-    /// - **初始化**：委托 AssetService.InitAsync（幂等；EditorSimulate/Offline 与主链共用）——
-    ///   Host 模式下载/校验/激活/回滚事务由 PatchCoordinator 承担。
-    /// - **主线程 only**（YooAsset 操作无线程安全承诺——与 AssetService 同款纪律）。
+    /// IContentService 的 YooAsset 适配（《商业级通用客户端框架总设计》§8.1"用可注入 IContentService 取代静态所有权，YooAsset 作为后端" + §8.2 资源租约）。
     /// </summary>
     public sealed class YooAssetContentService : IContentService, IGenerationSink, IContentLocationCatalog
     {
@@ -69,10 +60,7 @@ namespace LiteFramework
 
         public async UniTask InitializeAsync(CancellationToken ct = default)
         {
-            // 包根选择（真实资产包段）：激活记录给出**已确认候选**且候选资产包版本文件已就位时，
-            // 以候选 `content/candidate/bundle` 为包根（绝对路径）；否则沿用内置包根（StreamingAssets/yoo）。
-            // 代次与包根同源判定：只有真正以候选根启动时才把加载键推进到该确认代次，
-            // 否则退回内置代次（否则键说“候选”而包根是内置，旧使用者会从错的键取内容）。
+            // 包根选择（真实资产包段）：激活记录给出**已确认候选**且候选资产包版本文件已就位时， 以候选 `content/candidate/bundle` 为包根（绝对路径）；否则沿用内置包根（StreamingAssets/yoo）。
             ActivationRecord record = new FileActivationRecordIO(files: _files).TryLoad();
             string bundleRoot = ResolveConfirmedBundleRoot(record);
             await AssetService.InitAsync(ct: ct, builtinPackageRoot: bundleRoot);
@@ -108,10 +96,6 @@ namespace LiteFramework
 
         /// <summary>
         /// 代次推进（<see cref="IGenerationSink"/>，《热更与内容发布专项设计》§9）。
-        ///
-        /// <see cref="PatchCoordinator"/> 在「确认提交」后推进到新代次、在「失败回退」时提示回已确认代次。
-        /// **已持有的租约不受影响**：租约持有的是句柄，旧代次的键仍指向旧句柄，
-        /// 新获取才走新代次（§9"旧 Scope 继续从自己的 generation 加载"）。
         /// </summary>
         public void Advise(ContentGeneration generation)
         {
@@ -126,14 +110,14 @@ namespace LiteFramework
             if (Volatile.Read(ref _initialized) == 0)
                 throw new InvalidOperationException($"YooAssetContentService 未初始化——先 InitializeAsync（{location}）");
 
-            // generation 为 default（未指定）= 取当前代；显式携带 = 固定代（旧 Scope 不从 Current 混取新内容，§8.2）
+            // generation 为 default（未指定）= 取当前代；显式携带 = 固定代（旧 Scope 不从 Current 混取新内容，§8.2）。
             ContentGeneration gen = generation.ReleaseId == null ? _generation : generation;
 
             AssetLease<AssetHandle> handleLease = await _loads.AcquireAsync(new LoadKey(gen, location, typeof(T)), ct);
             AssetHandle handle = handleLease.Asset;
             if (handle.AssetObject is T typed)
             {
-                // 外层租约持有资产视图，释放转发到底层句柄租约（引用计数同一条链）
+                // 外层租约持有资产视图，释放转发到底层句柄租约（引用计数同一条链）。
                 return new AssetLease<T>(location, typed, _ => handleLease.Dispose());
             }
 
@@ -164,7 +148,7 @@ namespace LiteFramework
             return UniTask.CompletedTask;
         }
 
-        // ---- 底层加载/卸载（协调器回调，主线程）----
+        // ---- 底层加载/卸载（协调器回调，主线程）----。
 
         private static async UniTask<AssetHandle> LoadHandleAsync(LoadKey key, CancellationToken ct)
         {

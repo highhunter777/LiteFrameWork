@@ -5,8 +5,6 @@ namespace LiteFramework.Animation
 {
     /// <summary>
     /// 登记行类别——装载器按类分流到 <see cref="AnimationProfile"/> 的登记面，一一对应不发明新面。
-    /// Fallback 行的源 ID 是**未登记**的语义 ID（回退链只在定义表未命中时生效——挂在已登记 ID 上是死链）；
-    /// Mask 行以排除子树路径为 <see cref="AnimationProfileRow.Id"/>（行身份即排除目标）。
     /// </summary>
     public enum AnimationProfileRowKind
     {
@@ -24,10 +22,7 @@ namespace LiteFramework.Animation
     }
 
     /// <summary>
-    /// Profile 登记行：**配置面（数据表/资产）到 <see cref="AnimationProfile"/> 的唯一输送形态**——
-    /// 零引擎、零表框架依赖的纯数据载体（表适配器把生成行翻译成本行，翻译边界在适配器）。
-    /// 字段按 <see cref="Kind"/> 取用、未用字段保持默认。<see cref="Id"/> 在整张行集内唯一
-    /// （单片段/混合按"同 ID 不得两栖"互斥，Mask 以路径为 id——该唯一性正是表的主键）。
+    /// Profile 登记行：**配置面（数据表/资产）到 <see cref="AnimationProfile"/> 的唯一输送形态**—— 零引擎、零表框架依赖的纯数据载体（表适配器把生成行翻译成本行。
     /// </summary>
     public sealed class AnimationProfileRow
     {
@@ -70,12 +65,7 @@ namespace LiteFramework.Animation
     }
 
     /// <summary>
-    /// 行装载器（配置面唯一装载路径）：模型族过滤 → **两遍扫**逐行调用
-    /// <see cref="AnimationProfile"/> 的登记 API——
-    /// ①定义遍（Single/Blend 登记与校验：区间/两栖/空绑定）；
-    /// ②关联遍（回退关系 + Mask 排除——回退目标的"已登记"校验由此与行序无关）。
-    /// 校验/防环/两栖裁决全部复用登记期机制；本类只做行分流与行上下文包装
-    /// （第 N 行、什么内容、为什么被拒）。按模型族装配：同一张行集服务多族。
+    /// 行装载器（配置面唯一装载路径）：模型族过滤 → **两遍扫**逐行调用 <see cref="AnimationProfile"/> 的登记 API—— ①定义遍（Single/Blend 登记与校验：区间/两栖/空绑定。
     /// </summary>
     public static class AnimationProfileLoader
     {
@@ -101,7 +91,7 @@ namespace LiteFramework.Animation
 
             var profile = new AnimationProfile(policy);
 
-            // ① 定义遍：Single/Blend 登记（登记即校验——区间/两栖/空绑定在此生效）
+            // ① 定义遍：Single/Blend 登记（登记即校验——区间/两栖/空绑定在此生效）。
             foreach (var (row, index) in family)
             {
                 try
@@ -124,7 +114,7 @@ namespace LiteFramework.Animation
                 }
             }
 
-            // ② 关联遍：回退关系（源 ID 无定义——目标已由①登记，行序无关）+ Mask 排除
+            // ② 关联遍：回退关系（源 ID 无定义——目标已由①登记，行序无关）+ Mask 排除。
             foreach (var (row, index) in family)
             {
                 try

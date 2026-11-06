@@ -7,9 +7,6 @@ namespace LiteFramework
 {
     /// <summary>
     /// 结构化日志的安装/卸载（**开发形态**由装配点经 <see cref="DevBuildFacts.IsDevelopment"/> 门控安装）。
-    /// 路径 = `persistentDataPath/logs`；
-    /// 随 `Application.quitting` 收口（Editor 停止 Play 也会触发）。
-    /// 失败不阻断启动：sink 的 IO/线程错误只进 `LastError`，业务照常跑。
     /// </summary>
     public static class StructuredLogInstaller
     {

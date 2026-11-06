@@ -3,24 +3,7 @@ using UnityEngine;
 namespace LiteFramework.Animation
 {
     /// <summary>
-    /// 视图侧动画绑定组件（《动画模块专项设计》§4/§7 直 Clip 形态的视图入口）：**可动画视图的唯一挂件**，
-    /// 也是**完整动画配置面**——挂上本组件即自动补 <see cref="Animator"/>（<c>RequireComponent</c>），
-    /// 引擎绑定与片源全部在本组件上配置（"只挂这一个组件"），并单向下发到 Animator；
-    /// 驱动侧（<see cref="CharacterLocomotionDriver"/>）**只认本组件**——无本组件的视图即灰盒
-    /// （裸 Animator 不构成"可动画视图"的判据）。
-    ///
-    /// **配置归属**：Animator 的一切设置以本组件为**唯一配置源**（单向下发，编辑期 OnValidate 与
-    /// 运行期 OnEnable 各生效一次）——不要直接改 Animator 侧（会被本组件按面板值改回）。
-    /// - <see cref="Manifest"/>：片段清单（键→Clip 显式引用——去 AC 主片源；键单源在 Profile）；
-    /// - <see cref="Controller"/>：可选便利源（存在时后端占图基础层作开局默认姿态 + 片段自动按名索引；
-    ///   直 Clip 模型保持空——首帧由驱动机 Start 同帧落位兜底）；
-    /// - Avatar/ApplyRootMotion/UpdateMode/CullingMode：Animator 引擎参数的配置面。
-    ///
-    /// **职责边界**（排除项）：不持图、不建后端——PlayableGraph 归驱动/后端 C# 层。
-    ///
-    /// **结构性防复发**：Animator 因 <c>RequireComponent</c> 在本组件在场时不可被单独删除——
-    /// 要移除动画能力必须先删本组件（有名字、可审计的显式操作），杜绝"匿名组件被顺手剥除、
-    /// 视图静默灰盒"的事故形态。
+    /// 视图侧动画绑定组件（《动画模块专项设计》§4/§7 直 Clip 形态的视图入口）：**可动画视图的唯一挂件**。
     /// </summary>
     [RequireComponent(typeof(Animator))]
     [DisallowMultipleComponent]

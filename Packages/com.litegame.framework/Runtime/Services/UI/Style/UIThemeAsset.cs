@@ -68,12 +68,7 @@ namespace LiteFramework.UI
     }
 
     /// <summary>
-    /// UI 主题资产（**生成物，禁手改**；《UI 编辑器工具链专项设计》§8.1「令牌源：JSON → 生成 UIThemeAsset（SO）」、
-    /// §8.3 生成物表）。由编辑器工具 `ui.style.tokens` 从 `UIStyleTokens.json` 确定性生成；
-    /// 数组按令牌 ID `Ordinal` 排序，`SourceHash` 为规范 JSON 文本的 SHA-256。
-    ///
-    /// **纯数据**：本类不注册容器、不读运行时状态、无运行期消费者（B2 起由样式解析/引用组件消费）；
-    /// 编辑器读面走 `<c>UITokenCatalog</c>`（不静态缓存）。
+    /// UI 主题资产（**生成物，禁手改**；《UI 编辑器工具链专项设计》§8.1「令牌源：JSON → 生成 UIThemeAsset（SO）」、 §8.3 生成物表）。
     /// </summary>
     public sealed class UIThemeAsset : ScriptableObject
     {

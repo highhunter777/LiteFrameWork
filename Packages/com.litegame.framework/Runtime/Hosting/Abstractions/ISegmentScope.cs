@@ -6,9 +6,7 @@ using Cysharp.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// 模块作用域契约（路线图 §4.3）：模块把本次初始化创建的资源/订阅/租约登记到这里，
-    /// 由 Host 在模块关闭（或启动失败的该模块回滚）时**逆序释放**。
-    /// 每个模块一个作用域（Root 的子作用域，取消链接到根）——资源归属随模块走，不混进根作用域。
+    /// 模块作用域契约（路线图 §4.3）：模块把本次初始化创建的资源/订阅/租约登记到这里， 由 Host 在模块关闭（或启动失败的该模块回滚）时**逆序释放**。
     /// </summary>
     public interface ISegmentScope
     {

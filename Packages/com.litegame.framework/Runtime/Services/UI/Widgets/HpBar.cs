@@ -1,4 +1,4 @@
-// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
+// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab。
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,20 +6,7 @@ using UnityEngine.UI;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 血条控件（模板 `Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_HpBar.prefab`）：双条血格——
-    /// **前条**（UGUI <see cref="Slider"/> 的 <see cref="Slider.fillRect"/>）瞬时响应，**后条**
-    /// （<see cref="BackFill"/>，前条几何的半透明克隆层）延迟滑落（打击感标准做法）。
-    /// 视觉形态对齐战斗 HUD 现役血条（Synty 军事风皮肤 + IconBox + 数值文本）。
-    ///
-    /// **驱动口径**（对齐 UGUI Slider 的内部可视更新，非 <c>Image.fillAmount</c>）：
-    /// 前条由 Slider 写 <c>fillRect.anchorMax.x = value</c>；本件对 <see cref="BackFill"/> 走同一手势
-    /// （<c>anchorMax.x = 后条值</c>，锚点/枢轴/尺寸与 <c>fillRect</c> 一致）——故后条无需 Filled 类型，
-    /// 与前条同精灵同切片渲染。
-    ///
-    /// **计时**：后条追赶走 <see cref="UIAnimationClock.Delta"/>（《制作规范》§5／红线 9：UI 控件计时统一
-    /// UIClock，禁原生 <c>Time.deltaTime</c>；未绑定退化为真实帧步进）。
-    ///
-    /// **形态边界**：后条仅在数值**下降**时滑落追赶；上升（回血/重置）瞬时跟上，避免"血涨回去还拖尾"。
+    /// 血条控件（模板 `Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_HpBar.prefab`）：双条血格—— **前条**（UGUI <see cref="Slider"/>。
     /// </summary>
     public class HpBar : MonoBehaviour
     {

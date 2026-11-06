@@ -4,16 +4,7 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// LText 表数据装载（文本链 `Luban 表源 → tbltext 生成物 → LText 服务`；
-    /// 生产装载经装配层 LTextCatalog 直读 cfg.Tables，本 JSON 解析口供候选校验等文本形态消费）。
-    ///
-    /// **数据形态**与既有 Luban 表产物一致（`GameData/Config/*.bytes`，JSON 数组对象）：
-    /// <code>[{"key":"UI.Main.Title","zh-CN":"标题","en":"Title"}, ...]</code>
-    /// — locale 是**列名**。这是最小可用形态：新增语言 = 加一列，
-    /// **但复数规则与 RTL 需代码评估**（不承诺"加列即可零代码支持"）。
-    ///
-    /// **经 <see cref="IJsonSerializer"/> 解析**（Core 只认接口，Newtonsoft 留在 Unity 层——
-    /// 第三方不进 Core 是本仓既有纪律）。零 IO：字节由装配点的内容租约通道提供，L1 全覆盖。
+    /// LText 表数据装载（文本链 `Luban 表源 → tbltext 生成物 → LText 服务`； 生产装载经装配层 LTextCatalog 直读 cfg.Tables。）。
     /// </summary>
     public static class LocalizationTable
     {
@@ -22,10 +13,7 @@ namespace LiteFramework
             new HashSet<string>(StringComparer.Ordinal) { "key", "comment", "note" };
 
         /// <summary>
-        /// 从表数据 JSON 构建目录。返回 null = 数据非法（畸形/无有效行），调用方按缺表处理。
-        ///
-        /// <paramref name="strictKeyNaming"/> = true 时，key 命名不合规范即整表拒绝
-        /// （候选校验用）；false 时跳过并计数（运行时宽松读取用）。
+        /// 从表数据 JSON 构建目录。
         /// </summary>
         public static LocalizationCatalog Parse(string json, IJsonSerializer serializer,
             bool strictKeyNaming, out IReadOnlyList<string> problems)
@@ -104,7 +92,7 @@ namespace LiteFramework
             foreach (string key in allKeys)
             {
                 if (string.IsNullOrEmpty(key)) continue;
-                // 回退到源语言也算该 locale 未覆盖
+                // 回退到源语言也算该 locale 未覆盖。
                 if (!catalog.TryGet(key, locale, out _, out bool usedFallback) || usedFallback)
                     missing.Add(key);
             }

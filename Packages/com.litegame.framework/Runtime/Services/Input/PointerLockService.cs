@@ -3,11 +3,7 @@ using UnityEngine;
 namespace LiteFramework
 {
     /// <summary>
-    /// 指针锁定管理（第三人称自由视角的输入形态件）：对局内锁定并隐藏系统指针——鼠标增量
-    /// 全部喂给相机视角（<see cref="ICameraService.AddLookDelta"/>），"屏幕光标位"语义整体退役；
-    /// 上下文门被拦（模态 UI）/死亡/退场时解锁恢复。**唯一光标写者**——<c>Cursor.lockState</c> 与
-    /// <c>Cursor.visible</c> 全仓只经本件写（准心驱动的光标显隐钩子收编进本件后消灭第二写者）。
-    /// 纯平台件：不进意图三件、不进协议。
+    /// 指针锁定管理（第三人称自由视角的输入形态件）：对局内锁定并隐藏系统指针——鼠标增量 全部喂给相机视角（<see cref="ICameraService.AddLookDelta"/>），"屏幕光标位"语义整体退役。
     /// </summary>
     public sealed class PointerLockService
     {

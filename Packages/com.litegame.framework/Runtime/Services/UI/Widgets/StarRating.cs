@@ -24,7 +24,7 @@ namespace LiteFramework.UI
 
         private void Awake()
         {
-            // 运行时 AddComponent 先于字段赋值——Stars 尚为 null，跳过首刷（Set 时再刷）
+            // 运行时 AddComponent 先于字段赋值——Stars 尚为 null，跳过首刷（Set 时再刷）。
             if (Stars != null && Stars.Length > 0) Apply();
         }
 

@@ -1,4 +1,4 @@
-// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
+// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab。
 using TMPro;
 using System;
 using UnityEngine;

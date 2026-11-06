@@ -5,14 +5,7 @@ using UnityEngine;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 虚拟列表（《UI框架总设计》§8.2）：**窗口复用**——节点数由"可见容量 + overscan"决定，
-    /// 不随数据总量线性创建；滚动只做"窗口平移 + 索引重绑"，窗口外的节点收回、再滚回来重新入窗。
-    ///
-    /// 设计要点：有界节点池 + 索引窗口 + ScrollRect 监听只绑一次、禁用/销毁对称解绑。
-    ///
-    /// 用法：Template（渲染项模板，**保持非激活**）+ 本组件挂 Content；SetSource 后 Refresh。
-    /// 父链上有 ScrollRect 时滚动自动重算窗口；无 ScrollRect 视为整表可见（不做裁剪）。
-    /// 固定尺寸单轴（Grid/变高列表未支持）。
+    /// 虚拟列表（《UI框架总设计》§8.2）：**窗口复用**——节点数由"可见容量 + overscan"决定， 不随数据总量线性创建；滚动只做"窗口平移 + 索引重绑"，窗口外的节点收回、再滚回来重新入窗。
     /// </summary>
     public class VirtualList : MonoBehaviour
     {
@@ -99,7 +92,7 @@ namespace LiteFramework.UI
             ApplyWindow();
         }
 
-        // ---- 内部：窗口计算与复用 ----
+        // ---- 内部：窗口计算与复用 ----。
 
         /// <summary>
         /// 窗口重算（核心）：由 Content 偏移 + 视口尺寸 + 项尺寸与间距算首末索引，
@@ -126,7 +119,7 @@ namespace LiteFramework.UI
             int first = Mathf.Clamp(Mathf.FloorToInt(Offset() / step) - Mathf.Max(0, Overscan), 0, count - 1);
             int realized = Mathf.Min(capacity, count - first);
 
-            // 1) 保留仍在窗口内的节点，其余释放回空闲池（先解绑再置空闲：§8.2 重绑前解除旧回调）
+            // 1) 保留仍在窗口内的节点，其余释放回空闲池（先解绑再置空闲：§8.2 重绑前解除旧回调）。
             _free.Clear();
             for (int i = 0; i < _nodes.Count; i++)
             {
@@ -140,7 +133,7 @@ namespace LiteFramework.UI
                 }
             }
 
-            // 2) 补建节点：池上限 = 窗口容量（**不随数据量增长**）
+            // 2) 补建节点：池上限 = 窗口容量（**不随数据量增长**）。
             while (_nodes.Count < realized)
             {
                 var node = Instantiate(Template, Template.parent);
@@ -150,7 +143,7 @@ namespace LiteFramework.UI
                 _free.Add(_nodes.Count - 1);
             }
 
-            // 3) 为窗口内每个索引找座位：已绑该索引的原地不动，其余取空闲节点重绑
+            // 3) 为窗口内每个索引找座位：已绑该索引的原地不动，其余取空闲节点重绑。
             FirstIndex = first;
             for (int index = first; index < first + realized; index++)
             {
@@ -193,7 +186,7 @@ namespace LiteFramework.UI
             if (_source is IVirtualListUnbind unbinder) unbinder.Unbind(node);   // 可选解绑口
         }
 
-        // ---- 内部：几何 ----
+        // ---- 内部：几何 ----。
 
         private float Step()
         {
@@ -242,7 +235,7 @@ namespace LiteFramework.UI
             return Direction == Axis.Vertical ? new Vector2(0f, -along) : new Vector2(along, 0f);
         }
 
-        // ---- 内部：ScrollRect 接线（只绑一次；禁用/销毁对称解绑）----
+        // ---- 内部：ScrollRect 接线（只绑一次；禁用/销毁对称解绑）----。
 
         private void ResolveScroll()
         {
