@@ -1,9 +1,6 @@
 using System;
 using System.Text;
-using UnityEngine;
-#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
-#endif
 
 namespace LiteFramework
 {
@@ -16,9 +13,7 @@ namespace LiteFramework
         Escape,
     }
 
-    /// <summary>
-    /// 键盘状态/文本输入的平台能力（**无开发宏**）：Input System 可用时走 <c>Keyboard.current</c>， 否则旧 <c>Input</c>。
-    /// </summary>
+    /// <summary>键盘状态/文本输入的平台能力：Input System 单路（工程 activeInputHandler 含 New，包引用为硬依赖）。</summary>
     public static class PlatformKeyInput
     {
         private static readonly StringBuilder Typed = new StringBuilder(64);
@@ -26,13 +21,9 @@ namespace LiteFramework
 
         public static bool Pressed(PlatformKey key)
         {
-#if ENABLE_INPUT_SYSTEM
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return false;
             return keyboard[ToInputKey(key)].wasPressedThisFrame;
-#else
-            return Input.GetKeyDown(ToKeyCode(key));
-#endif
         }
 
         /// <summary>文本输入所有权：同一时刻只允许一个调试面收字符（HUD 过滤 / 控制台互斥）。
@@ -46,20 +37,16 @@ namespace LiteFramework
                 if (_textOwner != null) return false;
                 _textOwner = owner;
                 Typed.Clear();
-#if ENABLE_INPUT_SYSTEM
                 Keyboard keyboard = Keyboard.current;
                 if (keyboard != null) keyboard.onTextInput += OnTextInput;
-#endif
                 return true;
             }
 
             if (!ReferenceEquals(_textOwner, owner)) return false;
             _textOwner = null;
             Typed.Clear();
-#if ENABLE_INPUT_SYSTEM
             Keyboard releaseKeyboard = Keyboard.current;
             if (releaseKeyboard != null) releaseKeyboard.onTextInput -= OnTextInput;
-#endif
             return true;
         }
 
@@ -67,27 +54,14 @@ namespace LiteFramework
         public static string TakeTypedText(object owner)
         {
             if (!ReferenceEquals(_textOwner, owner)) return string.Empty;
-#if ENABLE_INPUT_SYSTEM
             string text = Typed.ToString();
             Typed.Clear();
             return text;
-#else
-            string raw = Input.inputString;
-            var sb = new StringBuilder(raw.Length);
-            for (int i = 0; i < raw.Length; i++)
-            {
-                char c = raw[i];
-                if (c >= ' ' && c != '\b') sb.Append(c);
-            }
-            return sb.ToString();
-#endif
         }
 
-#if ENABLE_INPUT_SYSTEM
+        // 只收可见字符：退格在 Windows 键路里伴随 '\b' 文本事件，收进会与 Backspace 删除相互抵消。
         private static void OnTextInput(char c)
         {
-            // 只收可见字符：真实 Windows 键路里退格伴随 '\b' 文本事件（WM_CHAR），收进去会与
-            // Backspace 键删除相互抵消（表现为"删不掉字符"）——与旧 Input 路径的 c >= ' ' 同口径
             if (_textOwner != null && c >= ' ') Typed.Append(c);
         }
 
@@ -110,26 +84,5 @@ namespace LiteFramework
                 default: return Key.None;
             }
         }
-#else
-        private static KeyCode ToKeyCode(PlatformKey key)
-        {
-            switch (key)
-            {
-                case PlatformKey.F1: return KeyCode.F1;
-                case PlatformKey.F2: return KeyCode.F2;
-                case PlatformKey.F3: return KeyCode.F3;
-                case PlatformKey.F4: return KeyCode.F4;
-                case PlatformKey.F5: return KeyCode.F5;
-                case PlatformKey.F6: return KeyCode.F6;
-                case PlatformKey.F7: return KeyCode.F7;
-                case PlatformKey.F8: return KeyCode.F8;
-                case PlatformKey.F9: return KeyCode.F9;
-                case PlatformKey.Backspace: return KeyCode.Backspace;
-                case PlatformKey.Enter: return KeyCode.Return;
-                case PlatformKey.Escape: return KeyCode.Escape;
-                default: return KeyCode.None;
-            }
-        }
-#endif
     }
 }
