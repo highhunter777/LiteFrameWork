@@ -29,7 +29,7 @@ namespace LiteFramework.Core.Tests
             ["Packages/com.litegame.framework/Runtime/Services/UI/Widgets/RedDotRegistry.cs"] = 1,
             // 调度器/Timeline 用户回调边界（单个回调抛异常不得中断派发）
             ["Packages/com.litegame.framework/Runtime/Core/Clock/GameScheduler.cs"] = 1,
-            ["Packages/com.litegame.framework/Runtime/Core/Clock/TimelineRunner.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Core/Clock/GameTimelineRunner.cs"] = 1,
             // 表现降级边界（HUD 主题注入失败保持烘焙值，不阻断对局）
             ["Assets/LiteGame/Modules/Battle/BattleViewAssets.cs"] = 1,
         };

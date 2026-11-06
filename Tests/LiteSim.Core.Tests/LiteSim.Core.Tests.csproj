@@ -46,7 +46,7 @@
   <!--
     伤害数字纯逻辑件的 L1 覆盖（《命中反馈与伤害数字专项设计》批B）：聚合（合并窗口/暴击粘滞/双钟/
     账实分离）、轨道数学（升浮/淡出/抖动/出场缩放/推挤）、样式常量表（角色档与按值分带）、K 简写
-    格式化——全零引擎。角色键 HitLocalRole 独立成零引擎文件（HitFeedback.cs 含 Vector3，Unity 侧独编）。
+    格式化——全零引擎。角色键 HitLocalRole 独立成零引擎文件（HitFeedbackContext.cs 含 Vector3，Unity 侧独编）。
   -->
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteGame\Core\Feedback\HitFeedback\HitLocalRole.cs" Link="Feedback\HitLocalRole.cs" />

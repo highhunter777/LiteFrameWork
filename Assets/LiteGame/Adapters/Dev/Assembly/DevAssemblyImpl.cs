@@ -6,6 +6,7 @@ using LiteGame;
 using LiteGame.Modules.Dev;
 using LiteNet.Transport;
 
+using LiteGame.Adapters.Dev;
 using LiteGame.Adapters.Dev.Debug.WeakNet;
 namespace LiteGame
 {
