@@ -17,6 +17,9 @@ namespace LiteGame.Modules.Dev
         /// <summary>建开发会话（发布形态不走本接口——空实现直接 `NullDevSession`）。</summary>
         IDevSession CreateSession();
 
+        /// <summary>本地传输工厂（测试房/进程内本地服；发布形态未实现即 null）。</summary>
+        ILocalTransportFactory LocalTransport { get; }
+
         /// <summary>装配期装饰容器（GM 命令/弱网/调试内核）；返回的句柄负责注销与静态收口。</summary>
         IDisposable Decorate(DevServices services);
 

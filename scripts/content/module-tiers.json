@@ -134,7 +134,7 @@
       ],
       "collectGroups": [],
       "ship": "base",
-      "notes": "开发面模块（发布剥离）"
+      "notes": "开发面模块（发布剥离；本地传输端口经 IDevAssembly.LocalTransport）"
     },
     {
       "id": "LiteGame.Modules.Meta",

@@ -36,6 +36,8 @@ namespace LiteGame
 
         public IDevSession CreateSession() => new DevSession();
 
+        public ILocalTransportFactory LocalTransport => DevLocalTransportFactory.Instance;
+
         public IBattleDevDiagnostics BattleDiagnostics => _diagnostics;
 
         public IBattleDevOverlay CreateBattleOverlay() => new DevBattleOverlay();

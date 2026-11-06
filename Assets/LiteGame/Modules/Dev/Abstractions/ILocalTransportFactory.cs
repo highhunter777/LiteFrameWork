@@ -3,10 +3,10 @@ using LiteNet.Transport;
 using LiteSim;
 using LiteGame.Modules.Map;
 
-namespace LiteGame
+namespace LiteGame.Modules.Dev
 {
     /// <summary>
-    /// 本地（开发）传输工厂端口（路线图 M0 接缝 5）：ProductTransportFactory 经本端口创建 "进程内本地服"传输。
+    /// 本地（开发）传输工厂端口：消费方经 <c>IDevAssembly.LocalTransport</c> 取件（发布形态为 null）。
     /// </summary>
     public interface ILocalTransportFactory
     {

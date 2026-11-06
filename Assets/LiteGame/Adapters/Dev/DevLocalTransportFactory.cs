@@ -4,6 +4,7 @@ using LiteFramework;
 using LiteNet.Transport;
 using LiteSim;
 using UnityEngine;
+using LiteGame.Modules.Dev;
 using LiteGame.Modules.Map;
 
 namespace LiteGame.Adapters.Dev
@@ -13,14 +14,7 @@ namespace LiteGame.Adapters.Dev
     /// </summary>
     internal sealed class DevLocalTransportFactory : ILocalTransportFactory
     {
-        private static readonly DevLocalTransportFactory Instance = new DevLocalTransportFactory();
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        private static void Install()
-        {
-            LocalTransportRegistry.Bind(Instance);
-            Application.quitting += () => LocalTransportRegistry.Unbind(Instance);
-        }
+        internal static readonly DevLocalTransportFactory Instance = new DevLocalTransportFactory();
 
         public IClientTransport Create(bool testRoom, MatchTestRules rules, CombatValues roomValues,
             Func<uint> gameplayDigestBase, IMapProvider maps, MatchRules? roomRules = null)

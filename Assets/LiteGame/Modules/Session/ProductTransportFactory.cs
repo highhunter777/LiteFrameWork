@@ -73,9 +73,10 @@ namespace LiteGame
         {
             if (testRoom && DevBuildFacts.IsDevelopment)
             {
-                if (!LocalTransportRegistry.TryGet(out ILocalTransportFactory local))
+                ILocalTransportFactory local = DevHooks.Current?.LocalTransport;
+                if (local == null)
                     throw new InvalidOperationException(
-                        "本地测试模式缺本地传输工厂——LiteGame.Dev 未装配（开发程序集不在场/装订失败）");
+                        "本地测试模式缺本地传输工厂——LiteGame.Dev 未装配（DevHooks 未绑定）");
                 if (roomValues == null)
                     throw new InvalidOperationException(
                         "本地测试模式缺本局判定数值——进房单点须先按 SimParamsActivation 解析（表值/覆写合并）再创建传输");
