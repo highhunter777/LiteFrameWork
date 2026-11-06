@@ -12,4 +12,5 @@ return
 [205] = {id=205,lua_path="",prefab="LiteGame/Modules/UI/Content/Screens/Tmp_BaselineB.prefab",layer=2,full_screen=true,},
 [206] = {id=206,lua_path="",prefab="LiteGame/Modules/UI/Content/Screens/Tmp_Dialog.prefab",layer=1,full_screen=false,},
 [16] = {id=16,lua_path="UI.Page_Records",prefab="LiteGame/Modules/UI/Content/Screens/Page_Records.prefab",layer=0,full_screen=true,},
+[17] = {id=17,lua_path="UI.Page_ButtonDemo",prefab="LiteGame/Modules/UI/Content/Screens/Page_ButtonDemo.prefab",layer=1,full_screen=true,},
 }

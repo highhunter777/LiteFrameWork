@@ -6,6 +6,24 @@
   },
   "pages": [
     {
+      "name": "Page_ButtonDemo",
+      "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_ButtonDemo.prefab",
+      "forms": [
+        {
+          "formId": 17,
+          "layer": 1,
+          "fullScreen": true
+        }
+      ],
+      "luaPath": "UI.Page_ButtonDemo",
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Page_ButtonDemo.contract.json",
+      "contractPresent": true,
+      "deviceProfiles": []
+    },
+    {
       "name": "Page_Lobby",
       "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
       "forms": [
@@ -205,5 +223,5 @@
     }
   ],
   "warnings": [],
-  "sourceHash": "sha256:9a03d315b4ab1f30fc396510ea4ebed34908c6701ac7178e72543b21b2b15a5e"
+  "sourceHash": "sha256:c0ac788ab7d162eaf7e169f339bf87cbcef3a709bf44930fc89b0ecbc5a772b4"
 }
