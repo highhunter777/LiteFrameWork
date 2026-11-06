@@ -7,13 +7,7 @@ using MetaServer.Contracts.Persistence;
 namespace MetaServer.Infrastructure.Persistence
 {
     /// <summary>
-    /// 顺序迁移执行器（Meta 专项 §9.1）：步骤表连续性校验 → 从当前版本逐版本应用（每步成功即写回
-    /// 版本存储＝确认点）→ 失败即逆序回滚（含失败步本身）并显式报告——"迁移失败有明确结果与
-    /// 回滚方式，不静默半迁移"。
-    ///
-    /// 无墙钟/无 IO——所有持久动作经 <see cref="ISchemaVersionStore"/> 与
-    /// <see cref="IMigrationStep"/> 端口注入，本类保持 R11 纯净（真实 Mongo 步骤在驱动适配批落
-    /// Infrastructure 时另行处理扫描豁免裁决）。
+    /// 顺序迁移执行器（Meta 专项 §9.1）：步骤表连续性校验 → 从当前版本逐版本应用（每步成功即写回 版本存储＝确认点）→ 失败即逆序回滚（含失败步本身）并显式报告——"迁移失败有明确结果与 回滚方式，不静默半迁移"。
     /// </summary>
     public sealed class SchemaMigrationRunner : ISchemaMigrator
     {
@@ -85,9 +79,7 @@ namespace MetaServer.Infrastructure.Persistence
         }
 
         /// <summary>
-        /// 逆序回滚：先失败步（可能部分应用），再已确认步骤逐个回退；每个成功回退把版本存储
-        /// 退回一格。任一回退失败即置 RollbackFailed 并继续尽力回退——最终以失败显式报告，
-        /// 宿主据此拒绝启动，不得带半迁移状态运行。
+        /// 逆序回滚：先失败步（可能部分应用），再已确认步骤逐个回退；每个成功回退把版本存储 退回一格。
         /// </summary>
         private async ValueTask<MigrationOutcome> RollbackAsync(
             IMigrationStep failedStep, List<long> applied, string reason, CancellationToken ct)

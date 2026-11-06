@@ -6,15 +6,6 @@ namespace MetaServer.Modules.Auth
 {
     /// <summary>
     /// 访问令牌服务（《Meta 服务专项设计》§6.1）：签发与校验的单点。
-    ///
-    /// - **签发**：绑定 accountId + jti + audience + purpose + iat/exp（时钟注入——**禁读系统时钟**，
-    ///   L1 才造得出过期/临界用例；§6.1"过期判定以服务端时钟为准"）。
-    /// - **校验（fail-closed，不抛）**：kid 未知 / 签名不符 / 过期 / audience 或 purpose 不符 →
-    ///   对应拒收分类；任一项失败即拒绝，不降级为警告（§6.2 同款纪律）。
-    /// - 密钥经装配注入（配置 base64 解码；≥32 字节由 MetaConfig 校验把守）。
-    /// - **令牌与 jti 不写日志**（§11.1 禁止项——本类不持日志面，注释钉住约定）。
-    ///
-    /// 校验消费方（鉴权中间件）随 Lobby 首个受保护端点接入（§10.2"未实装不声明"——不预建空中间件）。
     /// </summary>
     public sealed class AccessTokenService
     {

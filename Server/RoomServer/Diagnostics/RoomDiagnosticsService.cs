@@ -18,11 +18,6 @@ namespace RoomServer.Diagnostics
 
     /// <summary>
     /// 服务端现场包编排：房间终态静默后取内核记录，补身份/日志尾/mismatch 摘要并落盘。
-    /// 只做宿主层 IO；内核记录保持纯内存。任何失败都只告警，不影响房间收尾。
-    ///
-    /// mismatch 即时 flush（T0-2）：客户端和解上报到达时不再等房间终态——传输线程请求快照，
-    /// 房间线程在下一 StepFrame 末封印独立记录（事件/世界环深拷）并入队，本服务的后台写线程
-    /// 组装信封落盘（EndReason=mismatch-flush）。同房间冷却期内只落一份，终态记录不受影响。
     /// </summary>
     public sealed class RoomDiagnosticsService : IDisposable
     {

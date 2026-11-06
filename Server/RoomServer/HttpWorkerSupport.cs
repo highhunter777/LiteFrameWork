@@ -5,16 +5,7 @@ using System.Threading;
 namespace RoomServer
 {
     /// <summary>
-    /// 房间侧"后台 HTTP 提交/心跳"两个客户端（<see cref="LobbyRegistrationClient"/>、
-    /// <see cref="SettlementSubmitService"/>）的**共用机制单源**（P2 单源收口）。
-    ///
-    /// **为什么要有它**：这两个类是同一套骨架的两份手抄——超时默认值、`Join` 等待上限、
-    /// 失败日志节流节奏、Bearer 头构造、构造期校验口径，都在两处各写一遍。骨架手抄的真实代价
-    /// 不是冗长，而是**单边调参**：改一处默认超时/节流节奏，另一条链静默保持旧值，
-    /// 表现为"同为房间侧后台客户端，行为却不同"。
-    ///
-    /// 本类只收**值常量与无状态机制**；保留在各自类里的部分（线程循环策略、退避算法、载荷形状、
-    /// 快照回调）是两条链**真正的差异**，不强行合并（合并它们会把差异藏进 if）。
+    /// 房间侧"后台 HTTP 提交/心跳"两个客户端（<see cref="LobbyRegistrationClient"/>。）。
     /// </summary>
     internal static class HttpWorkerSupport
     {

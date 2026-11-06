@@ -4,20 +4,7 @@ using System.Collections.Generic;
 namespace MetaServer
 {
     /// <summary>
-    /// 固定窗口请求限流器（**无鉴权面的兜底**：游客登录是全服务唯一"不花任何凭据就能落地一条账号文档"
-    /// 的端点，没有它，匿名者枚举 deviceId 即可让 accounts 集合无界增长）。
-    ///
-    /// **为什么不引 ASP.NET 限流中间件**：本类是可注入时钟的纯逻辑（L1 直测，零真实 sleep），
-    /// 与 MetaHost 既有的自定义计数中间件同形态；换中间件方案要把限流语义埋进 Options/端点元数据，
-    /// 反而更难在 L1 钉住"窗口边界/容量上限/键回收"这三件事。
-    ///
-    /// **口径**：
-    /// - 固定窗口（<see cref="_windowMs"/> 一拍，窗口内至多 <see cref="_permitLimit"/> 次）；
-    /// - **键表有界**（<see cref="_capacity"/>）：源地址可伪造/可枚举，键表无上界等于把限流器变成内存放大器；
-    ///   满且回收不掉过期键时**拒绝新键**（fail-closed：宁可误拒也不无界增长）；
-    /// - **惰性回收**：每次调用顺带清一批过期窗口（摊销；不做后台计时器）。
-    ///
-    /// 线程安全：全部状态在 <see cref="_gate"/> 内（Kestrel 并发请求共用）。
+    /// 固定窗口请求限流器（**无鉴权面的兜底**：游客登录是全服务唯一"不花任何凭据就能落地一条账号文档" 的端点，没有它，匿名者枚举 deviceId 即可让 accounts 集合无界增长）。
     /// </summary>
     public sealed class FixedWindowRateLimiter
     {

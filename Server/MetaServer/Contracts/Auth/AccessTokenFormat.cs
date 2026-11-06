@@ -6,22 +6,6 @@ namespace MetaServer.Contracts.Auth
 {
     /// <summary>
     /// 访问令牌的**线格式**（《Meta 服务专项设计》§6.1）。
-    ///
-    /// **单一来源**：签发（<c>AccessTokenService</c>）与校验（未来的鉴权中间件）都必须走本类，
-    /// 形状规则只有这一份（与 RoomServer 侧 <c>JoinTicketFormat</c> 同一条纪律——两个契约各自单源，
-    /// 互不引用：访问令牌是 Meta 自签自验的局内契约，Join Ticket 是 Meta→RoomServer 的跨服务接缝）。
-    ///
-    /// 形状：<c>v1.kid.accountId.jti.audience.purpose.iatMs.expMs.sig</c> 共 9 段。
-    /// 自由文本字段走 Base64Url（去 padding、<c>+</c>→<c>-</c>、<c>/</c>→<c>_</c>）——
-    /// 故字段内不可能出现分隔符 <c>.</c>；整数（iatMs/expMs）明文十进制（严格形式，拒绝 "+1"/" 1"）。
-    /// 签名覆盖**除第 8 段（sig）外的全部 8 段**；HMAC-SHA256（不自创密码算法）。
-    ///
-    /// **对称密钥选型**：访问令牌由 Meta **自签自验**（签发方=唯一校验方，同信任域），
-    /// HMAC-SHA256 满足"签名 + 过期 + audience + 用途"四项校验且密钥不出进程；
-    /// RSA 非对称的价值在"签发方与校验方分离"（Join Ticket/内容签名——§6.3），令牌场景不成立。
-    ///
-    /// **令牌不进日志**（§11.1 禁止项）；jti 是未来吊销面的锚点（§6.1"吊销以 jti/版本号在服务端可判定"），
-    /// 同样不单独写日志。
     /// </summary>
     public static class AccessTokenFormat
     {

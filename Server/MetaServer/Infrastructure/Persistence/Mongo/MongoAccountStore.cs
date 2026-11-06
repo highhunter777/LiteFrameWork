@@ -7,9 +7,7 @@ using MongoDB.Driver;
 namespace MetaServer.Infrastructure.Persistence.Mongo
 {
     /// <summary>
-    /// 游客账号 Mongo 适配器（R3 Auth 首批）。唯一索引裁决 deviceId 的 get-or-create 竞态；
-    /// 插入撞设备键返回 null，由用例重读并收敛到已存在账号。CreatedUtc 由适配器取存储侧时钟，
-    /// 不接受调用方播种的时间。
+    /// 游客账号 Mongo 适配器（R3 Auth 首批）。
     /// </summary>
     public sealed class MongoAccountStore : IAccountStore
     {

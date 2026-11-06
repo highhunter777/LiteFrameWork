@@ -4,8 +4,6 @@ namespace MetaServer.Contracts.Lobby
 {
     /// <summary>
     /// Lobby 稳定错误码与消息键（《Meta 服务专项设计》§5.2"错误码表归 Contracts 单源"）。
-    /// 变更 = 契约变更：只增不改不重排（客户端按字符串字面量分支）。
-    /// 访问令牌失败复用 <c>AuthErrorCodes.Unauthorized</c>——同一凭据类别不另立码。
     /// </summary>
     public static class LobbyErrorCodes
     {
@@ -47,11 +45,7 @@ namespace MetaServer.Contracts.Lobby
     }
 
     /// <summary>
-    /// 实例注册/心跳命令（RoomServer → Lobby，§7"实例注册：实例 ID、版本、房间容量、当前占用、
-    /// 健康状态"；周期性上报即重复提交本命令，get-or-create 幂等键 = <see cref="InstanceId"/>）。
-    /// JSON 形状（camelCase，随 Minimal API web 默认）：
-    /// <c>{"instanceId":"...","buildHash":"...","address":"host:port","maxRooms":8,"roomCount":0,
-    /// "maxPlayers":64,"playerCount":0,"draining":false}</c>。
+    /// 实例注册/心跳命令（RoomServer → Lobby，§7"实例注册：实例 ID、版本、房间容量、当前占用、 健康状态"；周期性上报即重复提交本命令。）。
     /// </summary>
     public sealed class InstanceRegisterCommand
     {
@@ -88,8 +82,6 @@ namespace MetaServer.Contracts.Lobby
 
     /// <summary>
     /// 单房间明细上报（RoomServer → Lobby，随心跳；投影"上报事实的投影，不是权威"）。
-    /// phase = RoomRuntime.MatchPhase 数值——值域与终态判据两端同源（MetaServer.csproj 源链接共编
-    /// 内核 MatchPhase/MatchStateMachine）；**终态（Closed/Aborted）不报**（读面过滤 + Meta 侧防御拒）。
     /// </summary>
     public sealed class RoomReport
     {
@@ -150,9 +142,7 @@ namespace MetaServer.Contracts.Lobby
     }
 
     /// <summary>
-    /// 创建房间命令（客户端 → Lobby，房主开局批）：客户端**不发明房号**——服务端生成
-    /// 保证唯一的新号并按它签发进房票据（响应同 <see cref="JoinTicketResponse"/> 形状）。
-    /// JSON 形状（camelCase）：<c>{"requestId":"...","buildHash":"..."}</c>。
+    /// 创建房间命令（客户端 → Lobby，房主开局批）：客户端**不发明房号**——服务端生成 保证唯一的新号并按它签发进房票据（响应同 <see cref="JoinTicketResponse"/> 形状）。
     /// </summary>
     public sealed class CreateRoomCommand
     {

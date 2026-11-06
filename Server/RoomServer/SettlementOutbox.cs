@@ -22,10 +22,7 @@ namespace RoomServer
     }
 
     /// <summary>
-    /// 待提交结算条目：冻结摘要 + **席位账号映射**（《上云测试专项设计》§4 裁决点①
-    /// "结算载荷补 SeatAccountIds"——宿主在 SettlementReady 时从会话取得，随日志持久化，
-    /// 重启续投不丢账号归属）。<see cref="SeatAccountIds"/> 与 <c>Summary.Players</c> **同序等长**；
-    /// 旧日志行无该字段 → 空数组（提交时按无账号计，Meta 侧如实拒绝）。
+    /// 待提交结算条目：冻结摘要 + **席位账号映射**（《上云测试专项设计》§4 裁决点① "结算载荷补 SeatAccountIds"——宿主在 SettlementReady 时从会话取得，随日志持久化。）。
     /// </summary>
     public sealed class PendingSettlement
     {
@@ -46,20 +43,7 @@ namespace RoomServer
     }
 
     /// <summary>
-    /// 本地持久结算 Outbox 端口（《商业级通用服务端框架总设计》§7 钦定接口名 ISettlementOutbox、
-    /// §11.3"RoomRuntime 冻结 MatchResult → … → **本地持久 Outbox** → 后台提交 Profile.Apply →
-    /// **Outbox 标记完成**"、§6"需要持久化的结果先写入**有界** Outbox"）。
-    ///
-    /// 载荷为 <see cref="MatchResultSummary"/>（SettlementReadyOutput）＋席位账号映射。
-    ///
-    /// **同步签名**对应宿主单循环形态（§10.2——命令直投、ApplyOutput 在 Pump 线程上）；
-    /// 入盒/完成标记都是低频事件（一局至多一次、一行一条）。
-    ///
-    /// **线程契约（P0-1）**：调用来自三条线程——<see cref="Enqueue"/> 在 ServerLoop 权威循环上
-    /// （ApplyOutput 内）、<see cref="ListPending"/><see cref="TryMarkCompleted"/><see cref="Count"/>
-    /// 在 SettlementSubmitService 后台线程上、<see cref="Flush"/> 在排空收尾路径上。
-    /// **实现必须对此并发安全**（文件实现经单一临界区；见 <c>FileSettlementOutbox._gate</c>）；
-    /// HTTP/网络不得进入实现内部（提交方在锁外做，见 <c>SettlementSubmitService.TrySubmitNext</c>）。
+    /// 本地持久结算 Outbox 端口（《商业级通用服务端框架总设计》§7 钦定接口名 ISettlementOutbox。）。
     /// </summary>
     public interface ISettlementOutbox
     {
@@ -69,16 +53,11 @@ namespace RoomServer
 
         /// <summary>
         /// 标记已完成（§11.3"Outbox 标记完成"——后台提交方拿到存储侧幂等确认后调用）。
-        /// 容量按**待提交**数计：标记即释放容量、条目退出 <see cref="ListPending"/>。
-        /// 未知 matchId / 已完成 / 介质写失败 → false（幂等，可重试）。
         /// </summary>
         bool TryMarkCompleted(string matchId);
 
         /// <summary>
-        /// 弃置（**终态处置**——确定性拒绝：载荷级 4xx，重投同一载荷不可能收敛；设计 §2"提交失败处置分级"）：
-        /// 追加弃置标记行（<c>Kind="x"</c>，含原因）并退出待提交面——**让位**后续条目
-        /// （防"一行毒死整条队列"的头阻塞）。幂等与介质失败口径同 <see cref="TryMarkCompleted"/>
-        /// （未知/已标记/写失败 → false，条目保持待提交，可重试）。
+        /// 弃置（**终态处置**——确定性拒绝：载荷级 4xx，重投同一载荷不可能收敛；设计 §2"提交失败处置分级"）： 追加弃置标记行（<c>Kind="x"</c>。）。
         /// </summary>
         bool TryAbandon(string matchId, string reason);
 
@@ -95,22 +74,6 @@ namespace RoomServer
 
     /// <summary>
     /// 文件实现的本地持久 Outbox（**宿主层**——文件 IO 在此合法；Runtime/Application 保持零 IO）。
-    ///
-    /// - **JSONL 日志**：一行一条（DTO 序列化；MatchResultSummary 是只读字段，经内部 DTO 转换）；
-    /// - **逐条 write-through**：`FileOptions.WriteThrough` + 每条 Flush——Enqueue/标记返回时该行已在介质上；
-    ///   崩溃窗口最多留下半行，装载期跳过并计数（SettlementReady 是"冻结待提交"事实）；
-    /// - **幂等**：matchId 内存集合判重（装载期从日志重建）——重复入盒返回 Duplicate 不重写；
-    ///   **完成语义**：`TryMarkCompleted` 追加完成标记行并退出待提交面；压实会把已完成行从日志移除，
-    ///   判重集合随之收敛为待提交——此后同 matchId 再入盒会作为新待提交接受，
-    ///   "重复提交不重复发奖"由 Meta 台账唯一索引兜底（§11.2 唯一索引 = 最终幂等裁判）；
-    /// - **有界**：容量上限（配置）按**待提交**数计——标记即释放，长跑不因已完成条数涨满；
-    ///   内存判重集合随**压实**收敛（自动：连续标记达 <see cref="DefaultCompactThresholdMarks"/>；
-    ///   收口：`Flush` 有未压实标记时）——长跑内存不无界增长；
-    /// - **路径红线**：必须 <c>.journal</c> 后缀（<see cref="RoomServerConfig"/> 装载期强制）——
-    ///   RoomServer/Data 的 .json 参与 buildHash 哈希闭包，日志若落在那里会随对局漂移、
-    ///   两端握手全拒。缺省路径 Outbox/settlements.journal（.gitignore 已登记）；
-    /// - **跨线程安全（P0-1）**：入盒在权威循环线程、标记/取待提交在提交后台线程、收口压实走排空路径——
-    ///   全部可变状态经单一临界区（<c>_gate</c>）；提交方在锁外做 HTTP（分步语义：快照 → POST → 按 id 标记）。
     /// </summary>
     public sealed class FileSettlementOutbox : ISettlementOutbox, IDisposable
     {
@@ -130,18 +93,7 @@ namespace RoomServer
         private bool _disposed;
 
         /// <summary>
-        /// 跨线程临界区（P0-1）：本类是**两条线程的汇合点**——入盒走 ServerLoop 线程
-        /// （<c>ServerHost.ApplyOutput</c> 内，60Hz 权威循环），标记完成/取待提交走
-        /// SettlementSubmitService 后台线程，排空收口 <c>Flush</c> 走宿主线程。
-        /// <c>_entries/_seen/_completed/_marksSinceCompaction/_stream</c> 全部可变状态都在这把锁下访问
-        /// （容器集合裸并发 = 集合结构损坏或枚举中改动抛异常，且损坏点事后无法定位）。
-        ///
-        /// **锁内只做内存 + 单行追加写**（write-through 本就同步落盘，量级 KB）；
-        /// **HTTP 不在锁内**——提交方先 <see cref="ListPending"/> 取快照、锁外 POST、再按 matchId
-        /// 调 <see cref="TryMarkCompleted"/>（接口语义天然支持该分步：标记按 id 幂等，不依赖先前快照）。
-        /// 残留代价：后台线程触发压实（重写全日志）时权威循环的 Enqueue 会等锁——压实每
-        /// <see cref="DefaultCompactThresholdMarks"/> 条完成标记才发生一次，量级毫秒；若将来成为抖动源，
-        /// 再改"压实出临界区"（当前不做：那会把原子性问题换成一致性问题）。
+        /// 跨线程临界区（P0-1）：本类是**两条线程的汇合点**——入盒走 ServerLoop 线程 （<c>ServerHost.ApplyOutput</c> 内，60Hz 权威循环）。
         /// </summary>
         private readonly object _gate = new object();
 
@@ -276,9 +228,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 弃置（确定性拒绝的终态处置；设计 §2"提交失败处置分级"）：**标记行写先行**——崩溃
-        /// 自愈口径同完成标记（盘有标记、内存未及 → 重启重放收敛）；写失败内存不动（保持待提交，
-        /// 可重试）。退出待提交面即**让位**后续条目——原实现下队首一条永不收敛的条目会阻塞全部。
+        /// 弃置（确定性拒绝的终态处置；设计 §2"提交失败处置分级"）：**标记行写先行**——崩溃 自愈口径同完成标记（盘有标记、内存未及 → 重启重放收敛）；写失败内存不动（保持待提交， 可重试）。
         /// </summary>
         public bool TryAbandon(string matchId, string reason)
         {
@@ -352,10 +302,6 @@ namespace RoomServer
 
         /// <summary>
         /// 压实：日志重写为仅含**待提交**行（temp 写全 + File.Replace 原子替换），判重集合收敛为待提交。
-        /// **调用方须持有 <c>_gate</c>**（重写期间不得有并发追加/标记）。
-        /// 已完成行被移除的安全语义：完成 = 提交方已拿到存储侧幂等确认，此后即便同 matchId 重入盒重提交，
-        /// Meta 台账唯一索引兜底返回首次结果（§11.2）。介质故障路径：不抛、计 <see cref="CompactionFailures"/>，
-        /// 内存语义不变、下次收口重试；日志保持追加原样（最坏回退 = 不压实，不改正确性）。
         /// </summary>
         private void Compact()
         {

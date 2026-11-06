@@ -4,13 +4,7 @@ using MetaServer.Contracts.Validation;
 namespace MetaServer.Contracts.Persistence
 {
     /// <summary>
-    /// 简单测试命令（《框架先行建设与业务接入专项设计》样例⑤：
-    /// "简单测试命令 → 实际持久化确认 → 重复请求/故障 → 进程恢复"）。
-    ///
-    /// 刻意取结算形状（operationId + (playerId, matchId, settlementType) + revision CAS + 增量）：
-    /// 这是服务端总设计 §11.3 钦定的唯一键形状，也是排空第 4 步"刷新 Outbox 到持久介质"
-    /// 要消费的接缝。**非业务模型**——具体库存/奖励语义不在此冻结（《框架先行》§5-5），
-    /// Auth/Lobby/Profile 归 G3（Meta 专项 §15）。
+    /// 简单测试命令（《框架先行建设与业务接入专项设计》样例⑤： "简单测试命令 → 实际持久化确认 → 重复请求/故障 → 进程恢复"）。
     /// </summary>
     public sealed record SampleSettlementCommand(
         string OperationId, string PlayerId, string MatchId, string SettlementType,

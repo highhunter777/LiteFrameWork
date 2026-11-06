@@ -4,10 +4,6 @@ namespace RoomServer.Application
 {
     /// <summary>
     /// <see cref="IRoomRemoteAddress"/> 的 <see cref="IRoomTransport"/> 适配（组合根装配点）。
-    ///
-    /// 为什么需要这层：<see cref="JoinAdmissionGate"/> 的 IP 维度限流只依赖"能不能拿到远端地址"
-    /// 这一件事，不该认识 Transport（传输可替换、且地址探测是可选能力）。
-    /// 宿主在构造期把 Transport 包成本口注入准入门——**准入门因此可注入假地址源独立测试**。
     /// </summary>
     internal sealed class TransportRemoteAddress : IRoomRemoteAddress
     {

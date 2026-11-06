@@ -1,12 +1,7 @@
 namespace MetaServer.Contracts.Validation
 {
     /// <summary>
-    /// 字段 UTF-8 字节上限**统一上限表**（P2 单源）：此前 128/64/256 这些数字钉在各模块的私有常量里，
-    /// 同一类字段在不同模块可能取到不同值，且"这个字段为什么是 64"无处可查。
-    ///
-    /// 口径：按**语义类别**归并（不是按模块）——同类字段一律同值；新增字段先选类别，再决定是否需要新类别。
-    /// 各模块原有的公开常量（如 <c>GuestLoginUseCase.MaxFieldBytes</c>）保留为**本表的别名**，
-    /// 避免调用方（含测试）漂移（与房间端 <c>ServerHost.MaxRoomIdBytes = JoinAdmissionGate.MaxRoomIdBytes</c> 同款）。
+    /// 字段 UTF-8 字节上限**统一上限表**（P2 单源）：此前 128/64/256 这些数字钉在各模块的私有常量里， 同一类字段在不同模块可能取到不同值，且"这个字段为什么是 64"无处可查。
     /// </summary>
     public static class FieldLimits
     {

@@ -42,12 +42,6 @@ namespace RoomServer.Application
 
     /// <summary>
     /// 从 RoomMailbox 取出的统一消息包装。
-    ///
-    /// <para>
-    /// <see cref="RoomMailbox{TInput,TControl,TOutbound}.TryDequeue"/> 采用严格优先级：
-    /// Control → Input → Outbound；同一 lane 内保持 FIFO。三个载荷属性只有对应 lane
-    /// 有意义，其他属性为该类型的 default 值。
-    /// </para>
     /// </summary>
     public readonly struct RoomMailboxMessage<TInput, TControl, TOutbound>
     {
@@ -76,14 +70,6 @@ namespace RoomServer.Application
 
     /// <summary>
     /// 每房间的有界 Mailbox 核心。
-    ///
-    /// <para>
-    /// 三条 lane 物理隔离容量：输入包突发不会挤掉控制命令或出站；控制 lane 出队拥有最高
-    /// 优先级。类本身只负责线程安全的排队，不启动线程、不等待、不接 Transport，因而可以在
-    /// 纯 .NET 单测中独立验收。Worker 负责在自己的线程上消费并驱动 RoomRuntime。
-    /// </para>
-    ///
-    /// <para>FIFO 语义是每条 lane 内 FIFO；不同 lane 之间按 Control、Input、Outbound 优先级出队。</para>
     /// </summary>
     public sealed class RoomMailbox<TInput, TControl, TOutbound> : IDisposable
     {
@@ -174,10 +160,6 @@ namespace RoomServer.Application
 
         /// <summary>
         /// 只有在 control lane 仍有容量时才创建并入队载荷。
-        ///
-        /// 宿主侧 admission 需要先验证/构造一次性控制载荷，但不能在队列已满时
-        /// 先执行副作用再发现拒绝。工厂在同一把锁内、确认有容量后调用；队列满或
-        /// 已关闭时工厂不会执行。
         /// </summary>
         public RoomMailboxEnqueueResult TryEnqueueControl(Func<TControl> factory)
         {

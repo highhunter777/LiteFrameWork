@@ -9,8 +9,6 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 {
     /// <summary>
     /// schema 版本存储的真 Mongo 适配器（M0-c 批二；§9.1"索引与迁移显式版本化"）。
-    /// 单文档（_id 固定，见 <see cref="MongoDocumentNames.SchemaVersion"/>）承载当前版本；**版本写回 = 迁移确认点**——
-    /// 任意一步后进程终止，重启从最后确认版本继续。
     /// </summary>
     public sealed class MongoSchemaVersionStore : ISchemaVersionStore
     {
@@ -73,13 +71,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
     }
 
     /// <summary>
-    /// 真实迁移步骤表（v1 起，连续）。启动时由 <see cref="SchemaMigrationRunner"/> 按序应用；
-    /// 每步可重复应用（版本确认点失败后重跑同一版本）——CreateCollection 已存在即跳过、
-    /// CreateIndex 同名同键为幂等无操作。
-    ///
-    /// **回滚口径（如实登记）**：Migrate 的完全逆操作是 drop collection，但那会丢弃已写数据——
-    /// 回滚取**结构回退**（移除索引），集合保留。回滚的目的是恢复"未迁移"的结构约束，
-    /// 不是销毁数据。
+    /// 真实迁移步骤表（v1 起，连续）。
     /// </summary>
     public static class MongoMigrations
     {

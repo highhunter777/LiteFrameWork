@@ -33,11 +33,6 @@ namespace MetaServer.Contracts.Profile
 
     /// <summary>
     /// 结算提交的线形状已移入共享契约 `MetaWire`（客户端/MetaServer/RoomServer 同一份）。
-    ///
-    /// 本类型是**服务端命名壳**：继承共享 POCO、零属性重复。保留它的唯一原因是
-    /// `Tests/MetaServer.Tests` 同时引用 MetaServer 与 RoomServer 两个程序集，直接命名
-    /// `MetaWire.MatchResultSubmission` 会触发 CS0433（同一源文件编进两个程序集）；
-    /// 服务端 API 用本壳类型即可，属性仍只由 `MetaWire` 定义——加字段自动获得、改名自动编译失败。
     /// </summary>
     public sealed class MatchResultSubmission : MetaWire.MatchResultSubmission
     {
@@ -49,9 +44,7 @@ namespace MetaServer.Contracts.Profile
     }
 
     /// <summary>
-    /// 结算应用响应（S→C 载荷；§8.2"返回原结果或首次结果"——duplicate 项携带的是**首次**的
-    /// 修订号/余额快照，不重新计算）。任一玩家 conflict 时整响应 409（已 applied/duplicate 的
-    /// 项照常携带——调用方整包重试时已落账项 duplicate 命中，收敛无重复发奖）。
+    /// 结算应用响应（S→C 载荷；§8.2"返回原结果或首次结果"——duplicate 项携带的是**首次**的 修订号/余额快照，不重新计算）。
     /// </summary>
     public sealed class MatchSettlementResponse
     {

@@ -9,16 +9,6 @@ namespace MetaServer.Modules.Auth
 {
     /// <summary>
     /// 游客登录用例（《Meta 服务专项设计》§6.1 登录）：设备标识 get-or-create → 签发访问令牌。
-    ///
-    /// - **幂等裁判在存储**：deviceId 唯一键决定"同设备 → 同账号"（§5.3"数据库唯一键是最终幂等裁判"）；
-    ///   并发同设备双登 → 一方插入、另一方撞唯一键重读，收敛到同一账号。
-    /// - **字段边界 fail-closed**：requestId/deviceId 缺失或超 128 UTF-8 字节 → 拒绝
-    ///   （§5 P0-3"长度在解析前限制"的用例侧半边——HTTP 侧还有请求体上限）。
-    /// - **结果型返回**（不抛业务异常——异常面只承载基础设施故障，端点按结果映射 HTTP）；
-    ///   存储故障（<see cref="AccountStoreUnavailableException"/>）归 StoreUnavailable，其余异常如实上抛
-    ///   （编程错误不冒充 503——与 <c>ApplyMatchResultUseCase</c> 同款分捕纪律）。
-    /// - accountId：签发端 CSPRNG（"a"+20 hex）——全局唯一性由随机空间保证，无自增表依赖。
-    /// - **令牌/账号 Id 不写日志**（§11.1；本类不持日志面——requestId 的落日志归端点/中间件）。
     /// </summary>
     public sealed class GuestLoginUseCase
     {

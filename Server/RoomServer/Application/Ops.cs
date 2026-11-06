@@ -9,19 +9,6 @@ namespace RoomServer.Application
 {
     /// <summary>
     /// Ops 指标（《M10实施指导》§2.5 登记项："输出形式 = 控制台周期打印（5s），指标集 = 帧号/房间数/快照均长/丢包率/和解率汇总"）。
-    /// 本类只做**汇总与格式化**（StringBuilder 复用）；计数由各处经 <c>Note*</c> 方法前推。
-    ///
-    /// **为什么是"只读属性 + Note* 方法"而不是 public 可变字段（P4 计数面封装）**：
-    /// 字段公开时"该不该用 Interlocked、谁写谁读"只能靠注释纪律——编译器不设防，
-    /// 而本类的计数**确实跨线程**（输入/ACK 类计数由多个房间 Worker 线程累加，见下）。
-    /// 收成方法后：每个计数的**原子性在定义处一次定死**（而不是在每个调用点各写各的），
-    /// 读面变成 `Interlocked.Read`（周期行不再可能读到撕裂的 64 位值）。
-    /// **兼容面**：属性名与字段名一一对应，`Format`/`/metrics`/测试断言（`host.Ops.Rejects` 等）全部零改动；
-    /// 唯一保留的可写状态是 <see cref="PrintEnabled"/>（输出开关，不是计数）。
-    ///
-    /// **并发形态**（R2 Worker 执行）：输入/ACK 类计数可能由多个房间 Worker 线程累加，
-    /// 故这些计数用 <see cref="Interlocked"/> 前推；周期行读取亦经 <c>Interlocked.Read</c>——
-    /// 观测行的定位仍是近似快照（不承诺跨计数一致性），但单值不再撕裂。
     /// </summary>
     public sealed class Ops
     {
@@ -353,9 +340,7 @@ namespace RoomServer.Application
         public void NotePacketOversized() => Interlocked.Increment(ref _packetOversized);
 
         /// <summary>
-        /// 和解上报（P4 收口）：总数递增 + 只记**最大帧号**——"最后在哪一帧发生过不一致"是比较语义，
-        /// 原先由调用方写 `if (report.Frame > LastMismatchFrame) LastMismatchFrame = report.Frame;`（读-比-写三步，
-        /// 多线程下会丢最大值）。
+        /// 和解上报（P4 收口）：总数递增 + 只记**最大帧号**——"最后在哪一帧发生过不一致"是比较语义。
         /// </summary>
         public void NoteMismatch(long frame)
         {
@@ -395,11 +380,6 @@ namespace RoomServer.Application
 
         /// <summary>
         /// 周期汇总（房间号/帧号/快照/输入/和解率/背压/回溯/节拍债——一行式，便于日志抓取）。
-        /// **逐房间**调用：多房间下按房间出一行，才能看出是哪个房间慢/过载（§514 隔离观测前提）。
-        /// <paramref name="roomCount"/>、<paramref name="loop"/> 与 <paramref name="limiter"/> 属宿主/Worker 级——
-        /// 只在首行给（<paramref name="limiter"/> = 限流计数，单源在 <see cref="RateLimiter"/>）。
-        /// <paramref name="outboundRejected"/> = 本房间出站回传被拒数（在 <see cref="RoomInstance"/> 上；
-        /// 原先该计数只增不读——P4 接进本行，观测面才闭环）。
         /// </summary>
         public string Format(string roomId, RoomRuntime room, SnapshotPipeline pipeline,
             SessionManager sessions, int roomCount, ServerLoop.LoopStats loop = null,
@@ -487,12 +467,7 @@ namespace RoomServer.Application
         // ---- /metrics 文本出口（R4 第一批：零依赖 Prometheus 子集，同 MetaServer Ops 先例）----
 
         /// <summary>
-        /// 指标文本出口（Prometheus 文本格式的最小子集，`name value` 行）——计数值**逐项**
-        /// 对照 <c>Format</c> 周期行的同名字段（周期行与 metrics 同源，肉眼可对账）。
-        /// 刻意不含高基数字段（roomId/连接号——同 MetaServer Ops §11.2 红线口径）与
-        /// 房间内瞬时量（帧号/快照长——归周期行，每房间一行才能定位）；只出**进程级累计计数**
-        /// 与两个 gauge（当前房间数、最后和解帧）。
-        /// 低频出口（数秒一次）逐调用 new StringBuilder——不与 <see cref="Format"/> 的复用缓冲互踩。
+        /// 指标文本出口（Prometheus 文本格式的最小子集，`name value` 行）——计数值**逐项** 对照 <c>Format</c> 周期行的同名字段（周期行与 metrics 同源，肉眼可对账）。
         /// </summary>
         public string FormatMetrics()
         {

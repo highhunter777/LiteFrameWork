@@ -8,14 +8,6 @@ namespace RoomServer
 {
     /// <summary>
     /// 宿主运行期调参（P2 批二：审计点名的一批**魔法超时/容量进配置**）。
-    ///
-    /// **为什么要有它**：这些值此前是散在 <c>Program</c>/<c>ServerHost</c>/<c>SessionManager</c>/
-    /// <c>ReconnectService</c>/<c>SettlementOutbox</c> 里的字面量常量——部署形态下"排空给多久""会话多久
-    /// 算僵尸""重连窗口多长""收口压实多勤"全都是**改代码才能改**的值，与 §429/§520"参数可配 + 范围校验、
-    /// 不把估算值写死为事实"直接冲突。归一处后：默认值 = 原常量（**行为零变化**），要调只动配置文件。
-    ///
-    /// **边界**：只收"部署/运维面可调"的量。**协议面**（如 <c>MaxInboundPacketBytes</c> 之外的信封/帧格式）
-    /// 与**玩法数值**（走 .bytes 表）不在此——那两类改动不是调参，是改契约。
     /// </summary>
     public sealed class HostTuning
     {

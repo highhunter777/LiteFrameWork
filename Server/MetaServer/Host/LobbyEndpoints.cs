@@ -16,17 +16,7 @@ using MetaWire;
 namespace MetaServer
 {
     /// <summary>
-    /// Lobby HTTP 入口（《Meta 服务专项设计》§7、《上云测试专项设计》§2）：实例注册/心跳、
-    /// Join Ticket 签发、房间状态投影查询。
-    ///
-    /// 鉴权分两类（§12 中间件链的鉴权段在本层显式化——Lobby 为首批受保护端点）：
-    /// - 实例注册/查询：**实例密钥**（Bearer = Meta 配置的 Base64 串，常量时间比较）；
-    /// - 票据签发：**访问令牌**（Bearer = 游客登录签发的 v1 令牌，消费 AccessTokenService）。
-    /// 未配置对应功能（服务未注册）→ 稳定 <c>lobby.disabled</c>（§10"拒绝相应功能"）。
-    ///
-    /// **错误体与解析经 <see cref="MetaResults"/> 单源**（P2）：本类不再写 `new MetaError{…}` 样板，
-    /// 也不再持有 `LobbyDisabled/InstanceUnauthorized/InstanceKeyMatches/ReadBearer` 这类
-    /// 一行转发包装（凭据比对与 Bearer 读取的归属是 <see cref="InstanceKeyAuth"/>）。
+    /// Lobby HTTP 入口（《Meta 服务专项设计》§7、《上云测试专项设计》§2）：实例注册/心跳、 Join Ticket 签发、房间状态投影查询。
     /// </summary>
     public static class LobbyEndpoints
     {
@@ -127,9 +117,7 @@ namespace MetaServer
                 return MetaResults.Ok(new LobbyRoomsResponse { Rooms = registry.ProjectRooms() });
             });
 
-            // 房间列表批：**玩家可见**的实例+房间明细投影（Bearer = 玩家访问令牌——与票据签发同凭据类别；
-            // 客户端据此发现"哪台服务器有哪些房间在等待"，挑 roomId → 换票 → 进房）。
-            // 字段与实例面端点同源（ProjectRooms 单次投影，含 address/buildHash——玩家进房要用）。
+            // 房间列表批：**玩家可见**的实例+房间明细投影（Bearer = 玩家访问令牌——与票据签发同凭据类别； 客户端据此发现"哪台服务器有哪些房间在等待"，挑 roomId → 换票 → 进房）。
             app.MapGet(MetaWireEndpoints.RoomsPublic, (HttpContext context) =>
             {
                 InstanceRegistry registry = context.RequestServices.GetService<InstanceRegistry>();
@@ -150,9 +138,7 @@ namespace MetaServer
         }
 
         /// <summary>
-        /// 签发类端点的结果映射（join-ticket / create-room 共用——两处同为"按号签发"语义，映射必须
-        /// 一致，单源防漂移）：Accepted → 票据响应（先触发调用方计数）；Rejected → 版本不符 409、
-        /// 其余 400；无容量 → 503。<paramref name="onAccepted"/> 给调用方各自的计数（签发 / 出号）。
+        /// 签发类端点的结果映射（join-ticket / create-room 共用——两处同为"按号签发"语义，映射必须 一致，单源防漂移）：Accepted → 票据响应（先触发调用方计数）。
         /// </summary>
         private static IResult TicketIssueResult(JoinTicketIssueUseCase.Result result, Action onAccepted)
         {

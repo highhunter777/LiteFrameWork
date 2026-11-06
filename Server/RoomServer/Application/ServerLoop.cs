@@ -106,9 +106,6 @@ namespace RoomServer.Application
 
         /// <summary>
         /// 停止循环并**有界**等待退出：返回 false = 超时未退出（帧体被阻塞，如结算线程持 Outbox 锁做压实）。
-        /// 调用方**不得**把 false 当作已停：此时循环线程仍在 <c>Pump</c>，与收尾/释放并发
-        /// （<c>_currentRoom</c> 等按"宿主线程专属"使用；Outbox 释放后的入盒会抛 ODE 被 PumpOnce 吸收，
-        /// 表现为"泵失败"计数而该笔结算静默丢失）。可重复调用以继续等待。
         /// </summary>
         public bool Stop(int timeoutMs = DefaultStopTimeoutMs)
         {
@@ -159,14 +156,7 @@ namespace RoomServer.Application
         }
 
         /// <summary>
-        /// 跑一帧权威帧体：**异常一律吸收**（P0-2），绝不让一根异常杀死循环线程——
-        /// 本线程是 <c>IsBackground</c>，线程死亡 = 进程变僵尸：既不推进对局、也不退出、继续占资源，
-        /// 且没有任何日志说明发生了什么。对照 <c>RoomWorkerPool</c> 的 worker 异常隔离——同系统同一纪律。
-        ///
-        /// 记账口径：<see cref="LoopStats.Ticks"/> 数**帧体调用次数**（含抛错的帧），与
-        /// <see cref="StepCatchUp"/> 的追帧计数同源；失败另计 <see cref="LoopStats.PumpFailures"/>。
-        /// 上报节流：首败必报，其后每 <see cref="PumpErrorReportEvery"/> 次报一次（"每帧必抛"的坏配置
-        /// 不得刷屏，但也不能静默——Opus/Ops 行读 <see cref="LoopStats.PumpFailures"/> 即知）。
+        /// 跑一帧权威帧体：**异常一律吸收**（P0-2），绝不让一根异常杀死循环线程—— 本线程是 <c>IsBackground</c>，线程死亡 = 进程变僵尸：既不推进对局、也不退出、继续占资源。
         /// </summary>
         private void PumpOnce()
         {
@@ -183,9 +173,7 @@ namespace RoomServer.Application
         }
 
         /// <summary>
-        /// 有界追赶 + 丢债（Run 与 LoopBody 共用同一份规则——两处手抄必漂移）：
-        /// 落后则连续补跑（不跳帧），上限 <see cref="MaxCatchUp"/>；超限即把锚点前移到当前时刻
-        /// （丢掉的时间债记账进 <see cref="LoopStats.DroppedTimeMs"/>）。
+        /// 有界追赶 + 丢债（Run 与 LoopBody 共用同一份规则——两处手抄必漂移）： 落后则连续补跑（不跳帧），上限 <see cref="MaxCatchUp"/>。
         /// </summary>
         private void StepCatchUp(ref long start, ref long tick, Func<bool> running)
         {

@@ -11,18 +11,7 @@ using Newtonsoft.Json;
 namespace RoomServer
 {
     /// <summary>
-    /// Lobby 实例注册客户端（《Meta 服务专项设计》§7"RoomServer 实例启动后向 Lobby 注册
-    /// （实例 ID、版本、房间容量、当前占用、健康状态），并周期性上报；心跳超时即从可分配集合移除";
-    /// 《上云测试专项设计》§5"探针/进程守护"）。
-    ///
-    /// - 启动即发一发，其后按配置间隔周期心跳；载荷 = 宿主实时快照（buildHash/容量/占用/排空位）。
-    /// - **失败不退出对局服务**：网络/服务不可达记失败计数并按次重试（Lobby 不可达只影响"新玩家分配"，
-    ///   不影响进行中的对局）；失败日志节流（首败与每 20 次一行），不刷屏。
-    /// - **排空上报**：宿主 <c>BeginDrain</c> 后快照 Draining=true——Lobby 立即停止向其分配新对局（drain 协同）。
-    /// - **单在途请求**（专用后台线程串行），无队列、无堆积；间隔/超时可配。
-    /// - 实例密钥与票据**不进日志**（§11.1 同类约定——本类只打状态与计数）。
-    ///
-    /// HTTP 客户端可注入 <see cref="HttpMessageHandler"/>——L1 用伪造 handler 断言载荷与失败路径。
+    /// Lobby 实例注册客户端（《Meta 服务专项设计》§7"RoomServer 实例启动后向 Lobby 注册 （实例 ID、版本、房间容量、当前占用、健康状态），并周期性上报；心跳超时即从可分配集合移除"。）。
     /// </summary>
     public sealed class LobbyRegistrationClient : HttpSubmitWorker
     {
@@ -133,8 +122,6 @@ namespace RoomServer
 
         /// <summary>
         /// 单次注册/心跳（周期循环与启动首发共用；测试直调可断言载荷与失败分类）。
-        /// 成功返回 true 并刷新 <see cref="LastHeartbeatTtlMs"/>；失败返回 false 且 error 非空。
-        /// **不抛异常**——网络面故障是预期路径（fail-open 于对局服务，仅影响分配资格）。
         /// </summary>
         public bool TrySendOnce(out string error)
         {

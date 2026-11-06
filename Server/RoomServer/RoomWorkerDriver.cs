@@ -14,10 +14,6 @@ namespace RoomServer
 {
     /// <summary>
     /// 宿主向 <see cref="RoomWorkerDriver"/> 提供的**窄端口**（P4 外提契约）。
-    ///
-    /// 只列驱动体真正需要的东西（池/计数/时钟/版本哈希）——契约越窄，"外提"才不会变成
-    /// "把 ServerHost 整体换个名字持有"（那是拿新 god class 换旧 god class）。
-    /// 由 <see cref="ServerHost"/> 显式实现（不扩大其公共面）。
     /// </summary>
     internal interface IRoomWorkerHost
     {
@@ -47,21 +43,7 @@ namespace RoomServer
     }
 
     /// <summary>
-    /// 房间 Worker **驱动体**（P4 从 <c>ServerHost</c> 外提，约 210 行）：在归属 Worker 线程上消费
-    /// 本房间 Control/Input 两条 lane（每步 Control 优先），执行 Runtime 命令与快照广播，
-    /// 产出经 Outbound lane **回传宿主**（Outbound 归宿主消费——Worker 绝不读它）。
-    ///
-    /// **边界（这条线就是外提的依据）**——同一件事的三段，线程归属不同：
-    /// - **本类 = Worker 线程上跑的东西**：驱动体（去重登记配对）＋命令执行＋席位侧效应＋回传入盒；
-    /// - **留宿主 = 生产侧**：`ScheduleRoomPump`/`SubmitWorkerTick`（先入盒 + 再登记唤醒——
-    ///   被 Join/输入/重连/排空等多条宿主路径调用，是"生产者协议"的另一半）；
-    /// - **留宿主 = 回传应用侧**：`ApplyOutboundEnvelope` 族（宿主线程解析会话、编码并经 Transport 发送）。
-    ///
-    /// 混在一个类里正是 god class 的成因；按线程归属切开后，每条规则只有一个落点。
-    ///
-    /// **行为零变化**：本类由原宿主方法**逐行搬移**，只把宿主成员（`_ops`/`_nowMs`/计数/池/哈希）
-    /// 改为经 <see cref="IRoomWorkerHost"/> 调用。公共面只有两个入口：<see cref="Drive"/>（驱动一体）
-    /// 与 <see cref="Send"/>（广播管线的发送钩子）。
+    /// 房间 Worker **驱动体**（P4 从 <c>ServerHost</c> 外提。）。
     /// </summary>
     internal sealed class RoomWorkerDriver
     {
@@ -73,9 +55,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 房间 Worker 驱动体（装配到 <see cref="RoomInstance.DriveAction"/>）：
-        /// 进入在途计数 → 驱动核心 → **在重新登记之后再复位登记位/在途计数**
-        /// （宿主以"无待驱动且在途=0"判定房间静默，故先后顺序有语义）。
+        /// 房间 Worker 驱动体（装配到 <see cref="RoomInstance.DriveAction"/>）： 进入在途计数 → 驱动核心 → **在重新登记之后再复位登记位/在途计数** （宿主以"无待驱动且在途。）。
         /// </summary>
         public void Drive(RoomInstance room)
         {
@@ -97,8 +77,6 @@ namespace RoomServer
 
         /// <summary>
         /// 驱动核心：清登记 → 消费两条 lane（Control 优先）→ 仍有活则重新登记入池。
-        /// "清标记 → 消费 → 复检后重登记"的配对保证**不丢唤醒、也不堆积工作项**
-        /// （生产者协议的另一半在宿主 <c>ScheduleRoomPump</c>）。
         /// </summary>
         private void DriveCore(RoomInstance room)
         {
@@ -139,9 +117,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 落地宿主登记的 GM 测试规则（**Worker 线程**）：必须在驱动开头、任何命令与广播之前——
-        /// 判定（Sim 读 GmFlags）与快照（下发 GmFlags）必须看到同一份规则。宿主侧见
-        /// <see cref="ServerHost.ExecuteGmAction"/> 的 worker 分支（它只登记、不直写 Runtime）。
+        /// 落地宿主登记的 GM 测试规则（**Worker 线程**）：必须在驱动开头、任何命令与广播之前—— 判定（Sim 读 GmFlags）与快照（下发 GmFlags）必须看到同一份规则。
         /// </summary>
         private static void ApplyPendingTestRules(RoomInstance room)
         {
@@ -172,9 +148,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 重连换绑（Worker 侧）：校验席位存在且对局进行中 → 执行 Rebind → 回传
-        /// SeatRebound（宿主更新会话映射/计 Ops）+ 成功响应；校验失败回传拒绝响应。
-        /// 换绑重置本席位广播记账（新连接没有历史发送记录）。
+        /// 重连换绑（Worker 侧）：校验席位存在且对局进行中 → 执行 Rebind → 回传 SeatRebound（宿主更新会话映射/计 Ops）+ 成功响应；校验失败回传拒绝响应。
         /// </summary>
         private void ExecuteReconnectRebind(RoomInstance room, RoomControlEnvelope envelope)
         {

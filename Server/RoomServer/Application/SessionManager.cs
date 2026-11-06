@@ -4,13 +4,6 @@ namespace RoomServer.Application
 {
     /// <summary>
     /// 会话表（§4.5 SessionManager 行：连接表 + 断线标记；超时踢除由 kcp2k 内建 Timeout 承担）。
-    /// GetOrAddOnFirstPacket：首包未登记（连接成功但 Host 尚未见到 OnConnected 竞态窗口）时兜底登记。
-    ///
-    /// **容量与清理**（《商业级通用服务端框架总设计》§9.2"SessionManager…必须有容量上限和周期清理"）：
-    /// - **容量上限**：构造时定容（默认 4×房间容量），超限拒绝新会话（地址栏连接仍由 kcp2k 管，
-    ///   应用层不再为它分配记账对象）——防未认证连接把会话表撑成无界内存；
-    /// - **周期清理** <see cref="Cleanup"/>：清掉"断线且超出重连窗口"与"未进房且长期静默"的会话，
-    ///   由宿主按帧节拍调用（10s 一次即可），返回清理条数进 Ops。
     /// </summary>
     public sealed class SessionManager
     {
@@ -73,17 +66,12 @@ namespace RoomServer.Application
 
         /// <summary>
         /// 首包兜底：连接事件与首包间存在竞态窗口时补登记（超容量返回 null——宿主丢包并计数）。
-        /// 已断线的旧代次原样返回，由宿主丢弃迟到包；连接 Id 复用必须先经过
-        /// <see cref="TryAddNew"/>，避免迟到数据在没有新连接事件时复活会话。
         /// </summary>
         public Session GetOrAddOnFirstPacket(int connectionId, long nowMs)
         {
             if (_byConnection.TryGetValue(connectionId, out Session session))
             {
                 // OnConnected 会通过 TryAddNew 显式替换同 Id 的旧代次。
-                // 这里不能把断线会话提前移除并新建：传输层迟到包不应在没有
-                // 新 OnConnected 的情况下复活连接。调用方会看到 Disconnected
-                // 并丢弃该包；真正的 Id 复用由下一次 TryAddNew 完成。
                 return session;
             }
             if (_byConnection.Count >= _capacity) return null;

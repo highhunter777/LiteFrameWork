@@ -4,22 +4,7 @@ using System.Security.Cryptography;
 namespace RoomServer.Application
 {
     /// <summary>
-    /// 重连一次性票据（《服务端架构设计》§10-E3：《M10实施指导》决策 12）：
-    /// Join 成功时签发 → 客户端断线后凭票换"权威快照 + 输入历史"（§5.6 首选路径）。
-    /// **一次性**：消费即作废（重放同一张票拿不到第二次）；**有时效**：超过 <see cref="TicketTtlMs"/> 作废。
-    /// 票据绑定 (playerId, roomId)——换票即恢复原席位，不重开新号。
-    ///
-    /// **容量与清理**（§9.2"票据表…必须有容量上限和周期清理"）：
-    /// - **时钟注入**：从注入的 <see cref="IMonotonicClock"/> 派生毫秒（Runtime/Application 禁系统时钟；
-    ///   L1 用虚拟时钟，无墙钟依赖）；
-    /// - **容量上限**：条目超过 <see cref="Capacity"/> 时淘汰最老条目（票据本是短期凭证，
-    ///   淘汰语义 = 该客户端需重新 Join，不影响在途合法重连的近期票据）；
-    /// - <see cref="PurgeExpired"/> 由宿主周期调用。
-    ///
-    /// 安全边界：票据是 **CSPRNG 生成的不透明串**（<see cref="TokenEntropyBytes"/>×8 = 128 bit 熵，
-    /// <see cref="RandomNumberGenerator"/>，§P0-6"至少 128 bit 熵"+"不得自创密码算法"）。
-    /// **仍未达公开部署标准**的是信道侧：业务载荷无机密性/完整性/重放保护（**安全信封**，专项另立）
-    /// ——在信封完成前本服务不得公网暴露。
+    /// 重连一次性票据（《服务端架构设计》§10-E3：《M10实施指导》决策 12）： Join 成功时签发 → 客户端断线后凭票换"权威快照 + 输入历史"（§5.6 首选路径）。
     /// </summary>
     public sealed class ReconnectService
     {

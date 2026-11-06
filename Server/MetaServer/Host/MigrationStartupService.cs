@@ -9,8 +9,6 @@ namespace MetaServer
 {
     /// <summary>
     /// 启动迁移（M0-c 批二；Meta 专项 §9.1"迁移失败有明确结果与回滚方式，不静默半迁移"）。
-    /// StartAsync 里迁移失败（Failed/Rejected）即抛异常——宿主拒绝启动，fail-closed；
-    /// 已在目标版本/完成则放行。Stop 无收尾动作——迁移只在启动发生一次。
     /// </summary>
     internal sealed class MigrationStartupService : IHostedService
     {

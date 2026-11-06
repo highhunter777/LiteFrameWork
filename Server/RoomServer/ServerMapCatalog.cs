@@ -5,16 +5,7 @@ using LiteSim;
 namespace RoomServer
 {
     /// <summary>
-    /// 服务端地图目录（多图批；《地图数据专项设计》§7 装配注入链的"按行取图"面）：
-    /// 行键 → <see cref="SimMapData"/> 的解析与**进程内缓存**——每个行键只装载一次
-    /// （<see cref="ServerMapLoader"/> 直读同一份 `Map/tbmap.bytes` 经共享投影产出，
-    /// 两端同代码同数据）。
-    ///
-    /// **语义（fail-closed）**：缺行/坏值由装载面抛，异常**不外吞**——由调用方（`ServerHost.OpenRoom`
-    /// 建房路径）转成"拒绝进房"，绝不静默回落默认图（"请求训练图静默进首图"是判定面分叉源）。
-    ///
-    /// **线程**：建房发生在传输/宿主线程，缓存读写经单锁（低频路径——每个新行键一次装载，
-    /// 不在权威循环热路径）。装载只产出实例，不触碰任何全局静态面（技术债 #1 同纪律）。
+    /// 服务端地图目录（多图批；《地图数据专项设计》§7 装配注入链的"按行取图"面）： 行键 → <see cref="SimMapData"/> 的解析与**进程内缓存**——每个行键只装载一次 （<see cref="Se。）。
     /// </summary>
     public sealed class ServerMapCatalog
     {

@@ -5,9 +5,7 @@ using System.Threading;
 namespace RoomServer.Application
 {
     /// <summary>
-    /// 单调时钟端口（《商业级通用服务端框架总设计》§5 P0-1：调度器不直接触系统时钟——
-    /// L1 用虚拟时钟驱动，无真实 Sleep；生产装配 <see cref="StopwatchClock"/>）。
-    /// 语义与 <see cref="System.Diagnostics.Stopwatch"/> 对齐：Timestamp 单调递增，Frequency 为每秒刻度数。
+    /// 单调时钟端口（《商业级通用服务端框架总设计》§5 P0-1：调度器不直接触系统时钟—— L1 用虚拟时钟驱动，无真实 Sleep；生产装配 <see cref="StopwatchClock"/>）。
     /// </summary>
     public interface IMonotonicClock
     {

@@ -8,13 +8,7 @@ using System.Text.Json;
 namespace RoomServer.Diagnostics
 {
     /// <summary>
-    /// 进程级崩溃捕获（T0-2）：未处理异常 → 崩溃件（异常/堆栈 + HostLog 尾 + buildHash + 运行时身份）
-    /// 落诊断目录，Windows 下尽力附 minidump。
-    ///
-    /// **只装一次、崩溃路径零抛**：钩子内任何失败都静默——现场捕获不得在崩溃中再崩。
-    /// **不捕房间记录**：崩溃时房间线程可能停在半步，跨线程封印不安全；记录证据由
-    /// mismatch 即时 flush 与房间终态路径兜底（彼时线程边界清晰）。
-    /// 安装面是进程级 AppDomain 事件——状态只用于防重复安装（诊断设施的唯一全局面）。
+    /// 进程级崩溃捕获（T0-2）：未处理异常 → 崩溃件（异常/堆栈 + HostLog 尾 + buildHash + 运行时身份） 落诊断目录，Windows 下尽力附 minidump。
     /// </summary>
     public static class CrashCapture
     {

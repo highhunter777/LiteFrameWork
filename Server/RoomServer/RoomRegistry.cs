@@ -4,19 +4,7 @@ using System.Collections.Generic;
 namespace RoomServer
 {
     /// <summary>
-    /// 房间表（《商业级通用服务端框架总设计》§6"一个 roomId 只能映射一个独立 RoomActor"的宿主侧持有件
-    /// ——自 <see cref="ServerHost"/> 外提，边界见《服务端宿主结构拆分专项设计》§2）：
-    /// 字典（roomId → 实例）＋插入序 List（Pump/Ops 遍历序）双结构，容量判定与查询、增删均带
-    /// **身份校验**（同房号重建后的新实例不得被旧实例的清理路径误删——ReferenceEquals 判据）。
-    ///
-    /// **职责边界**：本类只持"表"——房间的**构造**（模板/多图/数值/Worker 驱动绑定）与**销毁清理**
-    /// （会话路由复位、邮箱 Complete）留在宿主：宿主清完场经 <see cref="Remove"/> 落表，
-    /// 构造好经 <see cref="Add"/> 入表。
-    ///
-    /// **线程契约**：变更只发生在宿主主线程（权威循环/传输事件——同拆分前纪律）；心跳线程等
-    /// 低频读者经 <see cref="SnapshotArray"/>（扩容竞态以 catch 兜底：本跳放弃、下跳再报——
-    /// 上报面本就是"近似快照"非权威）。Pump 的在册遍历用 <see cref="Order"/>（宿主线程同栈
-    /// 读改，遍历中增删的下标补偿归调用方——与拆分前语义一致）。
+    /// 房间表（《商业级通用服务端框架总设计》§6"一个 roomId 只能映射一个独立 RoomActor"的宿主侧持有件 ——自 <see cref="ServerHost"/> 外提。）。
     /// </summary>
     internal sealed class RoomRegistry
     {

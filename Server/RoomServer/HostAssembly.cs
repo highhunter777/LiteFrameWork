@@ -8,16 +8,6 @@ namespace RoomServer
 {
     /// <summary>
     /// 宿主组合根（《服务端宿主装配收敛专项设计》批1）：MS DI 装配收敛。
-    ///
-    /// 纪律（专项 §2/§3）：
-    /// - 容器只在**装配层**——ServerHost 与内核（Runtime/Application/Sim/LiteNet）零容器感知；
-    /// - 运行期零解析——对象图在启动段一次性解析，60Hz 循环与 Worker 热路径不得触容器；
-    /// - 解析序=创建序（Program 按 outbox → transport → host 解析）：容器按创建序**逆序**释放，
-    ///   与历史 using 声明序（host→transport→outbox）等价；释放序有排空手验基线，不得漂移；
-    /// - per-room 对象（RoomInstance/Runtime/Pipeline）是运行期数据，不进容器；
-    /// - 批3：宿主协作对象（Ops/RateLimiter/SessionManager/ReconnectService/JoinAdmissionGate）
-    ///   经容器注册、宿主工厂解析注入**同一单例**（生产路径宿主不自建第二份）；缺省自建公式
-    ///   单源在 ServerHost.Create* 静态族——嵌入式/测试直接 new 的缺省通道与工厂共用同一公式。
     /// </summary>
     public static class HostAssembly
     {
@@ -55,9 +45,7 @@ namespace RoomServer
             public uint GameplayDigestBase;
 
             /// <summary>
-            /// 多图目录（多图批，可 null = 单图形态）：行键 → 判定图（生产 = Program 的
-            /// <see cref="ServerMapCatalog"/>；缺行/坏值 fail-closed 抛，建房路径转拒绝进房）。
-            /// null 时房间请求行键 &gt;0 会被显式拒绝（`ServerHost.ResolveMap`——不静默回落默认图）。
+            /// 多图目录（多图批，可 null = 单图形态）：行键 → 判定图（生产 = Program 的 <see cref="ServerMapCatalog"/>；缺行/坏值 fail-closed 抛，建房路径转拒绝进房）。
             /// </summary>
             public Func<int, SimMapData> MapCatalog;
 
@@ -68,10 +56,7 @@ namespace RoomServer
             public LobbyRegistrationClient.Settings Lobby;
 
             /// <summary>
-            /// 结算提交管道参数（可 null = 不提交——单机/离线形态）。**结算凭据与 Lobby 注册分权**
-            /// （P1②）：写账本 ≠ 注册实例，密钥由 Program 各自从环境变量/命令行注入（见
-            /// <see cref="SettlementSubmitService.Settings.InstanceKey"/>）；配置了 settlement.submit_url
-            /// 但缺结算密钥由 Program fail-closed。
+            /// 结算提交管道参数（可 null = 不提交——单机/离线形态）。
             /// </summary>
             public SettlementSubmitService.Settings Settlement;
         }
@@ -118,12 +103,7 @@ namespace RoomServer
                 return options == null ? (IRoomTransport)kcp : new SecureEnvelopeRoomTransport(kcp, options);
             });
 
-            // ---- 批3 直迁件（《服务端宿主装配收敛专项设计》§5 批3）：宿主协作对象入容器 ----
-            //
-            // 五件均无 IDisposable 面——释放拓扑不涉（容器只多跟踪不可释放单例）；构造公式单源在
-            // ServerHost.Create* 静态族（与宿主缺省通道同一方法，防双源漂移）；配置/验签器/传输一律
-            // 经容器解析；TransportRemoteAddress 适配在工厂调用内建（见 CreateAdmissionGate）。
-            // 会话容量：生产装配恒有配置 → 首房间支线不参与（公式取房间上限 × 最大房间人数 ×4）。
+            // ---- 批3 直迁件（《服务端宿主装配收敛专项设计》§5 批3）：宿主协作对象入容器 ---- 五件均无 IDisposable 面——释放拓扑不涉（容器只多跟踪不可释放单例）；构造公式单源在 ServerHost.Create* 静态族（与宿主缺省通道同一方法，防双源漂移）。
             services.AddSingleton(_ => new Ops());
             services.AddSingleton(sp => ServerHost.CreateRateLimiter(sp.GetRequiredService<RoomServerConfig>()));
             services.AddSingleton(sp => ServerHost.CreateSessionManager(
@@ -136,9 +116,7 @@ namespace RoomServer
                 inputs.Audience,
                 config));
 
-            // 生产形态（§8.2）：房间命令与快照广播在 hash 归属的 Worker 上执行，宿主只做
-            // Transport IO、准入与回传应用；嵌入式/历史用例保持默认的宿主 owner 直驱形态（不经本装配）。
-            // 批3：五件协作对象经容器解析注入同一单例——宿主工厂内不得自建第二份。
+            // 生产形态（§8.2）：房间命令与快照广播在 hash 归属的 Worker 上执行，宿主只做 Transport IO、准入与回传应用；嵌入式/历史用例保持默认的宿主 owner 直驱形态（不经本装配）。
             string audience = inputs.Audience;
             services.AddSingleton(sp => new ServerHost(
                 sp.GetRequiredService<IRoomTransport>(),
@@ -172,9 +150,7 @@ namespace RoomServer
                 return loop;
             });
 
-            // Lobby 注册客户端（《Meta 服务专项设计》§7；《服务端宿主装配收敛专项设计》批2 首批新对象）：
-            // 工厂惰性——Program 在宿主之后解析，创建序=解析序（释放逆序先停心跳、再收宿主）。
-            // 快照读宿主事实（buildHash/容量/占用/排空位），不接受估算值。
+            // Lobby 注册客户端（《Meta 服务专项设计》§7；《服务端宿主装配收敛专项设计》批2 首批新对象）： 工厂惰性——Program 在宿主之后解析，创建序=解析序（释放逆序先停心跳、再收宿主）。
             if (inputs.Lobby != null)
             {
                 services.AddSingleton(sp =>

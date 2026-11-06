@@ -6,12 +6,6 @@ namespace MetaServer.Contracts.Persistence
 {
     /// <summary>
     /// 一次显式版本化的迁移步骤（Meta 专项 §9.1"索引与迁移显式版本化"）。
-    ///
-    /// 契约要求：
-    /// - <see cref="RollbackAsync"/> 与 <see cref="MigrateAsync"/> 必须互为逆操作——§9.1
-    ///   "迁移失败有明确结果与回滚方式"要求回滚是真实能力，不是注释里的愿望；
-    /// - <see cref="MigrateAsync"/> 必须可重复应用——版本确认点（<see cref="ISchemaVersionStore"/>
-    ///   写回）失败时执行器会回滚本步，进程终止后重启会从最后确认版本重新执行该步。
     /// </summary>
     public interface IMigrationStep
     {
@@ -47,9 +41,7 @@ namespace MetaServer.Contracts.Persistence
         public sealed record Completed(IReadOnlyList<long> AppliedVersions) : MigrationOutcome;
 
         /// <summary>
-        /// 失败：<see cref="FailedAtVersion"/> 一步抛错；已按逆序回滚（含失败步本身）；
-        /// 回滚自身失败时 <see cref="RollbackFailed"/> 为真，<see cref="RecoveredVersion"/>
-        /// 仅为尽力报告值——宿主必须以失败对待，不得继续启动。
+        /// 失败：<see cref="FailedAtVersion"/> 一步抛错；已按逆序回滚（含失败步本身）； 回滚自身失败时 <see cref="RollbackFailed"/> 为真。
         /// </summary>
         public sealed record Failed(
             long FailedAtVersion, string Reason, long RecoveredVersion, bool RollbackFailed)

@@ -6,16 +6,6 @@ namespace MetaServer
 {
     /// <summary>
     /// Ops 指标（《Meta 服务专项设计》§11.2 Metrics）。
-    ///
-    /// 形态沿用 <c>RoomServer.Application.Ops</c>：计数由各处就地累加，本类只做**汇总与格式化**。
-    /// **线程安全**：Kestrel 并发请求共用同一实例——计数走 <c>Interlocked</c>（硬化批 2026-10-03，
-    /// 修复并发丢计数），/metrics 低频出口每次调用独立缓冲（并发 Format 不再互相踩踏）。
-    ///
-    /// §11.2 红线：标签**禁用高基数字段**（accountId/playerId/requestId 等只进日志与 Trace）。
-    /// 本类因此只做进程级计数，不按调用方维度聚合。
-    ///
-    /// Prometheus/OpenTelemetry 出口（§11.2 末段）归 R4；本批先给低成本计数 + 文本出口，
-    /// 使健康检查与指标从骨架起就可观测，而不是等到 R4 才补。
     /// </summary>
     public sealed class Ops
     {
@@ -93,8 +83,6 @@ namespace MetaServer
 
         /// <summary>
         /// 指标文本出口（/metrics）。
-        /// 输出 Prometheus 文本格式的**最小子集**（`name value` 行），便于 R4 直接替换为正式出口
-        /// 而不改变调用方。刻意不含高基数字段（§11.2）。
         /// </summary>
         public string FormatMetrics()
         {

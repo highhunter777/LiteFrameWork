@@ -6,37 +6,7 @@ using LiteSync.Client;
 namespace RoomServer.Application
 {
     /// <summary>
-    /// 入站准入门（Join admission）：**进房请求在消耗任何权威资源之前的全部拒绝判据**
-    /// （《商业级通用服务端框架总设计》§P0-6 / 《框架先行》§8「可诊断」；分层限流见
-    /// <see cref="RateLimitSettings"/>）。
-    ///
-    /// **为什么从 ServerHost 抽出**（单一职责）：准入是一条**独立可枚举、可独立测试**的判定链——
-    /// 频率 → 字段边界 → token 红线 → 版本红线 → 票据验签 → 账号频率。任一条不通过都必须
-    /// "拒绝且不留副作用"。它与房间生命周期、Worker 调度、快照广播无因果关系；
-    /// 留在宿主里时只能经完整建房路径才能验证。
-    ///
-    /// **链序不可交换**（每步注释写了"为什么在这个位置"——这是本类存在的核心价值）：
-    /// <list type="number">
-    /// <item>IP 入场频率：先于验签与建房——频率校验在昂贵操作之前；</item>
-    /// <item>字段字节边界：先于一切语义；超长包已由入站层按 PacketOversized/PacketRejects 归类，
-    ///       不该在排空计数里再记一次；</item>
-    /// <item>token 红线：空即拒绝；</item>
-    /// <item>版本红线（buildHash）：身份判定，走 <c>Build</c> 诊断段（带两端哈希对照）；</item>
-    /// <item>票据验签：<b>先于建房</b>——否则任何人拿垃圾 token 打不同 roomId 就能把
-    ///       房间表撑到容量上限（拒绝服务）；</item>
-    /// <item>账号入场频率：验签通过后才有 AccountId 可比对。</item>
-    /// </list>
-    ///
-    /// **本类不做**（职责分离）：不建房、不入队命令、不写 Session 可变字段、不做拒绝分类计数——
-    /// 那是 <see cref="ServerHost"/> 的事。本类只回答"准不准进"，并给出**可诊断的拒绝理由**。
-    ///
-    /// **无状态**：判据全部来自构造注入的口径 + 每次调用显式传入的请求事实；无缓存、无计数器。
-    /// 拒绝分类计数归 <see cref="Ops"/>（宿主持有），本类只产出分类枚举。
-    ///
-    /// **公共面（批3，《服务端宿主装配收敛专项设计》）**：与四件姊妹协作对象（Ops/RateLimiter/
-    /// SessionManager/ReconnectService，均 public）对齐——宿主公共构造的装配端口；嵌套
-    /// <see cref="Decision"/> 与注入口 <see cref="IRoomRemoteAddress"/> 随本类公共化
-    /// （端口类型进公共签名的结构性要求，非"为测试强制 public"）。
+    /// 入站准入门（Join admission）：**进房请求在消耗任何权威资源之前的全部拒绝判据** （《商业级通用服务端框架总设计》§P0-6 / 《框架先行》§8「可诊断」。）。
     /// </summary>
     public sealed class JoinAdmissionGate
     {
@@ -48,8 +18,6 @@ namespace RoomServer.Application
 
         /// <summary>
         /// Join 字段 UTF-8 字节上限（P0-3：所有字符串限制 UTF-8 字节数——防超长串打爆日志/内存）。
-        /// **别名**：上限表单源 = 共享侧 <see cref="JoinFieldLimits"/>（P2——此前本类与验签器各钉一份，
-        /// 票据上限两处不同值）。宿主 <c>ServerHost.Max*Bytes</c> 同样指向本处，三级同源。
         /// </summary>
         public const int MaxRoomIdBytes = JoinFieldLimits.RoomIdBytes;
         public const int MaxTokenBytes = JoinFieldLimits.TokenBytes;
@@ -75,9 +43,7 @@ namespace RoomServer.Application
         }
 
         /// <summary>
-        /// 准入结论：通过时 <see cref="Principal"/> 是已验签的身份（未装配验证器时为 null）；
-        /// 拒绝时 <see cref="Stage"/>/<see cref="Code"/>/<see cref="Reason"/> 构成诊断三段，
-        /// 与客户端 <c>RoomClient</c> 的进房记录同形同键（<c>DiagTrace.JoinKey</c> 单源构造）。
+        /// 准入结论：通过时 <see cref="Principal"/> 是已验签的身份（未装配验证器时为 null）。
         /// </summary>
         public readonly struct Decision
         {
@@ -119,9 +85,7 @@ namespace RoomServer.Application
         }
 
         /// <summary>
-        /// 跑完整准入链。<paramref name="nowMs"/> 是单调毫秒（限流与票据重放窗口共用）。
-        /// 调用方须在任何建房/入队/写 Session **之前**调用——本方法自身无副作用，
-        /// 但结论必须被当真执行（否则"拒绝"形同虚设）。
+        /// 跑完整准入链。
         /// </summary>
         public Decision Evaluate(in JoinRequest request, int connectionId, long nowMs)
         {

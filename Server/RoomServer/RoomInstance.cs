@@ -11,23 +11,7 @@ using LiteSync.Client;
 namespace RoomServer
 {
     /// <summary>
-    /// 一个房间的**全部宿主侧状态**（《商业级通用服务端框架总设计》§6"一个 roomId 只能映射一个独立
-    /// RoomActor"、§8.2"一个 Worker 顺序驱动多个 RoomActor"）。
-    ///
-    /// 为什么独立成类：RoomRuntime / 快照管线 / 席位表若并列在 <see cref="ServerHost"/> 上，
-    /// "每房间一份"在类型上无处表达——加第二个房间就得让每个字段各复制一遍。
-    /// 收成一个对象后，多房间 = 一张 roomId → RoomInstance 的表，"每房间一份"由类型保证。
-    ///
-    /// **单线程约束**：本类不自我同步。驱动它的执行者必须单线程（§8.2"每个 RoomActor 仍是单线程"）
-    /// ——与 <see cref="RoomRuntime"/> 同一纪律。两种执行形态：
-    /// - **宿主 owner 形态**（<see cref="WorkerExecution"/> = false）：宿主主线程驱动，
-    ///   会话即广播席位视图（管线吃 <see cref="Seats"/>）；
-    /// - **Worker 执行形态**（true）：hash 归属的 Worker 驱动房间命令与广播，
-    ///   <see cref="WorkerSeats"/> 是房间本地的广播席位槽（连接事实由 Worker 从 Runtime 席位刷新），
-    ///   产出经 Mailbox Outbound lane 回传宿主应用/发送。
-    ///
-    /// **所有权**：<see cref="Seats"/> 的会话引用由宿主在席位变更时写入（见
-    /// <c>ServerHost</c> 的 ApplySignal / 入站重连处理器）；房间本身不创建也不释放会话。
+    /// 一个房间的**全部宿主侧状态**（《商业级通用服务端框架总设计》§6"一个 roomId 只能映射一个独立 RoomActor"、§8.2"一个 Worker 顺序驱动多个 RoomActor"）。
     /// </summary>
     internal sealed class RoomInstance
     {
@@ -56,9 +40,7 @@ namespace RoomServer
         public readonly SnapshotPipeline Pipeline;
 
         /// <summary>
-        /// 公共战斗事件管线（《状态同步专项设计》§5.2 CombatEvent 面；2026-10-18 批）——
-        /// 与 <see cref="Pipeline"/> 同节拍、独立包型（<c>PacketType.CombatEvents</c>）。
-        /// 独立的原因见 <see cref="CombatEventPipeline"/> 类注释（事故结论：合在快照里会顶爆不可靠上限）。
+        /// 公共战斗事件管线（《状态同步专项设计》§5.2 CombatEvent 面；2026-10-18 批）—— 与 <see cref="Pipeline"/> 同节拍。
         /// </summary>
         public readonly CombatEventPipeline Events;
 
@@ -76,19 +58,11 @@ namespace RoomServer
         public readonly RoomConfig Config;
 
         /// <summary>
-        /// 房间宿主消息盒。入站 Control/Input 已由 ServerHost 按房间路由；宿主 owner 形态下由宿主
-        /// 单线程消费，Worker 执行形态下由归属 Worker 消费并把产出**回传**到 Outbound lane
-        /// （宿主是 Outbound 的唯一消费者）。
+        /// 房间宿主消息盒。
         /// </summary>
         public readonly RoomMailbox<RoomInputEnvelope, RoomControlEnvelope, RoomOutboundEnvelope> Mailbox;
 
-        // ---- 宿主 ↔ Worker 同步协议（P4：状态私有，只经下列方法访问）----
-        //
-        // **为什么不再用 public 字段**：这组值**跨线程**（宿主主线程 ↔ 归属 Worker），同步原语必须与
-        // 状态绑死。字段公开时，"这里该用 Interlocked 还是裸 ++、谁写谁读"只能靠注释纪律——编译器不设防
-        // （审计 §五实例：`OutboundSequence` 裸写、同类字段部分 Interlocked 部分裸 ++）。
-        // 收成方法后：**哪些操作是原子 RMW**（CAS/Inc/Exchange）、**哪些值只有单侧线程可见**（普通读写），
-        // 由 API 与文档承载；改名/漏改会编译不过，而不是静默退化。
+        // ---- 宿主 ↔ Worker 同步协议（P4：状态私有，只经下列方法访问）---- **为什么不再用 public 字段**：这组值**跨线程**（宿主主线程 ↔ 归属 Worker），同步原语必须与 状态绑死。
 
         private int _pumpScheduled;                 // 0/1（宿主登记 ↔ Worker 复位，双向 CAS）
         private int _workerInFlight;                // 0/1（Worker 写，宿主判静默时读）
@@ -101,11 +75,7 @@ namespace RoomServer
         private int _drainTimeoutIssued;            // 宿主自写自读（超时 Shutdown 只投一次）
 
         /// <summary>
-        /// 待应用的 GM 测试规则（宿主线程登记、归属 Worker 在驱动开头取走）。**为什么不在宿主线程直接改
-        /// Runtime**：内核是单线程/无锁（见本类与 <see cref="RoomRuntime"/> 的约束），Worker 执行形态下
-        /// 宿主只是事件生产者；直接写会与 Worker 的 tick 并发，规则可能在 tick 中途换掉 ⇒ 同一帧内
-        /// 不同系统读到不同规则（客户端预测与权威分叉）。交接用 Interlocked：外层对象表达"有/无待办"，
-        /// 内层允许 null（null = 关闭全部 GM 规则，是合法值，不能用 null 表示"无待办"）。
+        /// 待应用的 GM 测试规则（宿主线程登记、归属 Worker 在驱动开头取走）。
         /// </summary>
         private PendingTestRules _pendingTestRules;
 
@@ -181,9 +151,7 @@ namespace RoomServer
         public void ClearPendingTick() => Interlocked.Exchange(ref _pendingTicks, 0);
 
         /// <summary>
-        /// 跑一条房间命令并把产出留在本房间的输出缓冲里（**Worker 侧单线程**：缓冲的 Clear 与 Execute
-        /// 必须成对且无重入，故收进此处而不暴露缓冲本身）。返回的列表即本房间的复用缓冲，
-        /// 调用方应当次即刻消费、不得留存。
+        /// 跑一条房间命令并把产出留在本房间的输出缓冲里（**Worker 侧单线程**：缓冲的 Clear 与 Execute 必须成对且无重入，故收进此处而不暴露缓冲本身）。
         /// </summary>
         public IReadOnlyList<RoomOutput> ExecuteCommand(RoomCommand command)
         {
@@ -223,9 +191,7 @@ namespace RoomServer
         public long DrainDeadlineMs => _drainDeadlineMs;
 
         /// <summary>
-        /// 尝试登记"排空超时 Shutdown 已投递"（0→1 返回 true）。到点未终态时宿主每 Pump 都会看到，
-        /// 不设标记就会每帧重复发 Shutdown——既放大超时计数，也挤占控制 lane
-        /// （重复关闭在 Runtime 幂等，但投递只需一次）。
+        /// 尝试登记"排空超时 Shutdown 已投递"（0→1 返回 true）。
         /// </summary>
         public bool TryIssueDrainTimeout() => Interlocked.CompareExchange(ref _drainTimeoutIssued, 1, 0) == 0;
 
@@ -261,8 +227,6 @@ namespace RoomServer
 
         /// <summary>
         /// 本房间的席位可播判定（§9.3 步骤 6）：只有 Active 席位接收增量广播；Restoring（重连恢复中）抑制。
-        /// **按房间传**——多房间下快照管线必须看自己房间的席位，不能共用宿主的全局判定。
-        /// 读 Runtime 席位相位：宿主 owner 形态由宿主调用；Worker 执行形态由归属 Worker 调用（同一单线程）。
         /// </summary>
         public bool SeatBroadcastable(int playerId)
         {

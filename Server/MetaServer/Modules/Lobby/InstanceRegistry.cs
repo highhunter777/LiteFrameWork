@@ -12,21 +12,6 @@ namespace MetaServer.Modules.Lobby
 {
     /// <summary>
     /// Lobby 实例注册表（《Meta 服务专项设计》§7"实例注册/容量驱动分配/drain 协同"）。
-    ///
-    /// - **注册即心跳**：同一 <c>InstanceId</c> 重复注册 = 更新（get-or-create 幂等键）。
-    ///   每次注册刷新 <c>LastSeenMs</c>（时钟注入——L1 用虚拟时钟造超时，不 sleep）。
-    /// - **心跳超时即移除**：超过时限未再注册的实例从可分配集合消失（惰性清扫：每次
-    ///   注册/分配/投影前清一次，无需后台计时器）。
-    /// - **容量驱动分配**：只选未排空且 <c>PlayerCount &lt; MaxPlayers</c> 的实例；**不按估算值分配**
-    ///   （数据=上报事实）。排序确定：玩家占用少者优先，再比房间占用，再比实例标识（Ordinal）——
-    ///   输入相同则结果相同，测试可钉死。
-    /// - **有界**（§13"任何队列/缓存…都必须有显式容量与清理策略"）：表满**拒绝新实例**
-    ///   （显式拒绝码），不淘汰旧条目——淘汰会静默丢掉存活实例的分配资格。
-    /// - **单 Meta 实例形态**：注册表驻进程内存（在线状态、可重建——§9.2 同口径数据）。
-    ///   多 Meta 实例部署需要共享存储（Redis 注册表），属后续部署形态，不在本批。
-    ///
-    /// 线程安全：Kestrel 并发请求共用——字典访问与清扫在锁内；<see cref="Entry"/> 更新用**换对象**
-    /// 而非原地改字段，快照读者不看到半更新状态。
     /// </summary>
     public sealed class InstanceRegistry
     {
@@ -140,10 +125,7 @@ namespace MetaServer.Modules.Lobby
                 {
                     RoomReport r = command.Rooms[i];
                     if (r == null || !FieldValidation.IsValid(r.RoomId, MaxInstanceIdBytes)) { reason = "rooms[" + i + "].roomId"; return RegisterResult.InvalidFields; }
-                    // 相位闸引内核单源（MatchPhase/MatchStateMachine 经 MetaServer.csproj 源链接共编）：值域与
-                    // 终态判据均由枚举派生——内核新增相位时本闸自动跟随（此前的字面量 0..5 绑注释，属静默漂移面）。
-                    // 终态（Closed/Aborted）按契约"终态房间不报"（LobbyContracts.RoomReport）恒不该出现——
-                    // 房间侧读面已过滤，此处为防御面，拒绝粒度维持整次注册（与实例级字段同款）。
+                    // 相位闸引内核单源（MatchPhase/MatchStateMachine 经 MetaServer.csproj 源链接共编）：值域与 终态判据均由枚举派生——内核新增相位时本闸自动跟随（此前的字面量 0..5 绑注释，属静默漂移面）。
                     if (r.Phase < (int)MatchPhase.Created || r.Phase > (int)MatchPhase.Aborted
                         || MatchStateMachine.IsTerminal((MatchPhase)r.Phase))
                     { reason = "rooms[" + i + "].phase"; return RegisterResult.InvalidFields; }
@@ -206,12 +188,6 @@ namespace MetaServer.Modules.Lobby
 
         /// <summary>
         /// 容量驱动分配：在**存活、未排空、有玩家容量**的实例中选一个。
-        /// <paramref name="requiredBuildHash"/> 非空时只选构建哈希一致的实例（§7 版本准入）；
-        /// 无匹配但存在其它版本的可用实例 → <paramref name="versionConflict"/> = true
-        /// （调用方区分"版本不符"与"无容量"——两者对客户端的处置不同）。
-        /// <paramref name="requireRoomSlot"/> = true 时额外要求"房间表未满"（RoomCount &lt; MaxRooms）：
-        /// **新建房**才需要它——房间普遍坐不满的常态下 RoomCount 先到上限而 PlayerCount 还没到
-        /// （MaxPlayers = MaxRooms × 最宽模板人数），只看玩家容量会给"建不出房"的实例发票据。
         /// </summary>
         public bool TryAllocate(string requiredBuildHash, out Entry chosen, out bool versionConflict,
             bool requireRoomSlot = false)
@@ -245,9 +221,7 @@ namespace MetaServer.Modules.Lobby
         }
 
         /// <summary>
-        /// 按**房号归属**分配（多实例正确性，见 <see cref="RoomAllocation"/>）：房号出现在实例上报的
-        /// 房间明细里 ⇒ 那台就是它的归属。多台都报了同号（旧缺陷遗留的同名房）时优先有空位的、再按
-        /// <see cref="Better"/> 定序（确定性）。房间明细未上报（null）的实例不参与——判据只能是上报事实。
+        /// 按**房号归属**分配（多实例正确性，见 <see cref="RoomAllocation"/>）：房号出现在实例上报的 房间明细里 ⇒ 那台就是它的归属。
         /// </summary>
         public RoomAllocation TryAllocateForRoom(string roomId, string requiredBuildHash, out Entry chosen)
         {

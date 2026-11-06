@@ -28,23 +28,7 @@ namespace RoomServer
     }
 
     /// <summary>
-    /// 结算提交管道（《上云测试专项设计》§2"后台服务读本地 Outbox → Meta 幂等端点 → 重试/退避/
-    /// 完成标记/重启续投"；《Meta 服务专项设计》§8.2 结算链的 RoomServer 半边）。
-    ///
-    /// - **只读日志、不改日志语义**：逐条取 <see cref="ISettlementOutbox.ListPending"/> 头部 → POST
-    ///   Meta `/matches/result`（结算实例密钥 Bearer——**与 Lobby 注册分权**，见 P1②）→ **2xx** 即
-    ///   <see cref="ISettlementOutbox.TryMarkCompleted"/>（Meta 侧幂等是最终裁判：duplicate 同样算完成）；
-    /// - **重启续投**：不做任何内存进度记账——启动即从日志待提交面重建（引擎语义在 Outbox 里）；
-    /// - **失败处置分级（设计 §2"提交失败处置分级"）**：**可重试失败**（传输异常、401·403·404、
-    ///   408·429、5xx）保持待提交 + 指数退避封顶（<see cref="Settings.MaxBackoffMs"/>）——不静默丢弃、
-    ///   不无界刷屏（日志节流）；**确定性拒绝**（载荷级 4xx：400/409/413/422）**弃置**并让位
-    ///   （Outbox 弃置标记行 + <see cref="Abandoned"/> 计数 + 警告日志）——防"一行毒死整条队列"；
-    /// - **结算增量（P3：占位改显式接缝）**：换算归提交方（Meta 不接受客户端上报、也不重算），
-    ///   经 <see cref="ISettlementRewardPolicy"/> 单点注入；当前实现 = <see cref="NoEconomyRewardPolicy"/>
-    ///   （逐玩家 delta 0：账本 revision 推进、余额不变）。**不是"忘了填的 0"**：设计未定义奖励口径
-    ///   （无字段可依），凭空定数等于把估算当事实——经济口径落地时换一个实现即可，管道零改动。
-    ///
-    /// HTTP handler 可注入——L1 用伪造 handler 断言载荷、完成标记与失败保持。
+    /// 结算提交管道（《上云测试专项设计》§2"后台服务读本地 Outbox → Meta 幂等端点 → 重试/退避/ 完成标记/重启续投"；《Meta 服务专项设计》§8.2 结算链的 RoomServer 半边）。
     /// </summary>
     public sealed class SettlementSubmitService : HttpSubmitWorker
     {
@@ -181,9 +165,6 @@ namespace RoomServer
                 if (response.IsSuccessStatusCode)
                 {
                     // **2xx 区间**（P1①）：只认 200 会把同义的 201/202/204 当失败反复重投。
-                    // 非 2xx 的分级处置见下方（设计 §2"提交失败处置分级"：可重试保持待提交，载荷级 4xx 弃置让位）。
-                    // Meta 已接纳（首次或幂等命中）——标记完成；标记失败（介质故障）则保持待提交，
-                    // 重投时 Meta duplicate 兜底（不重复落库）
                     if (!_outbox.TryMarkCompleted(entry.MatchId))
                     {
                         error = "标记完成失败（介质）";
@@ -256,9 +237,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 确定性拒绝判据（设计 §2"提交失败处置分级"）：**载荷级 4xx**——重投同一载荷不可能收敛，
-        /// 弃置让位。401/403/404（凭据/部署面）与 408/429、5xx 一律可重试：那些是运维可修复状态，
-        /// 弃置会把"修好部署后本可收敛"的结算静默丢账。
+        /// 确定性拒绝判据（设计 §2"提交失败处置分级"）：**载荷级 4xx**——重投同一载荷不可能收敛， 弃置让位。
         /// </summary>
         private static bool IsDeterministicRejection(System.Net.HttpStatusCode code)
         {

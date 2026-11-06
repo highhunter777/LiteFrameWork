@@ -5,8 +5,6 @@ namespace RoomServer.Application
 {
     /// <summary>
     /// 运维（GM）动作种类——**只复用既有房间命令**（《云端GM通道专项设计》§3）。
-    /// 刻意不新增 <c>RoomCommandKind</c>：RoomCommand 在双编共享源集内，改它会让 BuildHash 变化
-    /// ⇒ 客户端必须重打包，与"客户端零改动"冲突；故"转移房主"一类需要新命令的动作一律不做。
     /// </summary>
     public enum GmActionKind
     {
@@ -80,9 +78,7 @@ namespace RoomServer.Application
     }
 
     /// <summary>
-    /// 运维动作队列（跨线程投递）——照抄 <see cref="PendingDisconnectQueue"/> 的"锁 + 列表 + Flush"范式：
-    /// 生产端是 HTTP 线程（只入队、立即返回），消费端是权威循环（<c>Pump</c>），
-    /// 这样动作永远在权威线程内落到房间上，不受 Mailbox 路由开关（同步/入盒）影响。
+    /// 运维动作队列（跨线程投递）——照抄 <see cref="PendingDisconnectQueue"/> 的"锁 + 列表 + Flush"范式： 生产端是 HTTP 线程（只入队、立即返回）。
     /// </summary>
     public sealed class GmActionQueue
     {

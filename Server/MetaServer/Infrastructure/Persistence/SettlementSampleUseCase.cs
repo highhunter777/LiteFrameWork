@@ -30,10 +30,6 @@ namespace MetaServer.Infrastructure.Persistence
 
     /// <summary>
     /// 框架先行样例⑤的命令消费者：验证 → 原子应用 → 类型化终态。
-    ///
-    /// **非业务模块**——Auth/Lobby/Profile 归 G3（Meta 专项 §15），本类只证明存储接缝可被真实
-    /// 消费者按"验证 → 幂等应用 → 类型化终态"驱动，G3 时由 Profile 模块吸收该形状。
-    /// 生产装配缺真实存储时必须拒绝启动，不得悄悄退回替身（《框架先行》§6 末条）。
     /// </summary>
     public sealed class SettlementSampleUseCase
     {

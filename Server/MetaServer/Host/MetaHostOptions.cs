@@ -14,13 +14,6 @@ namespace MetaServer
 {
     /// <summary>
     /// Meta 宿主装配·**选项接线段**（《服务端宿主结构拆分专项设计》批 7A）。
-    ///
-    /// 只持有三件事：日志出口、配置来源与其优先级、Options 管线（绑定＋范围校验＋ValidateOnStart）
-    /// 及由配置决定的上限与时限。模块注册归 <see cref="MetaServiceRegistration"/>，
-    /// 两端挂载序与运行时行为留 <see cref="MetaHost"/>。
-    ///
-    /// **单一来源不变**：配置只由 Options 管线持有一份，消费方一律经 <see cref="IOptions{TOptions}"/> 取用；
-    /// 本类只搬运既有接线，不新建第二份配置实例（2026-09-25 实测缺陷的防线见 <see cref="MetaConfig"/> 注释）。
     /// </summary>
     internal static class MetaHostOptions
     {
@@ -41,10 +34,7 @@ namespace MetaServer
         }
 
         /// <summary>
-        /// 日志出口＝控制台。Generic Host 在 Windows 上可能自动装配 EventLog provider，非管理员进程
-        /// 写入默认的 ".NET Runtime" source 会在宿主启动失败时再次抛异常，把真正的迁移/依赖失败包装成
-        /// AggregateException，破坏 fail-closed 的稳定错误语义；Meta 的结构化日志出口当前是控制台
-        /// （正式 OTel/Prometheus 归 R4），因此明确移除 EventLog，保证日志故障不遮蔽原始启动异常。
+        /// 日志出口＝控制台。
         /// </summary>
         private static void ConfigureLogging(WebApplicationBuilder builder)
         {

@@ -21,19 +21,7 @@ using MetaWire;
 namespace MetaServer
 {
     /// <summary>
-    /// 结算 HTTP 入口（《上云测试专项设计》§2/§3 批A；《Meta 服务专项设计》§8.2）：
-    /// 对局结果提交（幂等落库＝归档面 + 账本面）与按账号查询。
-    ///
-    /// 鉴权分两类（与 Lobby 同款纪律——§12 中间件链的鉴权段在本层显式化）：
-    /// - `POST /matches/result`：**结算实例密钥**（房间侧提交管道；**与 Lobby 注册分权**，P1②）；
-    /// - `GET /matches`：**访问令牌**（游客登录签发的 v1 令牌——按令牌账号查询，不接收账号参数）。
-    ///
-    /// 幂等语义：一局一条（MatchId 唯一）——重复提交同一局返回 200 + <c>duplicate:true</c>（归档面命中）
-    /// 且逐玩家账本项 duplicate 命中，提交方据此标记本地 Outbox 完成（§6 验收"同一结果重复提交
-    /// 100 次只落一条"）。任一玩家 CAS conflict 时整响应 409（已处理项照常携带，整包重试收敛）。
-    ///
-    /// **错误体与解析经 <see cref="MetaResults"/> 单源**（P2）：本类不再持有
-    /// `Disabled/InstanceUnauthorized/StoreUnconfirmed` 私有助手（与 Lobby 双份同构的那三个）。
+    /// 结算 HTTP 入口（《上云测试专项设计》§2/§3 批A；《Meta 服务专项设计》§8.2）： 对局结果提交（幂等落库＝归档面 + 账本面）与按账号查询。
     /// </summary>
     public static class SettlementEndpoints
     {

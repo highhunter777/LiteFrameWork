@@ -5,13 +5,6 @@ namespace RoomServer
 {
     /// <summary>
     /// Worker 执行形态的房间本地广播席位槽（<see cref="IBroadcastSeat"/>）。
-    ///
-    /// 与宿主 owner 形态的差异：那种形态一个连接 = 一个会话 = 一个席位视图；
-    /// Worker 形态下一个 <c>playerId</c> 的席位会跨连接存续（重连换绑），因此把"广播面向的
-    /// 连接事实"与"广播记账"收在房间本地，由归属 Worker **单线程**刷新（<see cref="RoomInstance.WorkerSeats"/>）：
-    /// - 连接号/断开标记来自 Runtime 席位（`SeatOf(playerId).ConnectionId` / 相位）——单一真相；
-    /// - 连接代次来自房间命令信封（Join/Rebind 的 <c>SessionEpoch</c>）——宿主据此丢弃连接复用后的迟到帧；
-    /// - 广播记账在 <see cref="Broadcast"/>，换绑时由 Worker 重置（新连接没有历史发送记录）。
     /// </summary>
     internal sealed class RoomBroadcastSeat : IBroadcastSeat
     {

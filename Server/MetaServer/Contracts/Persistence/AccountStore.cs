@@ -18,9 +18,7 @@ namespace MetaServer.Contracts.Persistence
     }
 
     /// <summary>
-    /// 账号存储不可达/提交失败（未确认语义，重试安全）。**唯一基础设施异常面**：用例/端点只捕
-    /// 本类归 503；其余异常（编程错误等）如实上抛，不冒充存储故障。
-    /// （与 <see cref="SettlementStoreUnavailableException"/> 同款纪律——不吞、不冒充成功。）
+    /// 账号存储不可达/提交失败（未确认语义，重试安全）。
     /// </summary>
     public sealed class AccountStoreUnavailableException : Exception
     {

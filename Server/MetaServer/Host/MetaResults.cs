@@ -14,14 +14,6 @@ namespace MetaServer
 {
     /// <summary>
     /// 端点层收口：统一错误体工厂 + **全服务唯一 JSON 出口** + 请求体解析收口。
-    ///
-    /// **为什么 JSON 出口必须唯一**：Minimal API 的 `Results.Json` / `ReadFromJsonAsync` 走
-    /// System.Text.Json，而本服务改用 Newtonsoft（与客户端同一库、同一份 <c>WireJsonSettings</c>）。
-    /// 只要有一个端点绕过本类直调 `Results.Json`，同一服务就会出现两套字段名/转义/日期口径——
-    /// 那是比"多写几行"贵得多的分叉。**端点不得直调 `Results.Json` / `WriteAsJsonAsync`。**
-    ///
-    /// 形状契约（全服务统一）：成功体 = 各契约 DTO；错误体 = <c>{ code, messageKey, args }</c>，
-    /// `args` 缺省空数组（杜绝"有的端点有 args、有的没有"这种隐性形状分叉）。
     /// </summary>
     public static class MetaResults
     {
@@ -103,11 +95,7 @@ namespace MetaServer
         }
 
         /// <summary>
-        /// 请求体解析收口：坏 JSON / 非 JSON content-type / 形状解码失败 / 未知字段 →
-        /// 返回 null（调用方按 InvalidRequest 收口，**不 500**）；请求中止随管道传播。
-        ///
-        /// 与 STJ 版本的差异只在实现：未知字段现在会**解码失败**（`MissingMemberHandling.Error`），
-        /// 这是刻意的——契约漂移应当立刻可见，而不是被静默忽略成"字段永远是 null"。
+        /// 请求体解析收口：坏 JSON / 非 JSON content-type / 形状解码失败 / 未知字段 → 返回 null（调用方按 InvalidRequest 收口，**不 500**）；请求中止随管道传播。
         /// </summary>
         public static async Task<T> TryReadJsonAsync<T>(HttpContext context) where T : class
         {

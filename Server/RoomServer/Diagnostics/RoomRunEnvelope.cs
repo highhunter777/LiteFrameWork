@@ -282,10 +282,7 @@ namespace RoomServer.Diagnostics
     }
 
     /// <summary>
-    /// 权威世界快照 DTO（世界环的序列化形态）。只承载进 <see cref="SimChecksum"/> 口径的字段
-    /// （<see cref="SimWorldDiff"/> 的比对面）——Cmds/Events 帧内瞬态与分配器状态不进 checksum、
-    /// 不参与字段级 diff，故不序列化。数组直接复用 LiteSim 值类型（IncludeFields 序列化），
-    /// 字段集演进由 SimWorldDiffCoverageTests 的覆盖契约守卫（漏字段 = 位级往返测试红）。
+    /// 权威世界快照 DTO（世界环的序列化形态）。
     /// </summary>
     public sealed class RoomRunWorldDto
     {

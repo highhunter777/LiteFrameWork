@@ -9,27 +9,7 @@ using MetaServer.Contracts.Validation;
 namespace MetaServer.Modules.Profile
 {
     /// <summary>
-    /// 对局结算落库用例（《Meta 服务专项设计》§8.2 结算链的 Profile.Apply 半边；
-    /// 服务端总设计 §11.3"Profile 事务内写唯一 Ledger"）——吸收
-    /// <see cref="MetaServer.Infrastructure.Persistence.SettlementSampleUseCase"/> 的
-    /// "验证 → 幂等应用 → 类型化终态"形状（样例注释钉住的 G3 承接）。
-    ///
-    /// - **幂等**：账本端口双维度（operationId ＋ (playerId, matchId, settlementType)）——
-    ///   重复提交/响应丢失重试/Outbox 压实后重投恒命中同账目，返回**首次**结果（§8.2）；
-    /// - **追加模式**：结算提交方不持有玩家修订号——默认走 <see cref="SettlementWrite"/>
-    ///   追加模式（ExpectedRevision=-1，修订号只增不比）；显式供给 ≥0 时按 CAS 期望，
-    ///   不符即 conflict（供需要并发写竞争控制的调用方）；
-    /// - **fan-out 语义**：逐玩家独立落账（不同玩家互不共享文档，无跨玩家原子需求）；
-    ///   中途存储失败 → <c>Unconfirmed</c>（已应用的玩家项不回滚）——调用方整包重试时
-    ///   已落账项 duplicate 命中，收敛且不重复发奖；
-    /// - **操作数上限**：一次提交 ≤ <see cref="MaxPlayers"/> 名玩家——防单请求放大存储事务量。
-    ///
-    /// **一条提交、双侧落库**（《上云测试》§4 裁决点①③）：
-    /// ① **归档面**（<see cref="IMatchResultArchive"/>，幂等键 = matchId）：对局结果事实
-    ///    （击杀/死亡/结束原因/完成时刻）——"按账号可查"与"重复提交 100 次只落一条"的承载；
-    /// ② **账本面**（<see cref="ISettlementLedger"/>，逐玩家双维度幂等）：受验证的 RewardDelta。
-    /// 归档面先落（幂等命中即 <see cref="Result.Processed.Duplicate"/>），账本面随后 fan-out；
-    /// 任一面存储失联 → Unconfirmed（重投时已落部分按幂等命中，收敛）。
+    /// 对局结算落库用例（《Meta 服务专项设计》§8.2 结算链的 Profile.Apply 半边。）。
     /// </summary>
     public sealed class ApplyMatchResultUseCase
     {

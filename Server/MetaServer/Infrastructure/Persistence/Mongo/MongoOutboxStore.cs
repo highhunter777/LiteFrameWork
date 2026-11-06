@@ -8,16 +8,7 @@ using MongoDB.Driver;
 namespace MetaServer.Infrastructure.Persistence.Mongo
 {
     /// <summary>
-    /// 持久 Outbox 的真 Mongo 适配器（M0-c 批二；§10"刷新 Outbox 到持久介质；未提交项保持可重试状态"、
-    /// §11.2"任何队列必须有显式容量与清理策略"）。
-    ///
-    /// - 入队幂等：_id（operationId）唯一索引最终裁判；快路径先查、撞键回读；
-    /// - 有界容量：入队前 CountDocuments 对界——并发窗口内可短暂越界（检查与插入非原子），
-    ///   容量是显式承诺不是硬不变量；超出即 <see cref="OutboxEnqueueOutcome.RejectedFull"/>；
-    /// - 次序：入队时经 OutboxSeq 单文档原子自增取 Seq——$natural 无排序保证，不用；
-    /// - 确认/失败：条件更新（已 Confirmed 不回退；失败只对 Pending 累加 Attempts 并落原因/时刻）；
-    /// - **元数据权威**：Status/Attempts/CreatedUtc 由存储端赋值，调用方传入值一律忽略（防播种）；
-    ///   时刻经构造函数注入的时钟取——纯化层不直读墙钟。
+    /// 持久 Outbox 的真 Mongo 适配器（M0-c 批二；§10"刷新 Outbox 到持久介质；未提交项保持可重试状态"、 §11.2"任何队列必须有显式容量与清理策略"）。
     /// </summary>
     public sealed class MongoOutboxStore : IOutboxStore
     {

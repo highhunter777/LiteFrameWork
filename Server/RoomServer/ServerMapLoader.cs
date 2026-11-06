@@ -7,14 +7,7 @@ using LiteGame.Modules.Config;
 namespace RoomServer
 {
     /// <summary>
-    /// 服务端地图装载（《地图数据专项设计》§7；仿 <see cref="ServerTableLoader"/>）：
-    /// 直读客户端同一份 `Assets/GameData/Config/Map/tbmap.bytes` → 经**共享投影**
-    /// <see cref="MapTableProjection"/> 产出 <see cref="SimMapData"/>（判定图）——两端同代码（源链接共编）
-    /// 同数据（同一份二进制），物理上不可能漂移。
-    ///
-    /// **装载即产出实例**：返回值必须显式传给宿主/房间（`HostAssembly.Inputs.Map` → `ServerHost` →
-    /// `RoomConfig.Map` → `RoomRuntime`）——技术债 #1 同纪律：不回填任何全局静态面；
-    /// 丢弃返回值 = "房间无图"（`RoomRuntime` 构造 fail-fast，不静默兜底）。
+    /// 服务端地图装载（《地图数据专项设计》§7；仿 <see cref="ServerTableLoader"/>）： 直读客户端同一份 `Assets/GameData/Config/Map/tbmap.bytes` → 经。
     /// </summary>
     public static class ServerMapLoader
     {

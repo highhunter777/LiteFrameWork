@@ -13,24 +13,7 @@ using RoomServer.Runtime;
 namespace RoomServer
 {
     /// <summary>
-    /// 房间服务器配置源（《商业级通用服务端框架总设计》§429"端口、Worker 数、**房间容量**、
-    /// tick/snapshot 频率、队列上限和安全策略**均有范围校验**"；§520/§600"**不把估算值写死为事实**"
-    /// "不在设计阶段虚构固定房间数"）。
-    ///
-    /// **分区语义**（rooms 按模板逐房取值；玩法数值不在此文件）：
-    /// - <c>rooms</c>：房间**模板**。动态建房时按模板取值——每个 roomId 一份（§6"一个 roomId
-    ///   只能映射一个独立 RoomActor"）。模板缺失/字段缺失 → **拒绝建房**，不静默兜底。
-    /// - 玩法数值**不在本文件**：服务端与客户端同读 `Assets/GameData/Config/*.bytes`
-    ///   （<see cref="ServerTableLoader"/>——数值走单源表格式）。
-    /// - <c>rate_limit</c>：**进程级共享**分层限流参（可选，缺省见
-    ///   <see cref="RateLimitSettings.Default"/>）。
-    ///
-    /// **不可变性**（§188"房间创建时固定不可变玩法配置…已有数据发布只供新房间采用"）：
-    /// 本类在启动时**快照** json 文本，此后不再读文件——运行中改盘上文件不影响已建房间，
-    /// 也不影响将来的房间（要生效必须重启）。这条同时消除"建房时文件正被改写"的竞态。
-    ///
-    /// **fail-fast**：坏文件/坏字段/越界一律抛（同 <see cref="ServerTableLoader"/>"数值错了必然分叉——
-    /// 宁可起不来"）。静默兜底会让配置错误变成线上的隐形分叉。
+    /// 房间服务器配置源（《商业级通用服务端框架总设计》§429"端口、Worker 数、**房间容量**、 tick/snapshot 频率、队列上限和安全策略**均有范围校验**"。）。
     /// </summary>
     public sealed class RoomServerConfig
     {
@@ -50,8 +33,6 @@ namespace RoomServer
 
         /// <summary>
         /// 覆盖监听端口（命令行 `--port` 用；取值范围同装载期校验）。
-        /// 端口是**宿主级**参数——所有房间共用，不是每房间一份。
-        /// <c>0</c> 合法 = 系统分配空闲端口（实际端口经 <c>ServerHost.BoundPort</c> 回读）。
         /// </summary>
         public void OverridePort(int port)
         {
@@ -64,18 +45,12 @@ namespace RoomServer
         public readonly int MaxRooms;
 
         /// <summary>
-        /// 指标出口端口（R4 第一批：/metrics 零依赖文本出口——Prometheus 子集，计数单源在
-        /// <c>Ops.FormatMetrics</c>）。<c>0</c> = **关闭**（缺省，行为零变化）；&gt;0 时 Program
-        /// 在该端口起 HttpListener。宿主级参数（同 <see cref="Port"/> 语义，不随房间变）。
-        /// Windows 非管理员绑定 <c>+</c> 前缀需 <c>netsh http urlacl</c>——启动失败走**告警降级**
-        /// （宿主照常运行，无 /metrics），不给可观测面打断服务可用性。
+        /// 指标出口端口（R4 第一批：/metrics 零依赖文本出口——Prometheus 子集，计数单源在 <c>Ops.FormatMetrics</c>）。
         /// </summary>
         public readonly int MetricsPort;
 
         /// <summary>
         /// 运维（GM）端点端口（《云端GM通道专项设计》§1/§4）：<c>0</c> = **关闭**（缺省，行为零变化）。
-        /// 与 <see cref="MetricsPort"/> 的关键差别是**这是写面**，故三重门禁：仅 POST、共享密钥
-        /// （环境变量 <c>LITENET_GM_KEY</c>，空 ⇒ 装配方不启用）、绑定面不得为通配地址。
         /// </summary>
         public readonly int GmPort;
 
@@ -87,8 +62,6 @@ namespace RoomServer
 
         /// <summary>
         /// 所有模板里最大的 <c>expected_players</c>（装载期算好）。
-        /// 用途：会话表容量必须按**全服潜在连接数**算，不能按单个房间算——
-        /// 多房间下"按首房间 ×4"会让第二个房间的连接被会话上限拒掉。
         /// </summary>
         public readonly int MaxExpectedPlayers;
 
@@ -96,9 +69,7 @@ namespace RoomServer
         public readonly string Audience;
 
         /// <summary>
-        /// 固定 Worker 数（§8.2）。生产入口以 workerExecution 形态装配：房间命令与快照广播
-        /// 在 <c>hash(roomId) % worker_count</c> 归属的 Worker 上执行；缺省 1 保持与宿主
-        /// owner 直驱相同的执行形态（嵌入式默认形态不受影响）。
+        /// 固定 Worker 数（§8.2）。
         /// </summary>
         public readonly int WorkerCount;
 
@@ -107,9 +78,6 @@ namespace RoomServer
 
         /// <summary>
         /// 结算 Outbox 日志路径（"排空第 4 步"；§11.3 本地持久 Outbox）。
-        /// 缺省 Outbox/settlements.journal。**强制 .journal 后缀**：RoomServer/Data 的
-        /// .json/.bytes 参与 buildHash 哈希闭包——日志若配成那里的 .json，会随每局结算漂移、
-        /// 两端握手全拒（这是一条红线，装载期直接拒，不给运行期踩）。
         /// </summary>
         public readonly string SettlementJournalPath;
 
@@ -118,15 +86,11 @@ namespace RoomServer
 
         /// <summary>
         /// 分层限流参（§343"限流桶必须有容量上限和周期清理"、§595"限流可按 IP/账号/Session 生效"）。
-        /// <c>rate_limit</c> 分区可选：缺失 → <see cref="RateLimitSettings.Default"/>；
-        /// 给了 → 逐字段范围校验（不静默兜底半段配置）。
         /// </summary>
         public readonly RateLimitSettings RateLimit;
 
         /// <summary>
-        /// Lobby 注册端点**完整 URL**（《Meta 服务专项设计》§7 实例注册；空 = 不注册——
-        /// 单机/离线形态）。示例：<c>https://meta.example.com/lobby/instances/register</c>。
-        /// 实例密钥**不在此**（密钥走环境变量/命令行注入，见 Program）。
+        /// Lobby 注册端点**完整 URL**（《Meta 服务专项设计》§7 实例注册；空 = 不注册—— 单机/离线形态）。
         /// </summary>
         public readonly string LobbyUrl;
 
@@ -146,10 +110,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 结算提交端点**完整 URL**（《上云测试专项设计》§2"后台服务读本地 Outbox → Meta 幂等端点"；
-        /// 空 = 提交管道关闭）。示例：<c>https://meta.example.com/matches/result</c>。
-        /// 实例密钥**与 Lobby 注册分权**（P1②：注册实例 ≠ 写结算账本）——结算凭据走
-        /// <c>--settlement-instance-key</c> / <c>LITENET_SETTLEMENT_INSTANCE_KEY</c>，非 lobby 密钥。
+        /// 结算提交端点**完整 URL**（《上云测试专项设计》§2"后台服务读本地 Outbox → Meta 幂等端点"； 空 = 提交管道关闭）。
         /// </summary>
         public readonly string SettlementSubmitUrl;
 
@@ -170,8 +131,6 @@ namespace RoomServer
 
         /// <summary>
         /// 宿主运行期调参（排空宽限 / Ops 间隔 / 入包上限 / 会话清理与静默 / 重连票据 / 压实阈值）。
-        /// 分区 <c>host_tuning</c> 可选：缺省 = <see cref="HostTuning.Default"/>（= 迁移前的字面量常量）。
-        /// **这些值原先改代码才能改**（P2 批二）——部署形态下调参不该动代码。
         /// </summary>
         public readonly HostTuning HostTuning;
 
@@ -233,14 +192,10 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 按模板名造一份房间配置。模板不存在或必填项缺失 → 抛（**不兜底**——
-        /// 动态建房下"默认值"会让打错房号的请求静默建成一个配置不对的房间）。
+        /// 按模板名造一份房间配置。
         /// </summary>
         /// <param name="requestedMapId">票据盖章的请求地图行键（多图批；0 = 未指定——按模板/宿主默认图）。
-        /// 模板固定 <c>map_id</c> 与请求各持非 0 且不等 = 策略冲突 → 抛（调用方转"拒绝进房"，
-        /// 不静默取其一）。</param>
         /// <param name="requestedExpectedPlayers">票据盖章的请求期望人数（开房参数批；0 = 未指定＝按模板）。
-        /// 越界（&gt; 内核席位容量）→ 抛（调用方转"拒绝进房"——不静默钳制，钳出来的房不是玩家要的房）。</param>
         public RoomConfig BuildRoomConfig(string templateId, string roomId, int requestedMapId = 0,
             int requestedExpectedPlayers = 0)
         {
@@ -290,8 +245,6 @@ namespace RoomServer
 
         /// <summary>
         /// 用策略表投影的规则值填充**未显式配置规则**的模板（battlestrategy 的 match.* 行）。
-        /// 显式配了任一规则字段的模板保持原值（JSON 覆盖表默认——部署调参优先）。
-        /// 返回被填充的模板数（供启动日志核对）。
         /// </summary>
         public int ApplyDefaultRules(LiteSim.MatchRules defaults)
         {
@@ -581,9 +534,6 @@ namespace RoomServer
             public static RoomTemplate Parse(string name, JsonElement el, string sourcePath)
             {
                 // ExpectedPlayers 必填且 ≥1（配置错误 vs 缺省：它定容席位表/实体表——缺省会让房间一进人就满）。
-                // **上界 = 内核容量**（PendingInputRing.MaxPlayerCapacity，单 uint 有效位图宽度）：
-                // 两侧各写死过一次（此处 64 / 内核 32），33+ 席位配置会在 RoomRuntime 构造抛异常
-                // 并窜上权威循环线程（P0-2）——装载期即按内核真相拒绝，不留运行期触发面。
                 int players = RequireIntRange(el, "expected_players", 1,
                     RoomServer.Runtime.PendingInputRing.MaxPlayerCapacity, $"{sourcePath} rooms.{name}");
                 long seed = OptionalLong(el, "seed", 0);

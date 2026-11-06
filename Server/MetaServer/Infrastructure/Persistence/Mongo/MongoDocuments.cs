@@ -44,11 +44,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
         public const string SchemaVersion = "meta";
     }
 
-    // =====================================================================
-    // 文档形状（仅适配器与 L3 断言使用；契约层零 Mongo 依赖——L0 方向：
-    // Contracts 不得引用 Infrastructure）。字段公开形态与 MetaConfig 属性形态
-    // 是两回事：这里不参与 ConfigurationBinder。
-    // =====================================================================
+    // ===================================================================== 文档形状（仅适配器与 L3 断言使用。）。
 
     /// <summary>结算账目文档。幂等两维度：_id（operationId）＋业务键复合唯一索引。</summary>
     [BsonIgnoreExtraElements]

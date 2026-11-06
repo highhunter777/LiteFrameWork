@@ -12,13 +12,7 @@ namespace MetaServer.Contracts.Persistence
     public sealed record MatchResultPlayerEntry(string PlayerId, string AccountId, int Kills, int Deaths);
 
     /// <summary>
-    /// 一局对局结果的**归档记录**（供 <see cref="IMatchResultArchive"/> 落库；《上云测试专项设计》
-    /// §4 裁决点①③，由 Profile 结算用例从提交载荷映射——归档端口不与线 DTO 耦合）。
-    /// **幂等键 = MatchId**（一局一条，唯一性由 _id 承载）。
-    ///
-    /// 形状边界（落库前拒绝，一次报全）：由**映射方** <c>ApplyMatchResultUseCase.Validate</c> 承担
-    /// ——线载荷校验覆盖本记录全部字段边界（Id 非空与 UTF-8 字节上限、玩家条目 1..64、
-    /// 击杀/死亡/帧号非负、PlayerId 不重复、AccountId 非空）。本记录不再自持第二份校验。
+    /// 一局对局结果的**归档记录**（供 <see cref="IMatchResultArchive"/> 落库；《上云测试专项设计》 §4 裁决点①③。）。
     /// </summary>
     public sealed record MatchResultArchiveEntry(
         string MatchId, long Seed, int FinalFrame, int EndReason, int GameplayEndReason, long WinnerEntityId,
@@ -45,13 +39,6 @@ namespace MetaServer.Contracts.Persistence
 
     /// <summary>
     /// 对局结果归档端口（Meta 专项 §11.3 "Match Archive"；《上云测试》批A 的落库与可查面）。
-    ///
-    /// 实现约束（L1 以测试替身验证**语义**，L3 以真实存储验证**持久性与并发兜底**）：
-    /// 1. **唯一性是幂等的最终实现**（一局一条，MatchId 唯一）——重复提交命中首次记录并返回原快照，
-    ///    不得二次写入、不得报错给调用方；
-    /// 2. <c>FinishedUtc</c> 由**存储端赋值**（服务端时钟），调用方不播种；
-    /// 3. 存储不可达/提交失败抛 <see cref="SettlementStoreUnavailableException"/>（未确认语义，
-    ///    重试安全——双维度幂等保证重试拿回同一份首次结果）。
     /// </summary>
     public interface IMatchResultArchive
     {

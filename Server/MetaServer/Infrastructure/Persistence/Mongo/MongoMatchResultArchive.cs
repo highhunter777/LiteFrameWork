@@ -9,15 +9,6 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 {
     /// <summary>
     /// 对局结果归档的真 Mongo 适配器（Meta 专项 §11.3 Match Archive；《上云测试》批A 落库面）。
-    ///
-    /// 与账本适配器同款纪律：
-    /// - **唯一性是幂等的最终实现**：一局一条，<c>_id</c> = matchId——撞键即重复，读回首次快照原样返回；
-    /// - <c>FinishedUtc</c> 由**存储端赋值**（注入时钟；调用方不播种）；
-    /// - 存储不可达/提交失败抛 <see cref="SettlementStoreUnavailableException"/>（未确认语义，重试安全）。
-    ///
-    /// 查询（按账号，完成时刻倒序）走迁移 v4 建的 <c>Players.AccountId</c> 索引；
-    /// 多值键 + 排序组合不做复合索引（封闭测试规模下按账号命中集在内存排序即可——
-    /// 容量口径随 R4 容量测试再定，不在此虚构）。
     /// </summary>
     public sealed class MongoMatchResultArchive : IMatchResultArchive
     {

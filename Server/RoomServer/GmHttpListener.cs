@@ -13,15 +13,7 @@ using RoomServer.Diagnostics;
 namespace RoomServer
 {
     /// <summary>
-    /// 运维（GM）HTTP 端点（《云端GM通道专项设计》§1/§4）：只绑运维可达地址（云上＝隧道地址
-    /// <c>10.8.0.1</c>）、仅 POST、共享密钥鉴权、**缺省关闭**（<c>gm_port=0</c> 不创建本对象）。
-    ///
-    /// 与 <see cref="MetricsHttpListener"/> 同形态（HttpListener + 单后台线程、Start 失败由装配方告警降级），
-    /// 但**是写面**，故多三重门禁：① 仅 POST（GET 一律 404，避免被顺手探测）；
-    /// ② 密钥恒定时间比较，密钥为空 ⇒ 装配方根本不创建本对象；③ 每个动作打 <c>[GM]</c> 审计行。
-    ///
-    /// **线程契约**：本线程只做"鉴权 → 解析 → 入队"，动作经 <see cref="GmActionQueue"/> 交权威循环执行；
-    /// 唯一例外是 <c>/gm/rooms</c> 读面（与 Lobby 心跳同族的近似快照口径，不进权威循环）。
+    /// 运维（GM）HTTP 端点（《云端GM通道专项设计》§1/§4）：只绑运维可达地址（云上＝隧道地址 <c>10.8.0.1</c>）、仅 POST、共享密钥鉴权。
     /// </summary>
     public sealed class GmHttpListener : IDisposable
     {

@@ -26,24 +26,13 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// Join 信令：token 非空 + **房间号一致** + buildHash 必须等于服务器版本（版本红线）
-        /// → 投递 <see cref="RoomCommand.Join"/> → JoinAck（MatchStarted 由房主开局触发，见
-        /// <see cref="InboundHandlers"/> 的 StartMatch 分支——满员不再自动开局）。
-        /// 入场先过**分层限流**：IP 维度（本方法首段）+ 账号维度（验签通过后）。
-        /// **安全能力现状**：装配 <see cref="IJoinTicketValidator"/> 后 token 走验签 + 六项绑定 + 重放窗口；
-        /// 未装配时退回原型级非空校验（<see cref="Session.Principal"/> 为 null）。kcp2k V1.41 cookie
-        /// 只解决 UDP 探测/放大防护，**不提供业务身份、机密性或完整性**——安全信封完成前本服务不得直接暴露公网。
+        /// Join 信令：token 非空 + **房间号一致** + buildHash 必须等于服务器版本（版本红线） → 投递 <see cref="RoomCommand.Join"/> → JoinAck（MatchSt。）。
         /// </summary>
         public void Handle(Session session, Proto.JoinRequest join, long now)
         {
             if (session.PlayerId >= 0 || session.JoinPending) return;         // 重复/排队中的 Join 忽略
 
-            // 准入链（IP 频率 → 字段边界 → token → 版本 → 票据 → 账号频率）已独立为
-            // JoinAdmissionGate：它是"消耗权威资源之前"的纯判定，不建房/不入队/不写 Session。
-            // 排空红线留在宿主——它是**宿主状态**（§12 第 2 步"停止接受新进房"），不属于准入判据。
-            //
-            // 排空红线放在字段边界**之后**（原注释口径保留）：超长包已由入站层按 PacketRejects
-            // 归类，不该在排空计数里再记一次。
+            // 准入链（IP 频率 → 字段边界 → token → 版本 → 票据 → 账号频率）已独立为 JoinAdmissionGate：它是"消耗权威资源之前"的纯判定，不建房/不入队/不写 Session。
             var decision = _host.Admission.Evaluate(in join, session.ConnectionId, now);
             if (!decision.Admitted)
             {
@@ -76,9 +65,7 @@ namespace RoomServer
 
             JoinPrincipal validatedPrincipal = decision.Principal;
 
-            // 房间解析/创建（§6"一个 roomId 只能映射一个独立 RoomActor"；重复 roomId 复用既有房间）
-            // 多图批：票据盖章的请求行键（未装配验签器的原型形态 = null ⇒ 0）只作用于**新建房**；
-            // 既有房间以**房事实**为准——请求非 0 且不一致 → 显式拒绝（不静默换图/静默忽略）。
+            // 房间解析/创建（§6"一个 roomId 只能映射一个独立 RoomActor"；重复 roomId 复用既有房间） 多图批：票据盖章的请求行键（未装配验签器的原型形态 = null ⇒ 0）只作用于**新建房**。
             int requestedMapId = validatedPrincipal?.MapId ?? 0;
             // 开房参数批：票据盖章的请求期望人数——**只作用于新建房**（既有房间以房事实为准，
             // 见下方"请求值不参与既有房判定"注）；回执经 JoinAck.expected_players 交给客户端定容。
@@ -151,9 +138,7 @@ namespace RoomServer
         {
             int i = (int)reason;
             _ticketRejections[i >= 0 && i < _ticketRejections.Length ? i : 0]++;
-            // 本数组按**全分类**计数（含 Malformed——供 ServerHost.TicketRejections 查询），
-            // Ops 侧只观测四类 + 总数：映射单源在 Ops.NoteTicketRejection（原先散在这里的 switch，
-            // 新增分类要同时改枚举/宿主 switch/Ops 三处）。
+            // 本数组按**全分类**计数（含 Malformed——供 ServerHost.TicketRejections 查询）， Ops 侧只观测四类 + 总数：映射单源在 Ops.NoteTicketRejection（原先散在这里的 switch。）。
             _host.Ops.NoteTicketRejection(reason);
         }
     }

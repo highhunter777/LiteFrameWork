@@ -8,24 +8,7 @@ using LiteGame.Modules.Config;
 namespace RoomServer
 {
     /// <summary>
-    /// 服务端玩法数值/武器表装载（《玩法数值与Luban配置专项设计》）：
-    /// 服务端跑**权威 Sim**，必须与客户端拿到**同一份手感数值与武器定义**——否则同一份输入两端算出
-    /// 不同结果，表现为和解风暴。
-    ///
-    /// **主源链路**：本类直读**客户端同一份 .bytes**（`Assets/GameData/Config/*.bytes`，gen.bat Pass 1 产出；
-    /// 缺省走 `LoadFromRepo` 仓库路径，`--combat-table <目录>` 显式覆盖）。两端同代码（生成物源链接共编）
-    /// 同数据（同一份二进制），物理上不可能漂移。
-    ///
-    /// **装载即产出实例**：`LoadTableBytes`/`LoadFromRepo` 返回 <see cref="ServerTableLoad"/>
-    /// （数值行 `ToValues()` → <see cref="CombatValues"/> 实例；武器行 → <see cref="WeaponTable"/> 实例）——
-    /// 调用方**显式传入**宿主/房间（技术债 #1：不再回填全局静态面）。装载与传递是同一契约的两半，
-    /// 丢弃返回值即"服务端跑默认值"分叉的复辟面；结构性防线 = `HostAssembly.Inputs` 必填校验（缺即拒装配）。
-    /// <see cref="Parse"/> 保持纯解析。L1 钉子：`ServerTableLoadTests`/`WeaponTableTests`（装载产物 = 表值实例）。
-    ///
-    /// **一致性守卫（批 E 起）**：① 两端数值同源（同一 .bytes）；② 判定面表字节基摘要随
-    /// `ServerTableLoad.Digest` → 房间 `StartGame.ConfigHash`（+ 本局规则），客户端按本地装载字节复算比对——
-    /// **不等即拒局**（此前靠"表数据进 buildHash 编译期闭包 + Join 握手"，2026-10-14 闭包重划后
-    /// 数据面守卫单点归运行期摘要：数据可两端热更，守卫在装载后当场生效）。
+    /// 服务端玩法数值/武器表装载（《玩法数值与Luban配置专项设计》）： 服务端跑**权威 Sim**，必须与客户端拿到**同一份手感数值与武器定义**——否则同一份输入两端算出 不同结果，表现为和解风暴。
     /// </summary>
     public static class ServerTableLoader
     {
@@ -36,10 +19,8 @@ namespace RoomServer
 
         /// <summary>
         /// 从仓库根装载客户端 .bytes 表目录（定位失败或缺表 → 抛，fail-fast）；返回装载实例。
-        /// 数值错了必然分叉——宁可起不来，也不要带着错数值跑权威局。
         /// </summary>
         /// <param name="combatOverrides">判定参数覆写合并（**唯一合并点**：表值之后、`ToValues`/摘要之前）。
-        /// 由组合根按 <c>SimParamsGate</c> 求值后给入——联机/发布为 null（两端数值必须同源）。</param>
         public static ServerTableLoad LoadFromRepo(Func<CombatValues, CombatValues> combatOverrides = null)
         {
             string root = FindRepoRoot()
@@ -50,9 +31,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 从指定表目录装载并返回**装载实例**（表目录 = 客户端 GameData/Config 根，文件按
-        /// <c>TableLayout.Files</c> 的领域相对路径取——源链接共编单源；Tables 构造器逐表取字节）。
-        /// 预读缓存与客户端 <c>ConfigService.LoadAsync</c> 同形：**裸表名 → 字节**（判定面摘要与建表共用同一批字节）。
+        /// 从指定表目录装载并返回**装载实例**（表目录 = 客户端 GameData/Config 根，文件按 <c>TableLayout.Files</c> 的领域相对路径取——源链接共编单源。）。
         /// </summary>
         public static ServerTableLoad LoadTableBytes(string configDir,
             Func<CombatValues, CombatValues> combatOverrides = null)
@@ -95,9 +74,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 纯解析（可测）：玩法、移动与实体表字节 → 固定对局数值。坏格式/截断 → 抛
-        /// （不返回默认值——静默兜底会让"表没生成"变成"跑着默认值"的隐形分叉）。
-        /// 只解析三张数值来源表，不要求武器或表现配置。
+        /// 纯解析（可测）：玩法、移动与实体表字节 → 固定对局数值。
         /// </summary>
         public static ServerCombatValues Parse(byte[] combatnumBytes, byte[] movementconfigBytes,
             byte[] entityconfigBytes, byte[] combatgeomBytes,

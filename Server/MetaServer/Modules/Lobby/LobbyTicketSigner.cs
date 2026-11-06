@@ -5,17 +5,7 @@ using RoomServer.Application;
 namespace MetaServer.Modules.Lobby
 {
     /// <summary>
-    /// Join Ticket 签发端（《Meta 服务专项设计》§6.2/§7"Join Ticket 在此签发"；
-    /// 《上云测试专项设计》§2"Meta 以 <c>JoinTicketFormat.BuildPrefix/AppendSignature</c> 签发，
-    /// 房间服按同格式同 key 验签，物理上不会漂"）。
-    ///
-    /// - **形状单源**：组装/签名走 <see cref="JoinTicketFormat"/>——该文件以源链接共编进本工程
-    ///   （见 MetaServer.csproj），与房间端验证器是**同一份**形状规则。**不得**在本工程另写拼串。
-    /// - **HMAC-SHA256 共享密钥**：框架期 Meta 与 RoomServer 同信任域（房间端
-    ///   <c>HmacJoinTicketValidator</c> 的选型注释同口径）；换非对称只替换两端本类/验证器。
-    /// - **令牌与票据不写日志**（§11.1 禁止项——本类不持日志面，注释钉住约定）。
-    /// - **MatchId/SimVersion 置空**：对局由房间创建时自带独立 MatchId（此字段房间端不过滤）；
-    ///   Sim 版本分离未启用（房间端 JoinContext.Version 为空 = 不校验）——不为"占位"编造值。
+    /// Join Ticket 签发端（《Meta 服务专项设计》§6.2/§7"Join Ticket 在此签发"。）。
     /// </summary>
     public sealed class LobbyTicketSigner
     {
@@ -35,12 +25,9 @@ namespace MetaServer.Modules.Lobby
 
         /// <summary>
         /// 签发票据（§6.2 绑定项：playerId/accountId/roomId/过期时刻/nonce/buildHash/audience/mapId）。
-        /// nonce = CSPRNG 128 bit（房间端一次性消费窗口按它去重——重放必拒）。
         /// </summary>
         /// <param name="mapId">房间创建意图里的地图行键（多图批；0 = 未指定）。**只在签名覆盖内传递，
-        /// Meta 不查表**——表校验（缺行/未知图）归房间端建房路径（fail-closed）。</param>
         /// <param name="expectedPlayers">房间创建意图里的期望人数（开房参数批；0 = 未指定＝按房间模板）。
-        /// 同上：签名覆盖内传值，上界（内核席位容量）归房间端建房路径校验。</param>
         public string Issue(string playerId, string accountId, string roomId, string buildHash, int mapId,
             int expectedPlayers, string template, long nowMs, long ttlMs, out long expiresAtMs)
         {

@@ -19,24 +19,6 @@ namespace RoomServer
 {
     /// <summary>
     /// 服务器宿主（《状态同步实施方案》§4.5 RoomServer 结构图顶层组装 + 《商业级通用服务端框架总设计》§7/§8）。
-    ///
-    /// 分层（现为 Application+Host 合体）：
-    /// - **协议边界**：解码 <c>PacketCodec</c> → 校验 → 构造 <see cref="RoomCommand"/>；反向把
-    ///   <see cref="RoomOutput"/> 映射为 proto 发送。RoomRuntime 完全不见 proto/Transport。
-    /// - **会话**：<see cref="Session"/>（连接级记账/ACK 水位/背压）+ 席位（Runtime <see cref="PlayerSession"/>）
-    ///   映射表 <c>_seatSessions</c>（playerId → 连接）。
-    /// - **快照**：<see cref="SnapshotPipeline"/> 在每次权威步进后拉取 AuthSim 构建下发；
-    ///   重连席位在恢复完成 ACK 前停在 Restoring（管线抑制其增量广播），恢复完成时整帧全量重锚广播链（§9.3 步骤 6）。
-    ///
-    /// 单循环（§10.2 不拆 I/O 线程）：
-    /// tick 顺序 TickIncoming → Host owner 排空每房间 Mailbox（Control → Input → Outbound）
-    /// → 权威 Tick → 快照广播 → TickOutgoing。
-    ///
-    /// 装配参数由 <see cref="RoomConfig"/> 提供；**buildHash = <see cref="BuildHash.Value"/>**
-    /// （源码内容哈希，两端不一 = 逻辑/协议版本不同 → 拒绝进房）。
-    ///
-    /// **传输解耦**：构造参数是窄端口 <see cref="IRoomTransport"/>——换传输框架只需新写适配器 + 装配一行。
-    /// **所有权**：宿主**接管**传入的传输（构造即 `Start`、`Dispose` 即释放）。
     /// </summary>
     public sealed class ServerHost : IDisposable, IRoomWorkerHost
     {
@@ -53,8 +35,6 @@ namespace RoomServer
 
         /// <summary>
         /// Join 字段 UTF-8 字节上限（P0-3：所有字符串限制 UTF-8 字节数——防超长串打爆日志/内存）。
-        /// **权威已迁至 <see cref="JoinAdmissionGate"/>**（同值）——此处保留为公开常量仅供既有调用方/测试
-        /// 引用；新代码读准入门那份，避免两处漂移。
         /// </summary>
         public const int MaxRoomIdBytes = JoinAdmissionGate.MaxRoomIdBytes;
         public const int MaxTokenBytes = JoinAdmissionGate.MaxTokenBytes;
@@ -70,10 +50,6 @@ namespace RoomServer
 
         /// <summary>
         /// 分层限流：IP 维度（连接/入场）+ 账号维度（入场）+ Session 维度（包速率）。
-        /// 配置装载 <see cref="RoomServerConfig.RateLimit"/> 或构造注入；两者皆无时用
-        /// <see cref="RateLimitSettings.Default"/>（§520/§600：缺省是可用形态，不是"实测值"）。
-        /// 探测不到的远端地址（<see cref="IRoomTransport.GetRemoteAddress"/> 为 null）**跳过 IP 维度**——
-        /// 限不了看不见的地址，跳过而不是全拒（见端口契约）。
         /// </summary>
         private readonly RateLimiter _rateLimit;
 
@@ -82,9 +58,7 @@ namespace RoomServer
         private readonly Stopwatch _clock = Stopwatch.StartNew();
 
         /// <summary>
-        /// Join 票据验证器（《服务端总设计》§P0-6；《框架先行》§5-4 必建接缝）。**null = 未装配**：
-        /// 此时 token 只作原型级非空校验；
-        /// 装配后**逐一验签**，失败即拒绝——<see cref="JoinTicketRejection"/> 分类进 Ops。
+        /// Join 票据验证器（《服务端总设计》§P0-6；《框架先行》§5-4 必建接缝）。
         /// </summary>
         private readonly IJoinTicketValidator _tickets;
 
@@ -93,8 +67,6 @@ namespace RoomServer
 
         /// <summary>
         /// 入站准入门（§P0-6 判定链：频率/字段边界/token/版本/票据/账号频率）。
-        /// 独立于宿主——它是"消耗权威资源之前"的纯判定，抽出后可独立测（不必经建房路径）。
-        /// 排空红线**不在**门内：那是宿主状态（§12 第 2 步），由 <see cref="InboundJoinHandlers"/> 自行裁决。
         /// </summary>
         private readonly JoinAdmissionGate _admission;
 
@@ -103,21 +75,11 @@ namespace RoomServer
         public const int SessionCleanupIntervalTicks = HostTuning.DefaultSessionCleanupIntervalTicks;
         private int _ticksSinceCleanup;
 
-        // ---- 房间表（§6"一个 roomId 只能映射一个独立 RoomActor"）----
-        //
-        // **为什么是表而不是字段**：Runtime / 快照管线 / 席位表若并列在宿主上，
-        // "每房间一份"在类型上无处表达；收成 RoomInstance 之后，多房间 = 这张表，"每房间一份"由类型保证。
-        //
-        // **容量**：§429 要求房间容量**可配 + 范围校验**，§520/§600 明确"不把估算值写死为事实"
-        // "不在设计阶段虚构固定房间数"——故上限来自配置，达上限**拒绝新建**而非静默拒绝进房。
-        // 表本体（双结构/身份校验增删/快照读）收在 <see cref="RoomRegistry"/>；
-        // 房间构造与销毁清理仍归宿主——清完场经 registry 落表。
+        // ---- 房间表（§6"一个 roomId 只能映射一个独立 RoomActor"）---- **为什么是表而不是字段**：Runtime / 快照管线 / 席位表若并列在宿主上， "每房间一份"在类型上无处表达；收成 RoomInstance 之后，多房间 = 这张表。
         private readonly RoomRegistry _registry;
 
         /// <summary>
-        /// 运维（GM）动作队列（《云端GM通道专项设计》§2）：生产端是 GM HTTP 线程（只入队），
-        /// 消费端是权威循环（<see cref="Pump"/> → <c>FlushGmActions</c>）——动作永远在权威线程内落到房间上，
-        /// 不受 Mailbox 路由开关（<c>_mailboxRouting</c> 关闭时会同步执行）的线程语义影响。
+        /// 运维（GM）动作队列（《云端GM通道专项设计》§2）：生产端是 GM HTTP 线程（只入队）。
         /// </summary>
         private readonly GmActionQueue _gmActions = new GmActionQueue();
 
@@ -142,27 +104,17 @@ namespace RoomServer
         private long _drainDeadlineMs = -1;
 
         /// <summary>
-        /// 结算 Outbox（§11.3"本地持久 Outbox"）。**null = 未装配**：
-        /// SettlementReady 只计数＋日志；装配后入盒（幂等/有界/失败
-        /// 全部显式计数，不抛进权威循环），排空第 4 步经 <see cref="FlushSettlementOutbox"/> 收口。
-        /// 宿主**接管**其生命周期（Dispose 释放）。
+        /// 结算 Outbox（§11.3"本地持久 Outbox"）。
         /// </summary>
         private readonly ISettlementOutbox _settlementOutbox;
 
         /// <summary>
-        /// Worker Pool 生命周期接缝 + Worker 执行形态。固定池已装配并启动。
-        /// 入站 Control/Input 先进入每房间 Mailbox：
-        /// - **宿主 owner 形态**（默认）：由宿主主线程消费；或
-        /// - **Worker 执行形态**（<see cref="_workerExecution"/>）：由 hash 归属的 Worker 消费并执行
-        ///   （Runtime + 快照广播），产出经 Outbound lane 回传宿主应用/发送。
-        /// 配置形态（<see cref="RoomServerConfig"/>）自动创建，测试/嵌入式形态可显式注入。
+        /// Worker Pool 生命周期接缝 + Worker 执行形态。
         /// </summary>
         private readonly RoomWorkerPool _workerPool;
 
         /// <summary>
-        /// Worker 驱动体（P4 外提件，见 <see cref="RoomWorkerDriver"/>）：本类只保留**生产侧**
-        /// （<see cref="ScheduleRoomPump"/>/<see cref="SubmitWorkerTick"/>）与**回传应用侧**
-        /// （<c>ApplyOutboundEnvelope</c> 族）——驱动体在归属 Worker 线程上跑，两者线程归属不同。
+        /// Worker 驱动体（P4 外提件，见 <see cref="RoomWorkerDriver"/>）：本类只保留**生产侧** （<see cref="ScheduleRoomPump"/>/<see cref="Su。）。
         /// </summary>
         private readonly RoomWorkerDriver _workerDriver;
 
@@ -178,9 +130,7 @@ namespace RoomServer
         private readonly bool _drainMailboxesImmediately;
 
         /// <summary>
-        /// Worker 执行形态（《商业级通用服务端框架总设计》§8.2）：房间命令与快照广播在
-        /// <c>hash(roomId) % workerCount</c> 归属的 Worker 线程上执行，宿主只做 Transport IO、
-        /// 准入与回传应用。默认关闭——嵌入式/历史用例保留宿主 owner 直驱语义，生产入口显式开启。
+        /// Worker 执行形态（《商业级通用服务端框架总设计》§8.2）：房间命令与快照广播在 <c>hash(roomId) % workerCount</c> 归属的 Worker 线程上执行。
         /// </summary>
         private readonly bool _workerExecution;
 
@@ -208,9 +158,7 @@ namespace RoomServer
         internal RoomDiagnosticsService Diagnostics => _diagnostics;
 
         /// <summary>
-        /// 玩法数值实例（技术债 #1：装配方显式传入——生产链 `HostAssembly`（必填）→ 本宿主 → 各房间
-        /// `RoomRuntime`；缺省 = <see cref="CombatValues.Default"/> 供嵌入式/测试直构形态。
-        /// 房间创建时捕获进 <c>FixedCombatConfig</c>，此后进程任何变化不改已建房间。
+        /// 玩法数值实例（技术债 #1：装配方显式传入——生产链 `HostAssembly`（必填）→ 本宿主 → 各房间 `RoomRuntime`。）。
         /// </summary>
         private readonly CombatValues _combat;
 
@@ -218,24 +166,17 @@ namespace RoomServer
         private readonly WeaponTable _weapons;
 
         /// <summary>
-        /// 判定地图注入（生产链 `HostAssembly.Inputs.Map` ← `ServerMapLoader` 装载产物）。房间建立时写入
-        /// `RoomConfig.Map`（配置自带者优先——**多图批后**：票据/模板带行键时经 <see cref="_mapCatalog"/>
-        /// 按行解析）；**无缺省兜底**（D22）：宿主参数与房间配置两处皆缺由房间构造 fail-fast。
+        /// 判定地图注入（生产链 `HostAssembly.Inputs.Map` ← `ServerMapLoader` 装载产物）。
         /// </summary>
         private readonly SimMapData _map;
 
         /// <summary>
-        /// 多图目录（多图批；生产链 `HostAssembly.Inputs.MapCatalog` ← Program 的
-        /// <see cref="ServerMapCatalog"/>，缺省 null = 单图形态）。建房时按房间行键解析判定图：
-        /// **0 = 宿主默认图（<see cref="_map"/>）**；&gt;0 且目录缺失 = 配置缺失显式拒（不静默回落默认图——
-        /// 那会让"请求训练场"变成"静默进首图"）；缺行由目录实现 fail-closed 抛（建房路径转拒绝进房）。
+        /// 多图目录（多图批；生产链 `HostAssembly.Inputs.MapCatalog` ← Program 的 <see cref="ServerMapCatalog"/>，缺省 null = 单图形态）。
         /// </summary>
         private readonly Func<int, SimMapData> _mapCatalog;
 
         /// <summary>
-        /// 判定面表字节**基摘要**（生产链 `HostAssembly.Inputs.GameplayDigestBase` ← `ServerTableLoad.Digest`；
-        /// 缺省 0 = 无表身份形态，供嵌入式/测试直构）。房间创建时随数值/武器同刻捕获进 `FixedCombatConfig`
-        /// ——客户端按本地装载字节复算比对（批 E），忘传的表现是**首局即被客户端拒**（显性，不静默）。
+        /// 判定面表字节**基摘要**（生产链 `HostAssembly.Inputs.GameplayDigestBase` ← `ServerTableLoad.Digest`； 缺省 0 = 无表身份形态。）。
         /// </summary>
         private readonly uint _gameplayDigestBase;
 
@@ -247,9 +188,6 @@ namespace RoomServer
 
         /// <summary>
         /// 实际监听端口（<see cref="Start"/> 之后有效；未启动 -1）。
-        /// 配置 <c>Port = 0</c> 时由系统分配空闲端口，客户端据此连接——
-        /// **测试与同机多实例必须走这条**：固定端口会与同机其他软件冲突
-        /// （实测本机 aTrustXtunnel 占 7777/7778，曾致传输用例偶发 Bind 失败）。
         /// </summary>
         public int BoundPort => _transport.BoundPort;
         /// <summary>命令输出复用缓冲（热路径零分配）。</summary>
@@ -334,15 +272,8 @@ namespace RoomServer
 
         /// <summary>
         /// 房间明细快照（房间列表批——Lobby 心跳上报的"房间号/阶段/在座/期望"投影）。
-        /// **近似快照**（与 OccupiedPlayerCount 同口径）：心跳线程读、权威线程写——字段级引用/int 读，
-        /// 房间表 List 扩容瞬间的撕裂以 catch 兜底（下跳再报，投影本就是"上报事实"非权威）。
-        /// **终态房间不报**（契约：LobbyContracts.RoomReport"终态房间（已销毁）不报"）——房间终态到
-        /// <see cref="TryDestroyTerminalRoom"/> 销毁之间仍在册，不过滤会把 phase=6/7 送上上报面
-        /// （Meta 相位闸对整次注册拒绝——一行终态房间毒死整条心跳）。
-        /// O(在册房间)；低频心跳调用，不在权威循环热路径。
         /// </summary>
         /// <param name="includeHidden">是否包含隐藏房（联机测试房批）：大厅上报用 false（默认），
-        /// 运维 GM 端点用 true——否则测试房连运维面都看不到。</param>
         public RoomSummary[] RoomSummaries(bool includeHidden = false)
         {
             RoomInstance[] rooms = _registry.SnapshotArray();   // 心跳线程读面：竞态兜底收在 registry 单点
@@ -392,12 +323,6 @@ namespace RoomServer
 
         /// <summary>
         /// 当前已进房玩家席位占用数（Lobby 容量上报面——未进房的连接不计入"占用"）。
-        /// O(会话表)；低频心跳调用，不在权威循环热路径。
-        ///
-        /// **近似快照**（与 <see cref="RoomSummaries"/> 同族口径）：心跳线程读、权威线程增删会话——
-        /// 枚举撞上会话表变更（InvalidOperationException）时**沿用上跳值**而非抛给心跳线程：
-        /// 旧形态下该异常被 Lobby 客户端的 catch 吞掉，代价是**整跳心跳丢失**（连接风暴期恰最需要
-        /// Lobby 可见性）。上跳值只由本读面写读（心跳线程），无并发写。
         /// </summary>
         public int OccupiedPlayerCount
         {
@@ -443,29 +368,7 @@ namespace RoomServer
         public ReconnectService Reconnects => _reconnects;
 
         /// <summary>
-        /// 建宿主。<paramref name="roomServerConfig"/> 给出房间容量上限、动态建房模板与
-        /// Worker Pool 默认装配参数；传入 <paramref name="workerPool"/> 可在纯 .NET 用例中显式注入。
-        ///
-        /// **不传 <paramref name="roomServerConfig"/> 时**退回"单房间预置"形态：只按
-        /// <paramref name="config"/> 建一个房间、容量 1、拒绝任何别的 roomId——这是嵌入式用法的
-        /// 兼容通道，**不是**生产形态（生产走配置文件 + 动态建房）。
-        /// 传入配置但未传 Worker Pool 时，宿主按配置创建并启动固定池；未传配置且未显式注入
-        /// 时保持单循环形态（<see cref="WorkerPool"/> 为 null）。
-        ///
-        /// **Worker 执行形态**（<paramref name="workerExecution"/> = true，生产入口显式开启）：
-        /// 房间命令与快照广播在归属 Worker 上执行，产出经 Outbound lane 回传宿主应用/发送。
-        /// 该形态要求 <paramref name="mailboxRouting"/> = true（路由是 Worker 消费的前提）且
-        /// 存在 Worker Pool；<paramref name="drainMailboxesImmediately"/> 必须为 false——
-        /// 立即排空 = 宿主同栈执行房间命令，与"执行 owner 是 Worker"直接冲突，装载期显式拒绝。
-        ///
-        /// **协作对象装配口（批3，《服务端宿主装配收敛专项设计》§5）**：<paramref name="ops"/>/
-        /// <paramref name="admission"/>/<paramref name="sessions"/>/<paramref name="reconnects"/>（与既有
-        /// <paramref name="rateLimiter"/> 同款）是容器装配通道——生产经 <see cref="HostAssembly"/> 注册
-        /// 并注入**同一单例**；不传（null）时按本类**单源构造公式**（internal static Create* 族）自建
-        /// ——嵌入式/测试直接 new 的既有契约与行为不变。
-        ///
-        /// <paramref name="mapCatalog"/>（多图批，可空）：行键 → 判定图解析（生产链
-        /// `HostAssembly.Inputs.MapCatalog`）；null = 单图形态（房间行键 &gt;0 时拒绝建房，见 <see cref="ResolveMap"/>）。
+        /// 建宿主。
         /// </summary>
         public ServerHost(IRoomTransport transport, RoomConfig config = null,
             IJoinTicketValidator ticketValidator = null, string audience = null,
@@ -529,11 +432,7 @@ namespace RoomServer
                     nameof(drainMailboxesImmediately));
             _workerExecution = workerExecution;
 
-            // 预置房间：
-            // - 显式给了 config 且未给 roomServerConfig → 单房间兼容形态，预置该房间；
-            // - 两者都没给 → 完全默认的单房间；
-            // - 给了 roomServerConfig 且 config 为 null → **不预置**：所有房间首次进房时按模板创建。
-            //   （动态建房下预置一个房间会白占一格容量，且"哪个 roomId 该被预置"本身没有依据。）
+            // 预置房间： - 显式给了 config 且未给 roomServerConfig → 单房间兼容形态，预置该房间； - 两者都没给 → 完全默认的单房间。
             RoomInstance first = null;
             if (config != null) first = AddRoom(config);
             else if (_serverConfig == null) first = AddRoom(RoomConfig.Default());
@@ -568,10 +467,7 @@ namespace RoomServer
             }
         }
 
-        // ---- 协作对象单源构造公式（批3，《服务端宿主装配收敛专项设计》§5）----
-        //
-        // 宿主缺省通道（直接 new、可选口不传）与 HostAssembly 容器工厂共用同一组公式——
-        // "工厂建的必须与宿主自建的等价"不靠注释约定，而是同一方法（修改指南 §1.2 单源红线）。
+        // ---- 协作对象单源构造公式（批3，《服务端宿主装配收敛专项设计》§5）---- 宿主缺省通道（直接 new、可选口不传）与 HostAssembly 容器工厂共用同一组公式—— "工厂建的必须与宿主自建的等价"不靠注释约定，而是同一方法（修改指南 §1.2 单源红线）。
 
         private static HostTuning ResolveTuning(RoomServerConfig serverConfig) =>
             serverConfig?.HostTuning ?? HostTuning.Default;
@@ -580,10 +476,7 @@ namespace RoomServer
             audience ?? serverConfig?.Audience ?? string.Empty;
 
         /// <summary>
-        /// 会话表容量按**全服潜在连接数**算（§9.2 会话容量上限）：
-        /// 配了配置 → 房间上限 × 最大房间人数 ×4（按单房间算会让第二个房间的连接被会话上限拒掉）；
-        /// 未配 → 首房间 ×4。
-        /// **单一静态计算点**（批3 前置）：容器工厂与宿主缺省通道两处调用，防双源漂移。
+        /// 会话表容量按**全服潜在连接数**算（§9.2 会话容量上限）： 配了配置 → 房间上限 × 最大房间人数 ×4（按单房间算会让第二个房间的连接被会话上限拒掉）； 未配 → 首房间 ×4。
         /// </summary>
         private static int ComputeSessionCapacity(RoomServerConfig serverConfig, RoomInstance firstRoom)
         {
@@ -630,10 +523,7 @@ namespace RoomServer
 
             if (_workerExecution)
             {
-                // Worker 执行形态：先停 Worker（排空已接受的工作项——Worker 把房间 Mailbox 中
-                // 已接受的 Control/Input 执行到空并入 Outbound），再由宿主统一收口：
-                // Worker 停止后宿主重新是唯一执行者，Complete 并排空残留（含 Outbound 回传应用）
-                // 与宿主 owner 形态的编号（§12 第 5 步：Worker → Transport → Outbox）一致。
+                // Worker 执行形态：先停 Worker（排空已接受的工作项——Worker 把房间 Mailbox 中 已接受的 Control/Input 执行到空并入 Outbound），再由宿主统一收口： Worker 停止后宿主重新是唯一执行者。
                 try
                 {
                     _workerPool?.Stop(drain: true);
@@ -753,9 +643,6 @@ namespace RoomServer
 
         /// <summary>
         /// 进房拒绝的**诊断单一落点**（《框架先行》§8「可诊断」）：结构化记录（stage/code/关联键）→ 计数与日志。
-        /// 关联键与客户端 <c>RoomClient</c> 的进房记录**同形同键**（<see cref="DiagTrace.JoinKey"/> 单源构造）——
-        /// 一次注入失败即可按 key 把两端与各域记录对齐，<paramref name="stage"/> 直接指出失败段落（Build/Room/…）。
-        /// 拒绝原因进 detail；**不回显 token/payload**（P0-3 与《Meta 专项》§13.1 不变）。
         /// </summary>
         private void RejectJoin(Session session, in Proto.JoinRequest join, string stage, string code, string reason)
         {
@@ -770,9 +657,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 当前 Host owner 对已消费命令执行 Runtime 并应用输出；入站命令的 Mailbox admission
-        /// 与消费由上层路由负责。
-        /// <paramref name="joinContext"/> = 触发本次命令的进房连接（PlayerAdmitted 落位用）。
+        /// 当前 Host owner 对已消费命令执行 Runtime 并应用输出；入站命令的 Mailbox admission 与消费由上层路由负责。
         /// </summary>
         private void SubmitCommand(in RoomCommand cmd, Session joinContext = null)
         {
@@ -855,9 +740,7 @@ namespace RoomServer
 
             if (_workerExecution)
             {
-                // **Worker 形态禁止宿主线程旁路直驱 Runtime**：执行 owner 是 Worker，宿主直接调用
-                // Runtime.Execute 会与 Worker 的 tick 并发改席位/状态机/输出缓冲（内核单线程、无锁）。
-                // 控制命令不能静默丢失——如实报错（未入盒 = 未执行，调用方/运维可重试）。
+                // **Worker 形态禁止宿主线程旁路直驱 Runtime**：执行 owner 是 Worker，宿主直接调用 Runtime.Execute 会与 Worker 的 tick 并发改席位/状态机/输出缓冲（内核单线程、无锁）。
                 HostLog.Error("Worker",
                     $"控制命令未入盒（worker 形态不旁路直驱）：kind={cmd.Kind} room={room?.RoomId}");
                 return;
@@ -884,8 +767,6 @@ namespace RoomServer
 
         /// <summary>
         /// Host owner 对单房间 Mailbox 的消费顺序：Control → Input → Outbound。
-        /// Outbound 是 Worker 回传的应用通道（宿主 owner 形态下为空；Dispose 收口与
-        /// Worker 执行形态的回传都走同一应用路径）。
         /// </summary>
         private void DrainRoomMailbox(RoomInstance room)
         {
@@ -1010,8 +891,6 @@ namespace RoomServer
 
         /// <summary>
         /// 唤醒房间归属 Worker（合并登记：每房间至多一个在途驱动工作项）。
-        /// 生产者协议 = 先入盒、再登记；Worker 侧按"清标记 → 消费 → 复检后重登记"配对
-        /// （见 <see cref="DriveRoomWorker"/>），保证不丢唤醒、也不堆积工作项。
         /// </summary>
         private void ScheduleRoomPump(RoomInstance room)
         {
@@ -1037,10 +916,7 @@ namespace RoomServer
                 room.ClearPendingTick();
         }
 
-        // **Worker 驱动体外提（P4）**：驱动核心、命令执行（含重连换绑/输入）、席位侧效应与回传出盒
-        // 已整体搬到 `RoomWorkerDriver.cs`（按线程归属切分：宿主只留**生产侧** ScheduleRoomPump/
-        // SubmitWorkerTick 与**回传应用侧** ApplyOutboundEnvelope 族）。调用点两处：
-        // 建房时 BindDriveAction 绑 `_workerDriver.Drive`，管线 SendTo 绑 `_workerDriver.Send`。
+        // **Worker 驱动体外提（P4）**：驱动核心、命令执行（含重连换绑/输入）、席位侧效应与回传出盒 已整体搬到 `RoomWorkerDriver.cs`（按线程归属切分：宿主只留**生产侧** ScheduleRoomPump/ SubmitWorkerTick 与**回传。）。
 
         /// <summary>应用一条回传事实（宿主主线程；<c>_currentRoom</c> 指向该房间供既有应用路径定位）。</summary>
         private void ApplyOutboundEnvelope(RoomInstance room, in RoomOutboundEnvelope envelope)
@@ -1069,11 +945,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 应用回传纯输出。<see cref="PlayerAdmitted"/> 特判：进房会话必须解析成功、仍在 JoinPending
-        /// 且**未断线**——否则是"座位已占但发起连接已不在/已断"的迟到 Join（释放孤儿席位并尝试回滚
-        /// 动态预留）。断线面必须在此拦截：在途 Join 期间传输断线时，会话 RoomId 尚未绑定
-        /// （本回传应用才绑定），<see cref="OnTransportDisconnected"/> 无处路由断线命令——
-        /// 不拦截则该席位永无 Disconnect 到达，Runtime 视为在线（未开局房永驻、对局中全员离场收尾失效）。
+        /// 应用回传纯输出。
         /// </summary>
         private void ApplyWorkerOutput(in RoomOutboundEnvelope envelope, RoomOutput output)
         {
@@ -1143,8 +1015,6 @@ namespace RoomServer
 
         /// <summary>
         /// 迟到 Join 的回传落定：座位在 Runtime 已占，但发起连接已不在（断线/被替换）。
-        /// 补一条 Disconnect 命令释放孤儿席位——断线通报按会话 RoomId 路由，而此刻会话尚未绑定房间，
-        /// 不补发则该席位无人回收（房间永远开不了局）；动态预留的回滚留待后续 Pump 复检。
         /// </summary>
         private void ApplyStaleWorkerJoin(RoomInstance room, int originConnectionId)
         {
@@ -1164,9 +1034,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 回收迟到 Join 留下的动态预留：房间仍是"动态 + 未开局 + 宿主席位全空 + 无待消费命令"
-        /// 且全服没有待验收 Join 时移除（与 RemoveEmptyRoom 同语义，额外要求 StaleJoinRollbackPending）。
-        /// 保守的 JoinPending 全局扫描保证不会误删"有 Join 在途"的房间。
+        /// 回收迟到 Join 留下的动态预留：房间仍是"动态 + 未开局 + 宿主席位全空 + 无待消费命令" 且全服没有待验收 Join 时移除（与 RemoveEmptyRoom 同语义。）。
         /// </summary>
         private bool TryRollbackStaleReservation(RoomInstance room)
         {
@@ -1222,9 +1090,7 @@ namespace RoomServer
                     }
                     _ops.NoteReject();
                     HostLog.Warn("Reject", $"conn {jr.ConnectionId}: {jr.Reason}");   // 只打原因（P0-3）
-                    // 动态房间是在 Join admission 时预留的；若 Runtime 在消费
-                    // 命令时拒绝（例如房间已在排空/终态），释放仍为空的预留，
-                    // 避免无效 roomId 占满 MaxRooms。已有状态或非动态房间不会被回收。
+                    // 动态房间是在 Join admission 时预留的；若 Runtime 在消费 命令时拒绝（例如房间已在排空/终态），释放仍为空的预留， 避免无效 roomId 占满 MaxRooms。
                     RemoveEmptyRoom(rejectedRoom);
                     break;
                 case MatchStateChangedOutput mcs:
@@ -1235,9 +1101,6 @@ namespace RoomServer
                 case RoomAbortedOutput ra:
                 {
                     // 终态中止的客户端信令（复用 MatchEnded——客户端既有终局链路；无结果可结算，Players 空）。
-                    // 触发面：等待超时/运维关闭/排空超时等**未开局即收尾**路径——此前在座客户端收不到
-                    // 任何信令，房间销毁后停在房间页无反馈。对局中收尾经 SettlementReady → MatchEnded
-                    // （带结果），不经此。打包单源在 HandshakePacker（与本地服共一份——字段面不两端漂移）。
                     RoomInstance room = CurrentOrFirstRoom;
                     if (room == null) break;
                     var aborted = HandshakePacker.BuildAbortedMatchEnded(ra);
@@ -1302,9 +1165,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 席位账号映射（《上云测试》裁决点① "结算载荷补 SeatAccountIds"）：与
-        /// <see cref="MatchResultSummary.Players"/> **同序等长**（按席位 playerId 查会话）；
-        /// 查不到（座位空/会话已清）→ 空串——各端按同一序对齐，Meta 侧缺账号如实拒绝。
+        /// 席位账号映射（《上云测试》裁决点① "结算载荷补 SeatAccountIds"）：与 <see cref="MatchResultSummary.Players"/> **同序等长**（按席位 playerId 查会话。）。
         /// </summary>
         private static string[] BuildSeatAccountIds(RoomInstance room, MatchResultSummary summary)
         {
@@ -1386,10 +1247,7 @@ namespace RoomServer
                     RoomInstance room = CurrentOrFirstRoom;
                     if (room == null) break;
 
-                    // 席位释放同步（未开局离场即释放——内核已摘席）：宿主侧会话槽一并清空，
-                    // 并复位该会话的路由字段（与 TryDestroyTerminalRoom 同款）——不复位则幽灵会话
-                    // 持续计入 OccupiedPlayerCount。对局中断线席位仍在列表（Connected=false），
-                    // 不受影响；同批进房的 PlayerAdmitted 先于本信号应用（lane FIFO）。
+                    // 席位释放同步（未开局离场即释放——内核已摘席）：宿主侧会话槽一并清空， 并复位该会话的路由字段（与 TryDestroyTerminalRoom 同款）——不复位则幽灵会话 持续计入 OccupiedPlayerCount。
                     for (int p = 0; p < room.Seats.Length; p++)
                     {
                         Session released = room.Seats[p];
@@ -1445,15 +1303,11 @@ namespace RoomServer
             FlushGmActions();                     // 运维动作：权威循环内执行（HTTP 线程只入队）
 
             // 逐房间推进（§8.2"一个 Worker 顺序驱动多个 RoomActor"）。
-            // 宿主 owner 形态：宿主主线程即唯一执行者；Worker 执行形态：宿主只投递命令并应用回传。
-            // 快照广播的播放条件由**每房间自己的席位**判定：多房间下必须按房间传各自的可播视图。
             for (int i = 0; i < _registry.Count; i++)
             {
                 RoomInstance room = _registry.Order[i];
 
-                // 排空超时兜底（§12 第 3 步"超时则归档 Aborted 原因并安全关闭"）：
-                // 排空期间若某房间未在时限内自然收敛，此处强制关闭，避免永久停在排空态。
-                // 两种形态都只负责**投递 Shutdown 命令**；执行者按形态而定。
+                // 排空超时兜底（§12 第 3 步"超时则归档 Aborted 原因并安全关闭"）： 排空期间若某房间未在时限内自然收敛，此处强制关闭，避免永久停在排空态。
                 if (room.DrainDeadlineMs >= 0 && _nowMs >= room.DrainDeadlineMs
                     && !room.Runtime.Closed && room.TryIssueDrainTimeout())
                 {
@@ -1473,9 +1327,7 @@ namespace RoomServer
 
                 if (_workerExecution)
                 {
-                    // Worker 执行形态：Tick 命令入 Control lane（合并节流：至多一条在途），
-                    // Worker 执行后自行广播；宿主本轮只应用已到达的回传。
-                    // 终态房间不再投递 Tick（空转无产出，且干扰销毁的静默判定）。
+                    // Worker 执行形态：Tick 命令入 Control lane（合并节流：至多一条在途）， Worker 执行后自行广播；宿主本轮只应用已到达的回传。
                     if (!room.Runtime.Closed)
                         SubmitWorkerTick(room);
                     DrainRoomOutbound(room);
@@ -1490,12 +1342,7 @@ namespace RoomServer
                     continue;
                 }
 
-                // Deferred Mailbox mode must consume the transport batch before the
-                // owner-generated Tick. Otherwise Tick advances the authoritative frame
-                // first and an input that was valid for frame+1 is classified stale when
-                // the Input lane is drained afterwards. Control still wins over Input
-                // within this drain; Tick is submitted only after the already-arrived
-                // batch has been applied.
+                // Deferred Mailbox mode must consume the transport batch before the owner-generated Tick. Otherwise Tick advances the authoritative frame firs。
                 if (_mailboxRouting && !_drainMailboxesImmediately)
                 {
                     // 先清空已经在 Control lane 中的消息，再重试暂存的断线事实，
@@ -1505,9 +1352,7 @@ namespace RoomServer
                     DrainRoomMailbox(room);
                 }
 
-                // A stale dynamic Join can release this room reservation while the
-                // mailbox is being drained. Adjust the index so the next room is
-                // still visited in this Pump instead of being skipped.
+                // A stale dynamic Join can release this room reservation while the mailbox is being drained. Adjust the index so the next room is still visite。
                 if (!_registry.IsRegistered(room))
                 {
                     i--;
@@ -1555,24 +1400,7 @@ namespace RoomServer
 
         /// <summary>
         /// 开始排空／优雅关闭（《商业级通用服务端框架总设计》§12"优雅关闭"第 2–5 步的宿主侧）。
-        ///
-        /// **设计五步与本实现的对应**：
-        /// 1. "Readiness 置 false，Lobby 不再分配新 Match"——本服务不接 Lobby，
-        ///    故无 readiness 面；等价语义由 <see cref="Draining"/> 对**本进程**生效：不做新房间、不收新进房。
-        /// 2. "停止接受新 Join，现有房间进入 drain"——<see cref="Draining"/> 置位后
-        ///    <see cref="InboundJoinHandlers"/> 一律拒绝（含已在册房间），既有对局继续跑。
-        /// 3. "在配置时限内完成对局；超时则归档 Aborted 原因并安全关闭"——到
-        ///    <paramref name="deadlineMs"/> 仍未终态的房间在 <see cref="Pump"/> 中发
-        ///    <see cref="ShutdownReason.DrainTimeout"/> 强制关闭。
-        /// 4. "刷新 Outbox/Archive 到持久介质"——装配了 <see cref="ISettlementOutbox"/> 时结算在
-        ///    SettlementReady 即逐条 write-through 落盘，排空收口经 <see cref="FlushSettlementOutbox"/>
-        ///    （未装配时本步为无操作）。
-        /// 5. "停止 Worker、Transport 和 Host"——<see cref="Dispose"/> 按
-        ///    Worker Stop(drain:true) → Transport → Outbox 顺序收尾；本方法不主动执行第 5 步。
-        ///
-        /// **幂等**：重复调用只在前移截止时刻时生效（取更早者，不延后已定的排空期限）。
         /// </summary>
-        /// <param name="deadlineMs">排空截止（单调毫秒，与 <c>Pump</c> 同一时钟源）。</param>
         public void BeginDrain(long deadlineMs)
         {
             if (_draining && deadlineMs >= _drainDeadlineMs) return;   // 已排空且新期限不更早 → 无操作
@@ -1602,23 +1430,14 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// §12 第 4 步"刷新 Outbox 到持久介质"——排空完成（<see cref="DrainComplete"/>）后的收口动作：
-        /// 逐条 write-through 形态下条目在 Enqueue 时已落盘，此处为幂等收口确认（未装配为无操作）。
-        /// 调用序：BeginDrain → 等 DrainComplete → 本方法 → Dispose（第 5 步）。
+        /// §12 第 4 步"刷新 Outbox 到持久介质"——排空完成（<see cref="DrainComplete"/>）后的收口动作： 逐条 write-through 形态下条目在 Enqueue 时已落盘。
         /// </summary>
         public void FlushSettlementOutbox()
         {
             _settlementOutbox?.Flush();
         }
 
-        // ---- 运维（GM）通道（《云端GM通道专项设计》§2/§3）----
-        //
-        // 设计硬约束三条：
-        // ① **不新增 RoomCommandKind**——RoomCommand 在双编共享源集内，改它 BuildHash 即变 ⇒ 客户端要重打包，
-        //    与"客户端零改动"冲突；故只复用既有 StartEarly / Shutdown / Disconnect 三种命令 + 本宿主的既有 public 面。
-        // ② **动作只在权威循环执行**——HTTP 线程不得直接改权威状态（_mailboxRouting 关闭时 SubmitCommandTo 是同步的）。
-        // ③ **Worker 执行形态下执行 owner 是 Worker**——宿主线程不得旁路直驱 Runtime（SubmitCommandTo 的旁路
-        //    只在宿主 owner 形态成立）；规则类动作经 RoomInstance 待办交给归属 Worker（见 ExecuteGmAction）。
+        // ---- 运维（GM）通道（《云端GM通道专项设计》§2/§3）---- 设计硬约束三条： ① **不新增 RoomCommandKind**——RoomCommand 在双编共享源集内，改它 BuildHash 即变 ⇒ 客户端要重打包， 与"客户端零改动"冲突。
 
         /// <summary>
         /// 运维动作入队（GM HTTP 线程调用）：只做**不碰权威状态**的前置校验（房间/席位是否存在），
@@ -1739,9 +1558,7 @@ namespace RoomServer
                     return;
 
                 case GmActionKind.SetRules:
-                    // 规则位随下一份快照全量下发，客户端据此同值预测（免死不再"掉血回弹"）。规则**不进摘要**。
-                    // Worker 执行形态：**只登记待办**，由归属 Worker 在驱动开头落地——宿主直写会与 Worker 的
-                    // tick 并发（规则在 tick 中途换掉 ⇒ 同帧内判定读到的规则不一致）。
+                    // 规则位随下一份快照全量下发，客户端据此同值预测（免死不再"掉血回弹"）。
                     if (_workerExecution)
                     {
                         room.SetPendingTestRules(action.Flags == 0 ? null : MatchTestRules.FromFlags(action.Flags));
@@ -1820,10 +1637,7 @@ namespace RoomServer
             get
             {
                 if (!_draining) return false;
-                // **跨线程读面**：本属性由 Program 主线程轮询，而权威线程可在两拍之间销毁终态房间
-                // （TryDestroyTerminalRoom）——直接 `for (i < Count) Order[i]` 会在缩表瞬间越界，
-                // 异常冒出顶级语句会跳过 loop.Stop()/FlushSettlementOutbox()。走注册表快照；
-                // 快照撕裂返回空时再用 Count 复核，宁可按"未完成"多等一拍（不得提前放行释放）。
+                // **跨线程读面**：本属性由 Program 主线程轮询，而权威线程可在两拍之间销毁终态房间 （TryDestroyTerminalRoom）——直接 `for (i < Count) Order[i]` 会在缩表瞬间越界。
                 RoomInstance[] rooms = _registry.SnapshotArray();
                 if (rooms.Length == 0 && _registry.Count != 0) return false;
                 for (int i = 0; i < rooms.Length; i++)
@@ -1858,18 +1672,8 @@ namespace RoomServer
         public string DiagnosticsResolveFile(string fileName) => _diagnostics?.ResolveFile(fileName);
 
         /// <summary>
-        /// 打开房间（幂等：已存在则返回既有实例，**不重建**）。走配置模板造房间配置，受
-        /// <see cref="MaxRooms"/> 约束——达上限返回 null（调用方**拒绝进房**，不是静默排队）。
-        ///
-        /// **失败语义**（都返回 null，由调用方转成"拒绝进房"）：
-        /// - 未装配 <see cref="RoomServerConfig"/> 且 roomId 与预置房间不符（单房间形态）；
-        /// - 达容量上限；
-        /// - 模板缺失或模板配置非法（<see cref="RoomServerConfig.BuildRoomConfig"/> 抛，此处捕获转为 null）；
-        /// - 多图批：模板与请求行键冲突、请求行键缺当地图（<see cref="ResolveMap"/> 抛，同口径转拒绝）。
-        ///
-        /// **空 roomId**：建房必须有路由键，直接 null。
+        /// 打开房间（幂等：已存在则返回既有实例，**不重建**）。
         /// </summary>
-        /// <param name="requestedMapId">票据盖章的请求地图行键（0 = 未指定——模板/宿主默认图）。</param>
         public RoomRuntime OpenRoom(string roomId, int requestedMapId = 0, int requestedExpectedPlayers = 0,
             string templateId = null)
         {
@@ -1895,10 +1699,7 @@ namespace RoomServer
             {
                 // 空模板参数 → 配置的 default_template；非空（测试房）→ 按票据盖章的模板
                 RoomConfig cfg = _serverConfig.BuildRoomConfig(templateId, roomId, requestedMapId, requestedExpectedPlayers);
-                // **内核构造也在 try 内**（P0-2）：此前 try 只包配置解析，AddRoom → RoomRuntime
-                // 构造抛出的异常会一路窜上权威循环线程（现成触发源：expected_players 超过内核容量，
-                // 现两侧已同源校验；此处是不依赖上游校验的兜底）。构造失败时房间尚未登记（登记是
-                // AddRoom 的最后两步），故直接拒绝即可，无半成品残留。
+                // **内核构造也在 try 内**（P0-2）：此前 try 只包配置解析，AddRoom → RoomRuntime 构造抛出的异常会一路窜上权威循环线程（现成触发源：expected_players 超过内核容量， 现两侧已同源校验；此处是不依赖上游校验的兜底）。
                 RoomInstance instance = AddRoom(cfg, dynamic: true);
                 if (!string.IsNullOrEmpty(templateId))
                 {
@@ -1917,9 +1718,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 行键 → 判定图解析（多图批）：0/负 = 宿主默认图（<see cref="_map"/>）；&gt;0 经 <see cref="_mapCatalog"/>；
-        /// **目录缺失 = 配置缺失显式抛**（不静默回落默认图——"请求训练场"静默变首图是判定面分叉源）。
-        /// 目录实现的缺行/坏值语义 = fail-closed 抛（调用方 <see cref="OpenRoom"/> 转"拒绝建房"）。
+        /// 行键 → 判定图解析（多图批）：0/负 = 宿主默认图（<see cref="_map"/>）；&gt;0 经 <see cref="_mapCatalog"/>。
         /// </summary>
         private SimMapData ResolveMap(int mapId)
         {
@@ -1963,9 +1762,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 只移除刚刚预留且尚未形成席位的空房间。动态 Join 入盒失败或 Runtime
-        /// 消费后拒绝时用来回滚房间容量 reservation；已有席位/已开局房间绝不回收。
-        /// 身份校验防止误删**同房号重建后的新房间**（旧实例被终态销毁后，同房号可再建）。
+        /// 只移除刚刚预留且尚未形成席位的空房间。
         /// </summary>
         private bool RemoveEmptyRoom(RoomInstance room)
         {
@@ -1983,29 +1780,12 @@ namespace RoomServer
 
         /// <summary>
         /// 终态房间销毁（《商业级通用服务端框架总设计》§42"drain 与房间销毁后清理归 R2"）。
-        ///
-        /// 触发：房间到达终态（<see cref="RoomRuntime.Closed"/> = Closed/Aborted）后，在随后的
-        /// <see cref="Pump"/> 中销毁——销毁前本房间**当轮输出已全部应用**（结算入 Outbox、
-        /// 关闭事件已记日志），因此不丢结算事实。
-        ///
-        /// 动作：从房间表移除（容量归还，达上限前不再占用）→ Mailbox Complete（停止入站，
-        /// 残余消息丢弃——房间已终态，输入/Tick 均为无操作）→ 清理席位会话的路由字段。
-        ///
-        /// **为什么必须清理会话路由**：销毁后同房号可重建。若旧会话仍带
-        /// <c>RoomId/PlayerId</c>，其迟到输入会按房号命中**新房间**并可能落在陌生人的席位上
-        /// （跨连接的输入串位）。清理后旧会话重新 Join 必须再次走准入。
-        ///
-        /// **Worker 执行形态的静默前提**：销毁必须等房间静默（Worker 无在途驱动、无待驱动工作项、
-        /// 三条 lane 全空）——Worker 执行 Shutdown 与宿主观察到 Closed 之间存在回传窗口，
-        /// 不静默就丢弃会把仍在路上的结算输出一并丢掉。
         /// </summary>
         private bool TryDestroyTerminalRoom(RoomInstance room)
         {
             if (room == null || !room.Runtime.Closed) return false;
 
-            // Worker 执行形态的销毁前提是房间**静默**：Worker 无在途驱动、无待驱动工作项、
-            // 三条 lane 全空。否则"销毁时丢弃残留"会把仍在回传路上的结算输出一并丢掉
-            //（Worker 执行 Shutdown 与宿主观察到 Closed 之间有一个回传窗口）。
+            // Worker 执行形态的销毁前提是房间**静默**：Worker 无在途驱动、无待驱动工作项、 三条 lane 全空。
             if (_workerExecution)
             {
                 if (room.HasPendingWork) return false;   // 登记位或在途计数任一非零 = 未静默
@@ -2051,9 +1831,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// Ops 周期打印（默认 5s）。**逐房间一行**——多房间下把整台服务器的帧号/快照合成一行会丢掉
-        /// "哪个房间慢"这个唯一有用的信息（§514"多房间并发时一个慢客户端或过载房间不拖累其他房间"
-        /// 的观测前提就是能按房间看）。节拍与宿主级计数只打在首行（属进程/Worker 级，不属房间）。
+        /// Ops 周期打印（默认 5s）。
         /// </summary>
         private void MaybePrintOps()
         {

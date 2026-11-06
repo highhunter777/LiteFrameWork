@@ -11,30 +11,6 @@ using RoomServer.Application;
 using RoomServer.Runtime;
 
 // RoomServer 入口（权威循环 + 快照/回溯/Ops）。
-// 节拍由 ServerLoop 绝对锚定（60Hz，防漂移累积）。
-//
-// 配置来源：宿主参数走配置文件 + 命令行覆盖；**玩法数值走 .bytes 表**
-// （与客户端同一份二进制——两端同代码同数据，物理上不可漂移）。
-//   --config <path>        配置文件路径（默认 Config/roomserver.json）
-//   --combat-table <dir>   玩法数值表目录（缺省走 ServerTableLoader.LoadFromRepo 的仓库路径 Assets/GameData/Config）
-//   其余：--port / --duration <ms> / --quiet / --ticket-key <kid>:<base64>（或环境变量 LITENET_TICKET_KEY） / --audience <id>
-//   --envelope-key <base64>（或环境变量 LITENET_SECURE_ENVELOPE_KEY）
-//   --lobby-instance-key <base64>（或环境变量 LITENET_LOBBY_INSTANCE_KEY；配置 lobby.url 时必填——
-//     实例注册凭据，与 Meta 的 LobbyInstanceKeyBase64 同值）
-//   --settlement-instance-key <base64>（或环境变量 LITENET_SETTLEMENT_INSTANCE_KEY；配置
-//     settlement.submit_url 时必填——**结算凭据与实例注册分权**（P1②），与 Meta 的
-//     SettlementInstanceKeyBase64 同值：注册实例 ≠ 写结算账本，两权限面不共用凭据）
-//   --allow-insecure-local（仅本机联调，显式允许裸 KCP；公网/共享环境禁止）
-//
-// **房间形态**：单进程多房间 + 动态创建（§6"一个 roomId 只能映射一个独立 RoomActor"）。
-// 房间参数来自配置模板，玩法数值为**进程级共享**（Sim 静态读 CombatConfig——参数化迁 G1）。
-//
-// **装配（2026-10-08 批1）**：组合根走 MS DI（《服务端宿主装配收敛专项设计》）——
-// 对象图注册/构建在 HostAssembly；解析序=创建序（outbox → transport → host），
-// 容器按创建序逆序释放，与历史 using 声明序（host→transport→outbox）等价。
-//
-// 控制台中文固定 UTF-8：默认随系统 OEM 码页（中文机=GBK），重定向捕获方（本地联测面板）
-// 按 UTF-8 解码会乱码丢字。无控制台宿主（detached/服务化）码页不可切——直换托管写出流，同得 UTF-8。
 try
 {
     Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -102,8 +78,6 @@ else if (!allowInsecureLocal)
 }
 
 // 玩法数值/武器表装载（.bytes 表——与客户端同一份文件；fail-fast：数值缺失宁可起不来）。
-// 装载产物 = CombatValues/WeaponTable 实例（技术债 #1：不再回填全局静态面）——经 HostAssembly.Inputs
-// 显式传入宿主/房间；缺失会在装配入口被拒（必填校验），"丢弃返回值跑默认值"的分叉面结构性消失。
 ServerTableLoad load = combatTableDir != null
     ? ServerTableLoader.LoadTableBytes(combatTableDir)
     : ServerTableLoader.LoadFromRepo();
@@ -149,9 +123,7 @@ if (serverConfig.LobbyEnabled)
     };
 }
 
-// 结算提交参数（配置了 settlement.submit_url 才组装）：**独立凭据**（P1②）
-// ——结算写账本与实例注册是两条权限面，不共用实例密钥；缺结算凭据即拒启（fail-closed，
-// 与 Lobby 注册同款：不静默退回 lobby 密钥，那等于把分权又抹平一次）。
+// 结算提交参数（配置了 settlement.submit_url 才组装）：**独立凭据**（P1②） ——结算写账本与实例注册是两条权限面，不共用实例密钥；缺结算凭据即拒启（fail-closed， 与 Lobby 注册同款：不静默退回 lobby 密钥。）。
 SettlementSubmitService.Settings settlementSettings = null;
 if (serverConfig.SettlementEnabled)
 {
@@ -168,9 +140,7 @@ if (serverConfig.SettlementEnabled)
         IntervalMs = (int)serverConfig.SettlementIntervalMs,
         MaxBackoffMs = (int)serverConfig.SettlementMaxBackoffMs,
         RequestTimeoutMs = (int)serverConfig.SettlementTimeoutMs,
-        // 奖励换算（P3：占位改显式接缝）——当前口径 = 无经济（逐玩家 delta 0）。设计只规定了
-        // RewardDelta 的形状与归属、未定义奖励数值（全仓无 reward 字段），故不在此自造数字；
-        // 经济口径落地后**只改这一行**（换一个 ISettlementRewardPolicy），管道与 Meta 侧零改动。
+        // 奖励换算（P3：占位改显式接缝）——当前口径 = 无经济（逐玩家 delta 0）。
         RewardPolicy = NoEconomyRewardPolicy.Instance,
     };
 }
@@ -216,9 +186,7 @@ HostAssembly.Register(services, new HostAssembly.Inputs
 });
 using var provider = HostAssembly.Build(services);
 
-// 解析序=创建序：outbox → transport → host。容器按创建序**逆序**释放（host→transport→outbox），
-// 与历史 using 声明序等价（排空第 5 步手验基线）。**不得先解析 host**——否则创建序会变成
-// transport→outbox→host、释放序漂移为 host→outbox→transport。
+// 解析序=创建序：outbox → transport → host。
 
 // 结算 Outbox（§11.3"本地持久 Outbox"；排空第 4 步的落地面）。启动时续接既有日志：
 // 进程重启后待提交条目不丢（重启恢复面）；坏行（崩溃半行）跳过并计数。
@@ -235,8 +203,6 @@ var host = provider.GetRequiredService<ServerHost>();
 host.Ops.PrintEnabled = !quiet;
 
 // /metrics 零依赖文本出口（R4 第一批）：metrics_port > 0 启用（缺省 0 = 关闭，行为零变化）。
-// 房间数 gauge 经委托注入（Ops 住 Application 层不认识宿主）；Start 失败走**告警降级**——
-// 可观测面不打断宿主可用性（Windows 非管理员绑 + 前缀需 netsh urlacl）。
 host.Ops.BindRoomsGauge(() => host.RoomCount);
 using var metrics = serverConfig.MetricsPort > 0
     ? new MetricsHttpListener(() => host.Ops.FormatMetrics())
@@ -288,8 +254,6 @@ else if (serverConfig.GmPort > 0)
 }
 
 // Lobby 注册客户端（解析在宿主之后——创建序=解析序，释放逆序天然"先停心跳、再收宿主"）。
-// 排空期间心跳继续（快照 Draining=true）——Lobby 立即停止分配新对局（§7 drain 协同），
-// 直到进程退出才停止上报。
 LobbyRegistrationClient lobbyClient = provider.GetService<LobbyRegistrationClient>();
 if (lobbyClient != null)
 {
@@ -321,9 +285,6 @@ Console.WriteLine($"[RoomServer] 跑满 {durationMs}ms：房间数={host.RoomCou
 else
 {
     // 常驻形态：Ctrl+C 触发**优雅关闭**（§12 优雅关闭 2→4 步；不再直接杀进程）。
-    // 第 1 步（readiness 置 false / Lobby 停分配）本服务无 Lobby 面，等价语义由 host.Draining 承担；
-    // 第 4 步（刷 Outbox 到持久介质）经 host.FlushSettlementOutbox() 收口；
-    // 第 5 步的 Worker/Transport 生命周期已由 using/Dispose 接线。
     var shutdown = new ManualResetEventSlim(false);
     Console.CancelKeyPress += (_, e) =>
     {
@@ -347,9 +308,7 @@ else
     {
         Thread.Sleep(50);
     }
-    // 停止有界等待（§12 第 5 步的前置）：false = 帧体被阻塞（如结算线程持 Outbox 锁做压实），
-    // 循环线程仍在 Pump——此时直接 Flush/释放会与其并发（Outbox 释放后的入盒抛 ODE 被 PumpOnce
-    // 吸收，只记一次"泵失败"而该笔结算静默丢失），故再等一次并如实告警。
+    // 停止有界等待（§12 第 5 步的前置）：false = 帧体被阻塞（如结算线程持 Outbox 锁做压实）， 循环线程仍在 Pump——此时直接 Flush/释放会与其并发（Outbox 释放后的入盒抛 ODE 被 PumpOnce 吸收。）。
     if (!loop.Stop())
     {
         Console.WriteLine($"[RoomServer] !! 权威循环未在 {ServerLoop.DefaultStopTimeoutMs}ms 内退出（帧体阻塞）——再等 3s");
@@ -402,9 +361,7 @@ static byte[] DecodeInstanceKeyOrFail(string base64, string label)
 }
 
 /// <summary>
-/// SIGTERM 排空接线（《上云测试专项设计》§5）：容器 stop/K8s 停止信号与 Ctrl+C 走同一排空路径
-/// （BeginDrain → DrainComplete → Flush → Dispose）。Windows 等不支持该信号的平台返回 null
-/// （本地常驻形态仍由 Ctrl+C 承担）；注册本身失败不致命——如实降级不阻断启动。
+/// SIGTERM 排空接线（《上云测试专项设计》§5）：容器 stop/K8s 停止信号与 Ctrl+C 走同一排空路径 （BeginDrain → DrainComplete → Flush → Dispose）。
 /// </summary>
 static PosixSignalRegistration TryRegisterSigterm(ManualResetEventSlim shutdown)
 {
@@ -423,9 +380,7 @@ static PosixSignalRegistration TryRegisterSigterm(ManualResetEventSlim shutdown)
 }
 
 /// <summary>
-/// 房间侧环境变量名（P2 批二收口）：名字是**部署契约**——部署脚本与文档必须与代码同名，
-/// 字面量散在多处时改名会静默漏改（表现为"密钥注入了但服务说没注入"）。
-/// 声明置于顶级语句之后：顶级语句文件的局部函数属于顶级语句，类型声明不能插在它们之间。
+/// 房间侧环境变量名（P2 批二收口）：名字是**部署契约**——部署脚本与文档必须与代码同名， 字面量散在多处时改名会静默漏改（表现为"密钥注入了但服务说没注入"）。
 /// </summary>
 static class EnvVars
 {

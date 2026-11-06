@@ -30,10 +30,6 @@ namespace RoomServer.Diagnostics
 
     /// <summary>
     /// 在线房间重放器：用真实 <see cref="RoomRuntime"/> 消费录制命令，逐步比对录制 checksum。
-    ///
-    /// **为什么不复用 <see cref="SimReplayRunner"/> 的输入回放**：权威链在 Step 后执行延迟补偿与
-    /// MatchSystem.Tick，且输入携带 viewFrame/ackSnapshot；这些上下文不在 SimInputFrame 里。
-    /// 复制一份 Step 编排 = 第二套执行链，必然漂移。本类只做“重建同配置房间 + 按序喂命令”。
     /// </summary>
     public static class RoomReplayRunner
     {
@@ -127,8 +123,6 @@ namespace RoomServer.Diagnostics
                         if (actualFrame != e.Step.Frame || actualChecksum != e.Step.Checksum)
                         {
                             // 分歧帧的字段级报告：录制世界（环内）vs 重放世界（当前 AuthSim）。
-                            // 两侧在上一帧仍逐位一致（checksum 已证），故差异全部来自本帧执行——
-                            // 这正是"哪里开始不同"的直接答案。
                             SimWorldDiff.Report divergenceReport = null;
                             string diffNote;
                             if (record.TryGetWorld(e.Step.Frame, out SimWorldState recordedWorld))

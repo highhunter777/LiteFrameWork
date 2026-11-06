@@ -5,13 +5,7 @@ using RoomServer.Application;
 namespace RoomServer
 {
     /// <summary>
-    /// 重试控制队列满载时暂存的断线事实（自 <c>ServerHost</c> 按整块搬移判据外提：自有状态 + 单提交端口，
-    /// 块内互调、无外部调用点）。
-    ///
-    /// 断线不能直接旁路执行，否则会越过同房间其他连接已经排队的 Join/Rebind——只在提交成功后移除；
-    /// 不做 owner 旁路，因而仍保持同一 Control lane 的 FIFO。Mailbox 关闭时丢弃未处理的排队事实
-    /// （宿主已进入释放阶段）。
-    /// 线程契约：入队来自传输事件线程、冲刷来自宿主泵线程——经内部锁互斥（同原宿主实现，语义零变化）。
+    /// 重试控制队列满载时暂存的断线事实（自 <c>ServerHost</c> 按整块搬移判据外提：自有状态 + 单提交端口， 块内互调、无外部调用点）。
     /// </summary>
     internal sealed class PendingDisconnectQueue
     {

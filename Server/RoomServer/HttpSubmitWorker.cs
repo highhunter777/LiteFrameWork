@@ -5,22 +5,7 @@ using System.Threading;
 namespace RoomServer
 {
     /// <summary>
-    /// 房间侧"后台 HTTP 客户端"骨架（P2 批二：**模板方法**收口）：
-    /// 构造校验 → <c>ManualResetEventSlim</c> 停止位 → 专用后台线程 → 有界停止 → 释放。
-    ///
-    /// **为什么要有它**：<see cref="LobbyRegistrationClient"/>（实例心跳）与
-    /// <see cref="SettlementSubmitService"/>（结算提交）此前是同一套骨架的两份手抄——启动/停止/
-    /// 释放/构造校验逐行同构，只有**循环策略**不同（前者定间隔心跳，后者排空式消费 + 指数退避）。
-    /// 骨架手抄的代价不是冗长，而是**单边修改**：给一个客户端补上"停止后再 Start 不许复活"
-    /// 或"释放顺序"，另一个静默保持旧行为。
-    ///
-    /// **收口边界**：本类只管**线程生命周期与公共校验**；循环策略留在子类的 <see cref="Loop"/>，
-    /// 载荷形状/退避算法/快照回调也留在子类——那是两条链真正的差异，收进来只会变成一堆 if。
-    /// 值常量与无状态机制（超时兜底/节流节奏/Bearer/有界等待）见 <see cref="HttpWorkerSupport"/>。
-    ///
-    /// **线程纪律**：单在途请求、无队列无堆积；<c>IsBackground</c>（不阻塞进程退出）；
-    /// 停止走 <see cref="Stop"/>（置停止位 + **取消在途请求** + 有界 Join，返回"线程是否已退出"）；
-    /// **释放前置条件 = 线程确已退出**——未退出时不释放停止位/HttpClient（见 <see cref="Dispose"/>）。
+    /// 房间侧"后台 HTTP 客户端"骨架（P2 批二：**模板方法**收口）： 构造校验 → <c>ManualResetEventSlim</c> 停止位 → 专用后台线程 → 有界停止 → 释放。
     /// </summary>
     public abstract class HttpSubmitWorker : IDisposable
     {
@@ -129,12 +114,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 释放（幂等）。**线程未退出则不释放停止位与 <see cref="Http"/>**：旧形态无条件
-        /// <c>_stop.Dispose()</c>，而请求超时（缺省 5s、可配更长）大于停止等待（2s）时线程仍在跑，
-        /// 回到循环后的 <see cref="WaitStop"/> 会在已释放的 MRES 上抛 <see cref="ObjectDisposedException"/>
-        /// ——后台线程未处理异常 = **关闭阶段整进程终止**（打断 DI 容器逆序释放、退出码非 0）。
-        /// 代价是超时分支**不置 <c>_disposed</c>**：之后再调 Dispose（线程已退出时）仍可完成释放；
-        /// 若到进程结束都没再调，则是关闭路径上一次有意保留（进程即将退出，无后续影响）。
+        /// 释放（幂等）。
         /// </summary>
         public void Dispose()
         {

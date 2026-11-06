@@ -14,13 +14,6 @@ namespace MetaServer
 {
     /// <summary>
     /// Meta 宿主装配（《Meta 服务专项设计》§4.1/§4.2、服务端总设计 §12）。
-    ///
-    /// 本宿主只做**编排**：选项接线段归 <see cref="MetaHostOptions"/>、模块注册归
-    /// <see cref="MetaServiceRegistration"/>；本文件保留公共装配入口、中间件与端点挂载序、
-    /// 优雅关闭与命令行解析（《服务端宿主结构拆分专项设计》批 7A）。
-    ///
-    /// 与 RoomServer 的关系：两条线共用同一套 Host/Options/`IHostedService`/Cancellation/优雅关闭
-    /// 纪律（§4.1 依据 2）；`RoomServer.Host` 的 Generic Host 化归 R2，届时可反向参照本文件。
     /// </summary>
     public static class MetaHost
     {
@@ -33,12 +26,7 @@ namespace MetaServer
         public const string ConfigSection = "Meta";
 
         /// <summary>
-        /// 构造宿主。**测试也从这里装配**——测试与生产共用同一装配路径，不允许测试另建一套
-        /// （否则测的不是交付物）。
-        ///
-        /// 配置优先级（后者覆盖前者）：代码内联默认值 → `appsettings.json` → `META_` 环境变量
-        /// → <paramref name="overrides"/>（命令行/测试，§10"命令行只用于本地覆盖"）；
-        /// 来源与 Options 接线在 <see cref="MetaHostOptions"/>，模块注册在 <see cref="MetaServiceRegistration"/>。
+        /// 构造宿主。
         /// </summary>
         public static WebApplication Build(string[] args, IReadOnlyDictionary<string, string> overrides = null)
         {
@@ -70,12 +58,7 @@ namespace MetaServer
         }
 
         /// <summary>
-        /// 游客登录限流（未鉴权写面的兜底）：**每源 IP 每分钟**许可数走配置
-        /// （<see cref="MetaConfig.GuestLoginPerMinute"/>；0 = 关闭）。
-        ///
-        /// 只拦 <c>POST /auth/guest</c>：它是全服务唯一"不带凭据就能落地一条账号文档"的端点
-        /// （房间端已有限流，Meta 侧此前没有）。时钟用 <see cref="Environment.TickCount64"/>
-        /// （单调毫秒，非墙钟——窗口判定不受校时影响）；键表容量是防放大的常量，不是部署旋钮。
+        /// 游客登录限流（未鉴权写面的兜底）：**每源 IP 每分钟**许可数走配置 （<see cref="MetaConfig.GuestLoginPerMinute"/>；0 = 关闭）。
         /// </summary>
         private static void UseGuestLoginRateLimit(WebApplication app)
         {
@@ -109,9 +92,7 @@ namespace MetaServer
         private const int GuestRateLimitKeyCapacity = 4096;
 
         /// <summary>
-        /// 请求计数中间件（§11.2）。按响应状态码同时记成功与拒绝：
-        /// <c>HttpRejected</c> 统计 4xx/5xx（含超限、未知路由），不是永远为 0 的占位字段。
-        /// 真正的 <c>{route,code}</c> 分标签出口归 R4——此处不提前引入高基数标签（§11.2 红线）。
+        /// 请求计数中间件（§11.2）。
         /// </summary>
         private static async Task CountRequestsAsync(HttpContext context, Func<Task> next)
         {
@@ -128,12 +109,7 @@ namespace MetaServer
         }
 
         /// <summary>
-        /// 优雅关闭（§10 四步）。drain 由 Host 的 ApplicationStopping 触发：
-        /// readiness 先置 false，再由 Host 在 <see cref="MetaConfig.ShutdownTimeoutSeconds"/> 内
-        /// 完成在途请求。
-        ///
-        /// 业务侧的第 2～4 步（停止接受新的外部写、刷新 Outbox、停止后台服务）随模块接入，
-        /// 不在此空转占位。
+        /// 优雅关闭（§10 四步）。
         /// </summary>
         public static void WireGracefulShutdown(WebApplication app)
         {
@@ -150,9 +126,7 @@ namespace MetaServer
         }
 
         /// <summary>
-        /// 命令行覆盖解析（§10"命令行只用于本地覆盖"）。**未知参数/缺值 = 配置错误**（error 非空，
-        /// 退出码 2）——静默忽略拼错的覆盖项会让"以为改了配置"变成假象，与 fail-closed 口径矛盾
-        /// （硬化批 2026-10-03）。独立成静态方法供 L1 直测。
+        /// 命令行覆盖解析（§10"命令行只用于本地覆盖"）。
         /// </summary>
         public static IReadOnlyDictionary<string, string> ParseCliOverrides(string[] args, out string error)
         {

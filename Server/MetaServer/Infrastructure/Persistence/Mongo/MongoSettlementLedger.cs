@@ -7,17 +7,7 @@ using MongoDB.Driver;
 namespace MetaServer.Infrastructure.Persistence.Mongo
 {
     /// <summary>
-    /// 结算账本的真 Mongo 适配器（M0-c 批二；Meta 专项 §9.1"唯一索引是幂等的最终实现"、
-    /// §11.3"事务内写唯一 Ledger + 更新库存/进度"、§8.1"副本集模式；事务只围绕必须原子化的更新"）。
-    ///
-    /// 与 L1 替身的语义对应关系：
-    /// - 幂等双维度：_id（operationId）＋业务键复合唯一索引（迁移 v1 建）——存储端唯一性兜底；
-    /// - 原子边界：账目写入与 revision CAS 推进在同一副本集事务内提交，CAS 冲突/账目撞键则整笔回滚；
-    /// - 未确认：存储异常/提交冲突抛 <see cref="SettlementStoreUnavailableException"/>——重试安全
-    ///   （可能已应用也可能没有，唯一索引保证重试命中同一条账目）。
-    ///
-    /// 事务内并发冲突（同一玩家文档 write conflict）不在适配器内自动重试：以未确认抛出、由调用方
-    /// 重试——驱动 3.x 的可重试写不覆盖多语句事务的提交冲突。
+    /// 结算账本的真 Mongo 适配器（M0-c 批二；Meta 专项 §9.1"唯一索引是幂等的最终实现"、 §11.3"事务内写唯一 Ledger + 更新库存/进度"、§8.1"副本集模式。）。
     /// </summary>
     public sealed class MongoSettlementLedger : ISettlementLedger
     {
@@ -93,10 +83,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
                 }
                 else
                 {
-                    // 条件推进：CAS 模式 filter 钉住期望修订号，并发下匹配不到即 CAS 失败；
-                    // 追加模式（-1）不做期望比对——修订号只增不比，幂等由账目唯一索引承载。
-                    // 事务快照隔离下 ModifiedCount==1 即文档确在期望修订号上（FindOneAndUpdate
-                    // 的表达式重载在驱动 3.x 有二义性，UpdateOneAsync 无此问题且语义等价）。
+                    // 条件推进：CAS 模式 filter 钉住期望修订号，并发下匹配不到即 CAS 失败； 追加模式（-1）不做期望比对——修订号只增不比，幂等由账目唯一索引承载。
                     FilterDefinition<ProfileRevisionDoc> advanceFilter = write.ExpectedRevision == AppendMode
                         ? Builders<ProfileRevisionDoc>.Filter.Eq(d => d.PlayerId, write.Key.PlayerId)
                         : Builders<ProfileRevisionDoc>.Filter.Where(

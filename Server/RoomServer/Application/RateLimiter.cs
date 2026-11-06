@@ -5,8 +5,6 @@ namespace RoomServer.Application
 {
     /// <summary>
     /// 限流参（配置装载产物；<see cref="Default"/> 为缺省——容量/速率都可调，不写死为事实）。
-    /// 由 <c>RoomServerConfig</c> 的 <c>rate_limit</c> 分区装载（全部字段可选 + 范围校验），
-    /// 或由宿主/用例直接构造（<see cref="RateLimiter"/> 的注入形态）。
     /// </summary>
     public sealed class RateLimitSettings
     {
@@ -49,11 +47,7 @@ namespace RoomServer.Application
         }
 
         /// <summary>
-        /// 缺省参（原型/兼容形态用；生产应经配置显式给值——§520/§600 不把估算值写死为事实）：
-        /// - IP 连接 32 突发 + 4/s：一个 NAT 后的玩家群突发建连不误伤，稳态洪水被压；
-        /// - IP 入场 32 突发 + 8/s：客户端重连不自动重试（RoomClient 拒绝/超时即 Failed），无需大余量；
-        /// - 账号入场 16 突发 + 2/s：一个账号的合法入场频率远低于此；
-        /// - Session 包 256 突发 + 128/s：≈60Hz 输入节奏的 2 倍余量（含 ACK/离场等杂项）。
+        /// 缺省参（原型/兼容形态用；生产应经配置显式给值——§520/§600 不把估算值写死为事实）。
         /// </summary>
         public static readonly RateLimitSettings Default = new RateLimitSettings(
             new Lane(32, 4), new Lane(32, 8), new Lane(16, 2), new Lane(256, 128),
@@ -61,29 +55,7 @@ namespace RoomServer.Application
     }
 
     /// <summary>
-    /// 分层限流（《商业级通用服务端框架总设计》§P0-6"远端地址限流"、
-    /// §595 Beta 门槛"限流可**按 IP/账号/Session** 生效"、§343"限流桶必须有**容量上限和周期清理**"）。
-    ///
-    /// **模型**：每 (lane, key) 一个令牌桶——<see cref="RateLimitSettings.Lane.Burst"/> = 突发容量
-    /// （同时也是桶的上限），<see cref="RateLimitSettings.Lane.RefillPerSec"/> = 稳态补充速率。
-    /// 请求消耗 1 枚令牌，无令牌即拒绝。四条 lane 对应三道维度：
-    /// <list type="bullet">
-    /// <item><c>IpConnect</c>——IP 维度·连接：OnConnected 一拍（kcp2k 握手后才会触发，键是真实可达地址）；</item>
-    /// <item><c>IpEntry</c>——IP 维度·入场：Join / Reconnect 尝试（先于验签与建房，是"频率校验"这一道）；</item>
-    /// <item><c>AccountEntry</c>——账号维度·入场：验签通过后按 <c>AccountId</c> 计（验签前拿不到账号）；</item>
-    /// <item><c>SessionPackets</c>——Session 维度·包速率：单连接入包限速（防单热连接灌爆宿主线程）。</item>
-    /// </list>
-    ///
-    /// **有界性（§343）**：每 lane 的表有独立容量上限 <see cref="RateLimitSettings.Buckets"/>。
-    /// 表满时**拒绝新键**而不是淘汰旧桶——与 <see cref="HmacJoinTicketValidator"/> 的 nonce 窗口同纪律
-    /// （安全 &gt; 可用；淘汰会让攻击者用新键挤掉旧桶的欠账）。<see cref="RejectedTableFull"/> &gt; 0
-    /// 说明"容量与来源规模不匹配"或正被分布式试探，运维据此调大配置。
-    /// 空闲桶由宿主周期 <see cref="PurgeIdle"/> 清理（<see cref="RateLimitSettings.IdleTtlMs"/> 未活动即回收）。
-    ///
-    /// **时钟**：全部方法显式传入调用方单调毫秒（<c>nowMs</c>）——本类不自读系统时钟（L1 用虚拟时间，
-    /// 与 <see cref="ReconnectService"/> 同一纪律）。时间回退时不补令牌（只前推 refill 锚点）。
-    ///
-    /// **线程安全**：单锁。当前宿主单线程消费，锁是为"传输回调将来换线程"留的正确性底线（同 Mailbox 形态）。
+    /// 分层限流（《商业级通用服务端框架总设计》§P0-6"远端地址限流"、 §595 Beta 门槛"限流可**按 IP/账号/Session** 生效"、§343"限流桶必须有**容量上限和周期清理**"）。
     /// </summary>
     public sealed class RateLimiter
     {
@@ -102,10 +74,7 @@ namespace RoomServer.Application
         private readonly Dictionary<string, Bucket> _accountEntry = new Dictionary<string, Bucket>();
         private readonly Dictionary<int, Bucket> _sessionPackets = new Dictionary<int, Bucket>();
 
-        // ---- 计数面（P4 同款收口）：私有 + 只读属性，写点全在本类的锁内 ----
-        //
-        // 这六个数此前是 public 可变字段，而写入还以 `ref` 传进 TryAcquire——等于把计数器的
-        // 写权限同时交给"任何拿到 limiter 的代码"。收口后读面（`Ops.Format`/诊断/用例）零改动。
+        // ---- 计数面（P4 同款收口）：私有 + 只读属性，写点全在本类的锁内 ---- 这六个数此前是 public 可变字段，而写入还以 `ref` 传进 TryAcquire——等于把计数器的 写权限同时交给"任何拿到 limiter 的代码"。
 
         private long _rejectedIpConnect;
         private long _rejectedIpEntry;

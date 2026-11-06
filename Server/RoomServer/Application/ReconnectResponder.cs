@@ -7,12 +7,7 @@ using Proto = LiteNet.Proto;
 namespace RoomServer.Application
 {
     /// <summary>
-    /// 重连响应构建（《服务端总设计》§5.6 首选路径 + §9.3 恢复顺序的服务器侧，步骤 2–5）：
-    /// 版本确认（Seed/ConfigHash/BuildHash）→ 公共全量快照 → 本人私有状态 → 输入历史。
-    ///
-    /// **单一实现**：宿主 owner 形态（直驱路径）与 Worker 执行形态（Outbound 回传路径）共用本方法——
-    /// 两种形态下都在**持有权威态的单线程**上调用（前者宿主主线程，后者房间 Worker），
-    /// 因而对 AuthSim/Gate 的读取天然无并发。响应里的快照是**独立探测**（不推进广播基线）。
+    /// 重连响应构建（《服务端总设计》§5.6 首选路径 + §9.3 恢复顺序的服务器侧，步骤 2–5）： 版本确认（Seed/ConfigHash/BuildHash）→ 公共全量快照 → 本人私有状态 → 输入历史。
     /// </summary>
     internal static class ReconnectResponder
     {
@@ -26,10 +21,7 @@ namespace RoomServer.Application
             response.BuildHash = buildHash;
             response.Snapshot = SnapshotCodec.PackFull(room.AuthSim.Frame, room.AuthSim, room.Gate.LastAcceptedFrame(playerId));
             response.Snapshot.PrivateState = SnapshotCodec.PackPrivate(room.AuthSim, viewerEntityId);
-            // 重连**不携带公共战斗事件窗口**（2026-10-18 批）：事件面已独立成包，且重连语义本就是
-            // "不重播历史事件"——客户端在 ReconnectResponse 上把公共事件面 Reset()，
-            // 恢复后的第一份周期事件批按"首份"处理（只标记已见）。这样重连响应体积只与
-            // 状态规模相关，不必再为事件窗口承担撞上限的风险。
+            // 重连**不携带公共战斗事件窗口**（2026-10-18 批）：事件面已独立成包，且重连语义本就是 "不重播历史事件"——客户端在 ReconnectResponse 上把公共事件面 Reset()， 恢复后的第一份周期事件批按"首份"处理（只标记已见）。
             for (int f = room.AuthSim.Frame - SimConfig.MaxInputHistory + 1; f <= room.AuthSim.Frame; f++)
             {
                 if (f <= 0) continue;

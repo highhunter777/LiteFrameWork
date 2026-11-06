@@ -11,13 +11,7 @@ using Proto = LiteNet.Proto;
 namespace RoomServer
 {
     /// <summary>
-    /// 入站消息面（结构批 6B 自 <see cref="ServerHost"/> 外提）：包体边界/包速率/会话触碰/解码分发，
-    /// 以及 Heartbeat/Input/Mismatch/RestoreComplete/Leave/StartMatch 六个短处理器；
-    /// Join 与 Reconnect 两族分别由 <see cref="InboundJoinHandlers"/>/<see cref="InboundReconnectHandlers"/> 承担。
-    ///
-    /// **边界**：本类只做"协议 → 宿主意图"；房间构造/销毁/命令提交/排空仍归宿主（经 <see cref="IRoomGateway"/>），
-    /// 发送与进房拒绝诊断归宿主单点（<see cref="IInboundDiagnostics"/>）。<see cref="OnData"/> 在宿主主线程调用，
-    /// 与拆分前单循环语义一致。
+    /// 入站消息面（结构批 6B 自 <see cref="ServerHost"/> 外提）：包体边界/包速率/会话触碰/解码分发。
     /// </summary>
     internal sealed class InboundHandlers
     {
@@ -109,10 +103,7 @@ namespace RoomServer
             if (!_host.MailboxRouting)
                 _host.Ops.CountAck(session.TryAcceptAck(msg.AckSnapshot));
 
-            // proto → 纯数据（App 职责；Runtime 不见 proto）。**逐字段映射单源在
-            // LiteSync.Input.InputPacker**（P0-3）：此前真服/本地服各手抄一份，AimPoint 六字段
-            // 已真实漂移过一次（真服链路断点而本地服照常）；共享 mapper 后该类漂移结构性消除。
-            // Count 传原始条数——超冗余窗的整条拒绝由闸门判定（形状纪律不在 App 预筛，避免两处口径漂移）。
+            // proto → 纯数据（App 职责；Runtime 不见 proto）。
             int raw = InputPacker.UnpackFrames(msg, _batchFrames);
             _inputBatch.Frame = msg.Frame;
             _inputBatch.AckSnapshot = msg.AckSnapshot;
@@ -171,11 +162,7 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 房主开局请求（开房裁决；**唯一开局入口**——满员不再自动开局）：
-        /// 会话已入座且房间在册才投递
-        /// <see cref="RoomCommand.StartEarly"/>——owner 判定在 Runtime（"开房者=首入座者"），
-        /// 拒绝经 <see cref="StartRejectedOutput"/> → StartMatchResponse 信令回本会话。
-        /// 未入座/房间不在册：静默忽略（无席位可反馈，同 Leave 的守卫口径）。
+        /// 房主开局请求（开房裁决；**唯一开局入口**——满员不再自动开局）： 会话已入座且房间在册才投递 <see cref="RoomCommand.StartEarly"/>——owner 判定在 Runtime（"开房者=。）。
         /// </summary>
         private void HandleStartMatchRequest(Session session)
         {

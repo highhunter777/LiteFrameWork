@@ -14,10 +14,6 @@ namespace MetaServer
 {
     /// <summary>
     /// Meta 宿主装配·**模块注册段**（《服务端宿主结构拆分专项设计》批 7A）。
-    ///
-    /// 功能门随块走：每个模块的"配置齐全才注册"判据与该模块的注册体同处一个方法——
-    /// 宿主不再持有一张横跨 Auth/Lobby/持久化的装配清单。门读值由调用方传入
-    /// （<see cref="MetaHostOptions.ReadBootConfig"/>），**消费值仍一律经 IOptions**。
     /// </summary>
     internal static class MetaServiceRegistration
     {
@@ -116,14 +112,7 @@ namespace MetaServer
                 new MongoAccountStore(
                     sp.GetRequiredService<IMongoDatabase>(),
                     () => DateTime.UtcNow));
-            // **Outbox/Inbox 端口「装配退役」（P3）**：`IOutboxStore` + `MongoOutboxStore` 是 G1 的
-            // "只建接缝"交付物（Meta 专项 §14-G1：必要存储端口 + 迁移/幂等约束 + 故障夹具），
-            // 端口契约与实现均已就绪、L1（内存替身）+ L3（真 Mongo，含重启/唯一索引）已实证——
-            // 但**当前没有任何生产消费者**：Meta 的结算路径是"事务内落账 + 由 RoomServer 侧 Outbox
-            // 承担重试"，Meta 自身没有外发写，因此不需要自己的 Outbox。
-            // 一个注册了却没人解析的服务，会让人以为该功能已在跑（审计 P3 点名的"死装配"），
-            // 故**不在此注册**。G3 接入 Meta 外发写时：此处补一行 `AddSingleton<IOutboxStore>`，
-            // 并在 §10 优雅关闭第 3 步（刷新 Outbox）与 `/ready`（Outbox 未超阈）处接线。
+            // **Outbox/Inbox 端口「装配退役」（P3）**：`IOutboxStore` + `MongoOutboxStore` 是 G1 的 "只建接缝"交付物（Meta 专项 §14-G1：必要存储端口 + 迁移/幂等约束 + 故障夹具）， 端口契约与实现均已就绪。
             services.AddSingleton<ISchemaVersionStore, MongoSchemaVersionStore>();
             services.AddSingleton<ISchemaMigrator>(sp =>
                 new SchemaMigrationRunner(

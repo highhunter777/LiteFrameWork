@@ -7,16 +7,7 @@ using MetaServer.Contracts.Validation;
 namespace MetaServer.Modules.Lobby
 {
     /// <summary>
-    /// Join Ticket 签发用例（《Meta 服务专项设计》§7"Lobby 完成分配后签发票据，与
-    /// roomId/matchId 一并下发"；分配 = 容量驱动 + 版本准入）。
-    ///
-    /// 流程：字段边界 → 分配实例（<see cref="InstanceRegistry.TryAllocate"/>）→ 按实例构建哈希
-    /// 盖章签发（<see cref="LobbyTicketSigner"/>；票据哈希 = 实例上报事实，房间端将与本服比对）。
-    ///
-    /// - **结果型返回**（不抛业务异常——端点按结果映射 HTTP，与游客登录同款）。
-    /// - 调用方已通过访问令牌鉴权：<paramref name="accountId"/> 来自令牌声明；
-    ///   游客模型下 playerId = accountId（席位身份由房间分配，票据字段是 Meta 侧身份）。
-    /// - **票据与账号标识不写日志**（§11.1；本类不持日志面）。
+    /// Join Ticket 签发用例（《Meta 服务专项设计》§7"Lobby 完成分配后签发票据，与 roomId/matchId 一并下发"；分配 = 容量驱动 + 版本准入）。
     /// </summary>
     public sealed class JoinTicketIssueUseCase
     {
@@ -119,9 +110,7 @@ namespace MetaServer.Modules.Lobby
                 }
             }
 
-            // 分配：**先按房号归属**（多实例正确性——房号只能落在报了它的实例上，换实例会让房间服懒创建
-            // 同名房、原房队友永远等不到人）；房号不在任何明细里（新建房/未上报）才按负载分配。
-            // requireRoomSlot：新建房路径要求目标实例的房间表未满（房间普遍坐不满时 RoomCount 会先到上限）。
+            // 分配：**先按房号归属**（多实例正确性——房号只能落在报了它的实例上，换实例会让房间服懒创建 同名房、原房队友永远等不到人）；房号不在任何明细里（新建房/未上报）才按负载分配。
             InstanceRegistry.Entry chosen = null;
             bool versionConflict = false;
             bool allocated;
