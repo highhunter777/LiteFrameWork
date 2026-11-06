@@ -41,7 +41,9 @@
     <Compile Include="Services/Content/SharedLoadCoordinator.cs" />
     <Compile Include="Services/Content/ContentCacheMaintenance.cs" />
     <Compile Include="Services/Content/ContentDeployConfig.cs" />
-    <Compile Include="Services/Content/DiskSpaceProbes.cs" />
+    <Compile Include="Services/Content/DriveInfoSpaceProbe.cs" />
+    <Compile Include="Services/Content/WriteProbeDiskSpaceProbe.cs" />
+    <Compile Include="Services/Content/UnavailableDiskSpaceProbe.cs" />
     <Compile Include="Services/Content/FileActivationRecordIO.cs" />
     <Compile Include="Services/Content/ReleaseLayout.cs" />
     <Compile Include="Services/Content/CandidateBundleRootResolver.cs" />
