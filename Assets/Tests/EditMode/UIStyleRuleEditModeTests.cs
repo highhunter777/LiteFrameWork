@@ -73,7 +73,9 @@ namespace LiteGame.Tests.EditMode
                 var bare = Node(root, "Img_Bare", typeof(Image));
                 bare.GetComponent<Image>().color = new Color(0.33f, 0.22f, 0.11f, 1f);
                 var token = Node(root, "Img_Token", typeof(Image));
-                token.GetComponent<Image>().color = UIStyle.Primary;
+                Assert.IsTrue(UITokenCatalog.Load().TryColor("color.brand.primary", out Color primary),
+                    "主题资产缺 color.brand.primary");
+                token.GetComponent<Image>().color = primary;
             });
 
             var issues = new StyleColorDriftRule().Check(ContextFor(path)).ToList();

@@ -48,23 +48,6 @@ namespace LiteGame.Tests.EditMode
             "\"spacing\":{\"tokens\":{}},\"radius\":{\"tokens\":{}},\"elevation\":{\"tokens\":{}}," +
             "\"motion\":{\"tokens\":{}},\"icon\":{\"tokens\":{}}}}";
 
-        /// <summary>退役金标准：旧浮点值（只作对照，不从生产代码取）＋规范化 hex 的 8bit 值。</summary>
-        private static readonly (string Name, string TokenId, Color Legacy, Color32 Value)[] Golden =
-        {
-            ("Bg", "color.bg.screen", new Color(0.12f, 0.12f, 0.16f, 0.95f), new Color32(31, 31, 41, 242)),
-            ("BgDeep", "color.bg.deep", new Color(0.08f, 0.08f, 0.10f, 0.90f), new Color32(20, 20, 26, 230)),
-            ("ItemBg", "color.bg.item", new Color(0.18f, 0.18f, 0.22f, 1f), new Color32(46, 46, 56, 255)),
-            ("Primary", "color.brand.primary", new Color(0.90f, 0.75f, 0.25f, 1f), new Color32(230, 191, 64, 255)),
-            ("Accent", "color.brand.accent", new Color(0.30f, 0.70f, 0.95f, 1f), new Color32(76, 178, 242, 255)),
-            ("Warn", "color.state.warn", new Color(0.90f, 0.25f, 0.20f, 1f), new Color32(230, 64, 51, 255)),
-            ("Success", "color.state.success", new Color(0.40f, 0.85f, 0.40f, 1f), new Color32(102, 217, 102, 255)),
-            ("Text", "color.text.primary", new Color(0.92f, 0.92f, 0.94f, 1f), new Color32(235, 235, 240, 255)),
-            ("TextDim", "color.text.dim", new Color(0.60f, 0.60f, 0.65f, 1f), new Color32(153, 153, 166, 255)),
-            ("TextBright", "color.text.bright", new Color(1f, 1f, 1f, 1f), new Color32(255, 255, 255, 255)),
-            ("Raycast", "color.effect.raycast", new Color(1f, 1f, 1f, 0.01f), new Color32(255, 255, 255, 3)),
-            ("Mark", "color.effect.mark", new Color(1f, 0.85f, 0.30f, 0.25f), new Color32(255, 217, 76, 64)),
-        };
-
         [SetUp]
         public void SetUp()
         {
@@ -100,46 +83,6 @@ namespace LiteGame.Tests.EditMode
         }
 
         // ---- 颜色 ----
-
-        [Test]
-        public void 颜色_十二旧名映射到冻结ID且量化值等价()
-        {
-            UITokenCatalog catalog = UITokenCatalog.Load();
-            Assert.AreEqual(12, UIStyle.LegacyTokenIds.Length, "旧名映射应覆盖 12 个颜色");
-
-            foreach ((string name, string tokenId, Color legacy, Color32 value) in Golden)
-            {
-                Assert.AreEqual(tokenId, UIStyle.TokenId(name), name + " 的令牌 ID");
-                Assert.IsTrue(catalog.TryColor(tokenId, out Color actual), tokenId + " 不在主题资产里");
-                Assert.AreEqual((Color)value, actual, name + " 读回应为 8bit 值");
-                Assert.LessOrEqual(UIStyle.Distance(actual, legacy), 1e-4f,
-                    name + " 与旧浮点值的距离应在对账阈值内（量化误差 ≤0.5/255）");
-            }
-
-            CollectionAssert.AreEquivalent(
-                Golden.Select(row => row.Name).ToArray(),
-                UIStyle.Tokens.Select(token => token.Name).ToArray(), "旧名全集不变");
-        }
-
-        [Test]
-        public void 颜色_十二个旧名读口与catalog同源()
-        {
-            UITokenCatalog catalog = UITokenCatalog.Load();
-            var getters = new (string Name, Color Value)[]
-            {
-                ("Bg", UIStyle.Bg), ("BgDeep", UIStyle.BgDeep), ("ItemBg", UIStyle.ItemBg),
-                ("Primary", UIStyle.Primary), ("Accent", UIStyle.Accent), ("Warn", UIStyle.Warn),
-                ("Success", UIStyle.Success), ("Text", UIStyle.Text), ("TextDim", UIStyle.TextDim),
-                ("TextBright", UIStyle.TextBright), ("Raycast", UIStyle.Raycast), ("Mark", UIStyle.Mark),
-            };
-
-            Assert.AreEqual(12, getters.Length, "旧名读口 12 个");
-            foreach ((string name, Color value) in getters)
-            {
-                Assert.IsTrue(catalog.TryColor(UIStyle.TokenId(name), out Color expected), name + " 令牌缺失");
-                Assert.AreEqual(expected, value, name + " 读口应直接映射到同名令牌（不得双处维护 ID）");
-            }
-        }
 
         [Test]
         public void 颜色_生产读口不再持有颜色字面量()

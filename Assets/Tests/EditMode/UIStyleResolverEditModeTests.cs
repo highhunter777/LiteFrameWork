@@ -114,7 +114,15 @@ namespace LiteGame.Tests.EditMode
             UIThemeAsset asset = LoadAsset();
             UIStyleResolver resolver = UIStyleResolver.FromAsset(asset);
             UITokenCatalog catalog = UITokenCatalog.FromAsset(asset);
-            foreach ((string _, string tokenId) in UIStyle.LegacyTokenIds)
+            string[] tokenIds =
+            {
+                "color.bg.screen", "color.bg.deep", "color.bg.item",
+                "color.brand.primary", "color.brand.accent",
+                "color.state.warn", "color.state.success",
+                "color.text.primary", "color.text.dim", "color.text.bright",
+                "color.effect.raycast", "color.effect.mark",
+            };
+            foreach (string tokenId in tokenIds)
             {
                 Assert.IsTrue(catalog.TryColor(tokenId, out Color catalogValue), tokenId + " catalog 应命中");
                 Assert.IsTrue(resolver.TryColor(tokenId, out Color resolverValue), tokenId + " resolver 应命中");
