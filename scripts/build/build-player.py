@@ -304,10 +304,13 @@ def main(argv=None):
             hot_dest = project / "Assets" / "StreamingAssets" / "HybridCLR" / "hot"
             if hot_target.is_dir():
                 hot_dest.mkdir(parents=True, exist_ok=True)
+                builtin_dest = project / "Assets" / "StreamingAssets" / "HybridCLR" / "hot.builtin"
+                builtin_dest.mkdir(parents=True, exist_ok=True)
                 dlls = sorted(hot_target.glob("*.dll"))
                 for dll in dlls:
                     shutil.copy2(dll, hot_dest / (dll.name + ".bytes"))
-                info("build/player", f"hot dlls: {len(dlls)} -> {hot_dest}")
+                    shutil.copy2(dll, builtin_dest / (dll.name + ".bytes"))
+                info("build/player", f"hot dlls: {len(dlls)} -> {hot_dest} + builtin")
                 builder.eval_file(
                     "hybridclr-refresh.cs",
                     "UnityEditor.AssetDatabase.Refresh();\nreturn \"refreshed\";",

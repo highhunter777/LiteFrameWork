@@ -76,7 +76,8 @@ namespace LiteGame
                     _appComposition.SceneServiceFactory(),
                     _appComposition.LuaHealthProbeFactory(),
                     _appComposition.ConfigHealthProbeFactory(),
-                    _appComposition.BridgeHealthProbeFactory()))
+                    _appComposition.BridgeHealthProbeFactory(),
+                    _appComposition.CodeHealthProbeFactory()))
                 .AddSegment(new SettingsSegment())                 // ⑥ 玩家偏好 + 视角偏好单实例（先于 UI/音频）
                 .AddSegment(new EventsSegment())                   // ⑦ 事件总线（唯一产出方；只需 ① 的池）
                 .AddSegment(new ClocksSegment())                   // ⑧ 双轨时钟（事件域已独立，时钟只负责时间）

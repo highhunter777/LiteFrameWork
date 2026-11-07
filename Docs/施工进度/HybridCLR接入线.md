@@ -102,3 +102,35 @@
 - `link.xml`/`AOTGenericReferences.cs` 未生成：需要本机先 `python scripts/build/hybridclr.py install` 并跑 `GenerateAll`（约 800MB 生成物、依赖 gitee），属构建前置，留到 P4 在构建机执行。
 - 本机主仓尚未安装 HybridCLR il2cpp：**出包前必须先 install**，否则 `build-player` 的 GenerateAll 步会失败（`restore-check` 报 WARN）。
 - `RoomServer.*` 进 hot 是为满足 H2（本地服仅 Dev 用）；发布包剔除 Dev 面的裁剪随 P4 处理。
+
+---
+
+## 第4章 P3 热更链（code/ 段与回滚）
+
+<a id="ch4-P3热更链"></a>
+
+> **批次**：P3 热更链（2026-11-08）　**状态**：已完成（代码与守卫通过；候选发布/回滚实机演练归 P4）
+
+### 4.1 改动
+
+| 项 | 落点 | 说明 |
+| --- | --- | --- |
+| 候选布局 | `ReleaseLayout.CodePrefix = "code/"` + `CodeAssemblies`/`CodeAssemblyNameOf` | 热更 dll 与 `config/`/`lua/`/`bundle/` 并列；程序集名 = 文件名去 `.dll` |
+| 程序集条目 | `Content/Abstractions/CodeEntry.cs` | 与 `ScriptEntry` 同形 |
+| 健康探针 | `CodeAssembliesHealthProbe` | 逐件读字节 + PE 头校验（摘要/签名仍归发布清单与验签）；空段 = 无需检查 |
+| 装配接线 | `AppComposition.CodeHealthProbeFactory` → `ContentSegment` → `CompositeHealthCheck` | 与 config/lua/bridge 探针同一条健康确认链 |
+| 双槽回滚 | `HotUpdateLoader` | 依次尝试 `HybridCLR/hot` → `hot.previous` → `hot.builtin`；槽位装载失败换下一槽，`ActiveSlot` 留诊断证据 |
+| 内置兜底 | `build-player.py` | 构建时把 hot dll 同时写入 `hot` 与 `hot.builtin`（与 AOT 同版本），两槽皆坏仍可启动到错误面 |
+
+### 4.2 证据
+
+- Editor 重编译 `failed=false`（含 ReleaseLayout/探针/装配/装载器）。
+- `python scripts/gate/hot-boundary-check.py`：hot=24 / aot=66，无 AOT→hot 引用。
+- `python scripts/gate/test.py --suite L1 --profile PullRequest` 通过（见提交记录）。
+- Doc 套件通过。
+
+### 4.3 未做
+
+- 候选发布→激活→回滚的实机演练（需要先 `install` + 出包 + 内容通道）：归 P4。
+- `requiredBaseHash` 的清单级强制：字段已在设计（路线图 §5.3.3），候选校验的完整实现在 P4 与发布脚本同批。
+- Android StreamingAssets 读取（APK 内需 UnityWebRequest）：当前装载器按文件路径实现，P4 真机矩阵处理。

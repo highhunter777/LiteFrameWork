@@ -116,6 +116,10 @@
     {
       "name": "YooAsset.Editor",
       "reason": "YooAsset 编辑器（仅产品编辑器程序集）"
+    },
+    {
+      "name": "HybridCLR.Editor",
+      "reason": "HybridCLR 接入入口（仅产品编辑器程序集：安装/生成）"
     }
   ],
   "units": [
@@ -1176,6 +1180,7 @@
         "LiteSim",
         "LiteSim.Editor",
         "DisciplineScanner.Editor",
+        "HybridCLR.Editor",
         "Luban.Tables",
         "Luban.Runtime",
         "UniTask",

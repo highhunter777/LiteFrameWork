@@ -14,6 +14,9 @@ namespace LiteFramework
         /// <summary>热更脚本前缀（候选根相对路径）。</summary>
         public const string LuaPrefix = "lua/";
 
+        /// <summary>热更程序集前缀（候选根相对路径；HybridCLR hot dll）。</summary>
+        public const string CodePrefix = "code/";
+
         /// <summary>资产包前缀（候选根相对路径；前缀下即一个 YooAsset 包根镜像）。</summary>
         public const string BundlePrefix = "bundle/";
 
@@ -68,6 +71,31 @@ namespace LiteFramework
             if (p.StartsWith(LuaPrefix, System.StringComparison.Ordinal)) p = p.Substring(LuaPrefix.Length);
             if (p.EndsWith(".lua", System.StringComparison.Ordinal)) p = p.Substring(0, p.Length - 4);
             return p.Replace('/', '.');
+        }
+
+        /// <summary>清单 → 热更程序集条目（code/ 前缀下的 .dll；程序集名 = 文件名去后缀）。</summary>
+        public static IReadOnlyList<CodeEntry> CodeAssemblies(ReleaseManifest manifest)
+        {
+            var list = new List<CodeEntry>();
+            foreach (ReleaseFileEntry f in manifest.Files)
+            {
+                if (!f.Path.StartsWith(CodePrefix, System.StringComparison.Ordinal)
+                    || !f.Path.EndsWith(".dll", System.StringComparison.Ordinal)) continue;
+                list.Add(new CodeEntry(CodeAssemblyNameOf(f.Path), f.Path));
+            }
+            return list;
+        }
+
+        /// <summary>候选程序集路径 → 程序集名（如 code/LiteSim.dll → LiteSim）。</summary>
+        public static string CodeAssemblyNameOf(string candidatePath)
+        {
+            if (string.IsNullOrEmpty(candidatePath)) return candidatePath;
+            string p = candidatePath;
+            if (p.StartsWith(CodePrefix, System.StringComparison.Ordinal)) p = p.Substring(CodePrefix.Length);
+            int slash = p.LastIndexOf('/');
+            if (slash >= 0) p = p.Substring(slash + 1);
+            if (p.EndsWith(".dll", System.StringComparison.Ordinal)) p = p.Substring(0, p.Length - 4);
+            return p;
         }
     }
 }

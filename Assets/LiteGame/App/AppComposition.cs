@@ -64,6 +64,10 @@ namespace LiteGame
         internal Func<string, IFileStore, IHealthProbe> LuaHealthProbeFactory()
             => (candidateRoot, files) => new LuaScriptsHealthProbe(candidateRoot, ReleaseLayout.LuaScripts, files);
 
+        /// <summary>热更程序集健康探针（code/ 段）：只经 IHealthProbe 注入内容编排。</summary>
+        internal Func<string, IFileStore, IHealthProbe> CodeHealthProbeFactory()
+            => (candidateRoot, files) => new CodeAssembliesHealthProbe(candidateRoot, ReleaseLayout.CodeAssemblies, files);
+
         /// <summary>候选配置语义探针（H4-2）：全量 config/ → cfg.Tables → ConfigTableValidator；
         /// 只经 IHealthProbe 注入内容编排，Luban 细节不穿透到 Composition。</summary>
         internal Func<string, IFileStore, IHealthProbe> ConfigHealthProbeFactory()

@@ -18,6 +18,7 @@ namespace LiteGame.Modules.Composition
         private readonly Func<string, IFileStore, IHealthProbe> _luaHealthProbeFactory;
         private readonly Func<string, IFileStore, IHealthProbe> _configHealthProbeFactory;
         private readonly Func<IHealthProbe> _bridgeHealthProbeFactory;
+        private readonly Func<string, IFileStore, IHealthProbe> _codeHealthProbeFactory;
         private IContentService _content;
         private ISceneService _scenes;      // 场景句柄服务（流程/工具体消费；租约面归内容域）
 
@@ -29,7 +30,8 @@ namespace LiteGame.Modules.Composition
             Func<IContentService, ISceneService> sceneFactory,
             Func<string, IFileStore, IHealthProbe> luaHealthProbeFactory,
             Func<string, IFileStore, IHealthProbe> configHealthProbeFactory,
-            Func<IHealthProbe> bridgeHealthProbeFactory)
+            Func<IHealthProbe> bridgeHealthProbeFactory,
+            Func<string, IFileStore, IHealthProbe> codeHealthProbeFactory = null)
         {
             _deployBake = deployBake ?? throw new ArgumentNullException(nameof(deployBake));
             _contentFactory = contentFactory ?? throw new ArgumentNullException(nameof(contentFactory));
@@ -37,6 +39,7 @@ namespace LiteGame.Modules.Composition
             _luaHealthProbeFactory = luaHealthProbeFactory ?? throw new ArgumentNullException(nameof(luaHealthProbeFactory));
             _configHealthProbeFactory = configHealthProbeFactory ?? throw new ArgumentNullException(nameof(configHealthProbeFactory));
             _bridgeHealthProbeFactory = bridgeHealthProbeFactory ?? throw new ArgumentNullException(nameof(bridgeHealthProbeFactory));
+            _codeHealthProbeFactory = codeHealthProbeFactory;
         }
 
         public string Name => "Content";
@@ -94,7 +97,8 @@ namespace LiteGame.Modules.Composition
                     new CandidateConfigHealthProbe(candidateRoot, ReleaseLayout.ConfigPaths, files),
                     _configHealthProbeFactory(candidateRoot, files),
                     _luaHealthProbeFactory(candidateRoot, files),
-                    _bridgeHealthProbeFactory()),
+                    _bridgeHealthProbeFactory(),
+                    _codeHealthProbeFactory?.Invoke(candidateRoot, files)),
                 new ContentActivator(_content),
                 context.Require<IGenerationSink>());   // 确认/回退时推进加载代次（同一内容服务实例）
             context.Put(new PatchRunner(
