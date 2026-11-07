@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "6e6e6e79-d24c-4ee1-bf13-884e59011847",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-LiteFramework.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\LiteFramework.html",
+  "specification": {
+    "sha256": "99d6b68faab3ce40b512f462cf15149bab7f7b77c246d08998bbbd17b8ac24c1",
+    "bytes": 6867
+  },
+  "artifact": {
+    "sha256": "0468d6e06ffbf81941947a4155c611bea31563a34c72ebdc273fb43658c1e9ab",
+    "bytes": 756879
+  }
+}

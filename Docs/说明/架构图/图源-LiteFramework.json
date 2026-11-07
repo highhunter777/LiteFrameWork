@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LiteFramework 本体",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/LiteFramework.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "四大块"
+        },
+        "frontend": {
+          "label": "生命周期件"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "hosting",
+      "type": "backend",
+      "label": "Hosting",
+      "sublabel": "ClientHost · 装配根 · 段序",
+      "pos": [
+        380,
+        40
+      ],
+      "size": [
+        250,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Hosting/LiteFramework.Hosting.asmdef",
+          "label": "引用 Core + Services + Adapters"
+        },
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Hosting/ClientHost.cs",
+          "line": 11,
+          "label": "ClientHost"
+        }
+      ]
+    },
+    {
+      "id": "lifetime",
+      "type": "frontend",
+      "label": "AppLifetime",
+      "sublabel": "启动 / 关停 / 令牌",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        230,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Hosting/AppLifetime.cs",
+          "line": 11,
+          "label": "生命周期"
+        },
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Hosting/AppLifetime.cs",
+          "line": 145,
+          "label": "ShutdownAsync"
+        }
+      ]
+    },
+    {
+      "id": "adapters",
+      "type": "backend",
+      "label": "Adapters（5 组）",
+      "sublabel": "Unity · xLua · YooAsset · Newtonsoft",
+      "pos": [
+        380,
+        170
+      ],
+      "size": [
+        250,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Adapters/LiteFramework.Adapters.asmdef",
+          "label": "引用 Core + Services"
+        },
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Adapters/Unity/AnimationBackends/AnimatorAnimationBackend.cs",
+          "label": "动画后端（Unity 侧）"
+        }
+      ]
+    },
+    {
+      "id": "services",
+      "type": "backend",
+      "label": "Services（12 域）",
+      "sublabel": "UI 112 · Content 58 · 表现 39",
+      "pos": [
+        380,
+        300
+      ],
+      "size": [
+        250,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Services/LiteFramework.Services.asmdef",
+          "label": "只引 Core（+ 三方表现件）"
+        },
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Services/UI/ConfirmDialogRouter.cs",
+          "label": "UI 域（112 文件之一）"
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "type": "backend",
+      "label": "Core（16 件）",
+      "sublabel": "0 依赖 · noEngineReferences",
+      "pos": [
+        380,
+        430
+      ],
+      "size": [
+        250,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Core/LiteFramework.Core.asmdef",
+          "label": "references=[] noEngine=true"
+        },
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Core/DI/ServiceContainer.cs",
+          "line": 11,
+          "label": "ServiceContainer"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "hosting-adapters",
+      "from": "hosting",
+      "to": "adapters",
+      "label": "装配 · 注入实现",
+      "variant": "emphasis",
+      "labelAt": [
+        505,
+        150
+      ]
+    },
+    {
+      "id": "hosting-services",
+      "from": "hosting",
+      "to": "services",
+      "label": "注册"
+    },
+    {
+      "id": "hosting-core",
+      "from": "hosting",
+      "to": "core",
+      "label": "建容器"
+    },
+    {
+      "id": "hosting-lifetime",
+      "from": "hosting",
+      "to": "lifetime",
+      "label": "启停 · 令牌"
+    },
+    {
+      "id": "adapters-services",
+      "from": "adapters",
+      "to": "services",
+      "label": "实现端口",
+      "variant": "emphasis"
+    },
+    {
+      "id": "adapters-core",
+      "from": "adapters",
+      "to": "core",
+      "label": "用核心件"
+    },
+    {
+      "id": "services-core",
+      "from": "services",
+      "to": "core",
+      "label": "用核心件"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "一条单向下行的依赖梯",
+      "items": [
+        "Core：0 个 asmdef 引用、noEngineReferences=true —— 纯 C#，可与 dotnet csproj 双轨共编",
+        "Services：只引 Core（外加 DOTween / UniTask / InputSystem / TextMeshPro 这些表现件），不认识适配器",
+        "Adapters：引 Core + Services —— 它是“实现 Services 声明端口”的那一层，所以必须认识 Services",
+        "Hosting：唯一同时引 Core + Services + Adapters 的地方（装配根、生命周期、恢复）"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "四块的份量（357 个 .cs）",
+      "items": [
+        "Core 16 件 / 83 文件：DI、Fsm、Clock、Event、Command、Pool、IO、Logging、Serialization、Threading、Diagnostics、Errors、Module、Scope、Util、Operations",
+        "Services 12 域 / 228 文件：UI 112、Content 58、Animation 30、Vfx 9、Audio、Config、Settings、Entity、Localization、Scene、Input、Scripting",
+        "Adapters 5 组 / 23 文件：Unity 11、XLua 5、YooAsset 3、Newtonsoft 3、InputSystem 1",
+        "Hosting 23 文件：ClientHost、AppLifetime、ComposeRootRunner、SegmentGraphValidator、Identity、Recovery、Diagnostics"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "装配与封印",
+      "items": [
+        "ClientHost 建容器 → 段按序 Compose → Seal：封印后注册失败、Tickables 集合定格",
+        "DeclareTickOrder 决定每帧顺序；段之间只经端口/契约通信，不互引实现",
+        "容器是 Core/DI 的那一件：注册、解析、Scope、Tickables 都在它里面收口"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "为什么 Adapters 在 Services 上面",
+      "items": [
+        "这是“依赖方向”而非“运行时方向”：Adapters 实现 Services 声明的端口，所以编译期必须引用 Services",
+        "模块（Assets/LiteGame）不 new 框架适配器：后端实例一律由装配根注入",
+        "同一条纪律让 LiteSim 能脱离引擎双轨共编——判定内核连 Services 都不认识"
+      ]
+    }
+  ]
+}
