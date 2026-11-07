@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "dataflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-战斗数据流.json",
+    "sha256": "a34d980e8c92c8a660da9a675af9cce6974c11a57585a5ce28762178ccb6dcd7",
+    "bytes": 8732
+  },
+  "artifact": {
+    "path": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗数据流.html",
+    "sha256": "2b1a956d86880afe5414fd5ddd5bff2ee8274fbf9ec6add9c73958c897f0a306",
+    "bytes": 761065
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗数据流.finalize.json",
+    "summaryReceipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗数据流.finalize-summary.json",
+    "browserCheckReceipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗数据流.browser-check.json"
+  },
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "invalid-local-release"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 8585
+}

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-产品组合根.json",
+    "sha256": "e9e31a24fa7ed7d938828a9108d6c77ea089eb1a14b712a8c25d35870b34f662",
+    "bytes": 8896
+  },
+  "artifact": {
+    "path": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\产品组合根.html",
+    "sha256": "b81687c90ad001cf17895050e7b9913e18360fdb61022e2d4af72c50630fde04",
+    "bytes": 759630
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\产品组合根.finalize.json",
+    "summaryReceipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\产品组合根.finalize-summary.json",
+    "browserCheckReceipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\产品组合根.browser-check.json"
+  },
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "invalid-local-release"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 6669
+}

@@ -220,7 +220,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(result.Ok, "生成须成功：" + result.ErrorText);
             Assert.AreEqual("art.ui", result.Contract.Page.Owner, "owner 从清单投影");
             Assert.IsNotNull(result.Contract.Events.FirstOrDefault(e =>
-                e.BindName == "Button_GuestLogin" && e.Event == "onClick"), "登录钮接线须进 events[]");
+                e.BindName == "Btn_GuestLogin" && e.Event == "onClick"), "登录钮接线须进 events[]");
         }
 
         // ---- 辅助 ----

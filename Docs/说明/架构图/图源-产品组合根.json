@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LiteGame.App 产品组合根",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/产品组合根.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "客户端（App / Modules）"
+        },
+        "database": {
+          "label": "容器 / 产物"
+        },
+        "external": {
+          "label": "调用方"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "caller",
+      "type": "external",
+      "label": "LiteGame.Bootstrap",
+      "sublabel": "Configure → StartAsync",
+      "pos": [
+        400,
+        40
+      ],
+      "size": [
+        200,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Bootstrap/IClientEntry.cs",
+          "line": 11,
+          "end_line": 23,
+          "label": "IClientEntry 契约"
+        },
+        {
+          "path": "Assets/LiteGame/Bootstrap/GameEntry.cs",
+          "line": 71,
+          "end_line": 72,
+          "label": "装载 + Configure"
+        }
+      ]
+    },
+    {
+      "id": "entry",
+      "type": "frontend",
+      "label": "ClientEntry",
+      "sublabel": "登记 18 段 · 启动续体",
+      "pos": [
+        380,
+        170
+      ],
+      "size": [
+        240,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 20,
+          "label": "入口实现"
+        },
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 30,
+          "end_line": 41,
+          "label": "Configure"
+        },
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 44,
+          "end_line": 63,
+          "label": "StartAsync 续体"
+        }
+      ]
+    },
+    {
+      "id": "composition",
+      "type": "frontend",
+      "label": "AppComposition",
+      "sublabel": "唯一 new 点 · 跨域装订",
+      "pos": [
+        150,
+        340
+      ],
+      "size": [
+        220,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/App/AppComposition.cs",
+          "line": 20,
+          "label": "组合根"
+        },
+        {
+          "path": "Assets/LiteGame/App/AppComposition.cs",
+          "line": 40,
+          "end_line": 97,
+          "label": "适配器工厂"
+        },
+        {
+          "path": "Assets/LiteGame/App/AppComposition.cs",
+          "line": 103,
+          "end_line": 121,
+          "label": "ComposeAfter 装订"
+        }
+      ]
+    },
+    {
+      "id": "segments",
+      "type": "frontend",
+      "label": "18 个装配段",
+      "sublabel": "住 Modules/<域>/<单位>Segment",
+      "pos": [
+        700,
+        340
+      ],
+      "size": [
+        240,
+        110
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 68,
+          "end_line": 97,
+          "label": "①…⑱ 注册"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 164,
+          "end_line": 169,
+          "label": "装配段分布"
+        }
+      ]
+    },
+    {
+      "id": "container",
+      "type": "database",
+      "label": "ServiceContainer",
+      "sublabel": "段产物 · 服务登记",
+      "pos": [
+        400,
+        520
+      ],
+      "size": [
+        240,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Core/DI/ServiceContainer.cs",
+          "line": 11,
+          "label": "ServiceContainer"
+        },
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Core/DI/ServiceContainer.cs",
+          "line": 168,
+          "label": "Seal"
+        }
+      ]
+    },
+    {
+      "id": "fsm",
+      "type": "database",
+      "label": "StageMachine",
+      "sublabel": "Launch → Patch → … → Battle",
+      "pos": [
+        400,
+        690
+      ],
+      "size": [
+        240,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/Shared/ProcedureId.cs",
+          "line": 7,
+          "end_line": 16,
+          "label": "阶段枚举"
+        },
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 47,
+          "label": "取流程机"
+        },
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 61,
+          "label": "fsm.Start(Launch)"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "LiteGame.App 程序集（只留装配根）",
+      "wraps": [
+        "entry",
+        "composition"
+      ],
+      "pad": 24
+    },
+    {
+      "kind": "region",
+      "label": "Modules/**（段不在 App 里）",
+      "wraps": [
+        "segments"
+      ],
+      "pad": 24
+    }
+  ],
+  "connections": [
+    {
+      "id": "caller-entry",
+      "from": "caller",
+      "to": "entry",
+      "label": "Configure / StartAsync"
+    },
+    {
+      "id": "entry-composition",
+      "from": "entry",
+      "to": "composition",
+      "label": "new · 11 个工厂",
+      "fromSide": "left",
+      "toSide": "left",
+      "via": [
+        [
+          90,
+          220
+        ],
+        [
+          90,
+          390
+        ]
+      ],
+      "labelDx": -46
+    },
+    {
+      "id": "entry-segments",
+      "from": "entry",
+      "to": "segments",
+      "label": "RegisterSegments ①…⑱",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          820,
+          220
+        ]
+      ],
+      "labelSegment": 0
+    },
+    {
+      "id": "composition-segments",
+      "from": "composition",
+      "to": "segments",
+      "label": "注入适配器工厂"
+    },
+    {
+      "id": "composition-container",
+      "from": "composition",
+      "to": "container",
+      "label": "ComposeAfter 装订 → Seal",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [
+        [
+          260,
+          570
+        ]
+      ]
+    },
+    {
+      "id": "segments-container",
+      "from": "segments",
+      "to": "container",
+      "label": "Put / Require",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "via": [
+        [
+          820,
+          480
+        ],
+        [
+          520,
+          480
+        ]
+      ]
+    },
+    {
+      "id": "container-fsm",
+      "from": "container",
+      "to": "fsm",
+      "label": "Product<StageMachine>"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "App 只留装配根",
+      "items": [
+        "整个程序集只有三样：ClientEntry（入口实现）、AppComposition（组合根）、Probes（启动探针）",
+        "18 段已全部住 Modules/<域>/<单位>Segment.cs，App 只按依赖序登记，不实现业务",
+        "asmdef 引 29 个程序集（框架四件 + 12 个域 + 适配器 + 共编件 + Bootstrap）——组合根是唯一同时看见端口与实现的地方",
+        "模块只经自持端口消费，实现件由 AppComposition 产出后注入"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "唯一 new 点：11 个适配器工厂",
+      "items": [
+        "配置 ConfigService（字节走内容租约）、意图源 NewInputIntentSource、相机 CinemachineCameraService",
+        "内容 / 场景走 YooAsset；三条健康探针：Lua 脚本、候选配置、Bridge 能力",
+        "Lua 三件：桥装订 LuaBridges、UI 绑定 LuaUIBinding、注册表填充 LuaRegistryFiller（三注册表由本文件持有）",
+        "适配器类型只出现在这个文件——把端口还原成实现在这里发生"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "ComposeAfter：密封前跨域装订",
+      "items": [
+        "ClientHost.ComposeRoot 在全部段成功之后、密封之前跑一次",
+        "9 步装订：Lua 门面 / 身份 / 模态 / 输入门 / 注册表回填 / Meta 入口 / 产品设置 / 判定参数覆写 / 开发装饰",
+        "DeclareTickOrder 固定帧驱动序，末尾 Services.Seal() 封死装配面",
+        "登记进装配窗口作用域——关闭时先于模块释放"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "启动续体（StartAsync）",
+      "items": [
+        "从容器取 ServiceContainer 与 StageMachine；缺流程机即 fail-fast",
+        "DevHooks.InjectRuntimeTuners（未绑定 = no-op）",
+        "MemoryLoopProbe / InputModalProbe 走命令行门控（不是 dev 块，正式包也在但默认零操作）",
+        "fsm.Start(Launch) 把流程机点着；DeployBake 是包内烙入件，内容段与联机段共用同一实例"
+      ]
+    }
+  ]
+}

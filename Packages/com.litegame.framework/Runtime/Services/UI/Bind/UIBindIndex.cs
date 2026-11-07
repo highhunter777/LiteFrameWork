@@ -403,9 +403,11 @@ namespace LiteFramework.UI
             if (TryGet<UnityEngine.UI.Text>(name, out var legacy)) { legacy.text = value; return; }
         }
 
-        private bool TryGet<T>(string name, out T control) where T : Component
+        internal bool TryGet<T>(string name, out T control) where T : Component
         {
-            control = _controls.TryGetValue(name, out var c) ? c as T : null;
+            Component c = _controls.TryGetValue(name, out Component stored) ? stored : null;
+            control = c as T;
+            if (control == null && c != null) control = c.GetComponent<T>();
             return control != null;
         }
     }

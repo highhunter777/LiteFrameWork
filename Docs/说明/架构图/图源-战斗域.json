@@ -1,0 +1,394 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Modules.Battle 战斗域",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/战斗域.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "Modules.Battle"
+        },
+        "external": {
+          "label": "域外（房间服 / 共享内核）"
+        }
+      }
+    },
+    "viewBox": [
+      912,
+      1180
+    ]
+  },
+  "components": [
+    {
+      "id": "room",
+      "type": "external",
+      "label": "RoomServer",
+      "sublabel": "KCP / UDP :17777",
+      "pos": [
+        580,
+        30
+      ],
+      "size": [
+        180,
+        64
+      ],
+      "sources": [
+        {
+          "path": "deploy/roomserver.windows.json",
+          "line": 2,
+          "label": "房间服端口"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 144,
+          "label": "客户端 ↔ 房间服"
+        }
+      ]
+    },
+    {
+      "id": "client",
+      "type": "frontend",
+      "label": "BattleClient",
+      "sublabel": "传输 + RoomClient 会话",
+      "pos": [
+        560,
+        130
+      ],
+      "size": [
+        220,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleClient.cs",
+          "line": 12,
+          "label": "会话客户端"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleClient.cs",
+          "line": 66,
+          "label": "建 RoomClient"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleClient.cs",
+          "line": 78,
+          "end_line": 82,
+          "label": "连上即 Join"
+        }
+      ]
+    },
+    {
+      "id": "context",
+      "type": "frontend",
+      "label": "BattleContext",
+      "sublabel": "一局编排 · 每帧 Tick",
+      "pos": [
+        540,
+        270
+      ],
+      "size": [
+        260,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 20,
+          "label": "对局上下文"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 235,
+          "end_line": 256,
+          "label": "Tick 六步"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 358,
+          "end_line": 375,
+          "label": "OnSnapshot"
+        }
+      ]
+    },
+    {
+      "id": "inputs",
+      "type": "frontend",
+      "label": "BattleInputPipeline",
+      "sublabel": "采样入史 · 冗余上行",
+      "pos": [
+        140,
+        270
+      ],
+      "size": [
+        190,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleInputPipeline.cs",
+          "line": 13,
+          "label": "输入管线"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleInputPipeline.cs",
+          "line": 35,
+          "end_line": 45,
+          "label": "输入三件"
+        }
+      ]
+    },
+    {
+      "id": "mirror",
+      "type": "frontend",
+      "label": "BattleSnapshotMirror",
+      "sublabel": "镜像 · 和解 · 插值源",
+      "pos": [
+        560,
+        430
+      ],
+      "size": [
+        220,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleSnapshotMirror.cs",
+          "line": 13,
+          "label": "持久镜像"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleSnapshotMirror.cs",
+          "line": 30,
+          "label": "ApplyAndReconcile"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleSnapshotMirror.cs",
+          "line": 64,
+          "label": "PushToView"
+        }
+      ]
+    },
+    {
+      "id": "sim",
+      "type": "external",
+      "label": "RollbackSim",
+      "sublabel": "LiteSim · 预测 / 回滚",
+      "pos": [
+        560,
+        590
+      ],
+      "size": [
+        220,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Pipeline/RollbackSim.cs",
+          "line": 8,
+          "label": "RollbackSim"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 323,
+          "label": "resolveCombat:false"
+        }
+      ]
+    },
+    {
+      "id": "view",
+      "type": "frontend",
+      "label": "SimView",
+      "sublabel": "插值 · 实体视图 · 静默门",
+      "pos": [
+        560,
+        750
+      ],
+      "size": [
+        220,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/SimView.cs",
+          "line": 16,
+          "label": "视图"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/SimView.cs",
+          "line": 143,
+          "end_line": 146,
+          "label": "和解 / 回滚回调"
+        }
+      ]
+    },
+    {
+      "id": "rig",
+      "type": "frontend",
+      "label": "BattleViewRig",
+      "sublabel": "HUD / 反馈 / 相机 / 场景",
+      "pos": [
+        550,
+        910
+      ],
+      "size": [
+        240,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SetupSubModule/BattleViewRig.cs",
+          "line": 20,
+          "label": "视图装配件"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SetupSubModule/BattleViewRig.cs",
+          "line": 30,
+          "end_line": 33,
+          "label": "四装配器"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "room-client",
+      "from": "room",
+      "to": "client",
+      "label": "KCP / UDP :17777",
+      "variant": "emphasis"
+    },
+    {
+      "id": "client-context",
+      "from": "client",
+      "to": "context",
+      "label": "StartGame / 快照 / 战斗事件"
+    },
+    {
+      "id": "context-mirror",
+      "from": "context",
+      "to": "mirror",
+      "label": "快照入镜"
+    },
+    {
+      "id": "mirror-sim",
+      "from": "mirror",
+      "to": "sim",
+      "label": "覆盖 + 重放"
+    },
+    {
+      "id": "sim-view",
+      "from": "sim",
+      "to": "view",
+      "label": "回滚 / 和解 / 帧事件"
+    },
+    {
+      "id": "view-rig",
+      "from": "view",
+      "to": "rig",
+      "label": "实体视图 · 插值"
+    },
+    {
+      "id": "context-inputs",
+      "from": "context",
+      "to": "inputs",
+      "label": "① 采样入史"
+    },
+    {
+      "id": "inputs-client",
+      "from": "inputs",
+      "to": "client",
+      "label": "SendInput（冗余 16 帧）",
+      "fromSide": "top",
+      "toSide": "left",
+      "via": [
+        [
+          235,
+          172
+        ]
+      ]
+    },
+    {
+      "id": "inputs-sim",
+      "from": "inputs",
+      "to": "sim",
+      "label": "OnRealInput（入史）",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [
+        [
+          235,
+          640
+        ]
+      ]
+    },
+    {
+      "id": "context-sim",
+      "from": "context",
+      "to": "sim",
+      "label": "④ Tick 预测",
+      "fromSide": "right",
+      "toSide": "right",
+      "via": [
+        [
+          840,
+          320
+        ],
+        [
+          840,
+          640
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "一帧的六步（BattleContext.Tick）",
+      "items": [
+        "① TickIncoming 收包 → ② FeedAndSendInputs（采样入史 + 同一份上行）→ ③ TickOutgoing 出包",
+        "④ RollbackSim.Tick 预测步进 → ⑤ ResendCarriedFrames 未确认帧冗余补发 → ⑥ View.Tick 表现",
+        "输入必须先于步进：开火回溯以「玩家看到的过去」为锚（viewFrame = 视图渲染帧）",
+        "任何一步异常都不会跳帧：帧号同时喂 Log.SetFrame，日志按帧关联"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "快照与和解",
+      "items": [
+        "OnStartGame：先按 CombatConfigDigest 复算 ConfigHash，不等即拒局；再按服务器 seed 建同构世界",
+        "OnSnapshot：对齐本地实体 → 同步权威规则位 → ApplyAndReconcile（checksum 比对 → 覆盖 + 重放）",
+        "不一致时 SendMismatch + 抓现场包；PushToView 把上一份 / 最新一份喂给插值",
+        "两台机子跑同一份 LiteSim：预测只在本地，命中 / 伤害 / 死亡只认权威（resolveCombat:false）"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "输入三件与预测边界",
+      "items": [
+        "TryTakeForPrediction 过帧边界门；本帧已消费则沿用 Pending（追帧不产生额外输入）",
+        "EntityId 由服务器 InputGate 覆写防伪；本地预测按 slot 实体对齐",
+        "未确认段（最近快照帧 + 1 起、容量 16 帧）重复发送，抗丢包",
+        "客户端只预测开火 / 弹药 / 位移；公共展示（KDA、阵亡、保护期）读权威镜像，不回灌预测态"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "装配段与表现装配",
+      "items": [
+        "BattleSegment ⑯ 建表现内核：PrefabLeaseCache / AudioService / EntityService / VfxService，并产出六个端口工厂",
+        "BattleViewRig 一处收口：BattleHudAssembler / BattleFeedbackAssembler / BattleViewSceneAssembler / BattleLookController",
+        "PublicCombatFeed 是命中 / 击杀 / 开火的独立事件批，按 kind 分发给 HUD、反馈、音频",
+        "听力面：CombatSubModule 的驱动都实现 IHitFeedbackConsumer，新增表现只接这个口"
+      ]
+    }
+  ]
+}

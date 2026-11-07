@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "9a962e81-be04-4ee6-b169-253171190c71",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-LiteSim.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\LiteSim.html",
+  "specification": {
+    "sha256": "20faab46c038af5500dafc64ec68a1baec821b6d5c9b8d35e267248aa48cd95e",
+    "bytes": 8652
+  },
+  "artifact": {
+    "sha256": "d198a4245254b0f7362fdaab0a20b32a2b7b69db719304420eed911d988353e7",
+    "bytes": 763212
+  }
+}

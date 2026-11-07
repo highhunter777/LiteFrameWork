@@ -76,7 +76,7 @@
 
 ## Skill 索引（按任务触发，ZCode）
 
-下列流程性规范已抽为通用级 skill（`.agents/skills/`，ZCode/Claude Code 等跨工具标准位），ZCode 会话中按任务自动加载；本文件的红线条目保留（同时服务无 skill 机制的其他工具）。另有 PostToolUse 提醒 hook：脚本单源在 `scripts/hooks/shared-source-reminder.py`（客户端中立），由 `.zcode/config.json`（ZCode）与 `.claude/settings.json`（Claude Code）各自挂载，在编辑器触碰共享源集/表/Unity 序列化资产时即时提醒，不依赖模型自觉。文档纪律（设计与进度分离 / 状态只由 git 事实回填）的守卫面是 `scripts/gate/doc-lint.py`，独立门禁 `scripts/gate/test.py --suite Doc`（或直跑 `python scripts/gate/doc-lint.py`）。
+下列流程性规范已抽为通用级 skill（`.agents/skills/`，ZCode/Claude Code 等跨工具标准位），ZCode 会话中按任务自动加载；本文件的红线条目保留（同时服务无 skill 机制的其他工具）。文档纪律（设计与进度分离 / 状态只由 git 事实回填）的守卫面是 `scripts/gate/doc-lint.py`，独立门禁 `scripts/gate/test.py --suite Doc`（或直跑 `python scripts/gate/doc-lint.py`）。
 
 | skill | 触发 |
 |---|---|
@@ -93,7 +93,7 @@
 ```powershell
 # 工具链统一入口（编辑器 Hub：LiteGame/工具链）
 python scripts/toolchain.py                                 # 列工具 / 单一 CLI（list/check/docs/open/run/generate/verify/build/doctor）
-python scripts/toolchain.py check                           # 清单/文档/CI/hook/计划任务注册面
+python scripts/toolchain.py check                           # 清单/文档/CI/计划任务注册面
 python scripts/toolchain.py doctor                          # 环境 + 注册面巡检（继承 restore-check 阻塞项）
 python scripts/toolchain.py open <tool-id>                  # 在编辑器 Hub 打开并选中工具
 
@@ -115,7 +115,7 @@ Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，�
 
 ## 云侧环境（外环）——操作必读
 
-> 联机测试云主机（Windows Server 2025 Server Core，**2026-10-18 起为现行形态**）。部署/运维全细节见 [说明 12 云侧部署与联机测试](Docs/说明/12-云侧部署与联机测试.md)；Linux/compose 旧形态见 [归档的 09 手册](Docs/归档记录/2026-10-29/上云联机测试（Linux compose 备用）.md)（备用）。
+> 联机测试云主机（Windows Server 2025 Server Core，**2026-10-18 起为现行形态**）。部署/运维全细节见 [说明 12 云侧部署与联机测试](Docs/说明/12-云侧部署与联机测试.md)；Linux/compose 旧形态见归档的 09 手册（`Docs/归档记录/2026-10-29/`，已随归档清空）（备用）。
 
 | 项 | 值 |
 |---|---|

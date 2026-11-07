@@ -168,8 +168,6 @@ class ManifestContractTests(unittest.TestCase):
         surfaces = {surface.get("id"): surface for surface in manifest["surfaces"]}
         self.assertIn("ci", surfaces)
         self.assertIn("nightly-task", surfaces)
-        self.assertIn("zcode-hook", surfaces)
-        self.assertIn("claude-hook", surfaces)
         self.assertEqual(surfaces["nightly-task"].get("script"), "scripts/gate/nightly-gate.py")
         self.assertEqual(surfaces["nightly-task"].get("runner"), "python")
 
@@ -305,18 +303,6 @@ class ManifestContractTests(unittest.TestCase):
         self.assertIn("restore-check.py", build_text)
         self.assertNotIn("restore-check.ps1", build_text)
 
-    def test_hook_entries_are_python(self):
-        zcode = json.loads((ROOT / ".zcode" / "config.json").read_text(encoding="utf-8"))
-        zcode_text = json.dumps(zcode, ensure_ascii=False)
-        self.assertIn("shared-source-reminder.py", zcode_text)
-        self.assertNotIn("shared-source-reminder.ps1", zcode_text)
-        claude_text = (ROOT / ".claude" / "settings.json").read_text(encoding="utf-8")
-        self.assertIn("shared-source-reminder.py", claude_text)
-        self.assertNotIn("shared-source-reminder.ps1", claude_text)
-        self.assertTrue((ROOT / "scripts" / "hooks" / "shared-source-reminder.py").is_file())
-        self.assertFalse((ROOT / "scripts" / "hooks" / "shared-source-reminder.ps1").exists())
-
-
 class CliContractTests(unittest.TestCase):
     def test_help_lists_verbs(self):
         result = run_cli("--help")
@@ -437,18 +423,6 @@ class SurfaceTests(unittest.TestCase):
                 token = token.strip("$,;()[]{}")
                 if token.startswith("scripts/") and token.endswith((".ps1", ".py")):
                     self.assertTrue((ROOT / token).is_file(), f"CI references missing script: {token}")
-
-    def test_hook_script_references_exist(self):
-        for relative in (".zcode/config.json", ".claude/settings.json"):
-            path = ROOT / relative
-            if not path.is_file():
-                continue
-            text = path.read_text(encoding="utf-8")
-            for token in text.replace("\"", " ").replace("'", " ").split():
-                token = token.strip("$,;()[]{}")
-                if token.startswith("scripts/") and token.endswith((".ps1", ".py")):
-                    self.assertTrue((ROOT / token).is_file(), f"{relative} references missing script: {token}")
-
 
 class ScriptFormManifestTests(unittest.TestCase):
     def load(self):

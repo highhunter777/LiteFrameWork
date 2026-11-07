@@ -1,0 +1,371 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LiteSync 会话与编解码",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/LiteSync.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "会话（Client/）"
+        },
+        "backend": {
+          "label": "编解码（双端共用）"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "roomclient",
+      "type": "frontend",
+      "label": "RoomClient",
+      "sublabel": "会话门面 · 事件 + 相位",
+      "pos": [
+        300,
+        60
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Client/RoomClient.cs",
+          "line": 34,
+          "label": "RoomClient"
+        },
+        {
+          "path": "Packages/com.litegame.sync/Client/RoomClient.cs",
+          "line": 272,
+          "label": "TickIncoming"
+        }
+      ]
+    },
+    {
+      "id": "inbound",
+      "type": "frontend",
+      "label": "RoomInbound",
+      "sublabel": "解码分发 · 快照水位",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Client/RoomInbound.cs",
+          "line": 12,
+          "label": "入站分发"
+        },
+        {
+          "path": "Packages/com.litegame.sync/Client/RoomInbound.cs",
+          "line": 52,
+          "label": "Handle"
+        }
+      ]
+    },
+    {
+      "id": "outbound",
+      "type": "frontend",
+      "label": "RoomOutbound",
+      "sublabel": "C→S 发包",
+      "pos": [
+        560,
+        60
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Client/RoomOutbound.cs",
+          "line": 14,
+          "label": "出站件"
+        },
+        {
+          "path": "Packages/com.litegame.sync/Client/RoomOutbound.cs",
+          "line": 34,
+          "label": "输入包"
+        }
+      ]
+    },
+    {
+      "id": "reconnect",
+      "type": "frontend",
+      "label": "ReconnectState",
+      "sublabel": "相位 · 票据 · 版本基准",
+      "pos": [
+        40,
+        220
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Client/ReconnectState.cs",
+          "line": 9,
+          "label": "重连状态"
+        }
+      ]
+    },
+    {
+      "id": "session",
+      "type": "frontend",
+      "label": "RoomSession",
+      "sublabel": "席位 / 房主 / 地图 / 终局",
+      "pos": [
+        300,
+        220
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Client/RoomSession.cs",
+          "line": 10,
+          "label": "房事实"
+        }
+      ]
+    },
+    {
+      "id": "inputwin",
+      "type": "frontend",
+      "label": "InputWindow",
+      "sublabel": "未确认段环（16 帧）",
+      "pos": [
+        560,
+        220
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Client/InputWindow.cs",
+          "line": 11,
+          "label": "窗口"
+        },
+        {
+          "path": "Packages/com.litegame.sync/Client/InputWindow.cs",
+          "line": 52,
+          "label": "取最近帧"
+        }
+      ]
+    },
+    {
+      "id": "reassembler",
+      "type": "backend",
+      "label": "SnapshotReassembler",
+      "sublabel": "快照 → 镜像 · 私有/比赛覆盖",
+      "pos": [
+        300,
+        380
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Snapshot/SnapshotReassembler.cs",
+          "line": 11,
+          "label": "重组器"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleSnapshotMirror.cs",
+          "line": 33,
+          "label": "客户端调用处"
+        }
+      ]
+    },
+    {
+      "id": "codec",
+      "type": "backend",
+      "label": "SnapshotCodec",
+      "sublabel": "槽 / 私有 / 比赛层编解码",
+      "pos": [
+        40,
+        380
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Snapshot/SnapshotCodec.cs",
+          "line": 10,
+          "label": "编解码"
+        }
+      ]
+    },
+    {
+      "id": "inputpacker",
+      "type": "backend",
+      "label": "InputPacker",
+      "sublabel": "输入打包 · 双端同一份",
+      "pos": [
+        560,
+        380
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Input/InputPacker.cs",
+          "line": 12,
+          "label": "打包器"
+        },
+        {
+          "path": "Packages/com.litegame.sync/Input/InputPacker.cs",
+          "line": 22,
+          "label": "Pack"
+        }
+      ]
+    },
+    {
+      "id": "differ",
+      "type": "backend",
+      "label": "SnapshotDiffer + AOI",
+      "sublabel": "服务端造差量 · 网格裁剪",
+      "pos": [
+        40,
+        520
+      ],
+      "size": [
+        180,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Snapshot/SnapshotDiffer.cs",
+          "line": 13,
+          "label": "差量器"
+        },
+        {
+          "path": "Packages/com.litegame.sync/Snapshot/AoiFilter.cs",
+          "line": 12,
+          "label": "AOI 网格"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "client-inbound",
+      "from": "roomclient",
+      "to": "inbound",
+      "label": "收包分发",
+      "variant": "emphasis"
+    },
+    {
+      "id": "client-outbound",
+      "from": "roomclient",
+      "to": "outbound",
+      "label": "发包入口",
+      "variant": "emphasis"
+    },
+    {
+      "id": "inbound-reconnect",
+      "from": "inbound",
+      "to": "reconnect",
+      "label": "相位 / 版本基准"
+    },
+    {
+      "id": "inbound-session",
+      "from": "inbound",
+      "to": "session",
+      "label": "房事实"
+    },
+    {
+      "id": "outbound-inputwin",
+      "from": "outbound",
+      "to": "inputwin",
+      "label": "取未确认段"
+    },
+    {
+      "id": "outbound-inputpacker",
+      "from": "outbound",
+      "to": "inputpacker",
+      "label": "Pack 冗余窗口"
+    },
+    {
+      "id": "client-reassembler",
+      "from": "roomclient",
+      "to": "reassembler",
+      "label": "快照 → 镜像"
+    },
+    {
+      "id": "reassembler-codec",
+      "from": "reassembler",
+      "to": "codec",
+      "label": "解码槽面"
+    },
+    {
+      "id": "differ-codec",
+      "from": "differ",
+      "to": "codec",
+      "label": "打包差量"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "一个门面 + 六个专件",
+      "items": [
+        "RoomClient 只做门面：持有传输、单调时钟、探针，对外发事件（JoinAck / StartGame / Snapshot / CombatEvents / MatchEnded / ReconnectResponse）",
+        "入站走 RoomInbound：PacketCodec 解码 → 按包型落到会话件；快照水位在入口丢弃旧包/重复包",
+        "出站走 RoomOutbound：Join / Input / Leave / Reconnect / StartMatch，输入包带未确认段冗余",
+        "三个事实件各管一段：RoomSession（JoinAck 权威事实）、ReconnectState（相位/票据/版本基准）、InputWindow（未确认段环）"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "这个包是双端共用的",
+      "items": [
+        "SnapshotCodec 两端同编：服务端 PackFull/PackMatch/PackPrivate 出包，客户端 SnapshotReassembler 解码入镜像",
+        "SnapshotDiffer + AoiFilter 只在服务端：每广播帧按可见集造差量，首帧全量建基线",
+        "InputPacker 也是双端：客户端 Pack（≤16 帧冗余），服务端 UnpackFrames——同一份常量 MaxRedundancy",
+        "CombatEventCodec 同样双端，但走独立包型：事件量再大也不会把快照顶出不可靠上限"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "重连与恢复",
+      "items": [
+        "ReconnectResponse 只在 Restoring 相位可应用：版本确认 + 权威快照（公共全量 + 比赛状态 + 本人私有）+ 输入历史",
+        "应用完毕必须 CompleteRestore 回报，否则服务器持续抑制本席位增量广播",
+        "重连预算 10s（ReconnectTimeoutMs）：超时或拒绝直接进 Failed，不做静默重试"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "边界与观测",
+      "items": [
+        "本包不认识地图表、场景、UI：只搬运协议事实，视图侧自行裁决（例如 MapId 回落口径）",
+        "网络质量由 NetworkQualityProbe 推断，只喂表现与诊断——不参与任何游戏逻辑或准入",
+        "RoomClient 的 ContentContext 由组合根注入，进房诊断记录会带上它；本类不认识内容系统"
+      ]
+    }
+  ]
+}

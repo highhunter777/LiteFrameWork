@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "b61e31c8-2df2-4bf5-af37-ae06726e50b6",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-产品组合根.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\产品组合根.html",
+  "specification": {
+    "sha256": "e9e31a24fa7ed7d938828a9108d6c77ea089eb1a14b712a8c25d35870b34f662",
+    "bytes": 8896
+  },
+  "artifact": {
+    "sha256": "b81687c90ad001cf17895050e7b9913e18360fdb61022e2d4af72c50630fde04",
+    "bytes": 759630
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "09876600-fe1c-456d-885a-413449237729",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-LiteSync.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\LiteSync.html",
+  "specification": {
+    "sha256": "888ffaa561b893b936ca374761191f8d2fed0d1ff6364f09e3bb774634809c43",
+    "bytes": 9321
+  },
+  "artifact": {
+    "sha256": "eba4b096cf5667fff4c8530a4f58158baa24fec1e8bcacf7492d2fbeffeecfe7",
+    "bytes": 766055
+  }
+}

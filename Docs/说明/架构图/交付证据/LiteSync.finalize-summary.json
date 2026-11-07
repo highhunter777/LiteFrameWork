@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-LiteSync.json",
+    "sha256": "888ffaa561b893b936ca374761191f8d2fed0d1ff6364f09e3bb774634809c43",
+    "bytes": 9321
+  },
+  "artifact": {
+    "path": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\LiteSync.html",
+    "sha256": "eba4b096cf5667fff4c8530a4f58158baa24fec1e8bcacf7492d2fbeffeecfe7",
+    "bytes": 766055
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\litesync.finalize.json",
+    "summaryReceipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\litesync.finalize-summary.json",
+    "browserCheckReceipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\litesync.browser-check.json"
+  },
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "invalid-local-release"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 9468,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 2,
+      "routesOverSuggestedStretch": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "outbound-inputpacker",
+            "from": "outbound",
+            "to": "inputpacker",
+            "label": "Pack 冗余窗口",
+            "collectionIndex": 5,
+            "artifactIndex": 6
+          },
+          "bends": 4,
+          "stretch": 1.731,
+          "directCorridorBlockers": [
+            {
+              "id": "inputwin",
+              "label": "InputWindow",
+              "box": [
+                560,
+                220,
+                180,
+                90
+              ]
+            }
+          ]
+        },
+        {
+          "relationship": {
+            "id": "client-reassembler",
+            "from": "roomclient",
+            "to": "reassembler",
+            "label": "快照 → 镜像",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 3,
+          "stretch": 1.132,
+          "directCorridorBlockers": [
+            {
+              "id": "session",
+              "label": "RoomSession",
+              "box": [
+                300,
+                220,
+                180,
+                90
+              ]
+            }
+          ]
+        }
+      ],
+      "truncated": false
+    },
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

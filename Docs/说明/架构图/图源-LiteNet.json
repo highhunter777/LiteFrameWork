@@ -1,0 +1,438 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LiteNet 协议与传输",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/LiteNet.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "LiteNet 协议层"
+        },
+        "external": {
+          "label": "端点（会话 / 房间服）"
+        },
+        "security": {
+          "label": "安全与准入"
+        },
+        "messagebus": {
+          "label": "传输（KCP）"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "client",
+      "type": "external",
+      "label": "LiteSync · RoomClient",
+      "sublabel": "会话状态机 · 输入与快照",
+      "pos": [
+        300,
+        50
+      ],
+      "size": [
+        220,
+        80
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Client/RoomClient.cs",
+          "line": 34,
+          "label": "RoomClient"
+        },
+        {
+          "path": "Packages/com.litegame.sync/Client/RoomClient.cs",
+          "line": 183,
+          "label": "SendJoin"
+        }
+      ]
+    },
+    {
+      "id": "codec",
+      "type": "frontend",
+      "label": "PacketCodec",
+      "sublabel": "Encode / TryDecode 信封",
+      "pos": [
+        300,
+        180
+      ],
+      "size": [
+        220,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.net/Core/Protocol/PacketCodec.cs",
+          "line": 11,
+          "label": "Encode"
+        },
+        {
+          "path": "Packages/com.litegame.net/Core/Protocol/PacketCodec.cs",
+          "line": 21,
+          "label": "TryDecode"
+        }
+      ]
+    },
+    {
+      "id": "packettype",
+      "type": "frontend",
+      "label": "PacketType",
+      "sublabel": "包类型字节（单源）",
+      "pos": [
+        40,
+        150
+      ],
+      "size": [
+        200,
+        76
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.net/Core/Protocol/PacketType.cs",
+          "line": 5,
+          "label": "类型枚举"
+        }
+      ]
+    },
+    {
+      "id": "proto",
+      "type": "frontend",
+      "label": "Proto · Battle.cs",
+      "sublabel": "protobuf 载荷 · 双端同源",
+      "pos": [
+        40,
+        250
+      ],
+      "size": [
+        200,
+        76
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.net/Core/Proto/Generated/Battle.cs",
+          "line": 5099,
+          "label": "StateSnapshot"
+        },
+        {
+          "path": "Packages/com.litegame.net/Core/Proto/Generated/Battle.cs",
+          "line": 5626,
+          "label": "JoinRequest"
+        }
+      ]
+    },
+    {
+      "id": "budget",
+      "type": "frontend",
+      "label": "WireBudget",
+      "sublabel": "线上尺寸预算",
+      "pos": [
+        620,
+        190
+      ],
+      "size": [
+        180,
+        76
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.net/Core/Protocol/WireBudget.cs",
+          "line": 10,
+          "label": "预算常量"
+        },
+        {
+          "path": "Packages/com.litegame.net/Core/Protocol/PacketWriter.cs",
+          "line": 10,
+          "label": "写入器"
+        }
+      ]
+    },
+    {
+      "id": "buildhash",
+      "type": "security",
+      "label": "BuildHash",
+      "sublabel": "源集摘要 · 准入常量",
+      "pos": [
+        40,
+        400
+      ],
+      "size": [
+        200,
+        80
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs",
+          "line": 13,
+          "label": "生成常量"
+        }
+      ]
+    },
+    {
+      "id": "port",
+      "type": "frontend",
+      "label": "IClientTransport",
+      "sublabel": "传输端口（可替换）",
+      "pos": [
+        300,
+        320
+      ],
+      "size": [
+        220,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.net/Core/Transport/Abstractions/IClientTransport.cs",
+          "line": 7,
+          "label": "客户端端口"
+        },
+        {
+          "path": "Packages/com.litegame.net/Core/Transport/Abstractions/IRoomTransport.cs",
+          "line": 1,
+          "label": "房间服端口"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "type": "security",
+      "label": "SecureEnvelope",
+      "sublabel": "PSK + AES-GCM 信封",
+      "pos": [
+        300,
+        460
+      ],
+      "size": [
+        220,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.net/Core/Transport/Security/SecureEnvelopeClientTransport.cs",
+          "line": 7,
+          "label": "装饰器"
+        },
+        {
+          "path": "Packages/com.litegame.net/Core/Transport/Security/SecureEnvelopeProtocol.cs",
+          "line": 1,
+          "label": "信封协议"
+        }
+      ]
+    },
+    {
+      "id": "kcp",
+      "type": "messagebus",
+      "label": "KcpTransport",
+      "sublabel": "可靠 / 不可靠双通道",
+      "pos": [
+        300,
+        600
+      ],
+      "size": [
+        220,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.net/Adapters/KcpTransportClient.cs",
+          "line": 9,
+          "label": "客户端实现"
+        },
+        {
+          "path": "Packages/com.litegame.net/Adapters/KcpTransportServer.cs",
+          "line": 11,
+          "label": "房间服实现"
+        }
+      ]
+    },
+    {
+      "id": "room",
+      "type": "external",
+      "label": "RoomServer",
+      "sublabel": "UDP :17777",
+      "pos": [
+        300,
+        740
+      ],
+      "size": [
+        220,
+        80
+      ],
+      "sources": [
+        {
+          "path": "deploy/roomserver.windows.json",
+          "line": 2,
+          "label": "端口"
+        }
+      ]
+    },
+    {
+      "id": "diag",
+      "type": "frontend",
+      "label": "DiagTrace",
+      "sublabel": "阶段 + 码点追踪",
+      "pos": [
+        620,
+        430
+      ],
+      "size": [
+        180,
+        76
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.net/Core/Diagnostics/DiagTrace.cs",
+          "line": 70,
+          "label": "追踪门面"
+        }
+      ]
+    },
+    {
+      "id": "quality",
+      "type": "frontend",
+      "label": "NetworkQualityProbe",
+      "sublabel": "RTT / 丢包观测",
+      "pos": [
+        620,
+        610
+      ],
+      "size": [
+        180,
+        80
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.net/Core/Client/NetworkQualityProbe.cs",
+          "line": 8,
+          "label": "质量探针"
+        },
+        {
+          "path": "Packages/com.litegame.net/Core/Client/NetworkQuality.cs",
+          "line": 7,
+          "label": "质量读数"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "client-codec",
+      "from": "client",
+      "to": "codec",
+      "label": "封装信封",
+      "variant": "emphasis"
+    },
+    {
+      "id": "codec-port",
+      "from": "codec",
+      "to": "port",
+      "label": "字节 + 通道",
+      "variant": "emphasis"
+    },
+    {
+      "id": "port-security",
+      "from": "port",
+      "to": "security",
+      "label": "默认实现：装饰 KCP",
+      "variant": "security"
+    },
+    {
+      "id": "security-kcp",
+      "from": "security",
+      "to": "kcp",
+      "label": "加密包",
+      "variant": "security"
+    },
+    {
+      "id": "kcp-room",
+      "from": "kcp",
+      "to": "room",
+      "label": "UDP / KCP",
+      "variant": "emphasis"
+    },
+    {
+      "id": "packettype-codec",
+      "from": "packettype",
+      "to": "codec",
+      "label": "类型字节"
+    },
+    {
+      "id": "proto-codec",
+      "from": "proto",
+      "to": "codec",
+      "label": "载荷"
+    },
+    {
+      "id": "codec-budget",
+      "from": "codec",
+      "to": "budget",
+      "label": "尺寸校验"
+    },
+    {
+      "id": "client-buildhash",
+      "from": "client",
+      "to": "buildhash",
+      "label": "Join 带 buildHash",
+      "variant": "dashed"
+    },
+    {
+      "id": "security-diag",
+      "from": "security",
+      "to": "diag",
+      "label": "追踪"
+    },
+    {
+      "id": "kcp-quality",
+      "from": "kcp",
+      "to": "quality",
+      "label": "RTT / 丢包"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "一条出站包的路",
+      "items": [
+        "RoomClient 组消息 → PacketCodec.Encode：1 字节 PacketType + protobuf 载荷",
+        "交给 IClientTransport.Send（带通道：可靠 / 不可靠）→ 安全信封加密 → KCP 封包 → UDP :17777",
+        "入站反向：KCP 解出 → 信封验签解密 → TryDecode 判类型 → 会话状态机消费"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "载荷与类型单源",
+      "items": [
+        "Battle.cs 由 .proto 生成，两端编同一份：字段改一处两端同错，不会静默漂移",
+        "PacketType 是唯一类型字节；信封里不重复写字符串类型名",
+        "BuildHash 写进协议常量，Join 时随票据上行；两端不一致的出包门禁与准入都会被拦"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "尺寸与预算",
+      "items": [
+        "WireBudget 约束快照/信封/wire 三种尺寸计数，超预算的快照被丢弃并记 SnapshotDropped",
+        "PacketWriter 为零分配写入路径：先算长度再写，不拼接临时数组",
+        "不可靠通道上的快照不做重传，靠 30Hz 的下一份覆盖"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "可替换传输与观测",
+      "items": [
+        "IClientTransport / IRoomTransport 是端口：本地服、弱网装饰器、测试假件都实现它",
+        "安全信封是装饰器形态：装配时套在 KCP 外面，会话代码不感知",
+        "NetworkQualityProbe 出 RTT / 丢包给 HUD；DiagTrace 用阶段 + 码点记录分包路径"
+      ]
+    }
+  ]
+}

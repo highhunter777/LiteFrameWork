@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-战斗域.json",
+    "sha256": "6fe9742a834ac1b9a6ad5b9fe4972e398c8878771403c619a7a8d743dadde5ba",
+    "bytes": 9960
+  },
+  "artifact": {
+    "path": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗域.html",
+    "sha256": "2f12005d1bca9d359b29d456743ca4e45d3b200c18ebadb8eb1e58ff00ffedef",
+    "bytes": 763800
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗域.finalize.json",
+    "summaryReceipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗域.finalize-summary.json",
+    "browserCheckReceipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗域.browser-check.json"
+  },
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "invalid-local-release"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 8229
+}

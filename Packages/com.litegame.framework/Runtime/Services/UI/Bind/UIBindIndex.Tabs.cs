@@ -11,11 +11,21 @@ namespace LiteFramework.UI
         public partial void SetTab(string name, int index)
         {
             MarkDriver(name, ControlDriver.Command);
+            if (TryGet<ToggleTabGroup>(name, out ToggleTabGroup toggleGroup))
+            {
+                toggleGroup.SelectSilent(index);
+                return;
+            }
+
             Get<TabGroup>(name).SelectSilent(index);
         }
 
         /// <summary>当前选中页签；未选中 = -1。G18。</summary>
-        public partial int GetTab(string name) => Get<TabGroup>(name).Selected;
+        public partial int GetTab(string name)
+        {
+            if (TryGet<ToggleTabGroup>(name, out ToggleTabGroup toggleGroup)) return toggleGroup.Selected;
+            return Get<TabGroup>(name).Selected;
+        }
 
         /// <summary>页签变化通知（用户点击；回调带索引）。重复登记替换；<c>null</c> = 仅退订。G18。</summary>
         public partial void OnTabChanged(string name, Action<int> handler) => _eventBinder.OnTabChanged(name, handler);

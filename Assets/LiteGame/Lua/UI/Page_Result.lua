@@ -19,7 +19,12 @@ end
 
 function M:OnShow(data)
     self.ui:SetTextKey("Txt_BackLobby", "Common.BackLobby")
-    self.ui:OnButton("Button_BackLobby", function() Bridge.ui.Replace(PAGE_LOBBY) end)
+    self.ui:SetText("Txt_HeaderRank", "名次")
+    self.ui:SetText("Txt_HeaderPlayer", "玩家")
+    self.ui:SetText("Txt_HeaderKills", "击杀")
+    self.ui:SetText("Txt_HeaderDeaths", "死亡")
+    self.ui:SetText("Txt_RankEmpty", "暂无排行")
+    self.ui:OnButton("Btn_BackLobby", function() Bridge.ui.Replace(PAGE_LOBBY) end)
 
     local d = (type(data) == "table") and data or nil
     if d ~= nil and d.reason ~= nil then
@@ -40,34 +45,37 @@ function M:_PushRankboard(rows)
         data[i] = {
             key = tostring(i),
             Txt_Rank = tostring(r.rank),
-            Txt_Name = r.name,
+            Txt_PlayerName = r.name,
             Txt_Kills = { key = "UI.Result.Kills", arg0 = r.kills },
             Txt_Deaths = { key = "UI.Result.Deaths", arg0 = r.deaths },
         }
     end
-    self.ui:SetList("VirtualList_Rankboard", data)
+    self.ui:SetList("VList_Rankboard", data)
+    self.ui:SetVisible("Txt_RankEmpty", n == 0)
 end
 
 -- 本机摘要：结束原因取枚举名拼键（值域随枚举——§8）；缺键开发期显 [key]（不静默兜底）；rank ≤ 0 = 无名次面则隐藏
 function M:_Scoreboard(reasonName, kills, deaths, rank)
+    self.ui:SetVisible("Cot_Scoreboard", true)
     self.ui:SetVisible("Txt_KillCount", true)
     self.ui:SetVisible("Txt_DeathCount", true)
     self.ui:SetTextKey("Txt_ResultTitle", "UI.Result.Reason." .. tostring(reasonName))
     self.ui:SetTextKeyArgs("Txt_KillCount", "UI.Result.Kills", kills or 0)
     self.ui:SetTextKeyArgs("Txt_DeathCount", "UI.Result.Deaths", deaths or 0)
     if rank ~= nil and rank > 0 then
-        self.ui:SetVisible("Txt_Score", true)
-        self.ui:SetTextKeyArgs("Txt_Score", "UI.Result.Rank", rank)
+        self.ui:SetVisible("Txt_MyRank", true)
+        self.ui:SetTextKeyArgs("Txt_MyRank", "UI.Result.Rank", rank)
     else
-        self.ui:SetVisible("Txt_Score", false)
+        self.ui:SetVisible("Txt_MyRank", false)
     end
 end
 
 function M:_Empty()
     self.ui:SetTextKey("Txt_ResultTitle", "UI.Result.NoMatchData")
+    self.ui:SetVisible("Cot_Scoreboard", false)
     self.ui:SetVisible("Txt_KillCount", false)
     self.ui:SetVisible("Txt_DeathCount", false)
-    self.ui:SetVisible("Txt_Score", false)
+    self.ui:SetVisible("Txt_MyRank", false)
 end
 
 return M

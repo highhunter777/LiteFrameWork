@@ -223,7 +223,7 @@ page = NewPage('UI.Page_Login')
 page:OnShow(nil)");
                 string calls = Calls(env);
                 StringAssert.Contains("Key:Txt_Status=UI.Login.NoServer", calls, "未配置服务器显性拒绝（fail-closed）");
-                StringAssert.Contains("Interact:Button_GuestLogin=false", calls, "拒绝态按钮禁用");
+                StringAssert.Contains("Interact:Btn_GuestLogin=false", calls, "拒绝态按钮禁用");
                 StringAssert.Contains("KeyArgs:Txt_Version=Common.Version(bh-test,nil)", calls, "版本 = 数据参数进文案键");
             }
         }
@@ -236,9 +236,9 @@ page:OnShow(nil)");
                 env.DoString(@"
 page = NewPage('UI.Page_Login')
 page:OnShow(nil)
-buttons['Button_GuestLogin']()");
+buttons['Btn_GuestLogin']()");
                 StringAssert.Contains("Key:Txt_Status=UI.Login.Connecting", Calls(env), "在途态给 Connecting 键");
-                StringAssert.Contains("Interact:Button_GuestLogin=false", Calls(env), "在途禁用防重复点");
+                StringAssert.Contains("Interact:Btn_GuestLogin=false", Calls(env), "在途禁用防重复点");
 
                 env.DoString("meta.cb_guest(true, 'acc-9')");
                 StringAssert.Contains("Replace:UI.Page_Lobby", Calls(env), "登录成功用替换（返回栈不残留——§1）");
@@ -253,12 +253,12 @@ buttons['Button_GuestLogin']()");
                 env.DoString(@"
 page = NewPage('UI.Page_Login')
 page:OnShow(nil)
-buttons['Button_GuestLogin']()
+buttons['Btn_GuestLogin']()
 meta.cb_guest(false, 'Network')");
                 string calls = Calls(env);
                 StringAssert.Contains("Key:Txt_Status=UI.Login.Failed", calls);
                 StringAssert.Contains("Toast:[UI.Login.Failed]", calls, "系统反馈兜底（§2）");
-                StringAssert.Contains("Interact:Button_GuestLogin=true", calls, "失败可页内重试");
+                StringAssert.Contains("Interact:Btn_GuestLogin=true", calls, "失败可页内重试");
             }
         }
 
@@ -273,13 +273,13 @@ meta.cb_guest(false, 'Network')");
 page = NewPage('UI.Page_Lobby')
 page:OnShow(nil)
 meta.cb_rooms(true, {})");
-                StringAssert.Contains("Key:Txt_Status=UI.Lobby.RoomEmpty", Calls(env), "空表 → RoomEmpty");
+                StringAssert.Contains("Key:Txt_RoomListStatus=UI.Lobby.RoomEmpty", Calls(env), "空表 → RoomEmpty");
 
                 env.DoString("meta.cb_rooms(true, { { roomId = 'Room-A' } })");
                 StringAssert.Contains("UI.Lobby.Ready", Calls(env), "非空 → Ready");
 
                 env.DoString("meta.cb_rooms(false, 'Network')");
-                StringAssert.Contains("Key:Txt_Status=UI.Lobby.ListFailed", Calls(env), "查询失败 → ListFailed");
+                StringAssert.Contains("Key:Txt_RoomListStatus=UI.Lobby.ListFailed", Calls(env), "查询失败 → ListFailed");
             }
         }
 
@@ -292,10 +292,10 @@ meta.cb_rooms(true, {})");
 meta.account = 'acc-77'
 page = NewPage('UI.Page_Lobby')
 page:OnShow(nil)
-buttons['Button_QuickEnter']()");
+buttons['Btn_QuickEnter']()");
                 string mid = Calls(env);
-                StringAssert.Contains("Key:Txt_Status=UI.Lobby.Allocating", mid, "在途给 Allocating 键");
-                StringAssert.Contains("Interact:Button_QuickEnter=false", mid);
+                StringAssert.Contains("Key:Txt_RoomListStatus=UI.Lobby.Allocating", mid, "在途给 Allocating 键");
+                StringAssert.Contains("Interact:Btn_QuickEnter=false", mid);
                 StringAssert.Contains("Text:Txt_PlayerName=acc-77", mid, "账号短号 = 数据面（SetText）");
 
                 env.DoString("meta.cb_enter(true, 'Room-A')");
@@ -303,7 +303,7 @@ buttons['Button_QuickEnter']()");
 
                 env.DoString(@"
 page:OnShow(nil)
-buttons['Button_QuickEnter']()
+buttons['Btn_QuickEnter']()
 meta.cb_enter(false, 'Network')");
                 StringAssert.Contains("Toast:[UI.Lobby.EnterFailed]", Calls(env), "进房失败 Toast 兜底");
             }
@@ -317,10 +317,11 @@ meta.cb_enter(false, 'Network')");
                 env.DoString(@"
 page = NewPage('UI.Page_Lobby')
 page:OnShow(nil)
-buttons['Button_CreateRoom']()");
+buttons['Btn_CreateRoom']()
+buttons['Btn_ConfirmCreate']()");
                 string mid = Calls(env);
-                StringAssert.Contains("Key:Txt_Status=UI.Lobby.Creating", mid, "在途给 Creating 键");
-                StringAssert.Contains("Interact:Button_CreateRoom=false", mid, "在途禁钮（防重入）");
+                StringAssert.Contains("Key:Txt_RoomListStatus=UI.Lobby.Creating", mid, "在途给 Creating 键");
+                StringAssert.Contains("Interact:Btn_ConfirmCreate=false", mid, "在途禁钮（防重入）");
                 StringAssert.Contains("CreateRoom:1:2", mid,
                     "走服务端出号（Bridge.meta.CreateRoom；开房参数：首参=选图行键（默认第一行），次参=选人数（默认 2））");
 
@@ -331,15 +332,17 @@ buttons['Button_CreateRoom']()");
                 // 改选后透传：下拉索引 → 行键/档位（0 基索引；索引 1 = 第二行训练场图 / 第二档 4 人）
                 env.DoString(@"
 page:OnShow(nil)
-dropdowns['Dropdown_Map'] = 1
-dropdowns['Dropdown_Players'] = 1
-buttons['Button_CreateRoom']()");
+dropdowns['Ddl_Map'] = 1
+dropdowns['Ddl_Players'] = 1
+buttons['Btn_CreateRoom']()
+buttons['Btn_ConfirmCreate']()");
                 StringAssert.Contains("CreateRoom:2:4", Calls(env),
                     "选图/选人数随创建意图透传（地图行键 = 表行键；人数 = 档位表取值）");
 
                 env.DoString(@"
 page:OnShow(nil)
-buttons['Button_CreateRoom']()
+buttons['Btn_CreateRoom']()
+buttons['Btn_ConfirmCreate']()
 meta.cb_create(false, 'Network')");
                 StringAssert.Contains("Toast:[UI.Lobby.CreateFailed]", Calls(env), "创建失败 Toast 兜底");
             }
@@ -353,8 +356,8 @@ meta.cb_create(false, 'Network')");
                 env.DoString(@"
 page = NewPage('UI.Page_Lobby')
 page:OnShow(nil)
-buttons['Button_Records']()
-buttons['Button_Settings']()");
+buttons['Btn_Records']()
+buttons['Btn_Settings']()");
                 string calls = Calls(env);
                 StringAssert.Contains("Show:UI.Page_Records", calls, "最近战绩入口 → 战绩独立页（§5·战绩页）");
                 StringAssert.Contains("Show:UI.Page_Settings", calls, "设置叠加打开");
@@ -371,12 +374,12 @@ buttons['Button_Settings']()");
                 env.DoString(@"
 page = NewPage('UI.Page_Room')
 page:OnShow({ roomId = 'Room-A' })
-buttons['Button_Leave']()");
+buttons['Btn_Leave']()");
                 string calls = Calls(env);
                 StringAssert.Contains("KeyArgs:Txt_RoomId=UI.Room.Info(Room-A,nil)", calls, "房号 = 导航数据进文案键");
                 StringAssert.Contains("Replace:UI.Page_Lobby", calls, "离开 = 回大厅（§3）");
                 StringAssert.Contains("LeaveMatch", calls, "并请流程收尾（Match/Battle 阶段取消释放）");
-                StringAssert.Contains("Visible:Txt_State=false", calls, "未收到席位快照 → 保持隐藏（不显假数）");
+                StringAssert.Contains("Visible:Txt_PlayerCount=false", calls, "未收到席位快照 → 保持隐藏（不显假数）");
             }
         }
 
@@ -390,12 +393,12 @@ buttons['Button_Leave']()");
                 env.DoString(@"
 page = NewPage('UI.Page_Result')
 page:OnShow({ reason = 'KillLimit', kills = 5, deaths = 2, hasPlayer = true })
-buttons['Button_BackLobby']()");
+buttons['Btn_BackLobby']()");
                 string calls = Calls(env);
                 StringAssert.Contains("Key:Txt_ResultTitle=UI.Result.Reason.KillLimit", calls, "结束原因拼键（值域随枚举）");
                 StringAssert.Contains("KeyArgs:Txt_KillCount=UI.Result.Kills(5,nil)", calls);
                 StringAssert.Contains("KeyArgs:Txt_DeathCount=UI.Result.Deaths(2,nil)", calls);
-                StringAssert.Contains("Visible:Txt_Score=false", calls, "无 score 字段 → 隐藏（挂协议批）");
+                StringAssert.Contains("Visible:Txt_MyRank=false", calls, "无 score 字段 → 隐藏（挂协议批）");
                 StringAssert.Contains("Replace:UI.Page_Lobby", calls);
             }
         }
@@ -412,8 +415,9 @@ page = NewPage('UI.Page_Result')
 page:OnShow(nil)");
                 string calls = Calls(env);
                 StringAssert.Contains("Key:Txt_ResultTitle=UI.Result.NoMatchData", calls, "无本局数据 → 空态");
+                StringAssert.Contains("Visible:Cot_Scoreboard=false", calls, "空态隐藏整条本机摘要（含背景）");
                 StringAssert.Contains("Visible:Txt_KillCount=false", calls, "空态不显本机摘要");
-                StringAssert.Contains("List:VirtualList_Rankboard=0", calls, "无本局数据 → 空排行");
+                StringAssert.Contains("List:VList_Rankboard=0", calls, "无本局数据 → 空排行");
             }
         }
 
@@ -433,15 +437,15 @@ meta.cb_records(true, { { matchId = 'M-1', kills = 3, reason = 'KillLimit', time
                 StringAssert.Contains("Key:Txt_Title=UI.Lobby.Records", calls, "标题键（复用大厅入口键）");
                 StringAssert.Contains("Key:Txt_Back=Common.BackLobby", calls);
                 StringAssert.Contains("Visible:Txt_Empty=false", calls, "查询返回前不显空态（防加载闪空）");
-                StringAssert.Contains("List:VirtualList_Records=2", calls, "战绩行填充（SetList 整表替换）");
+                StringAssert.Contains("List:VList_Records=2", calls, "战绩行填充（SetList 整表替换）");
                 string row = (string)env.DoString(@"
-local r = lists['VirtualList_Records'][1]
-return r.key .. '|' .. r.Txt_MatchTime .. '|' .. r.Txt_Kill.key .. '|' .. tostring(r.Txt_Kill.arg0)
+local r = lists['VList_Records'][1]
+return r.key .. '|' .. r.Txt_MatchTime .. '|' .. r.Txt_Kills.key .. '|' .. tostring(r.Txt_Kills.arg0)
     .. '|' .. r.Txt_EndReason.key")[0];
                 Assert.AreEqual("M-1|2026-10-18 10:00|UI.Result.Kills|3|UI.Result.Reason.KillLimit", row,
                     "行字段：key=matchId + 时间为数据 + 击杀文案键带参 + 结束原因拼键");
 
-                env.DoString("buttons['Button_Back']()");
+                env.DoString("buttons['Btn_Back']()");
                 StringAssert.Contains("Replace:UI.Page_Lobby", Calls(env), "返回 = 替换回大厅");
             }
         }
@@ -458,7 +462,7 @@ meta.cb_records(true, {})");
                 string calls = Calls(env);
                 StringAssert.Contains("Visible:Txt_Empty=true", calls, "空表 → 空态");
                 StringAssert.Contains("Key:Txt_Empty=UI.Records.Empty", calls, "空态文案键（UI.Records.Empty）");
-                StringAssert.Contains("List:VirtualList_Records=0", calls, "空表 → 空列表（不显残留行）");
+                StringAssert.Contains("List:VList_Records=0", calls, "空表 → 空列表（不显残留行）");
 
                 env.DoString(@"
 meta.configured = false
@@ -466,7 +470,7 @@ calls = {}
 page:OnShow(nil)");
                 string offline = Calls(env);
                 StringAssert.Contains("Visible:Txt_Empty=true", offline, "未配置服务器 → 显性拒绝（空态）");
-                StringAssert.DoesNotContain("List:VirtualList_Records=2", offline, "未配置不查战绩");
+                StringAssert.DoesNotContain("List:VList_Records=2", offline, "未配置不查战绩");
             }
         }
 
@@ -482,7 +486,7 @@ meta.account = 'acc-3'
 meta.server = 'http://meta:8080'
 page = NewPage('UI.Page_Settings')
 page:OnShow(nil)
-buttons['Button_Close']()");
+buttons['Btn_Close']()");
                 string calls = Calls(env);
                 StringAssert.Contains("Key:Txt_Volume=UI.Settings.Volume", calls);
                 StringAssert.Contains("Key:Txt_Sound=UI.Settings.Sound", calls);
@@ -491,7 +495,7 @@ buttons['Button_Close']()");
                 StringAssert.Contains("KeyArgs:Txt_Account=UI.Settings.Account(acc-3,nil)", calls);
                 StringAssert.Contains("KeyArgs:Txt_ServerAddress=UI.Settings.Server(http://meta:8080,nil)", calls);
                 StringAssert.Contains("KeyArgs:Txt_Version=Common.Version(bh-test,nil)", calls);
-                StringAssert.Contains("Close:UI.Page_Settings", calls, "Button_Close = 关闭（叠加页 Back 同径）");
+                StringAssert.Contains("Close:UI.Page_Settings", calls, "Btn_Close = 关闭（叠加页 Back 同径）");
             }
         }
 
@@ -522,23 +526,23 @@ page:OnShow(nil)");
 page = NewPage('UI.Page_Settings')
 page:OnShow({ battleExit = true })");
                 string init = Calls(env);
-                StringAssert.Contains("Visible:Button_Exit=true", init, "对局中入口（battleExit 数据）才显退场钮");
-                StringAssert.Contains("Key:Txt_Exit=UI.Settings.Exit", init, "退场钮文案键");
+                StringAssert.Contains("Visible:Btn_ExitMatch=true", init, "对局中入口（battleExit 数据）才显退场钮");
+                StringAssert.Contains("Key:Txt_ExitMatch=UI.Settings.Exit", init, "退场钮文案键");
 
-                env.DoString(@"buttons['Button_Exit']()");
+                env.DoString(@"buttons['Btn_ExitMatch']()");
                 string clicked = Calls(env);
-                StringAssert.Contains("Interact:Button_Exit=false", clicked, "弹窗期间按钮锁点（防重入）");
+                StringAssert.Contains("Interact:Btn_ExitMatch=false", clicked, "弹窗期间按钮锁点（防重入）");
                 StringAssert.Contains("Confirm:[UI.Settings.ExitConfirmTitle]/[Common.Confirm]/[Common.Cancel]", clicked, "确认弹窗经受控面（文案/按钮键齐）");
 
                 // 防重入：弹窗未落定前再点不重复发确认
-                env.DoString(@"buttons['Button_Exit']()");
+                env.DoString(@"buttons['Btn_ExitMatch']()");
                 Assert.AreEqual(1, Regex.Matches(Calls(env), "Confirm:").Count, "在途再点不重复弹确认");
 
                 env.DoString("confirm_fn(true)");
                 string confirmed = Calls(env);
                 StringAssert.Contains("Replace:UI.Page_Lobby", confirmed, "确认 → 先回大厅（导航先行——Page_Room._Leave 同款先例）");
                 StringAssert.Contains("LeaveMatch", confirmed, "确认 → 再请流程收尾（离房/离局同一窄接口）");
-                StringAssert.Contains("Interact:Button_Exit=true", confirmed, "回调后按钮复位");
+                StringAssert.Contains("Interact:Btn_ExitMatch=true", confirmed, "回调后按钮复位");
             }
         }
 
@@ -550,12 +554,12 @@ page:OnShow({ battleExit = true })");
                 env.DoString(@"
 page = NewPage('UI.Page_Settings')
 page:OnShow({ battleExit = true })
-buttons['Button_Exit']()
+buttons['Btn_ExitMatch']()
 confirm_fn(false)");
                 string calls = Calls(env);
                 StringAssert.DoesNotContain("Replace:UI.Page_Lobby", calls, "取消不得离局");
                 StringAssert.DoesNotContain("LeaveMatch", calls, "取消不得请流程收尾");
-                StringAssert.Contains("Interact:Button_Exit=true", calls, "取消后按钮复位（可再发起）");
+                StringAssert.Contains("Interact:Btn_ExitMatch=true", calls, "取消后按钮复位（可再发起）");
             }
         }
 
@@ -568,8 +572,8 @@ confirm_fn(false)");
 page = NewPage('UI.Page_Settings')
 page:OnShow(nil)");
                 string calls = Calls(env);
-                StringAssert.Contains("Visible:Button_Exit=false", calls, "大厅/登录的设置入口（无数据）不显退场钮");
-                StringAssert.DoesNotContain("Key:Txt_Exit=", calls, "隐藏态不设文案（不产生多余键调用）");
+                StringAssert.Contains("Visible:Btn_ExitMatch=false", calls, "大厅/登录的设置入口（无数据）不显退场钮");
+                StringAssert.DoesNotContain("Key:Txt_ExitMatch=", calls, "隐藏态不设文案（不产生多余键调用）");
             }
         }
 
@@ -584,25 +588,25 @@ page:OnShow(nil)");
 page = NewPage('UI.Page_Settings')
 page:OnShow(nil)");
                 string init = Calls(env);
-                StringAssert.Contains("Slider:Slider_Volume=0.5", init, "音量初值 = 设置值（程序 Set 不触发回调）");
-                StringAssert.Contains("Toggle:Toggle_Sound=true", init, "音效初值");
-                StringAssert.Contains("Options:Dropdown_Quality=3", init, "画质三档选项文本");
-                StringAssert.Contains("Options:Dropdown_Language=2", init, "语言选项（语言自名）");
-                StringAssert.Contains("Dropdown:Dropdown_Quality=1", init, "画质初值 = 设置值");
-                StringAssert.Contains("Dropdown:Dropdown_Language=0", init, "语言初值 = 当前 locale（zh-CN）");
+                StringAssert.Contains("Slider:Sld_Volume=0.5", init, "音量初值 = 设置值（程序 Set 不触发回调）");
+                StringAssert.Contains("Toggle:Tgl_Sound=true", init, "音效初值");
+                StringAssert.Contains("Options:Ddl_Quality=3", init, "画质三档选项文本");
+                StringAssert.Contains("Options:Ddl_Language=2", init, "语言选项（语言自名）");
+                StringAssert.Contains("Dropdown:Ddl_Quality=1", init, "画质初值 = 设置值");
+                StringAssert.Contains("Dropdown:Ddl_Language=0", init, "语言初值 = 当前 locale（zh-CN）");
 
-                env.DoString(@"controls['slider:Slider_Volume'](0.3)
-controls['toggle:Toggle_Sound'](false)
-controls['dropdown:Dropdown_Quality'](2)
-controls['dropdown:Dropdown_Language'](1)");
+                env.DoString(@"controls['slider:Sld_Volume'](0.3)
+controls['toggle:Tgl_Sound'](false)
+controls['dropdown:Ddl_Quality'](2)
+controls['dropdown:Ddl_Language'](1)");
                 string after = Calls(env);
                 StringAssert.Contains("SetVolume:0.3", after, "拖动 → 设置门面（拖动即生效）");
                 StringAssert.Contains("SetSound:false", after, "音效开关 → 设置门面");
                 StringAssert.Contains("SetQuality:2", after, "画质 → 设置门面");
                 StringAssert.Contains("SetLocale:en", after, "语言切换 = Bridge.text.SetLocale（§10 裁决④）");
-                StringAssert.Contains("Options:Dropdown_Quality=3", after, "切换语言后画质选项文本重设（下拉项不随 LText 自动刷新）");
+                StringAssert.Contains("Options:Ddl_Quality=3", after, "切换语言后画质选项文本重设（下拉项不随 LText 自动刷新）");
 
-                env.DoString("buttons['Button_Close']()");
+                env.DoString("buttons['Btn_Close']()");
                 StringAssert.Contains("Save", Calls(env), "关闭 = 落盘（SettingService 三处纪律之设置界面关闭）");
                 StringAssert.Contains("Close:UI.Page_Settings", Calls(env));
 
@@ -623,11 +627,11 @@ settings.general.tab = 2
 page = NewPage('UI.Page_Settings')
 page:OnShow(nil)");
                 string init = Calls(env);
-                StringAssert.Contains("Tab:TabGroup_Settings=2", init, "初值 = 记忆页签（程序 Set 静默，不触发回调）");
+                StringAssert.Contains("Tab:Tabs_Settings=2", init, "初值 = 记忆页签（程序 Set 静默，不触发回调）");
                 StringAssert.Contains("Visible:Cot_DisplayPanel=true", init, "记忆页签对应面板可见");
                 StringAssert.Contains("Visible:Cot_AudioPanel=false", init, "其余面板隐藏（互斥）");
 
-                env.DoString("controls['tab:TabGroup_Settings'](3)");
+                env.DoString("controls['tab:Tabs_Settings'](3)");
                 string switched = Calls(env);
                 StringAssert.Contains("Visible:Cot_ControlPanel=true", switched, "切换 → 目标面板可见");
                 StringAssert.Contains("Visible:Cot_DisplayPanel=false", switched, "切换 → 原面板隐藏");
@@ -644,9 +648,9 @@ page:OnShow(nil)");
 page = NewPage('UI.Page_Settings')
 page:OnShow({ battleExit = true })");
                 string calls = Calls(env);
-                StringAssert.Contains("Interact:Dropdown_DisplayMode=false", calls, "对局中禁用显示模式（窗口重建卡战斗帧）");
-                StringAssert.Contains("Interact:Dropdown_VSync=false", calls, "对局中禁用垂直同步");
-                StringAssert.DoesNotContain("Interact:Slider_LookSensitivity=false", calls, "控制类不受对局态限制");
+                StringAssert.Contains("Interact:Ddl_DisplayMode=false", calls, "对局中禁用显示模式（窗口重建卡战斗帧）");
+                StringAssert.Contains("Interact:Ddl_VSync=false", calls, "对局中禁用垂直同步");
+                StringAssert.DoesNotContain("Interact:Sld_LookSensitivity=false", calls, "控制类不受对局态限制");
             }
         }
 
@@ -658,12 +662,12 @@ page:OnShow({ battleExit = true })");
                 env.DoString(@"
 page = NewPage('UI.Page_Settings')
 page:OnShow(nil)
-buttons['Button_ResetDefaults']()
+buttons['Btn_ResetDefaults']()
 confirm_fn(true)");
                 string calls = Calls(env);
                 StringAssert.Contains("ResetDefaults", calls, "确认 → 门面全量回默认");
-                StringAssert.Contains("Slider:Slider_Volume=0.8", calls, "回默认后重刷音量（0.8 = 默认值）");
-                StringAssert.Contains("Dropdown:Dropdown_Quality=2", calls, "回默认后重刷画质（2 = 高）");
+                StringAssert.Contains("Slider:Sld_Volume=0.8", calls, "回默认后重刷音量（0.8 = 默认值）");
+                StringAssert.Contains("Dropdown:Ddl_Quality=2", calls, "回默认后重刷画质（2 = 高）");
             }
         }
 
@@ -675,11 +679,11 @@ confirm_fn(true)");
                 env.DoString(@"
 page = NewPage('UI.Page_Settings')
 page:OnShow(nil)
-controls['dropdown:Dropdown_DisplayMode'](2)
-controls['dropdown:Dropdown_FrameRate'](1)
-controls['dropdown:Dropdown_VSync'](2)
-controls['slider:Slider_LookSensitivity'](1.5)
-controls['toggle:Toggle_InvertLookY'](true)");
+controls['dropdown:Ddl_DisplayMode'](2)
+controls['dropdown:Ddl_FrameRate'](1)
+controls['dropdown:Ddl_VSync'](2)
+controls['slider:Sld_LookSensitivity'](1.5)
+controls['toggle:Tgl_InvertLookY'](true)");
                 string calls = Calls(env);
                 StringAssert.Contains("SetMode:2", calls, "显示模式 → 门面（窗口）");
                 StringAssert.Contains("SetFrameRate:60", calls, "帧率档按 C# 值表翻译（索引 1 → 60）");
@@ -699,15 +703,15 @@ controls['toggle:Toggle_InvertLookY'](true)");
 page = NewPage('UI.Page_Lobby')
 page:OnShow(nil)
 meta.cb_rooms(true, { { roomId = 'Room-A', players = 2, expectedPlayers = 8 } })");
-                StringAssert.Contains("List:VirtualList_Rooms=1", Calls(env), "行填充（SetList 整表替换）");
+                StringAssert.Contains("List:VList_Rooms=1", Calls(env), "行填充（SetList 整表替换）");
                 string row = (string)env.DoString(@"
-local r = lists['VirtualList_Rooms'][1]
+local r = lists['VList_Rooms'][1]
 return r.key .. '|' .. r.Txt_RoomName .. '|' .. r.Txt_RoomState.key .. '|' .. tostring(r.Txt_RoomState.arg0) .. '/' .. tostring(r.Txt_RoomState.arg1)")[0];
                 Assert.AreEqual("Room-A|Room-A|UI.Lobby.RoomState|2/8", row, "行字段：key=roomId + 数据名 + 文案键带参人数");
 
-                env.DoString("lists['click:VirtualList_Rooms']('Room-A')");
+                env.DoString("lists['click:VList_Rooms']('Room-A')");
                 StringAssert.Contains("EnterRoom:Room-A", Calls(env), "行点击 = 选择式进房（EnterRoom）");
-                StringAssert.Contains("Key:Txt_Status=UI.Lobby.Allocating", Calls(env), "在途态");
+                StringAssert.Contains("Key:Txt_RoomListStatus=UI.Lobby.Allocating", Calls(env), "在途态");
 
                 env.DoString("meta.cb_enter(true, 'Room-A')");
                 StringAssert.Contains("Replace:UI.Page_Room#Room-A", Calls(env), "进房成功替换 + 房号随导航数据");
@@ -737,12 +741,12 @@ page:OnUpdate(0.4)");
                 env.DoString(@"calls = {}
 meta.cb_rooms(true, { { roomId = 'Room-A', players = 1, expectedPlayers = 2 } })");
                 string same = Calls(env);
-                StringAssert.DoesNotContain("List:VirtualList_Rooms", same, "投影未变不下发（免条目重绑/滚动复位）");
+                StringAssert.DoesNotContain("List:VList_Rooms", same, "投影未变不下发（免条目重绑/滚动复位）");
                 StringAssert.DoesNotContain("Key:Txt_Status", same, "同状态键不重写");
 
                 env.DoString(@"calls = {}
 meta.cb_rooms(true, { { roomId = 'Room-B', players = 2, expectedPlayers = 4 } })");
-                StringAssert.Contains("List:VirtualList_Rooms=1", Calls(env), "投影变了才重推");
+                StringAssert.Contains("List:VList_Rooms=1", Calls(env), "投影变了才重推");
             }
         }
 
@@ -786,12 +790,12 @@ meta.cb_rooms(true, { { roomId = 'Room-D' } })");
 page:OnShow(nil)
 meta.cb_rooms(true, {})
 calls = {}
-buttons['Button_QuickEnter']()
+buttons['Btn_QuickEnter']()
 page:OnUpdate(1.5)");
                 string entering = Calls(env);
                 Assert.AreEqual(0, Regex.Matches(entering, "RoomsQuery").Count, "在途进房期间不发起投影查询");
-                StringAssert.Contains("Key:Txt_Status=UI.Lobby.Allocating", entering, "在途状态不被投影回填覆盖");
-                StringAssert.DoesNotContain("Key:Txt_Status=UI.Lobby.Ready", entering, "同上（未回填就绪态）");
+                StringAssert.Contains("Key:Txt_RoomListStatus=UI.Lobby.Allocating", entering, "在途状态不被投影回填覆盖");
+                StringAssert.DoesNotContain("Key:Txt_RoomListStatus=UI.Lobby.Ready", entering, "同上（未回填就绪态）");
             }
         }
 
@@ -807,12 +811,13 @@ page:OnShow({ reason = 'KillLimit', kills = 5, deaths = 2, rank = 2,
                         { rank = 2, name = '玩家2', kills = 5, deaths = 2 },
                         { rank = 2, name = '玩家3', kills = 5, deaths = 4 } } })");
                 string calls = Calls(env);
-                StringAssert.Contains("Visible:Txt_Score=true", calls, "本局有名次 → 显示");
-                StringAssert.Contains("KeyArgs:Txt_Score=UI.Result.Rank(2,nil)", calls, "名次文案键");
-                StringAssert.Contains("List:VirtualList_Rankboard=3", calls, "玩家排行行填充");
+                StringAssert.Contains("Visible:Cot_Scoreboard=true", calls, "本局有数据 → 显示摘要条");
+                StringAssert.Contains("Visible:Txt_MyRank=true", calls, "本局有名次 → 显示");
+                StringAssert.Contains("KeyArgs:Txt_MyRank=UI.Result.Rank(2,nil)", calls, "名次文案键");
+                StringAssert.Contains("List:VList_Rankboard=3", calls, "玩家排行行填充");
                 string row = (string)env.DoString(@"
-local r = lists['VirtualList_Rankboard'][3]
-return r.key .. '|' .. r.Txt_Rank .. '|' .. r.Txt_Name .. '|' .. r.Txt_Kills.key .. '|' .. tostring(r.Txt_Kills.arg0)
+local r = lists['VList_Rankboard'][3]
+return r.key .. '|' .. r.Txt_Rank .. '|' .. r.Txt_PlayerName .. '|' .. r.Txt_Kills.key .. '|' .. tostring(r.Txt_Kills.arg0)
     .. '|' .. r.Txt_Deaths.key .. '|' .. tostring(r.Txt_Deaths.arg0)")[0];
                 Assert.AreEqual("3|2|玩家3|UI.Result.Kills|5|UI.Result.Deaths|4", row,
                     "行字段：名次/玩家名为数据 + 击杀与阵亡走文案键带参");
@@ -820,7 +825,7 @@ return r.key .. '|' .. r.Txt_Rank .. '|' .. r.Txt_Name .. '|' .. r.Txt_Kills.key
                 env.DoString(@"
 page2 = NewPage('UI.Page_Result')
 page2:OnShow({ reason = 'TimeLimit', kills = 1, deaths = 3, rank = 0 })");
-                StringAssert.Contains("Visible:Txt_Score=false", Calls(env), "rank=0（无名次面）→ 隐藏");
+                StringAssert.Contains("Visible:Txt_MyRank=false", Calls(env), "rank=0（无名次面）→ 隐藏");
             }
         }
 
@@ -833,29 +838,29 @@ page2:OnShow({ reason = 'TimeLimit', kills = 1, deaths = 3, rank = 0 })");
 room.expected = 4
 page = NewPage('UI.Page_Room')
 page:OnShow({ roomId = 'Room-A' })");
-                StringAssert.DoesNotContain("Visible:Txt_State=true", Calls(env),
+                StringAssert.DoesNotContain("Visible:Txt_PlayerCount=true", Calls(env),
                     "未收到席位快照（本机在座 ⇒ 空名单只可能是未到）→ 保持隐藏，不显假数");
 
                 env.DoString(@"
 calls = {}
 room.members_fn({ { playerId = 0, name = '玩家1', online = true } })");
                 string one = Calls(env);
-                StringAssert.Contains("Visible:Txt_State=true", one);
-                StringAssert.Contains("KeyArgs:Txt_State=UI.Room.Waiting(1,4)", one,
+                StringAssert.Contains("Visible:Txt_PlayerCount=true", one);
+                StringAssert.Contains("KeyArgs:Txt_PlayerCount=UI.Room.Waiting(1,4)", one,
                     "分子 = 席位面条数、分母 = 房规模（JoinAck）");
 
                 env.DoString(@"
 calls = {}
 room.members_fn({ { playerId = 0, name = '玩家1', online = true },
                   { playerId = 1, name = '玩家2', online = true } })");
-                StringAssert.Contains("KeyArgs:Txt_State=UI.Room.Waiting(2,4)", Calls(env),
+                StringAssert.Contains("KeyArgs:Txt_PlayerCount=UI.Room.Waiting(2,4)", Calls(env),
                     "第二人进房 → 席位广播即刷（不再等心跳/重查大厅投影）");
 
                 env.DoString(@"
 calls = {}
 room.members_fn({ { playerId = 0, name = '玩家1', online = true },
                   { playerId = 1, name = '玩家2', online = false } })");
-                StringAssert.Contains("KeyArgs:Txt_State=UI.Room.Waiting(2,4)", Calls(env),
+                StringAssert.Contains("KeyArgs:Txt_PlayerCount=UI.Room.Waiting(2,4)", Calls(env),
                     "断线席位仍占座 ⇒ 计数不因一次掉线回退（与名单同帧）");
 
                 env.DoString(@"
@@ -863,8 +868,8 @@ calls = {}
 room.expected = 0
 room.members_fn({ { playerId = 0, name = '玩家1', online = true } })");
                 string noExpected = Calls(env);
-                StringAssert.Contains("Visible:Txt_State=false", noExpected, "房规模未标注（0）→ 隐藏");
-                StringAssert.DoesNotContain("KeyArgs:Txt_State", noExpected, "不显 /0 假数");
+                StringAssert.Contains("Visible:Txt_PlayerCount=false", noExpected, "房规模未标注（0）→ 隐藏");
+                StringAssert.DoesNotContain("KeyArgs:Txt_PlayerCount", noExpected, "不显 /0 假数");
             }
         }
 
@@ -879,20 +884,20 @@ room.members_fn({ { playerId = 0, name = '玩家1', online = true } })");
 page = NewPage('UI.Page_Room')
 page:OnShow({ roomId = 'Room-A' })");
                 string init = Calls(env);
-                StringAssert.Contains("Visible:Button_StartMatch=false", init, "缺省隐藏（回放前不显）");
+                StringAssert.Contains("Visible:Btn_StartMatch=false", init, "缺省隐藏（回放前不显）");
                 StringAssert.Contains("Key:Txt_StartMatch=UI.Room.StartMatch", init, "开局钮文案键");
 
                 env.DoString("room.owner_fn(true)");          // 房主事实回放（门面 OnOwner）
-                StringAssert.Contains("Visible:Button_StartMatch=true", Calls(env), "房主回放亮钮");
+                StringAssert.Contains("Visible:Btn_StartMatch=true", Calls(env), "房主回放亮钮");
 
-                env.DoString("buttons['Button_StartMatch']()");
+                env.DoString("buttons['Btn_StartMatch']()");
                 string clicked = Calls(env);
                 StringAssert.Contains("StartMatch", clicked, "点击 → Bridge.room.StartMatch");
-                StringAssert.Contains("Interact:Button_StartMatch=false", clicked, "在途锁钮（防重入）");
+                StringAssert.Contains("Interact:Btn_StartMatch=false", clicked, "在途锁钮（防重入）");
 
                 env.DoString("room.start_fn(false, '只有房主可以开始对局')");
                 string denied = Calls(env);
-                StringAssert.Contains("Interact:Button_StartMatch=true", denied, "被拒回调后复位可再点");
+                StringAssert.Contains("Interact:Btn_StartMatch=true", denied, "被拒回调后复位可再点");
                 StringAssert.Contains("Toast:[UI.Room.StartDenied:只有房主可以开始对局]", denied,
                     "被拒 reason 经 Toast（UI.Room.StartDenied 带参——五页反馈口径）");
             }
@@ -907,15 +912,15 @@ page:OnShow({ roomId = 'Room-A' })");
 page = NewPage('UI.Page_Room')
 page:OnShow({ roomId = 'Room-A' })
 room.owner_fn(false)");
-                Assert.AreEqual(0, Regex.Matches(Calls(env), @"Visible:Button_StartMatch=true").Count,
+                Assert.AreEqual(0, Regex.Matches(Calls(env), @"Visible:Btn_StartMatch=true").Count,
                     "非房主：开钮全程不亮");
 
                 env.DoString("room.owner_fn(true)");           // 迁移到位（新主）
-                Assert.AreEqual(1, Regex.Matches(Calls(env), @"Visible:Button_StartMatch=true").Count,
+                Assert.AreEqual(1, Regex.Matches(Calls(env), @"Visible:Btn_StartMatch=true").Count,
                     "迁移到位亮钮（同一订阅路径）");
 
                 env.DoString("room.owner_fn(false)");          // 再迁移失位（旧主让位）
-                Assert.AreEqual(1, Regex.Matches(Calls(env), @"Visible:Button_StartMatch=true").Count,
+                Assert.AreEqual(1, Regex.Matches(Calls(env), @"Visible:Btn_StartMatch=true").Count,
                     "失位即摘钮——迁移推送与回放同一路径，不残留");
             }
         }

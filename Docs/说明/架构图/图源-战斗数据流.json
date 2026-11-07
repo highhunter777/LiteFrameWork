@@ -1,0 +1,347 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Modules.Battle 数据流",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/战斗数据流.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "viewBox": [
+      1080,
+      620
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "default": {
+          "label": "数据流"
+        },
+        "emphasis": {
+          "label": "主链路"
+        },
+        "security": {
+          "label": "校验 / 失败"
+        },
+        "dashed": {
+          "label": "异步"
+        }
+      }
+    }
+  },
+  "stages": [
+    {
+      "label": "采集"
+    },
+    {
+      "label": "上行"
+    },
+    {
+      "label": "权威"
+    },
+    {
+      "label": "判定与和解"
+    },
+    {
+      "label": "消费"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "type": "frontend",
+      "label": "IInputService",
+      "sublabel": "渲染帧采样 · IntentGate",
+      "stage": 0,
+      "row": 0,
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 242,
+          "end_line": 244,
+          "label": "输入帧 / viewFrame"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 193,
+          "label": "输入上下文门"
+        }
+      ],
+      "width": 140,
+      "height": 76
+    },
+    {
+      "id": "pipeline",
+      "type": "frontend",
+      "label": "BattleInputPipeline",
+      "sublabel": "SimInputFrame · 冗余 16 帧",
+      "stage": 1,
+      "row": 0,
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleInputPipeline.cs",
+          "line": 35,
+          "end_line": 45,
+          "label": "输入三件"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 253,
+          "label": "未确认段补发"
+        }
+      ],
+      "width": 140,
+      "height": 76
+    },
+    {
+      "id": "room",
+      "type": "backend",
+      "label": "RoomServer",
+      "sublabel": "InputGate → 60Hz → 快照 30Hz",
+      "stage": 2,
+      "row": 1,
+      "sources": [
+        {
+          "path": "Assets/RoomServer/Core/RoomRuntime.cs",
+          "line": 12,
+          "label": "RoomRuntime"
+        },
+        {
+          "path": "Assets/RoomServer/Modules/SnapshotPipeline.cs",
+          "line": 16,
+          "label": "SnapshotPipeline"
+        },
+        {
+          "path": "deploy/roomserver.windows.json",
+          "line": 56,
+          "label": "snapshot_hz 30"
+        }
+      ],
+      "width": 140,
+      "height": 76
+    },
+    {
+      "id": "mirror",
+      "type": "frontend",
+      "label": "BattleSnapshotMirror",
+      "sublabel": "重组 · checksum · 覆盖重放",
+      "stage": 3,
+      "row": 1,
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleSnapshotMirror.cs",
+          "line": 30,
+          "label": "ApplyAndReconcile"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 367,
+          "end_line": 374,
+          "label": "快照处理"
+        }
+      ],
+      "width": 140,
+      "height": 76
+    },
+    {
+      "id": "sim",
+      "type": "frontend",
+      "label": "RollbackSim",
+      "sublabel": "同一份 LiteSim · 预测 / 回放",
+      "stage": 3,
+      "row": 0,
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Pipeline/RollbackSim.cs",
+          "line": 8,
+          "label": "RollbackSim"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 323,
+          "label": "resolveCombat:false"
+        }
+      ],
+      "width": 140,
+      "height": 76
+    },
+    {
+      "id": "feed",
+      "type": "frontend",
+      "label": "PublicCombatFeed",
+      "sublabel": "CombatEventBatch 按 kind",
+      "stage": 3,
+      "row": 2,
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/PublicCombatFeed.cs",
+          "line": 13,
+          "label": "公共事件面"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 393,
+          "label": "OnCombatEvents"
+        }
+      ],
+      "width": 140,
+      "height": 76
+    },
+    {
+      "id": "view",
+      "type": "frontend",
+      "label": "SimView",
+      "sublabel": "插值 · EntityViewMap",
+      "stage": 4,
+      "row": 0,
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/SimView.cs",
+          "line": 16,
+          "label": "SimView"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleSnapshotMirror.cs",
+          "line": 64,
+          "label": "PushToView"
+        }
+      ],
+      "width": 140,
+      "height": 76
+    },
+    {
+      "id": "drivers",
+      "type": "frontend",
+      "label": "表现驱动",
+      "sublabel": "HUD / 命中反馈 / 音频",
+      "stage": 4,
+      "row": 2,
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/BattleReadModel.cs",
+          "line": 12,
+          "label": "BattleReadModel"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/CombatSubModule/HitFeedbackDispatcher.cs",
+          "line": 12,
+          "label": "HitFeedbackDispatcher"
+        }
+      ],
+      "width": 140,
+      "height": 76
+    }
+  ],
+  "flows": [
+    {
+      "id": "intent",
+      "from": "input",
+      "to": "pipeline",
+      "label": "本帧意图",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "id": "uplink",
+      "from": "pipeline",
+      "to": "room",
+      "label": "SimInputFrame",
+      "variant": "emphasis"
+    },
+    {
+      "id": "predict",
+      "from": "pipeline",
+      "to": "sim",
+      "label": "入预测史",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "id": "snapshot",
+      "from": "room",
+      "to": "mirror",
+      "label": "快照",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "reconcile",
+      "from": "mirror",
+      "to": "sim",
+      "label": "覆盖 + 重放",
+      "variant": "security"
+    },
+    {
+      "id": "interp",
+      "from": "mirror",
+      "to": "view",
+      "label": "插值样本",
+      "variant": "default",
+      "route": "straight"
+    },
+    {
+      "id": "world",
+      "from": "sim",
+      "to": "view",
+      "label": "世界态",
+      "variant": "default"
+    },
+    {
+      "id": "combat",
+      "from": "room",
+      "to": "feed",
+      "label": "战斗事件批",
+      "variant": "emphasis"
+    },
+    {
+      "id": "events",
+      "from": "feed",
+      "to": "drivers",
+      "label": "命中 / 击杀",
+      "variant": "default",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三份关键数据",
+      "items": [
+        "SimInputFrame：一帧全体玩家的输入数组，客户端预测与上行是同一份",
+        "StateSnapshot：服务器权威态（30Hz 差分 + AOI），走不可靠通道",
+        "SimWorldState：客户端世界态——预测写一份，权威镜像写另一份，永不互相回灌"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "权威与预测的边界",
+      "items": [
+        "客户端 predict 只算开火 / 弹药 / 位移（resolveCombat:false），命中、伤害、死亡只认快照与 CombatEventBatch",
+        "公共展示（KDA、阵亡复活、保护期）读权威镜像 BattleContext.AuthorityState，不读预测态",
+        "本地预测只服务手感：跟位与和解衰减在视图层做"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "校验与失败面",
+      "items": [
+        "checksum 不一致 → SendMismatch + 现场包；连续不一致是两端不同源的强信号",
+        "StartGame 先按 CombatConfigDigest 复算 ConfigHash，不等即拒局",
+        "快照走 Unreliable、StartGame / 信令走 Reliable；超预算的快照被计数丢弃（SnapshotDropped）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "抗丢包与平滑",
+      "items": [
+        "未确认段从最近快照帧 + 1 起、容量 16 帧重复发送",
+        "快照 30Hz 抽帧 + 差分 + AOI 裁剪 + 背压分档，按 AOI 半径裁剪远端实体",
+        "视图插值用上一份 / 最新一份快照轮转；回滚期帧事件走静默门，避免重放抖动"
+      ]
+    }
+  ]
+}

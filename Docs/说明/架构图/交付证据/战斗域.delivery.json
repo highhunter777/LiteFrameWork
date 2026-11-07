@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "668e9086-8ce7-425e-a0b1-31adca6a88d5",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-战斗域.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗域.html",
+  "specification": {
+    "sha256": "6fe9742a834ac1b9a6ad5b9fe4972e398c8878771403c619a7a8d743dadde5ba",
+    "bytes": 9960
+  },
+  "artifact": {
+    "sha256": "2f12005d1bca9d359b29d456743ca4e45d3b200c18ebadb8eb1e58ff00ffedef",
+    "bytes": 763800
+  }
+}

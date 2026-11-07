@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "057f2464-062a-461b-a378-ab182f6d7b4a",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-战斗数据流.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗数据流.html",
+  "specification": {
+    "sha256": "a34d980e8c92c8a660da9a675af9cce6974c11a57585a5ce28762178ccb6dcd7",
+    "bytes": 8732
+  },
+  "artifact": {
+    "sha256": "2b1a956d86880afe5414fd5ddd5bff2ee8274fbf9ec6add9c73958c897f0a306",
+    "bytes": 761065
+  }
+}

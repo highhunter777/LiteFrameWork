@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "42d48016-7acf-46c9-b908-945f338aef77",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-Bootstrap进程壳.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\Bootstrap进程壳.html",
+  "specification": {
+    "sha256": "a07f2ce5875826d511e84de7fe7b5330e08e56113f47191f609c39e6d83e8e12",
+    "bytes": 8853
+  },
+  "artifact": {
+    "sha256": "59020a58a810934559b9e35dbac0f415226ac852461063a28fca8874cd11c547",
+    "bytes": 761258
+  }
+}

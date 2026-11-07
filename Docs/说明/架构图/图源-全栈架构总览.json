@@ -1,0 +1,498 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LiteGame 全栈架构总览",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/全栈架构总览.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "客户端（Unity）"
+        },
+        "backend": {
+          "label": "服务端（.NET）"
+        },
+        "database": {
+          "label": "存储"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "boot",
+      "type": "frontend",
+      "label": "LiteGame.Bootstrap",
+      "sublabel": "GameEntry · 场景壳 · 错误面",
+      "pos": [
+        60,
+        80
+      ],
+      "size": [
+        220,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Bootstrap/GameEntry.cs",
+          "line": 14,
+          "label": "GameEntry"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 155,
+          "label": "引导链"
+        }
+      ]
+    },
+    {
+      "id": "app",
+      "type": "frontend",
+      "label": "LiteGame.App",
+      "sublabel": "ClientEntry · 18 段装配根",
+      "pos": [
+        60,
+        190
+      ],
+      "size": [
+        220,
+        78
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 30,
+          "end_line": 41,
+          "label": "组合根 Configure"
+        },
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 68,
+          "end_line": 97,
+          "label": "18 段装配"
+        }
+      ]
+    },
+    {
+      "id": "procedure",
+      "type": "frontend",
+      "label": "Modules.Procedure",
+      "sublabel": "Launch → Patch → … → Battle",
+      "pos": [
+        60,
+        310
+      ],
+      "size": [
+        220,
+        78
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/Shared/ProcedureId.cs",
+          "line": 7,
+          "end_line": 16,
+          "label": "阶段枚举"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 173,
+          "label": "流程机"
+        }
+      ]
+    },
+    {
+      "id": "battle",
+      "type": "frontend",
+      "label": "Modules.Battle",
+      "sublabel": "BattleClient · 视图镜像 / 插值",
+      "pos": [
+        60,
+        430
+      ],
+      "size": [
+        220,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleClient.cs",
+          "line": 12,
+          "label": "BattleClient"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 182,
+          "label": "Battle 阶段"
+        }
+      ]
+    },
+    {
+      "id": "sim",
+      "type": "frontend",
+      "label": "LiteSim",
+      "sublabel": "双端共编 · 预测和解",
+      "pos": [
+        40,
+        560
+      ],
+      "size": [
+        115,
+        74
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Pipeline/SimStep.cs",
+          "line": 6,
+          "end_line": 9,
+          "label": "SimStep"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 197,
+          "label": "权威步进"
+        }
+      ]
+    },
+    {
+      "id": "net",
+      "type": "frontend",
+      "label": "RoomClient",
+      "sublabel": "LiteSync · 打包 / 解码",
+      "pos": [
+        170,
+        560
+      ],
+      "size": [
+        130,
+        74
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sync/Client/RoomClient.cs",
+          "line": 34,
+          "label": "RoomClient"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 195,
+          "label": "上行冗余"
+        }
+      ]
+    },
+    {
+      "id": "roomhost",
+      "type": "backend",
+      "label": "RoomServer 宿主",
+      "sublabel": "建连 · Join 准入 · 路由",
+      "pos": [
+        460,
+        562
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "Server/RoomServer/ServerHost.cs",
+          "line": 23,
+          "label": "ServerHost"
+        },
+        {
+          "path": "Server/RoomServer/ServerHost.cs",
+          "line": 68,
+          "end_line": 71,
+          "label": "Join 准入门"
+        },
+        {
+          "path": "deploy/roomserver.windows.json",
+          "line": 2,
+          "end_line": 10,
+          "label": "端口与房型"
+        }
+      ]
+    },
+    {
+      "id": "roomkernel",
+      "type": "backend",
+      "label": "RoomRuntime",
+      "sublabel": "双端共编 · 60Hz 步进",
+      "pos": [
+        460,
+        700
+      ],
+      "size": [
+        210,
+        80
+      ],
+      "sources": [
+        {
+          "path": "Assets/RoomServer/Core/RoomRuntime.cs",
+          "line": 12,
+          "label": "RoomRuntime"
+        },
+        {
+          "path": "Assets/RoomServer/Core/RoomRuntime.cs",
+          "line": 574,
+          "label": "StepFrame"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 197,
+          "label": "权威步进"
+        }
+      ]
+    },
+    {
+      "id": "snapshot",
+      "type": "backend",
+      "label": "SnapshotPipeline",
+      "sublabel": "30Hz 差分 · AOI · 背压",
+      "pos": [
+        460,
+        840
+      ],
+      "size": [
+        210,
+        80
+      ],
+      "sources": [
+        {
+          "path": "Assets/RoomServer/Modules/SnapshotPipeline.cs",
+          "line": 16,
+          "label": "SnapshotPipeline"
+        },
+        {
+          "path": "deploy/roomserver.windows.json",
+          "line": 56,
+          "label": "snapshot_hz 30"
+        }
+      ]
+    },
+    {
+      "id": "meta",
+      "type": "backend",
+      "label": "MetaServer",
+      "sublabel": "auth · lobby · 门票 · 结算",
+      "pos": [
+        830,
+        562
+      ],
+      "size": [
+        210,
+        86
+      ],
+      "sources": [
+        {
+          "path": "Server/MetaServer/Host/Program.cs",
+          "line": 39,
+          "end_line": 42,
+          "label": "Meta 宿主"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Meta/WireSubModule/MetaWireEndpoints.cs",
+          "line": 9,
+          "end_line": 28,
+          "label": "端点常量"
+        }
+      ]
+    },
+    {
+      "id": "mongo",
+      "type": "database",
+      "label": "MongoDB rs0",
+      "sublabel": "账号 · 账本 · Outbox",
+      "pos": [
+        840,
+        730
+      ],
+      "size": [
+        190,
+        78
+      ],
+      "sources": [
+        {
+          "path": "Server/MetaServer/Infrastructure/Persistence/Mongo/MongoAccountStore.cs",
+          "line": 12,
+          "label": "Mongo 账号适配器"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 129,
+          "label": "rs0 副本集"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Unity 客户端进程",
+      "wraps": [
+        "boot",
+        "app",
+        "procedure",
+        "battle",
+        "sim",
+        "net"
+      ],
+      "pad": 22
+    },
+    {
+      "kind": "region",
+      "label": "RoomServer 进程（.NET 8）",
+      "wraps": [
+        "roomhost",
+        "roomkernel",
+        "snapshot"
+      ],
+      "pad": 22
+    },
+    {
+      "kind": "region",
+      "label": "MetaServer 进程",
+      "wraps": [
+        "meta"
+      ],
+      "pad": 22
+    }
+  ],
+  "connections": [
+    {
+      "id": "boot-app",
+      "from": "boot",
+      "to": "app",
+      "label": "反射装载 IClientEntry"
+    },
+    {
+      "id": "app-procedure",
+      "from": "app",
+      "to": "procedure",
+      "label": "启动流程机"
+    },
+    {
+      "id": "procedure-battle",
+      "from": "procedure",
+      "to": "battle",
+      "label": "Match → Battle"
+    },
+    {
+      "id": "battle-sim",
+      "from": "battle",
+      "to": "sim",
+      "label": "预测步进"
+    },
+    {
+      "id": "battle-net",
+      "from": "battle",
+      "to": "net",
+      "label": "输入上行 · 冗余 16 帧"
+    },
+    {
+      "id": "net-roomhost",
+      "from": "net",
+      "to": "roomhost",
+      "label": "KCP / UDP :17777",
+      "variant": "emphasis"
+    },
+    {
+      "id": "roomhost-kernel",
+      "from": "roomhost",
+      "to": "roomkernel",
+      "label": "输入入帧"
+    },
+    {
+      "id": "kernel-snapshot",
+      "from": "roomkernel",
+      "to": "snapshot",
+      "label": "快照环 Capture"
+    },
+    {
+      "id": "snapshot-net",
+      "from": "snapshot",
+      "to": "net",
+      "label": "30Hz 快照 · 差分 + AOI",
+      "fromSide": "left",
+      "toSide": "bottom",
+      "via": [
+        [
+          235,
+          880
+        ]
+      ]
+    },
+    {
+      "id": "app-meta",
+      "from": "app",
+      "to": "meta",
+      "label": "HTTP 登录 / 房间 / 门票",
+      "fromSide": "right",
+      "toSide": "top",
+      "via": [
+        [
+          935,
+          229
+        ]
+      ]
+    },
+    {
+      "id": "roomhost-meta",
+      "from": "roomhost",
+      "to": "meta",
+      "label": "注册 · 心跳 1s",
+      "variant": "dashed"
+    },
+    {
+      "id": "meta-mongo",
+      "from": "meta",
+      "to": "mongo",
+      "label": "账本 / Outbox"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "四层单向依赖",
+      "items": [
+        "装配层 LiteGame.Bootstrap / .App → 产品域 12 个 Modules → 框架四件 Core / Services / Adapters / Hosting → 零引擎 LiteSim·LiteNet·LiteSync",
+        "模块只经自持端口消费实现件；Modules/* 引 LiteGame.Adapters.* 由硬边测试打红",
+        "18 段注册序 = 初始化序，关闭＝逆序；容器 Seal 后自动发现 ITickable"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "双端共编与确定性",
+      "items": [
+        "LiteSim / LiteNet / LiteSync / RoomServer.Runtime 只有一份源码：Unity asmdef 与 dotnet csproj 同时编译",
+        "BuildHash 源集摘要写进协议常量；出包门禁复算，两端不一致即拦",
+        "禁超越函数 / FMA / float 等值比较，软件 sqrt + IEEE 逐位一致"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "内容与配置",
+      "items": [
+        "PatchRunner + YooAsset：候选包 → 签名 → 激活事务 → 反回退，内置/离线/联机三态",
+        "Luban 一张表源出两端读码与 .bytes，表值可热更、读码面进 BuildHash 闭包",
+        "XLua 只承载 UI 页面逻辑，经白名单门面与沙箱，不碰判定与网络底层"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "云侧形态",
+      "items": [
+        "Windows Server 2025 + 任务计划 LiteGame-Meta / LiteGame-Room（改配置须重启任务）",
+        "云主机仅 WireGuard 隧道 10.8.0.1 可入：UDP 17777 房间服、HTTP 5000 Meta、9101 GM",
+        "max_rooms=8、worker_count=1；房型 standard / four / eight / sandbox"
+      ]
+    }
+  ]
+}

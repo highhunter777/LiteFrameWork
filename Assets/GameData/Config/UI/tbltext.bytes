@@ -1,7 +1,7 @@
-OCommon.Settings设置SettingsCommon.Close关闭CloseCommon.Leave离开LeaveCommon.Version
+TCommon.Settings设置SettingsCommon.Close关闭CloseCommon.Leave离开LeaveCommon.Version
 版本 {0}Version {0}Common.BackLobby返回大厅Back to LobbyCommon.Confirm确认ConfirmCommon.Cancel取消Cancel	Common.On开On
 Common.Off关OffUI.Login.Title联机对战测试Online PlaytestUI.Login.Connecting连接中…Connecting…UI.Login.Failed登录失败，请重试Sign-in failed, please retryUI.Login.GuestEnter游客一键进入Enter as GuestUI.Login.NoServer'未配置服务器地址（-meta.url）)Server address not configured (-meta.url)UI.Lobby.RoomState人数 {0}/{1}{0}/{1} playersUI.Lobby.QuickEnter快速进入
-Quick JoinUI.Lobby.CreateRoom创建房间Create RoomUI.Lobby.Creating创建中…Creating…UI.Lobby.CreateFailed创建房间失败Create room failedUI.Lobby.Records最近战绩Recent MatchesUI.Lobby.Ready就绪ReadyUI.Lobby.Allocating分配房间中…Allocating room…UI.Lobby.EnterFailed进入失败，请重试Join failed, please retryUI.Lobby.RoomEmpty暂无房间No roomsUI.Lobby.ListFailed$房间列表加载失败，请重试"Failed to load rooms, please retryUI.Room.Info
+Quick JoinUI.Lobby.CreateRoom创建房间Create RoomUI.Lobby.Creating创建中…Creating…UI.Lobby.CreateFailed创建房间失败Create room failedUI.Lobby.Records最近战绩Recent MatchesUI.Lobby.Ready就绪ReadyUI.Lobby.Allocating分配房间中…Allocating room…UI.Lobby.EnterFailed进入失败，请重试Join failed, please retryUI.Lobby.RoomEmpty暂无房间No roomsUI.Lobby.ListFailed$房间列表加载失败，请重试"Failed to load rooms, please retryUI.Lobby.RoomList房间列表	Room ListUI.Lobby.Create创建CreateUI.Lobby.Bubble1今天也要一起加油哦Let us do our best today!UI.Lobby.Bubble2需要帮忙吗？Need a hand?UI.Lobby.Bubble3别靠太近啦。Do not get too close.UI.Room.Info
 房间 {0}Room {0}UI.Room.Waiting等待玩家 {0}/{1}Waiting for players {0}/{1}UI.Room.PlayerState.Online在线OnlineUI.Room.PlayerState.Connecting	连接中
 ConnectingUI.Room.StartMatch开始对局Start MatchUI.Room.StartDenied开局被拒：{0}Start denied: {0}UI.Result.Kills
 击杀 {0}	Kills {0}UI.Result.Deaths

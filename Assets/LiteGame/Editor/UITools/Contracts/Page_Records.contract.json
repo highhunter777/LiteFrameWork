@@ -17,56 +17,71 @@
   },
   "controls": [
     {
-      "bindName": "Button_Back",
-      "nodePath": "Cot_SafeArea/Cot_Header/Button_Back",
+      "bindName": "Btn_Back",
+      "nodePath": "Cot_SafeArea/Cot_Records/Btn_Back",
       "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
     },
     {
       "bindName": "Txt_Back",
-      "nodePath": "Cot_SafeArea/Cot_Header/Button_Back/Txt_Back",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_Records/Btn_Back/Txt_Back",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_HeaderKills",
+      "nodePath": "Cot_SafeArea/Cot_Records/Cot_ColumnHeader/Txt_HeaderKills",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_HeaderReason",
+      "nodePath": "Cot_SafeArea/Cot_Records/Cot_ColumnHeader/Txt_HeaderReason",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_HeaderTime",
+      "nodePath": "Cot_SafeArea/Cot_Records/Cot_ColumnHeader/Txt_HeaderTime",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Empty",
+      "nodePath": "Cot_SafeArea/Cot_Records/Txt_Empty",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
       "bindName": "Txt_Title",
-      "nodePath": "Cot_SafeArea/Cot_Header/Txt_Title",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_Records/Txt_Title",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
-      "bindName": "VirtualList_Records",
-      "nodePath": "Cot_SafeArea/Cot_Records/VirtualList_Records",
+      "bindName": "VList_Records",
+      "nodePath": "Cot_SafeArea/Cot_Records/VList_Records",
       "type": "UnityEngine.UI.ScrollRect",
       "kind": "Command",
       "required": true
-    },
-    {
-      "bindName": "Txt_Empty",
-      "nodePath": "Cot_SafeArea/Txt_Empty",
-      "type": "TMPro.TextMeshProUGUI",
-      "kind": "None",
-      "required": false
     }
   ],
   "text": [],
   "styles": [],
-  "templates": [
-    {
-      "nodePath": "Cot_SafeArea/Cot_Records/VirtualList_Records",
-      "template": "Tmp_VirtualList",
-      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
-    }
-  ],
+  "templates": [],
   "events": [
     {
-      "bindName": "Button_Back",
+      "bindName": "Btn_Back",
       "event": "onClick",
       "handler": "anonymous"
     }
   ],
-  "sourceHash": "sha256:8e647fb52d80d94ff20ede191fd617689d3bc92d885f78c3ed5baae98c6c6d34"
+  "sourceHash": "sha256:8bc722b89f99c90aa558d96696e024710e5e2775bed155af4cdaa5f24cb13fb4"
 }

@@ -17,156 +17,270 @@
   },
   "controls": [
     {
-      "bindName": "Button_CreateRoom",
-      "nodePath": "Cot_SafeArea/Cot_Actions/Button_CreateRoom",
+      "bindName": "Btn_CreateRoom",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_CreateRoom",
       "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
     },
     {
       "bindName": "Txt_CreateRoom",
-      "nodePath": "Cot_SafeArea/Cot_Actions/Button_CreateRoom/Txt_CreateRoom",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_CreateRoom/Txt_CreateRoom",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
-      "bindName": "Button_QuickEnter",
-      "nodePath": "Cot_SafeArea/Cot_Actions/Button_QuickEnter",
+      "bindName": "Btn_QuickEnter",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_QuickEnter",
       "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
     },
     {
       "bindName": "Txt_QuickEnter",
-      "nodePath": "Cot_SafeArea/Cot_Actions/Button_QuickEnter/Txt_QuickEnter",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_QuickEnter/Txt_QuickEnter",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
-      "bindName": "Button_Records",
-      "nodePath": "Cot_SafeArea/Cot_Actions/Button_Records",
+      "bindName": "Btn_Records",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_Records",
       "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
     },
     {
       "bindName": "Txt_Records",
-      "nodePath": "Cot_SafeArea/Cot_Actions/Button_Records/Txt_Records",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_Records/Txt_Records",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
-      "bindName": "Dropdown_Map",
-      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Dropdown_Map",
-      "type": "LiteFramework.UI.UIDropdownWrap",
+      "bindName": "Btn_Rooms",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_Rooms",
+      "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
     },
     {
-      "bindName": "Dropdown_Players",
-      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Dropdown_Players",
-      "type": "LiteFramework.UI.UIDropdownWrap",
+      "bindName": "Txt_Rooms",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_Rooms/Txt_Rooms",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Cot_Bubble",
+      "nodePath": "Cot_SafeArea/Cot_Bubble",
+      "type": "UnityEngine.RectTransform",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Bubble",
+      "nodePath": "Cot_SafeArea/Cot_Bubble/Txt_Bubble",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Cot_CreateParams",
+      "nodePath": "Cot_SafeArea/Cot_CreateParams",
+      "type": "UnityEngine.RectTransform",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Btn_CancelCreate",
+      "nodePath": "Cot_SafeArea/Cot_CreateParams/Btn_CancelCreate",
+      "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
+    },
+    {
+      "bindName": "Txt_CancelCreate",
+      "nodePath": "Cot_SafeArea/Cot_CreateParams/Btn_CancelCreate/Txt_CancelCreate",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Btn_ConfirmCreate",
+      "nodePath": "Cot_SafeArea/Cot_CreateParams/Btn_ConfirmCreate",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_ConfirmCreate",
+      "nodePath": "Cot_SafeArea/Cot_CreateParams/Btn_ConfirmCreate/Txt_ConfirmCreate",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Ddl_Map",
+      "nodePath": "Cot_SafeArea/Cot_CreateParams/Ddl_Map",
+      "type": "UnityEngine.UI.Dropdown",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Ddl_Players",
+      "nodePath": "Cot_SafeArea/Cot_CreateParams/Ddl_Players",
+      "type": "UnityEngine.UI.Dropdown",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_CreateTitle",
+      "nodePath": "Cot_SafeArea/Cot_CreateParams/Txt_CreateTitle",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
     },
     {
       "bindName": "Txt_MapLabel",
-      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Txt_MapLabel",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_CreateParams/Txt_MapLabel",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
       "bindName": "Txt_PlayersLabel",
-      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Txt_PlayersLabel",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_CreateParams/Txt_PlayersLabel",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
-      "bindName": "Button_Settings",
-      "nodePath": "Cot_SafeArea/Cot_Header/Button_Settings",
+      "bindName": "Btn_Settings",
+      "nodePath": "Cot_SafeArea/Cot_Header/Btn_Settings",
       "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
     },
     {
       "bindName": "Txt_Settings",
-      "nodePath": "Cot_SafeArea/Cot_Header/Button_Settings/Txt_Settings",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_Header/Btn_Settings/Txt_Settings",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
       "bindName": "Txt_PlayerName",
       "nodePath": "Cot_SafeArea/Cot_Header/Txt_PlayerName",
-      "type": "TMPro.TextMeshProUGUI",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
-      "bindName": "VirtualList_Rooms",
-      "nodePath": "Cot_SafeArea/Cot_Rooms/VirtualList_Rooms",
+      "bindName": "Cot_Rooms",
+      "nodePath": "Cot_SafeArea/Cot_Rooms",
+      "type": "UnityEngine.RectTransform",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Btn_RoomsClose",
+      "nodePath": "Cot_SafeArea/Cot_Rooms/Btn_RoomsClose",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_RoomsClose",
+      "nodePath": "Cot_SafeArea/Cot_Rooms/Btn_RoomsClose/Txt_RoomsClose",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_RoomListStatus",
+      "nodePath": "Cot_SafeArea/Cot_Rooms/Txt_RoomListStatus",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_RoomsTitle",
+      "nodePath": "Cot_SafeArea/Cot_Rooms/Txt_RoomsTitle",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "VList_Rooms",
+      "nodePath": "Cot_SafeArea/Cot_Rooms/VList_Rooms",
       "type": "UnityEngine.UI.ScrollRect",
       "kind": "Command",
       "required": true
     },
     {
-      "bindName": "Txt_Status",
-      "nodePath": "Cot_SafeArea/Txt_Status",
-      "type": "TMPro.TextMeshProUGUI",
-      "kind": "None",
-      "required": false
+      "bindName": "Btn_Character",
+      "nodePath": "Cot_SafeArea/Cot_Stage/Btn_Character",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
     }
   ],
   "text": [],
   "styles": [],
-  "templates": [
-    {
-      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Dropdown_Map",
-      "template": "Tmp_Dropdown",
-      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
-    },
-    {
-      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Dropdown_Players",
-      "template": "Tmp_Dropdown",
-      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
-    },
-    {
-      "nodePath": "Cot_SafeArea/Cot_Rooms/VirtualList_Rooms",
-      "template": "Tmp_VirtualList",
-      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
-    }
-  ],
+  "templates": [],
   "events": [
     {
-      "bindName": "Button_CreateRoom",
+      "bindName": "Btn_CancelCreate",
+      "event": "onClick",
+      "handler": "_ShowCreate"
+    },
+    {
+      "bindName": "Btn_Character",
+      "event": "onClick",
+      "handler": "_Tap"
+    },
+    {
+      "bindName": "Btn_ConfirmCreate",
       "event": "onClick",
       "handler": "_CreateRoom"
     },
     {
-      "bindName": "Button_QuickEnter",
+      "bindName": "Btn_CreateRoom",
+      "event": "onClick",
+      "handler": "_ShowCreate"
+    },
+    {
+      "bindName": "Btn_QuickEnter",
       "event": "onClick",
       "handler": "_Enter"
     },
     {
-      "bindName": "Button_Records",
+      "bindName": "Btn_Records",
       "event": "onClick",
       "handler": "anonymous"
     },
     {
-      "bindName": "Button_Settings",
+      "bindName": "Btn_RoomsClose",
+      "event": "onClick",
+      "handler": "_ShowRooms"
+    },
+    {
+      "bindName": "Btn_Rooms",
+      "event": "onClick",
+      "handler": "_ShowRooms"
+    },
+    {
+      "bindName": "Btn_Settings",
       "event": "onClick",
       "handler": "anonymous"
     },
     {
-      "bindName": "VirtualList_Rooms",
+      "bindName": "VList_Rooms",
       "event": "onListClick",
       "handler": "_Enter"
     }
   ],
-  "sourceHash": "sha256:7af996578e11a6d77102fef55cf1055c9bf9828c06bfc1c7919dc81feafea0bf"
+  "sourceHash": "sha256:7db821e056ec542d68653b14cecd81d9db5274dfe4037e808bf44c5ba597a7b7"
 }

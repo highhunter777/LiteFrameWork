@@ -15,7 +15,10 @@ end
 function M:OnShow(data)
     self.ui:SetTextKey("Txt_Title", "UI.Lobby.Records")
     self.ui:SetTextKey("Txt_Back", "Common.BackLobby")
-    self.ui:OnButton("Button_Back", function() Bridge.ui.Replace(PAGE_LOBBY) end)
+    self.ui:SetText("Txt_HeaderTime", "时间")
+    self.ui:SetText("Txt_HeaderKills", "击杀")
+    self.ui:SetText("Txt_HeaderReason", "结束原因")
+    self.ui:OnButton("Btn_Back", function() Bridge.ui.Replace(PAGE_LOBBY) end)
     self.ui:SetVisible("Txt_Empty", false)                 -- 查询返回前不显空态（防加载闪空）
     self:_Load()
 end
@@ -45,17 +48,17 @@ function M:_Push(rows, n)
         data[i] = {
             key = r.matchId,
             Txt_MatchTime = r.time,
-            Txt_Kill = { key = "UI.Result.Kills", arg0 = r.kills },
+            Txt_Kills = { key = "UI.Result.Kills", arg0 = r.kills },
             Txt_EndReason = { key = "UI.Result.Reason." .. tostring(r.reason) },
         }
     end
-    self.ui:SetList("VirtualList_Records", data)
+    self.ui:SetList("VList_Records", data)
 end
 
 function M:_Empty()
     self.ui:SetVisible("Txt_Empty", true)
     self.ui:SetTextKey("Txt_Empty", "UI.Records.Empty")
-    self.ui:SetList("VirtualList_Records", {})
+    self.ui:SetList("VList_Records", {})
 end
 
 return M

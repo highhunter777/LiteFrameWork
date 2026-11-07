@@ -1,5 +1,5 @@
 -- UI/Page_Settings.lua：设置页（分组批 2026-10-30，按《设置系统专项设计》§7）
--- 结构：左分类导航（TabGroup_Settings，5 页签）+ 右面板（Pnl_*，互斥显隐）。
+-- 结构：左分类导航（Tabs_Settings，5 页签）+ 右面板（Pnl_*，互斥显隐）。
 -- 页签：音频 / 图形 / 显示 / 控制 / 常规；初始页签取 Bridge.settings.general.LastTab()，切换即记忆。
 -- 数据：全部经 Bridge.settings（audio/display/control/general 子表）；语言走 Bridge.text。
 -- 即改即生效（门面 Set 后立即应用）；落盘仍走 SettingService 脏标记三处纪律——关闭/OnHide 调 Save。
@@ -70,10 +70,10 @@ function M:OnShow(data)
     -- 退出对局（对局中打开才有 battleExit 数据）
     self._exitable = (type(data) == "table") and (data.battleExit == true)
     self._leaving = false
-    self.ui:SetVisible("Button_Exit", self._exitable)
+    self.ui:SetVisible("Btn_ExitMatch", self._exitable)
     if self._exitable then
-        self.ui:SetTextKey("Txt_Exit", (type(data) == "table" and data.exitKey) or "UI.Settings.Exit")
-        self.ui:OnButton("Button_Exit", function() self:_ConfirmExit() end)
+        self.ui:SetTextKey("Txt_ExitMatch", (type(data) == "table" and data.exitKey) or "UI.Settings.Exit")
+        self.ui:OnButton("Btn_ExitMatch", function() self:_ConfirmExit() end)
     end
 
     -- 只读事实
@@ -97,7 +97,7 @@ function M:OnShow(data)
     self._tab = Bridge.settings.general.LastTab() + 1
     if self._tab < 1 or self._tab > TAB_COUNT then self._tab = 1 end
     self:_ApplyTab(self._tab)
-    self.ui:SetTab("TabGroup_Settings", self._tab - 1)
+    self.ui:SetTab("Tabs_Settings", self._tab - 1)
 
     -- 选项文本（随语言重建——下拉项是引擎组件，不随 LText 自动刷新）
     self:_PushAllOptions()
@@ -106,46 +106,46 @@ function M:OnShow(data)
     self:_RefreshControls()
 
     -- 变化通知（只回写设置与生效面；落盘由 Save 承担）
-    self.ui:OnTabChanged("TabGroup_Settings", function(index) self:_OnTab(index + 1) end)
-    self.ui:OnSliderChanged("Slider_Volume", function(value) Bridge.settings.audio.SetVolume(value) end)
-    self.ui:OnToggleChanged("Toggle_Sound", function(on) Bridge.settings.audio.SetSoundEnabled(on) end)
-    self.ui:OnDropdownChanged("Dropdown_Quality", function(index) Bridge.settings.display.SetQuality(index) end)
-    self.ui:OnDropdownChanged("Dropdown_DisplayMode", function(index)
+    self.ui:OnTabChanged("Tabs_Settings", function(index) self:_OnTab(index + 1) end)
+    self.ui:OnSliderChanged("Sld_Volume", function(value) Bridge.settings.audio.SetVolume(value) end)
+    self.ui:OnToggleChanged("Tgl_Sound", function(on) Bridge.settings.audio.SetSoundEnabled(on) end)
+    self.ui:OnDropdownChanged("Ddl_Quality", function(index) Bridge.settings.display.SetQuality(index) end)
+    self.ui:OnDropdownChanged("Ddl_DisplayMode", function(index)
         Bridge.settings.display.SetMode(DISPLAY_MODE_VALUES[index + 1])
         self:_RefreshResolutionRow()
     end)
-    self.ui:OnDropdownChanged("Dropdown_Resolution", function(index)
+    self.ui:OnDropdownChanged("Ddl_Resolution", function(index)
         Bridge.settings.display.SetResolutionIndex(index)
     end)
-    self.ui:OnDropdownChanged("Dropdown_FrameRate", function(index)
+    self.ui:OnDropdownChanged("Ddl_FrameRate", function(index)
         Bridge.settings.display.SetFrameRate(Bridge.settings.display.FrameRateOption(index))
     end)
-    self.ui:OnDropdownChanged("Dropdown_VSync", function(index)
+    self.ui:OnDropdownChanged("Ddl_VSync", function(index)
         Bridge.settings.display.SetVSync(VSYNC_VALUES[index + 1])
     end)
-    self.ui:OnSliderChanged("Slider_LookSensitivity", function(value)
+    self.ui:OnSliderChanged("Sld_LookSensitivity", function(value)
         Bridge.settings.control.SetLookSensitivity(value)
         self:_PushSensitivityText()
     end)
-    self.ui:OnSliderChanged("Slider_AdsSensitivity", function(value)
+    self.ui:OnSliderChanged("Sld_AdsSensitivity", function(value)
         Bridge.settings.control.SetAdsSensitivity(value)
         self:_PushSensitivityText()
     end)
-    self.ui:OnToggleChanged("Toggle_InvertLookY", function(on)
+    self.ui:OnToggleChanged("Tgl_InvertLookY", function(on)
         Bridge.settings.control.SetInvertLookY(on)
     end)
-    self.ui:OnDropdownChanged("Dropdown_Language", function(index)
+    self.ui:OnDropdownChanged("Ddl_Language", function(index)
         Bridge.text.SetLocale(LOCALES[index + 1])
         self:_PushAllOptions()                                -- 新语言下的全部下拉文本
     end)
-    self.ui:OnButton("Button_ResetDefaults", function() self:_ConfirmReset() end)
-    self.ui:OnButton("Button_Close", function() self:_Close() end)
+    self.ui:OnButton("Btn_ResetDefaults", function() self:_ConfirmReset() end)
+    self.ui:OnButton("Btn_Close", function() self:_Close() end)
 
     -- 对局中禁用显示类（窗口重建卡战斗帧）
     local locked = self._exitable
-    self.ui:SetInteractable("Dropdown_DisplayMode", not locked)
-    self.ui:SetInteractable("Dropdown_VSync", not locked)
-    if locked then self.ui:SetInteractable("Dropdown_Resolution", false) end
+    self.ui:SetInteractable("Ddl_DisplayMode", not locked)
+    self.ui:SetInteractable("Ddl_VSync", not locked)
+    if locked then self.ui:SetInteractable("Ddl_Resolution", false) end
 end
 
 -- 页签切换（用户点击；持久化记忆）
@@ -165,23 +165,23 @@ end
 function M:_PushAllOptions()
     local quality = {}
     for i = 1, #QUALITY_KEYS do quality[i] = Bridge.text.Get(QUALITY_KEYS[i]) end
-    self.ui:SetDropdownOptions("Dropdown_Quality", quality)
+    self.ui:SetDropdownOptions("Ddl_Quality", quality)
 
     local modes = {}
     for i = 1, #DISPLAY_MODE_KEYS do modes[i] = Bridge.text.Get(DISPLAY_MODE_KEYS[i]) end
-    self.ui:SetDropdownOptions("Dropdown_DisplayMode", modes)
+    self.ui:SetDropdownOptions("Ddl_DisplayMode", modes)
 
     local vsync = {}
     for i = 1, #VSYNC_KEYS do vsync[i] = Bridge.text.Get(VSYNC_KEYS[i]) end
-    self.ui:SetDropdownOptions("Dropdown_VSync", vsync)
+    self.ui:SetDropdownOptions("Ddl_VSync", vsync)
 
     self:_PushFrameRateOptions()
     self:_RefreshResolutionRow()
 
     local locales = {}
     for i = 1, #LOCALE_KEYS do locales[i] = Bridge.text.Get(LOCALE_KEYS[i]) end
-    self.ui:SetDropdownOptions("Dropdown_Language", locales)
-    self.ui:SetDropdown("Dropdown_Language", IndexOf(LOCALES, Bridge.text.Locale(), 1) - 1)
+    self.ui:SetDropdownOptions("Ddl_Language", locales)
+    self.ui:SetDropdown("Ddl_Language", IndexOf(LOCALES, Bridge.text.Locale(), 1) - 1)
 end
 
 -- 帧率档：数量与取值由 C# 给（桌面/移动不同档），Lua 只做文本
@@ -192,26 +192,26 @@ function M:_PushFrameRateOptions()
         local cap = Bridge.settings.display.FrameRateOption(i)
         options[i + 1] = (cap == 0) and Bridge.text.Get("UI.Settings.FrameRate.Unlimited") or tostring(cap)
     end
-    self.ui:SetDropdownOptions("Dropdown_FrameRate", options)
+    self.ui:SetDropdownOptions("Ddl_FrameRate", options)
 end
 
 -- 分辨率行：只在窗口模式可改；全屏/无边框显示"跟随显示器"并置灰
 function M:_RefreshResolutionRow()
     local mode = Bridge.settings.display.Mode()
     if mode ~= WINDOWED_MODE then
-        self.ui:SetDropdownOptions("Dropdown_Resolution", { Bridge.text.Get("UI.Settings.Resolution.FollowDisplay") })
-        self.ui:SetDropdown("Dropdown_Resolution", 0)
-        self.ui:SetInteractable("Dropdown_Resolution", false)
+        self.ui:SetDropdownOptions("Ddl_Resolution", { Bridge.text.Get("UI.Settings.Resolution.FollowDisplay") })
+        self.ui:SetDropdown("Ddl_Resolution", 0)
+        self.ui:SetInteractable("Ddl_Resolution", false)
         return
     end
 
     local count = Bridge.settings.display.ResolutionCount()
     local options = {}
     for i = 0, count - 1 do options[i + 1] = Bridge.settings.display.ResolutionLabel(i) end
-    self.ui:SetDropdownOptions("Dropdown_Resolution", options)
+    self.ui:SetDropdownOptions("Ddl_Resolution", options)
     local index = Bridge.settings.display.ResolutionIndex()
-    self.ui:SetDropdown("Dropdown_Resolution", index >= 0 and index or 0)
-    self.ui:SetInteractable("Dropdown_Resolution", not self._exitable)
+    self.ui:SetDropdown("Ddl_Resolution", index >= 0 and index or 0)
+    self.ui:SetInteractable("Ddl_Resolution", not self._exitable)
 end
 
 function M:_PushSensitivityText()
@@ -222,18 +222,18 @@ function M:_PushSensitivityText()
 end
 
 function M:_RefreshControls()
-    self.ui:SetSlider("Slider_Volume", Bridge.settings.audio.Volume())
-    self.ui:SetToggle("Toggle_Sound", Bridge.settings.audio.SoundEnabled())
-    self.ui:SetDropdown("Dropdown_Quality", Bridge.settings.display.Quality())
+    self.ui:SetSlider("Sld_Volume", Bridge.settings.audio.Volume())
+    self.ui:SetToggle("Tgl_Sound", Bridge.settings.audio.SoundEnabled())
+    self.ui:SetDropdown("Ddl_Quality", Bridge.settings.display.Quality())
 
-    self.ui:SetDropdown("Dropdown_DisplayMode", IndexOf(DISPLAY_MODE_VALUES, Bridge.settings.display.Mode(), 2) - 1)
+    self.ui:SetDropdown("Ddl_DisplayMode", IndexOf(DISPLAY_MODE_VALUES, Bridge.settings.display.Mode(), 2) - 1)
     self:_RefreshResolutionRow()
-    self.ui:SetDropdown("Dropdown_FrameRate", self:_FrameRateIndex())
-    self.ui:SetDropdown("Dropdown_VSync", IndexOf(VSYNC_VALUES, Bridge.settings.display.VSync(), 1) - 1)
+    self.ui:SetDropdown("Ddl_FrameRate", self:_FrameRateIndex())
+    self.ui:SetDropdown("Ddl_VSync", IndexOf(VSYNC_VALUES, Bridge.settings.display.VSync(), 1) - 1)
 
-    self.ui:SetSlider("Slider_LookSensitivity", Bridge.settings.control.LookSensitivity())
-    self.ui:SetSlider("Slider_AdsSensitivity", Bridge.settings.control.AdsSensitivity())
-    self.ui:SetToggle("Toggle_InvertLookY", Bridge.settings.control.InvertLookY())
+    self.ui:SetSlider("Sld_LookSensitivity", Bridge.settings.control.LookSensitivity())
+    self.ui:SetSlider("Sld_AdsSensitivity", Bridge.settings.control.AdsSensitivity())
+    self.ui:SetToggle("Tgl_InvertLookY", Bridge.settings.control.InvertLookY())
     self:_PushSensitivityText()
 end
 
@@ -271,7 +271,7 @@ end
 function M:_ConfirmExit()
     if self._leaving then return end
     self._leaving = true
-    self.ui:SetInteractable("Button_Exit", false)
+    self.ui:SetInteractable("Btn_ExitMatch", false)
     self.ui:ShowConfirm(
         Bridge.text.Get("UI.Settings.ExitConfirmTitle"),
         Bridge.text.Get("UI.Settings.ExitConfirmMessage"),
@@ -279,7 +279,7 @@ function M:_ConfirmExit()
         Bridge.text.Get("Common.Cancel"),
         function(ok)
             self._leaving = false
-            self.ui:SetInteractable("Button_Exit", true)
+            self.ui:SetInteractable("Btn_ExitMatch", true)
             if ok then self:_ExitBattle() end
         end)
 end
@@ -291,7 +291,7 @@ function M:_ExitBattle()
 end
 
 function M:OnHide()
-    Bridge.settings.Save()                                    -- Back/ESC 关闭同径落盘
+    Bridge.settings.general.Save()                            -- Back/ESC 关闭同径落盘
 end
 
 return M

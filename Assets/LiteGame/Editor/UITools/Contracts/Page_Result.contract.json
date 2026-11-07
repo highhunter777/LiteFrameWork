@@ -17,70 +17,106 @@
   },
   "controls": [
     {
-      "bindName": "Button_BackLobby",
-      "nodePath": "Cot_SafeArea/Button_BackLobby",
+      "bindName": "Btn_BackLobby",
+      "nodePath": "Cot_SafeArea/Btn_BackLobby",
       "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
     },
     {
       "bindName": "Txt_BackLobby",
-      "nodePath": "Cot_SafeArea/Button_BackLobby/Txt_BackLobby",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Btn_BackLobby/Txt_BackLobby",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
-      "bindName": "VirtualList_Rankboard",
-      "nodePath": "Cot_SafeArea/Cot_Rankboard/VirtualList_Rankboard",
+      "bindName": "Txt_HeaderDeaths",
+      "nodePath": "Cot_SafeArea/Cot_Rankboard/Cot_ColumnHeader/Txt_HeaderDeaths",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_HeaderKills",
+      "nodePath": "Cot_SafeArea/Cot_Rankboard/Cot_ColumnHeader/Txt_HeaderKills",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_HeaderPlayer",
+      "nodePath": "Cot_SafeArea/Cot_Rankboard/Cot_ColumnHeader/Txt_HeaderPlayer",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_HeaderRank",
+      "nodePath": "Cot_SafeArea/Cot_Rankboard/Cot_ColumnHeader/Txt_HeaderRank",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "VList_Rankboard",
+      "nodePath": "Cot_SafeArea/Cot_Rankboard/VList_Rankboard",
       "type": "UnityEngine.UI.ScrollRect",
       "kind": "Command",
       "required": true
     },
     {
+      "bindName": "Cot_Scoreboard",
+      "nodePath": "Cot_SafeArea/Cot_Scoreboard",
+      "type": "UnityEngine.RectTransform",
+      "kind": "None",
+      "required": false
+    },
+    {
       "bindName": "Txt_DeathCount",
       "nodePath": "Cot_SafeArea/Cot_Scoreboard/Txt_DeathCount",
-      "type": "TMPro.TextMeshProUGUI",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
       "bindName": "Txt_KillCount",
       "nodePath": "Cot_SafeArea/Cot_Scoreboard/Txt_KillCount",
-      "type": "TMPro.TextMeshProUGUI",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
-      "bindName": "Txt_Score",
-      "nodePath": "Cot_SafeArea/Cot_Scoreboard/Txt_Score",
-      "type": "TMPro.TextMeshProUGUI",
+      "bindName": "Txt_MyRank",
+      "nodePath": "Cot_SafeArea/Cot_Scoreboard/Txt_MyRank",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_RankEmpty",
+      "nodePath": "Cot_SafeArea/Txt_RankEmpty",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
       "bindName": "Txt_ResultTitle",
       "nodePath": "Cot_SafeArea/Txt_ResultTitle",
-      "type": "TMPro.TextMeshProUGUI",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     }
   ],
   "text": [],
   "styles": [],
-  "templates": [
-    {
-      "nodePath": "Cot_SafeArea/Cot_Rankboard/VirtualList_Rankboard",
-      "template": "Tmp_VirtualList",
-      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
-    }
-  ],
+  "templates": [],
   "events": [
     {
-      "bindName": "Button_BackLobby",
+      "bindName": "Btn_BackLobby",
       "event": "onClick",
       "handler": "anonymous"
     }
   ],
-  "sourceHash": "sha256:1a1efc17cfdc221378d74b33e212a1c495115a5e8907609164475fba6421899b"
+  "sourceHash": "sha256:195b10ed26a4972edaceea3940a706f285f04e42e0faea4f34c9d1f9502a412a"
 }

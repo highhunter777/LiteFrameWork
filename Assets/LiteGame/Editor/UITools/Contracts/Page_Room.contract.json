@@ -17,75 +17,69 @@
   },
   "controls": [
     {
-      "bindName": "Button_Leave",
-      "nodePath": "Cot_SafeArea/Button_Leave",
+      "bindName": "Btn_Leave",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_Leave",
       "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
     },
     {
       "bindName": "Txt_Leave",
-      "nodePath": "Cot_SafeArea/Button_Leave/Txt_Leave",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_Leave/Txt_Leave",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
-      "bindName": "Button_StartMatch",
-      "nodePath": "Cot_SafeArea/Button_StartMatch",
+      "bindName": "Btn_StartMatch",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_StartMatch",
       "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
     },
     {
       "bindName": "Txt_StartMatch",
-      "nodePath": "Cot_SafeArea/Button_StartMatch/Txt_StartMatch",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_ActionBar/Btn_StartMatch/Txt_StartMatch",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
-      "bindName": "SimpleList_Players",
-      "nodePath": "Cot_SafeArea/Cot_Players/SimpleList_Players",
-      "type": "UnityEngine.UI.Image",
+      "bindName": "SList_Players",
+      "nodePath": "Cot_SafeArea/Cot_Players/SList_Players",
+      "type": "UnityEngine.UI.ScrollRect",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_PlayerCount",
+      "nodePath": "Cot_SafeArea/Txt_PlayerCount",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
       "bindName": "Txt_RoomId",
       "nodePath": "Cot_SafeArea/Txt_RoomId",
-      "type": "TMPro.TextMeshProUGUI",
-      "kind": "None",
-      "required": false
-    },
-    {
-      "bindName": "Txt_State",
-      "nodePath": "Cot_SafeArea/Txt_State",
-      "type": "TMPro.TextMeshProUGUI",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     }
   ],
   "text": [],
   "styles": [],
-  "templates": [
-    {
-      "nodePath": "Cot_SafeArea/Cot_Players/SimpleList_Players",
-      "template": "Tmp_SimpleList",
-      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
-    }
-  ],
+  "templates": [],
   "events": [
     {
-      "bindName": "Button_Leave",
+      "bindName": "Btn_Leave",
       "event": "onClick",
       "handler": "_Leave"
     },
     {
-      "bindName": "Button_StartMatch",
+      "bindName": "Btn_StartMatch",
       "event": "onClick",
       "handler": "_StartMatch"
     }
   ],
-  "sourceHash": "sha256:cedab766dce6b149ff4e3077bdc5111e7877360b7f4054e176b7e8c54bf48a9f"
+  "sourceHash": "sha256:6728515daa910d52ee36db8cefbc486a23401d23c88bcad9cb3a6266dd06d170"
 }

@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "generator": "ui-backport",
+  "frozen": true,
+  "frozenAt": "2026-11-08",
+  "sourceRepo": "E:/unityProject/LiteGameNext",
+  "sourceCommit": "43bbb116deac8ceb9469bdbcc6363d2689d5c3a5",
+  "targetRepo": "E:/unityProject/Test",
+  "targetCommit": "c55cb4083737c8e69c0456eac1c71413b9b4fba2",
+  "pages": {
+    "Page_Login": {
+      "sourcePrefab": "Assets/Content/Shared/UiScreens/Page_Login.prefab",
+      "sourceSha256": "826fb1a68df0adb9259ce1326d70f7ec69c8d882d6b204148d5840222b2b5d4a",
+      "targetPrefab": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab",
+      "targetGuid": "99f22f926331970459aa10b89651fe19",
+      "targetSha256": "c77232d75022f487e931b334f770d121a50327ea82299c38274f89dffb7f2afd",
+      "importedSprites": [
+        "Assets/LiteGame/Modules/UI/Content/Backport/Sprites/SPR_Ui_Panel_01.png",
+        "Assets/LiteGame/Modules/UI/Content/Backport/Sprites/SPR_Ui_BtnPrimary_01.png",
+        "Assets/LiteGame/Modules/UI/Content/Backport/Sprites/SPR_Ui_BtnPrimary_Hover.png",
+        "Assets/LiteGame/Modules/UI/Content/Backport/Sprites/SPR_Ui_BtnPrimary_Pressed.png",
+        "Assets/LiteGame/Modules/UI/Content/Backport/Sprites/SPR_Ui_BtnPrimary_Disabled.png",
+        "Assets/LiteGame/Modules/UI/Content/Backport/Sprites/SPR_Ui_BtnSecondary_01.png",
+        "Assets/LiteGame/Modules/UI/Content/Backport/Sprites/SPR_Ui_BtnSecondary_Hover.png",
+        "Assets/LiteGame/Modules/UI/Content/Backport/Sprites/SPR_Ui_BtnSecondary_Pressed.png",
+        "Assets/LiteGame/Modules/UI/Content/Backport/Sprites/SPR_Ui_BtnSecondary_Disabled.png"
+      ],
+      "converted": [
+        "stripped LuaScreen",
+        "UiBinder entries -> BindNode (BindName + CustomTypeName)",
+        "added root Canvas + CanvasScaler(1920x1080) + CanvasGroup + GraphicRaycaster",
+        "normalized root RectTransform (scale 1, anchors 0..1, pivot 0.5)"
+      ]
+    },
+    "Page_Room": {
+      "sourcePrefab": "Assets/Content/Shared/UiScreens/Page_Room.prefab",
+      "sourceSha256": "a77f5b0e1353e6d9131d344daf5d0c11be6fc49d6b4ed0328b964cb47c5d0f36",
+      "targetPrefab": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Room.prefab",
+      "targetGuid": "b7e33cddf11466c488b75e831f812071",
+      "targetSha256": "f4989146a8b7c3c655a59ac903b6c1c5adffbfee3dd4770bf9a546a913c95b77",
+      "converted": [
+        "stripped LuaScreen",
+        "UiBinder entries -> BindNode (BindName + CustomTypeName)",
+        "added root Canvas + CanvasScaler(1920x1080) + CanvasGroup + GraphicRaycaster",
+        "normalized root RectTransform (scale 1, anchors 0..1, pivot 0.5)",
+        "SimpleListView on SList_Players (Template=Clone_Row)"
+      ]
+    },
+    "Page_Settings": {
+      "sourcePrefab": "Assets/Content/Shared/UiScreens/Page_Settings.prefab",
+      "sourceSha256": "d264c3402961bfb5e4ab1bcc727d804376b2daf816c1c7a4bdd63a3015a2f8fb",
+      "targetPrefab": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Settings.prefab",
+      "targetGuid": "a55b9bd4fc4f63149b8724b7650bab41",
+      "targetSha256": "1f2959c87df5b22b03aa5d86759402db95090abc0b913a80df0f7f2d93d16041",
+      "converted": [
+        "stripped LuaScreen",
+        "UiBinder entries -> BindNode (BindName + CustomTypeName)",
+        "added root Canvas + CanvasScaler(1920x1080) + CanvasGroup + GraphicRaycaster",
+        "normalized root RectTransform (scale 1, anchors 0..1, pivot 0.5)",
+        "ToggleTabGroup on Tabs_Settings (5 Toggle tabs wired)"
+      ]
+    },
+    "Page_Lobby": {
+      "sourcePrefab": "Assets/Content/Shared/UiScreens/Page_Lobby.prefab",
+      "sourceSha256": "e2b198cadf575e67434501c09cb3fc97d55c95332c2540d279dac0bb7f9be267",
+      "targetPrefab": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
+      "targetGuid": "bb72b834805ea1e4c97a5c3c87a2d10d",
+      "targetSha256": "8c639f19761ace5bc2f08e57fccbd1da52743acca5b91da9196f5d61e8e0ef40",
+      "importedStageAssets": [
+        "Assets/LiteGame/Modules/UI/Content/Backport/Stage/RT_Stage.renderTexture",
+        "Assets/LiteGame/Modules/UI/Content/Backport/Stage/RifleGirl.controller"
+      ],
+      "converted": [
+        "stripped LuaScreen + UiBinder",
+        "UiBinder keys -> BindNode (name-based binding)",
+        "added root Canvas + CanvasScaler(1920x1080) + CanvasGroup + GraphicRaycaster",
+        "normalized root RectTransform (scale 1, anchors 0..1, pivot 0.5)",
+        "SimpleListView on VList_Rooms (Template=Clone_Row)",
+        "Player(Rifle) nested prefab rotated 180 to face stage camera"
+      ]
+    },
+    "Page_Result": {
+      "sourcePrefab": "Assets/Content/Shared/UiScreens/Page_Result.prefab",
+      "sourceSha256": "6dabc36ec6e3a4322996f663af5ba06a5a6d676a97c3ab0cd844ece12774db01",
+      "targetPrefab": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Result.prefab",
+      "targetGuid": "cf379075bb8ec834baba51647327c74c",
+      "targetSha256": "9d3f9b4a3afc5db9145eb4b15cf988ee259f459a07aef8872ddb147667d72922",
+      "converted": [
+        "stripped LuaScreen + UiBinder",
+        "UiBinder keys -> BindNode (name-based binding)",
+        "added root Canvas + CanvasScaler(1920x1080) + CanvasGroup + GraphicRaycaster",
+        "normalized root RectTransform (scale 1, anchors 0..1, pivot 0.5)",
+        "SimpleListView on VList_Rankboard (Template=Clone_Row)",
+        "Cot_Scoreboard bound so empty state can hide the summary bar with its background"
+      ]
+    },
+    "Page_Records": {
+      "sourcePrefab": "Assets/Content/Shared/UiScreens/Page_Records.prefab",
+      "sourceSha256": "e5fc836ef3e53320db085be2fe48178dfaf1a1968042353ddb07dd0f466749fa",
+      "targetPrefab": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Records.prefab",
+      "targetGuid": "6548c0f57aae2c146b083f5203b8aeb2",
+      "targetSha256": "a4cbcd1162f2a8473cbf7e89bd95c19285f1caf08d4099ea019885d8d74c1ba3",
+      "converted": [
+        "stripped LuaScreen + UiBinder",
+        "UiBinder keys -> BindNode (name-based binding)",
+        "added root Canvas + CanvasScaler(1920x1080) + CanvasGroup + GraphicRaycaster",
+        "normalized root RectTransform (scale 1, anchors 0..1, pivot 0.5)",
+        "SimpleListView on VList_Records (Template=Clone_Row)"
+      ]
+    }
+  }
+}

@@ -17,85 +17,69 @@
   },
   "controls": [
     {
-      "bindName": "Button_GuestLogin",
-      "nodePath": "Cot_SafeArea/Button_GuestLogin",
-      "type": "UnityEngine.UI.Button",
-      "kind": "Command",
-      "required": true
-    },
-    {
-      "bindName": "Txt_GuestLogin",
-      "nodePath": "Cot_SafeArea/Button_GuestLogin/Txt_GuestLogin",
-      "type": "TMPro.TextMeshProUGUI",
-      "kind": "None",
-      "required": false
-    },
-    {
-      "bindName": "Button_Settings",
-      "nodePath": "Cot_SafeArea/Cot_Footer/Button_Settings",
+      "bindName": "Btn_Settings",
+      "nodePath": "Cot_SafeArea/Cot_Footer/Btn_Settings",
       "type": "UnityEngine.UI.Button",
       "kind": "Command",
       "required": true
     },
     {
       "bindName": "Txt_Settings",
-      "nodePath": "Cot_SafeArea/Cot_Footer/Button_Settings/Txt_Settings",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_Footer/Btn_Settings/Txt_Settings",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
       "bindName": "Txt_Version",
       "nodePath": "Cot_SafeArea/Cot_Footer/Txt_Version",
-      "type": "TMPro.TextMeshProUGUI",
+      "type": "UnityEngine.UI.Text",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Btn_GuestLogin",
+      "nodePath": "Cot_SafeArea/Cot_LoginCard/Btn_GuestLogin",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_GuestLogin",
+      "nodePath": "Cot_SafeArea/Cot_LoginCard/Btn_GuestLogin/Txt_GuestLogin",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
       "bindName": "Txt_Status",
-      "nodePath": "Cot_SafeArea/Txt_Status",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_LoginCard/Txt_Status",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     },
     {
       "bindName": "Txt_Title",
-      "nodePath": "Cot_SafeArea/Txt_Title",
-      "type": "TMPro.TextMeshProUGUI",
+      "nodePath": "Cot_SafeArea/Cot_LoginCard/Txt_Title",
+      "type": "UnityEngine.UI.Text",
       "kind": "None",
       "required": false
     }
   ],
-  "text": [
-    {
-      "nodePath": "Cot_SafeArea/Button_GuestLogin/Txt_GuestLogin",
-      "key": "UI.Login.GuestEnter",
-      "args": 0
-    },
-    {
-      "nodePath": "Cot_SafeArea/Cot_Footer/Button_Settings/Txt_Settings",
-      "key": "Common.Settings",
-      "args": 0
-    },
-    {
-      "nodePath": "Cot_SafeArea/Txt_Title",
-      "key": "UI.Login.Title",
-      "args": 0
-    }
-  ],
+  "text": [],
   "styles": [],
   "templates": [],
   "events": [
     {
-      "bindName": "Button_GuestLogin",
+      "bindName": "Btn_GuestLogin",
       "event": "onClick",
       "handler": "_Login"
     },
     {
-      "bindName": "Button_Settings",
+      "bindName": "Btn_Settings",
       "event": "onClick",
       "handler": "anonymous"
     }
   ],
-  "sourceHash": "sha256:cd0373baf315462b4902417b5206b45778204ca209aff4f3f2b2066a667fe975"
+  "sourceHash": "sha256:31921ee5ea0ea258bc059a0af945a53e071edd9fbcc25d34050030833da213aa"
 }

@@ -70,11 +70,6 @@ class HelpContractTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertIn("usage", (result.stdout + result.stderr).lower())
 
-    def test_hook_has_help(self):
-        result = run_script("scripts/hooks/shared-source-reminder.py", "--help")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("PostToolUse", result.stdout)
-
     def test_domain_entries_without_args_print_usage_and_succeed(self):
         for relative in ("scripts/codegen/toolbox.py", "scripts/local/local-chain.py"):
             with self.subTest(script=relative):

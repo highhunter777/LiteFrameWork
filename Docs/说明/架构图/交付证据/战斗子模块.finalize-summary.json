@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-战斗子模块.json",
+    "sha256": "a05a7c9cdbe365bd0bc3e5df72bcdf59e85a65971562077e7f3d97f34c1835e2",
+    "bytes": 10729
+  },
+  "artifact": {
+    "path": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗子模块.html",
+    "sha256": "3935fd08612db06a34945b0d8237f25ab943ffcd8a735a9ad825a0390e93e2ad",
+    "bytes": 770709
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗子模块.finalize.json",
+    "summaryReceipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗子模块.finalize-summary.json",
+    "browserCheckReceipt": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗子模块.browser-check.json"
+  },
+  "update": {
+    "status": "unavailable",
+    "installedVersion": null,
+    "availableVersion": null,
+    "releaseNotes": null,
+    "checkedAt": null,
+    "source": null,
+    "noticeRequired": false,
+    "noticeText": null,
+    "reason": "invalid-local-release"
+  },
+  "visualReview": "not-requested",
+  "durationMs": 7972,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 6,
+      "routesOverSuggestedBends": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "feed-combat",
+            "from": "feed",
+            "to": "combat",
+            "label": "命中 / 开火",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "right": {
+            "id": "feed-hud",
+            "from": "feed",
+            "to": "hud",
+            "label": "击杀播报",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "point": [
+            580,
+            533
+          ],
+          "sharedNode": "feed"
+        },
+        {
+          "left": {
+            "id": "feed-combat",
+            "from": "feed",
+            "to": "combat",
+            "label": "命中 / 开火",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "right": {
+            "id": "rig-hud",
+            "from": "rig",
+            "to": "hud",
+            "label": "",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "point": [
+            616,
+            405
+          ]
+        },
+        {
+          "left": {
+            "id": "feed-combat",
+            "from": "feed",
+            "to": "combat",
+            "label": "命中 / 开火",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "right": {
+            "id": "rig-aim",
+            "from": "rig",
+            "to": "aim",
+            "label": "",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "point": [
+            637,
+            309
+          ]
+        },
+        {
+          "left": {
+            "id": "feed-hud",
+            "from": "feed",
+            "to": "hud",
+            "label": "击杀播报",
+            "collectionIndex": 7,
+            "artifactIndex": 8
+          },
+          "right": {
+            "id": "rig-aim",
+            "from": "rig",
+            "to": "aim",
+            "label": "",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "point": [
+            637,
+            419
+          ]
+        },
+        {
+          "left": {
+            "id": "rig-combat",
+            "from": "rig",
+            "to": "combat",
+            "label": "",
+            "collectionIndex": 10,
+            "artifactIndex": 11
+          },
+          "right": {
+            "id": "rig-aim",
+            "from": "rig",
+            "to": "aim",
+            "label": "",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "point": [
+            580,
+            238
+          ],
+          "sharedNode": "rig"
+        },
+        {
+          "left": {
+            "id": "rig-hud",
+            "from": "rig",
+            "to": "hud",
+            "label": "",
+            "collectionIndex": 11,
+            "artifactIndex": 12
+          },
+          "right": {
+            "id": "rig-aim",
+            "from": "rig",
+            "to": "aim",
+            "label": "",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "point": [
+            544,
+            238
+          ],
+          "sharedNode": "rig"
+        }
+      ],
+      "detours": [
+        {
+          "relationship": {
+            "id": "rig-aim",
+            "from": "rig",
+            "to": "aim",
+            "label": "",
+            "collectionIndex": 12,
+            "artifactIndex": 13
+          },
+          "bends": 3,
+          "stretch": 1.088
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "feed → combat and feed → hud cross next to feed: move node combat or hud so the two reach feed from different sides (for example one level with it, one directly above or below it).",
+      "feed → combat crosses rig → hud: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "feed → combat crosses rig → aim: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "feed → hud crosses rig → aim: move the node of whichever is a branch, return, or second entrance to the other side of the main path, so that relationship runs through an empty corridor.",
+      "rig → combat and rig → aim cross next to rig: move node combat or aim so the two reach rig from different sides (for example one level with it, one directly above or below it).",
+      "rig → hud and rig → aim cross next to rig: move node hud or aim so the two reach rig from different sides (for example one level with it, one directly above or below it).",
+      "rig → aim needs 3 bends: move node rig or aim so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

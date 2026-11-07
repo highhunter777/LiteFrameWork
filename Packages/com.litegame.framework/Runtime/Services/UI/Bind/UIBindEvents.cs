@@ -56,8 +56,15 @@ namespace LiteFramework.UI
         /// <summary>页签变化通知（用户点击；回调带索引）。重复登记替换；<c>null</c> = 仅退订。G18。</summary>
         public void OnTabChanged(string name, Action<int> handler)
         {
-            var group = _index.Get<TabGroup>(name);
             Action<int> h = v => Call($"OnTabChanged[{name}]", handler, v);
+            if (_index.TryGet<ToggleTabGroup>(name, out ToggleTabGroup toggleGroup))
+            {
+                SubscribeControl(name, () => toggleGroup.OnTabChanged -= h);
+                if (handler != null) toggleGroup.OnTabChanged += h;
+                return;
+            }
+
+            var group = _index.Get<TabGroup>(name);
             SubscribeControl(name, () => group.OnTabChanged -= h);
             if (handler != null) group.OnTabChanged += h;
         }

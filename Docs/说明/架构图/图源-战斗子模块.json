@@ -1,0 +1,429 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Modules.Battle 九个子模块",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/战斗子模块.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "子模块（能力面）"
+        },
+        "backend": {
+          "label": "编排（根目录）"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "session",
+      "type": "backend",
+      "label": "SessionSubModule",
+      "sublabel": "对局聚合 · 持有会话与视图",
+      "pos": [
+        40,
+        80
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/BattleSession.cs",
+          "line": 15,
+          "label": "BattleSession"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/BattleSession.cs",
+          "line": 60,
+          "end_line": 78,
+          "label": "持有点与挂视图"
+        }
+      ]
+    },
+    {
+      "id": "context",
+      "type": "backend",
+      "label": "BattleContext",
+      "sublabel": "网络 + Sim + 表现端口",
+      "pos": [
+        40,
+        220
+      ],
+      "size": [
+        200,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 20,
+          "label": "对局上下文"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 197,
+          "label": "AttachView"
+        }
+      ]
+    },
+    {
+      "id": "feed",
+      "type": "backend",
+      "label": "PublicCombatFeed",
+      "sublabel": "CombatEventBatch 按 kind",
+      "pos": [
+        320,
+        500
+      ],
+      "size": [
+        200,
+        80
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/PublicCombatFeed.cs",
+          "line": 13,
+          "label": "公共事件面"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/BattleContext.cs",
+          "line": 393,
+          "label": "事件批入口"
+        }
+      ]
+    },
+    {
+      "id": "rig",
+      "type": "frontend",
+      "label": "SetupSubModule",
+      "sublabel": "BattleViewRig 一处收口装配",
+      "pos": [
+        320,
+        140
+      ],
+      "size": [
+        200,
+        140
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SetupSubModule/BattleViewRig.cs",
+          "line": 20,
+          "label": "视图装配件"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SetupSubModule/BattleViewRig.cs",
+          "line": 30,
+          "end_line": 33,
+          "label": "四装配器"
+        }
+      ]
+    },
+    {
+      "id": "commands",
+      "type": "frontend",
+      "label": "CommandsSubModule",
+      "sublabel": "传送命令（可撤销）",
+      "pos": [
+        320,
+        20
+      ],
+      "size": [
+        200,
+        80
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/CommandsSubModule/BattleCommands.cs",
+          "line": 7,
+          "label": "命令端口实现"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/CommandsSubModule/TeleportToAimHandler.cs",
+          "line": 12,
+          "label": "撤销处理器"
+        }
+      ]
+    },
+    {
+      "id": "arena",
+      "type": "frontend",
+      "label": "ArenaSubModule",
+      "sublabel": "Sim→视图 · 插值 · 静默门",
+      "pos": [
+        640,
+        40
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/SimView.cs",
+          "line": 16,
+          "label": "SimView"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SetupSubModule/BattleViewSceneAssembler.cs",
+          "line": 35,
+          "label": "建 SimView"
+        }
+      ]
+    },
+    {
+      "id": "characters",
+      "type": "frontend",
+      "label": "CharactersSubModule",
+      "sublabel": "动画机 + 角色驱动",
+      "pos": [
+        640,
+        150
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule/Drivers/CharacterLocomotionDriver.cs",
+          "line": 15,
+          "label": "角色驱动"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SetupSubModule/BattleViewSceneAssembler.cs",
+          "line": 44,
+          "label": "装配处"
+        }
+      ]
+    },
+    {
+      "id": "combat",
+      "type": "frontend",
+      "label": "CombatSubModule",
+      "sublabel": "命中分发 + 9 个驱动",
+      "pos": [
+        640,
+        260
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/CombatSubModule/HitFeedbackDispatcher.cs",
+          "line": 12,
+          "label": "命中分发器"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/CombatSubModule/BattleFeedbackAssembler.cs",
+          "line": 15,
+          "label": "反馈装配器"
+        }
+      ]
+    },
+    {
+      "id": "hud",
+      "type": "frontend",
+      "label": "HudSubModule",
+      "sublabel": "ReadModel + 5 个 HUD 驱动",
+      "pos": [
+        640,
+        370
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/BattleReadModel.cs",
+          "line": 12,
+          "label": "BattleReadModel"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/BattleHudAssembler.cs",
+          "line": 45,
+          "label": "HUD 装配器"
+        }
+      ]
+    },
+    {
+      "id": "aim",
+      "type": "frontend",
+      "label": "AimSubModule",
+      "sublabel": "视角控制 + 相机混合",
+      "pos": [
+        640,
+        480
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/AimSubModule/BattleLookController.cs",
+          "line": 16,
+          "label": "视角控制"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SetupSubModule/BattleViewRig.cs",
+          "line": 79,
+          "label": "装配处"
+        }
+      ]
+    },
+    {
+      "id": "settlement",
+      "type": "frontend",
+      "label": "SettlementSubModule",
+      "sublabel": "终局行表（全序 / 名次）",
+      "pos": [
+        40,
+        380
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SettlementSubModule/SettlementSummary.cs",
+          "line": 10,
+          "label": "结算摘要"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Battle/SubModules/SettlementSubModule/ResultRanking.cs",
+          "label": "排行"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "session-context",
+      "from": "session",
+      "to": "context",
+      "label": "一局上下文"
+    },
+    {
+      "id": "session-rig",
+      "from": "session",
+      "to": "rig",
+      "label": "每局建视图组",
+      "variant": "emphasis"
+    },
+    {
+      "id": "context-rig",
+      "from": "context",
+      "to": "rig",
+      "label": "AttachView / Tick"
+    },
+    {
+      "id": "context-feed",
+      "from": "context",
+      "to": "feed",
+      "label": "事件批"
+    },
+    {
+      "id": "context-settlement",
+      "from": "context",
+      "to": "settlement",
+      "label": "MatchEnded"
+    },
+    {
+      "id": "rig-commands",
+      "from": "rig",
+      "to": "commands",
+      "label": "注册传送命令"
+    },
+    {
+      "id": "feed-combat",
+      "from": "feed",
+      "to": "combat",
+      "label": "命中 / 开火"
+    },
+    {
+      "id": "feed-hud",
+      "from": "feed",
+      "to": "hud",
+      "label": "击杀播报"
+    },
+    {
+      "id": "rig-arena",
+      "from": "rig",
+      "to": "arena"
+    },
+    {
+      "id": "rig-characters",
+      "from": "rig",
+      "to": "characters"
+    },
+    {
+      "id": "rig-combat",
+      "from": "rig",
+      "to": "combat"
+    },
+    {
+      "id": "rig-hud",
+      "from": "rig",
+      "to": "hud"
+    },
+    {
+      "id": "rig-aim",
+      "from": "rig",
+      "to": "aim"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "装配面只住在 Setup",
+      "items": [
+        "BattleViewRig 是唯一 new 表现件的地方：场景装配器 / 反馈装配器 / HUD 装配器 / 视角控制器",
+        "五个能力子模块只提供部件与驱动，不自己接线——新增表现件改装配器，不改子模块",
+        "视图资源挂 BattleView 子作用域：离场即整体回收，prefab 租约随作用域释放"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "数据自上而下流",
+      "items": [
+        "BattleContext 是唯一持有 Sim 与权威镜像的地方；ArenaSubModule 把 Sim 态翻成视图（插值 + 实体视图 + 静默门）",
+        "Characters / Combat / Hud / Aim 都消费 Arena 建出来的 SimView 与实体，不直接读网络",
+        "视角与瞄准走 Input + Camera 端口；本地预测的跟位与和解衰减在视图层做"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "事件面只有一个通道",
+      "items": [
+        "PublicCombatFeed → HitFeedbackDispatcher → IHitFeedbackConsumer：音频 / 飘字 / 弹着 / 枪口焰 / 复活 / 准星都实现这一个口",
+        "权威命中走 AuthoritativeCombatFeedback，与预测开火分开，避免预测命中上屏",
+        "新增表现只接 IHitFeedbackConsumer，不新开事件通道"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "命令与结算",
+      "items": [
+        "CommandsSubModule 把传送做成 ICommand：帧边界派发、可撤销，处理器注册在装配期",
+        "SettlementSubModule 只做终局行表（全序 / 名次与局内排行榜同一实现），流程只认 ISettlementSummary",
+        "诊断面 BattleDiagnosticsRecorder 与 IBattleDevDiagnostics 走开发装配注入，发布形态不登记"
+      ]
+    }
+  ]
+}

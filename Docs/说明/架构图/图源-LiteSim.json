@@ -1,0 +1,344 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LiteSim 确定性判定内核",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/LiteSim.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "LiteSim 包内模块"
+        },
+        "database": {
+          "label": "世界态"
+        },
+        "security": {
+          "label": "确定性内核"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "pipeline",
+      "type": "frontend",
+      "label": "Pipeline",
+      "sublabel": "SimStep · RollbackSim · 输入史",
+      "pos": [
+        360,
+        60
+      ],
+      "size": [
+        260,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Pipeline/SimStep.cs",
+          "line": 6,
+          "label": "SimStep 纯函数"
+        },
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Pipeline/RollbackSim.cs",
+          "line": 8,
+          "label": "RollbackSim"
+        }
+      ]
+    },
+    {
+      "id": "systems",
+      "type": "frontend",
+      "label": "Systems（九系统）",
+      "sublabel": "固定顺序 · 纯函数就地读写",
+      "pos": [
+        360,
+        220
+      ],
+      "size": [
+        260,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Pipeline/SimStep.cs",
+          "line": 15,
+          "end_line": 29,
+          "label": "调用顺序"
+        },
+        {
+          "path": "Packages/com.litegame.sim/Systems/ShootingSystem.cs",
+          "line": 1,
+          "label": "射击系统"
+        }
+      ]
+    },
+    {
+      "id": "config",
+      "type": "frontend",
+      "label": "Config",
+      "sublabel": "CombatValues · WeaponTable",
+      "pos": [
+        80,
+        200
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Config/CombatValues.cs",
+          "line": 1,
+          "label": "判定数值"
+        },
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Config/WeaponTable.cs",
+          "line": 1,
+          "label": "武器表"
+        }
+      ]
+    },
+    {
+      "id": "map",
+      "type": "frontend",
+      "label": "Map",
+      "sublabel": "SimMapData · 三角表 · 出生点",
+      "pos": [
+        80,
+        340
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Map/SimMapData.cs",
+          "line": 1,
+          "label": "判定地图"
+        },
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs",
+          "line": 1,
+          "label": "三角表"
+        }
+      ]
+    },
+    {
+      "id": "rules",
+      "type": "frontend",
+      "label": "Rules",
+      "sublabel": "SimRaycast · SimSpread · 规则位",
+      "pos": [
+        700,
+        340
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Rules/SimRaycast.cs",
+          "line": 1,
+          "label": "障碍射线"
+        },
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Rules/MatchTestRules.cs",
+          "line": 1,
+          "label": "本局规则位"
+        }
+      ]
+    },
+    {
+      "id": "kernel",
+      "type": "security",
+      "label": "Kernel",
+      "sublabel": "SimMath · SimRng · SimChecksum",
+      "pos": [
+        700,
+        60
+      ],
+      "size": [
+        200,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Kernel/SimMath.cs",
+          "line": 1,
+          "label": "软件 sqrt / 三角"
+        },
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Kernel/SimChecksum.cs",
+          "line": 1,
+          "label": "逐帧摘要"
+        },
+        {
+          "path": "Packages/com.litegame.sim/Scripts/Kernel/IeeeProbe.cs",
+          "line": 1,
+          "label": "IEEE 对账"
+        }
+      ]
+    },
+    {
+      "id": "world",
+      "type": "database",
+      "label": "World",
+      "sublabel": "SimWorldState · 快照环 · 帧事件",
+      "pos": [
+        360,
+        420
+      ],
+      "size": [
+        260,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Scripts/World/SimWorldState.cs",
+          "line": 1,
+          "label": "世界态"
+        },
+        {
+          "path": "Packages/com.litegame.sim/Scripts/World/SnapshotRing.cs",
+          "line": 1,
+          "label": "快照环"
+        },
+        {
+          "path": "Packages/com.litegame.sim/Scripts/World/FrameEventBuffer.cs",
+          "line": 1,
+          "label": "帧事件"
+        }
+      ]
+    },
+    {
+      "id": "diagnostics",
+      "type": "frontend",
+      "label": "Diagnostics",
+      "sublabel": "ReplayRunner · WorldDiff",
+      "pos": [
+        80,
+        520
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.sim/Diagnostics/SimReplayRunner.cs",
+          "line": 1,
+          "label": "离线复算"
+        },
+        {
+          "path": "Packages/com.litegame.sim/Diagnostics/SimWorldDiff.cs",
+          "line": 1,
+          "label": "字段级 diff"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "pipeline-systems",
+      "from": "pipeline",
+      "to": "systems",
+      "label": "固定顺序调用",
+      "variant": "emphasis"
+    },
+    {
+      "id": "systems-world",
+      "from": "systems",
+      "to": "world",
+      "label": "就地读写",
+      "variant": "emphasis"
+    },
+    {
+      "id": "systems-config",
+      "from": "systems",
+      "to": "config",
+      "label": "每帧数值实例"
+    },
+    {
+      "id": "systems-map",
+      "from": "systems",
+      "to": "map",
+      "label": "地图 / 障碍"
+    },
+    {
+      "id": "systems-rules",
+      "from": "systems",
+      "to": "rules",
+      "label": "遮挡 / 散布 / 规则位"
+    },
+    {
+      "id": "systems-kernel",
+      "from": "systems",
+      "to": "kernel",
+      "label": "数学与随机"
+    },
+    {
+      "id": "pipeline-kernel",
+      "from": "pipeline",
+      "to": "kernel",
+      "label": "逐帧摘要"
+    },
+    {
+      "id": "diagnostics-world",
+      "from": "diagnostics",
+      "to": "world",
+      "label": "回放复算"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "九系统的固定顺序（SimStep）",
+      "items": [
+        "① 复活 Respawn → ② 输入 Input → ③ 移动 Movement → ④ 武器 Weapon → ⑤ 射击 Shooting",
+        "⑥ 伤害 Damage + ⑦ 计分 Score：走命令缓冲，最多 3 轮，轮内新命令进下一轮窗口",
+        "⑧ 清理 Cleanup → 帧号 +1 → ⑨ 对局裁决 MatchSystem.Tick",
+        "已结束的对局进来即清命令短路返回（Finished 早退）"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "确定性的硬约束",
+      "items": [
+        "禁超越函数 / FMA / float 等值比较（R1/R2/R3 扫描 + IEEE 基线用例）",
+        "SimMath 自带软件 sqrt 与三角表；SimRng 单源，不用系统随机",
+        "双轨共编：Unity asmdef（noEngineReferences）+ dotnet csproj 编同一份源码",
+        "输入先按 EntityId 稳定插入排序（零分配、禁用 LINQ 与库排序）"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "状态与快照",
+      "items": [
+        "SimWorldState 就地读写：定容 EntitySlot、位图存活集，判定路径零分配",
+        "SnapshotRing 保存最近若干帧，回滚时从环里取历史帧重放",
+        "FrameEventBuffer 记录帧事件供表现侧消费（回滚期静默门）",
+        "SimChecksum 逐帧摘要：客户端与权威比对，就是和解的判据"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "回滚、复盘与对账",
+      "items": [
+        "RollbackSim：预测步进 → 权威快照覆盖 → 用 InputHistory 里的“当时输入”重放",
+        "SimReplayRunner 离线复算、SimWorldDiff 字段级比对，定位“哪一步先分叉”",
+        "IeeeProbe 对账浮点行为，防止编译器/平台差异漏进判定",
+        "判定参数只经实例传递（R13），机制面不读静态可变读数"
+      ]
+    }
+  ]
+}

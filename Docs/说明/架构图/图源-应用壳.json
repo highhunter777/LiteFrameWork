@@ -1,0 +1,333 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Modules.Procedure 应用壳",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/应用壳.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "阶段（Procedure）"
+        },
+        "security": {
+          "label": "失败落点"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "boot",
+      "label": "启动链（进程内，不进对局场景）"
+    },
+    {
+      "id": "match",
+      "label": "联机与对局"
+    },
+    {
+      "id": "fail",
+      "label": "失败落点",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "startup",
+      "label": "启动走廊",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "shell",
+      "label": "应用壳",
+      "fromCol": 3,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "combat",
+      "label": "对局",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "dashed"
+    }
+  ],
+  "mainPath": [
+    "launch",
+    "patch",
+    "preload",
+    "main",
+    "match",
+    "battle"
+  ],
+  "nodes": [
+    {
+      "id": "launch",
+      "lane": "boot",
+      "col": 0,
+      "type": "frontend",
+      "label": "Launch 启动",
+      "sublabel": "接已装配容器",
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureLaunch.cs",
+          "line": 27,
+          "label": "转 Patch"
+        },
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 61,
+          "label": "fsm.Start(Launch)"
+        }
+      ]
+    },
+    {
+      "id": "patch",
+      "lane": "boot",
+      "col": 1,
+      "type": "frontend",
+      "label": "Patch 内容事务",
+      "sublabel": "候选包 · 签名 · 激活",
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedurePatch.cs",
+          "line": 97,
+          "label": "失败转 Error"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedurePatch.cs",
+          "line": 131,
+          "label": "转 Preload"
+        }
+      ]
+    },
+    {
+      "id": "preload",
+      "lane": "boot",
+      "col": 2,
+      "type": "frontend",
+      "label": "Preload 预载",
+      "sublabel": "表 · Lua · 注册表",
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedurePreload.cs",
+          "line": 84,
+          "label": "放行 Main"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedurePreload.cs",
+          "line": 91,
+          "label": "失败转 Error"
+        }
+      ]
+    },
+    {
+      "id": "main",
+      "lane": "boot",
+      "col": 3,
+      "type": "frontend",
+      "label": "Main 主界面",
+      "sublabel": "落点决策 · 页面流",
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureMain.cs",
+          "line": 50,
+          "end_line": 57,
+          "label": "开发直入 / 开局"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/PageFlow.cs",
+          "line": 52,
+          "end_line": 59,
+          "label": "落点开页"
+        }
+      ]
+    },
+    {
+      "id": "match",
+      "lane": "match",
+      "col": 4,
+      "type": "frontend",
+      "label": "Match 匹配",
+      "sublabel": "Account Scope · Join",
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureMatch.cs",
+          "line": 97,
+          "label": "进 Battle"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureMatch.cs",
+          "line": 109,
+          "label": "失败回 Main"
+        }
+      ]
+    },
+    {
+      "id": "battle",
+      "lane": "match",
+      "col": 5,
+      "type": "frontend",
+      "label": "Battle 对局",
+      "sublabel": "场景组 · BattleClient",
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureBattle.cs",
+          "line": 145,
+          "label": "结束回 Main"
+        },
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureBattle.cs",
+          "line": 174,
+          "label": "结算页接管"
+        }
+      ]
+    },
+    {
+      "id": "error",
+      "lane": "fail",
+      "col": 3,
+      "type": "security",
+      "label": "Error 错误",
+      "sublabel": "分类 + 恢复动作（终态）",
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureError.cs",
+          "line": 24,
+          "end_line": 44,
+          "label": "错误流程"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "launch",
+      "to": "patch",
+      "label": "启动恢复完成",
+      "role": "main"
+    },
+    {
+      "from": "patch",
+      "to": "preload",
+      "label": "候选包就绪",
+      "role": "main"
+    },
+    {
+      "from": "preload",
+      "to": "main",
+      "label": "表 + Lua 就绪",
+      "role": "main"
+    },
+    {
+      "from": "main",
+      "to": "match",
+      "label": "开局请求",
+      "role": "main",
+      "route": "auto",
+      "fromSide": "right",
+      "toSide": "top",
+      "variant": "emphasis"
+    },
+    {
+      "from": "match",
+      "to": "battle",
+      "label": "JoinAck",
+      "role": "main",
+      "variant": "emphasis"
+    },
+    {
+      "from": "battle",
+      "to": "main",
+      "label": "对局结束（完成 / 离场 / 失败）",
+      "role": "return",
+      "route": "auto",
+      "variant": "dashed"
+    },
+    {
+      "from": "patch",
+      "to": "error",
+      "label": "异常",
+      "role": "error",
+      "variant": "security",
+      "route": "auto"
+    },
+    {
+      "from": "main",
+      "to": "error",
+      "label": "异常",
+      "role": "error",
+      "variant": "security",
+      "route": "drop",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "battle",
+      "to": "error",
+      "label": "异常",
+      "role": "error",
+      "variant": "security",
+      "route": "auto"
+    },
+    {
+      "from": "match",
+      "to": "error",
+      "label": "异常",
+      "role": "error",
+      "variant": "security",
+      "route": "auto"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "六个阶段的分工",
+      "items": [
+        "Launch：交接已装配容器，不参与注册，直接转 Patch",
+        "Patch：内容事务（候选包 / 签名 / 激活 / 反回退），就绪后转 Preload",
+        "Preload：配置表投影 + Lua 全量预载 + UI 注册表填充，放行 Main",
+        "Main：落点决策（登录页 / 大厅 / 不开页）与页面流；Match：建 Account Scope 并 Join（buildHash 握手）",
+        "Battle：加载对局场景组，建 BattleRun / BattleViewGroup，结束后回 Main"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "失败路径",
+      "items": [
+        "任一阶段抛异常即 Request(Error)（图示 Patch / Main / Match / Battle 四条代表线，Launch 与 Preload 同理）：分类展示 + 恢复动作，Error 是终态、不自动重试",
+        "启动期（流程机就绪前）的失败走 BootstrapErrorPresenter——AOT 侧最小错误页，同一固定锚 [BootstrapError]",
+        "内容失败与探针失败在 Patch 内分流（patchError / probeError）；Match 的 Join 失败/取消、Battle 的会话失败都回 Main 而不进 Error",
+        "恢复执行器 ErrorRecoveryService 的清理实现归内容段（AppRecoveryActions 只做桥接）"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "页面流（五页）",
+      "items": [
+        "PageFlow 只吃 IPageDirectory / IPageDataFactory 两个端口，不认生成物与 Lua 表",
+        "首进 Main 按落点开页且只开一次：Login（正式）/ Lobby（本地服跳过登录）/ None（dev 直入）",
+        "对局结束由 OnMatchEnded 接管：完成进结算页，其它回大厅或替换页面——不重开入口",
+        "账号重入 AccountReentry：Logout → LeaveMatch（在途对局回 Main）→ ShowLogin，单写者替换页面"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "端口与单写者",
+      "items": [
+        "IAppFlow 是联机入口唯一的流程请求口（RequestMatch / RequestMain），只有 ProcedureFlow 认识 ProcedureId",
+        "阶段表在 ProcedureSegment 内显式拼装：每阶段只吃端口/阶段实例，注册序之外的第二道装配面",
+        "页面开关唯一走 UINavigationController；阶段不直接碰页面对象",
+        "Lua 桥与注册表填充器经端口注入：流程段只认 IRoomSessionBridge / ILuaProductBridge / ILuaRegistryFiller"
+      ]
+    }
+  ]
+}

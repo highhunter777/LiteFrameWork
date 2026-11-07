@@ -1,0 +1,340 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LiteGame.Bootstrap 进程壳",
+    "locale": "zh-CN",
+    "output": "Docs/说明/架构图/Bootstrap进程壳.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:highhunter777/LiteFrameWork.git",
+      "link_mode": "local-only",
+      "revision": "c55cb4083737c8e69c0456eac1c71413b9b4fba2"
+    },
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "frontend": {
+          "label": "客户端（壳 + 产品）"
+        },
+        "backend": {
+          "label": "框架宿主"
+        },
+        "database": {
+          "label": "服务容器"
+        },
+        "security": {
+          "label": "失败面"
+        },
+        "external": {
+          "label": "引擎"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "unity",
+      "type": "external",
+      "label": "Unity 引擎",
+      "sublabel": "Boot.unity · 帧循环",
+      "pos": [
+        380,
+        60
+      ],
+      "size": [
+        260,
+        64
+      ],
+      "sources": [
+        {
+          "path": "Assets/Scenes/Boot.unity",
+          "label": "Boot 场景"
+        },
+        {
+          "path": "Docs/说明/02-架构总览与程序集分层.md",
+          "line": 155,
+          "label": "引导链"
+        }
+      ]
+    },
+    {
+      "id": "gameentry",
+      "type": "frontend",
+      "label": "GameEntry",
+      "sublabel": "场景入口 · 宿主生命周期",
+      "pos": [
+        380,
+        190
+      ],
+      "size": [
+        260,
+        110
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Bootstrap/GameEntry.cs",
+          "line": 13,
+          "label": "执行序 -1000"
+        },
+        {
+          "path": "Assets/LiteGame/Bootstrap/GameEntry.cs",
+          "line": 49,
+          "end_line": 87,
+          "label": "Awake 引导"
+        },
+        {
+          "path": "Assets/LiteGame/Bootstrap/GameEntry.cs",
+          "line": 143,
+          "end_line": 152,
+          "label": "OnDestroy 收尾"
+        }
+      ]
+    },
+    {
+      "id": "errorui",
+      "type": "security",
+      "label": "BootstrapErrorPresenter",
+      "sublabel": "内建错误页 · 不经资源包",
+      "pos": [
+        760,
+        190
+      ],
+      "size": [
+        220,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/Bootstrap/BootstrapErrorPresenter.cs",
+          "line": 11,
+          "end_line": 21,
+          "label": "分类展示"
+        },
+        {
+          "path": "Assets/LiteGame/Bootstrap/BootstrapErrorPresenter.cs",
+          "line": 57,
+          "end_line": 89,
+          "label": "最小错误 UI"
+        }
+      ]
+    },
+    {
+      "id": "host",
+      "type": "backend",
+      "label": "ClientHost",
+      "sublabel": "装配段 · 初始化 · 容器",
+      "pos": [
+        380,
+        400
+      ],
+      "size": [
+        260,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Hosting/ClientHost.cs",
+          "line": 11,
+          "label": "ClientHost"
+        },
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Hosting/ClientHost.cs",
+          "line": 109,
+          "label": "InitializeAsync"
+        },
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Hosting/ClientHost.cs",
+          "line": 144,
+          "end_line": 145,
+          "label": "装配密封"
+        }
+      ]
+    },
+    {
+      "id": "container",
+      "type": "database",
+      "label": "ServiceContainer",
+      "sublabel": "服务登记 · Tickables",
+      "pos": [
+        380,
+        570
+      ],
+      "size": [
+        260,
+        90
+      ],
+      "sources": [
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Core/DI/ServiceContainer.cs",
+          "line": 11,
+          "label": "ServiceContainer"
+        },
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Core/DI/ServiceContainer.cs",
+          "line": 57,
+          "label": "Tickables"
+        },
+        {
+          "path": "Packages/com.litegame.framework/Runtime/Core/DI/ServiceContainer.cs",
+          "line": 168,
+          "label": "Seal"
+        }
+      ]
+    },
+    {
+      "id": "entry",
+      "type": "frontend",
+      "label": "ClientEntry（LiteGame.App）",
+      "sublabel": "18 段装配 · 启动续体",
+      "pos": [
+        760,
+        400
+      ],
+      "size": [
+        260,
+        100
+      ],
+      "sources": [
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 20,
+          "label": "入口实现"
+        },
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 30,
+          "end_line": 41,
+          "label": "Configure"
+        },
+        {
+          "path": "Assets/LiteGame/App/ClientEntry.cs",
+          "line": 68,
+          "end_line": 97,
+          "label": "18 段装配"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "LiteGame.Bootstrap 程序集",
+      "wraps": [
+        "gameentry",
+        "errorui"
+      ],
+      "pad": 26
+    },
+    {
+      "kind": "region",
+      "label": "LiteFramework（Core + Hosting）",
+      "wraps": [
+        "host",
+        "container"
+      ],
+      "pad": 26
+    },
+    {
+      "kind": "region",
+      "label": "LiteGame.App 产品组合根（反射装载）",
+      "wraps": [
+        "entry"
+      ],
+      "pad": 26
+    }
+  ],
+  "connections": [
+    {
+      "id": "unity-gameentry",
+      "from": "unity",
+      "to": "gameentry",
+      "label": "Boot.unity 场景"
+    },
+    {
+      "id": "gameentry-error",
+      "from": "gameentry",
+      "to": "errorui",
+      "label": "异常 → 错误面",
+      "variant": "security"
+    },
+    {
+      "id": "gameentry-host",
+      "from": "gameentry",
+      "to": "host",
+      "label": "new · InitializeAsync"
+    },
+    {
+      "id": "host-container",
+      "from": "host",
+      "to": "container",
+      "label": "Seal 后 Product 取容器"
+    },
+    {
+      "id": "gameentry-container",
+      "from": "gameentry",
+      "to": "container",
+      "label": "每帧 Tick",
+      "fromSide": "left",
+      "toSide": "left",
+      "via": [
+        [
+          300,
+          245
+        ],
+        [
+          300,
+          615
+        ]
+      ]
+    },
+    {
+      "id": "gameentry-entry",
+      "from": "gameentry",
+      "to": "entry",
+      "label": "反射装载 → Configure / StartAsync"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "进程壳的四件事",
+      "items": [
+        "场景入口：Boot.unity 上唯一引导件，执行序 -1000，重复引导静默销毁并保留首个",
+        "宿主：new ClientHost() + 同 GameObject 上 AppLifetime.Bind（Pause / Focus / LowMemory / Quit 与退出善后）",
+        "入口装载：反射取 IClientEntry → Configure → 等宿主初始化 → StartAsync",
+        "错误面：内建 uGUI（不经资源包），固定锚 [BootstrapError]；UI 自身失败只落日志，不吞原错"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "AOT 壳的边界",
+      "items": [
+        "LiteGame.Bootstrap 只引 LiteFramework.{Core, Services, Hosting} + UniTask，不引 LiteGame.App / Modules / Adapters",
+        "ClientEntryLoader 是 AOT 侧唯一反射点：Type.GetType(\"LiteGame.ClientEntry, LiteGame.App\")",
+        "解析不到或类型未实现 IClientEntry 直接抛，不静默降级成“空启动”；link.xml preserve LiteGame.App",
+        "IClientEntry 只有两个方法：Configure(host, hostObject) 与 StartAsync(ct)"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "启动时序与帧泵",
+      "items": [
+        "Awake：重复守护 → 建宿主 → 绑 AppLifetime → Load / Configure → DontDestroyOnLoad → InitializeAsync",
+        "Start：等初始化结果 → StartAsync（开发调参、探针武装、fsm.Start(Launch)）",
+        "Update：按索引遍历 container.Tickables，统一喂 Time.unscaledDeltaTime（缩放由 IGameClock 内部做）",
+        "OnDestroy：取消引导期异步 → 复位 UIAnimationClock 与 s_booted（Domain-Reload-Off 可重入）"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "失败与重入",
+      "items": [
+        "任一段异常 → ErrorRecoveryService.Classify（Transient / Recoverable / Compatibility / Security / Fatal）→ 错误页",
+        "初始化失败：宿主逆序回滚已成功段，原异常再抛给引导件统一转错误 UI",
+        "装载或初始化失败后 s_booted 复位——允许下一场重新引导，不留跨 Play 死锁",
+        "编辑器关闭域重载时 ResetForEditorReload 复位静态（GameEntry 与 UIAnimationClock）"
+      ]
+    }
+  ]
+}

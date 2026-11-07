@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "f36b2efe-9128-4d3d-a898-536e2f4089e7",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-战斗子模块.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\战斗子模块.html",
+  "specification": {
+    "sha256": "a05a7c9cdbe365bd0bc3e5df72bcdf59e85a65971562077e7f3d97f34c1835e2",
+    "bytes": 10729
+  },
+  "artifact": {
+    "sha256": "3935fd08612db06a34945b0d8237f25ab943ffcd8a735a9ad825a0390e93e2ad",
+    "bytes": 770709
+  }
+}

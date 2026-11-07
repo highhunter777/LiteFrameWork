@@ -1327,18 +1327,6 @@
       "required": false
     },
     {
-      "id": "zcode-hook",
-      "kind": "hook-config",
-      "path": ".zcode/config.json",
-      "required": true
-    },
-    {
-      "id": "claude-hook",
-      "kind": "hook-config",
-      "path": ".claude/settings.json",
-      "required": true
-    },
-    {
       "id": "unity-pipeline",
       "kind": "path",
       "path": "Packages/com.unity.pipeline",

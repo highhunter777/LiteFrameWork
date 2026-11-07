@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "03396ce4-b816-40af-be11-4cfe3a6f81a7",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-LiteNet.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\LiteNet.html",
+  "specification": {
+    "sha256": "2b9fde4e62c2bb5a4e58dfa71e909b4c315b81a1a2fb1a68091a8aecb76242f0",
+    "bytes": 10205
+  },
+  "artifact": {
+    "sha256": "6935191387fe68c12262a1fc8498ccfcf546546379e13501549e5521bb600ed4",
+    "bytes": 771253
+  }
+}

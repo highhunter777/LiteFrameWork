@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "23fe2de8-4fc3-48f7-af52-4e0fda054546",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-全栈架构总览.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\全栈架构总览.html",
+  "specification": {
+    "sha256": "2a271d68f28f0c209b8dba261fa3f0f5fbf0113f167a16908e9dc24acb83bfac",
+    "bytes": 11403
+  },
+  "artifact": {
+    "sha256": "0da9ad8dee7c67ba37d13b8b77933273796a6b31a8001f4a390df03c3f0fb950",
+    "bytes": 772330
+  }
+}

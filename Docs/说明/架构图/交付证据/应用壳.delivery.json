@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "b2c4bbe5-2b4a-40de-8b1a-e63f6fc3c034",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\图源-应用壳.json",
+  "output": "E:\\unityProject\\Test\\Docs\\说明\\架构图\\应用壳.html",
+  "specification": {
+    "sha256": "ed386ea7f51963f84e8edfcb46aaf8205c2f90f387a81c6815f63314e4c02076",
+    "bytes": 9227
+  },
+  "artifact": {
+    "sha256": "e9c3fc7894dd68a39f75043a4907a3ad61768f3d7ad621920aa4a7a02b97e8f5",
+    "bytes": 762403
+  }
+}
