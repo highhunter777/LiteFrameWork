@@ -3,7 +3,7 @@ using System;
 namespace LiteGame
 {
     /// <summary>
-    /// 入口装载器（AOT 侧唯一反射点）：按程序集限定名解析 IClientEntry 实现。
+    /// 入口装载器（AOT 侧唯一反射点）：先装载 hot 程序集，再解析 IClientEntry 实现。
     /// </summary>
     public static class ClientEntryLoader
     {
@@ -13,6 +13,11 @@ namespace LiteGame
         /// <summary>解析并实例化入口；缺失/未实现契约即显性失败（不静默降级为“空启动”）。</summary>
         public static IClientEntry Load()
         {
+            if (!HotUpdateLoader.TryEnsureLoaded() && !UnityEngine.Application.isEditor)
+            {
+                throw new InvalidOperationException(
+                    "hot 程序集未装载：StreamingAssets/HybridCLR/hot 缺失（发布包必须内置或下载 hot 包）");
+            }
             Type type = Type.GetType(EntryTypeName, throwOnError: false);
             if (type == null)
                 throw new InvalidOperationException($"入口类型无法解析：{EntryTypeName}（检查 LiteGame.App 是否参与构建）");

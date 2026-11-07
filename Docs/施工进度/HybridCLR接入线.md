@@ -71,3 +71,34 @@
 
 - `python scripts/gate/test.py --suite Doc` 通过（见提交记录）。
 - 工具可行性 spike（独立工程 `E:\hclr-spike`，不属本仓）：Unity 中国版 2022.3.55f1c1 上 HybridCLR 9.0.3 安装成功、`PrebuildCommand.GenerateAll()` 成功、IL2CPP Player 构建成功、运行期 `Assembly.Load` 执行热更方法返回 `HCLR_OK`；HybridCLR 4.0.15 因 `il2cpp_plus v2022-4.0.8` 与中国版 il2cpp 头不一致（C2660）失败。
+
+---
+
+## 第3章 P2 分区与唯一装载点
+
+<a id="ch3-P2分区与唯一装载点"></a>
+
+> **批次**：P2 分区与装载（2026-11-08）　**状态**：已完成（编译 0 错、H2 守卫通过；Player 实机归 P4）
+
+### 3.1 改动
+
+| 项 | 落点 | 说明 |
+| --- | --- | --- |
+| hot 清单 | `ProjectSettings/HybridCLRSettings.asset` | 24 个程序集：`LiteSim`/`LiteSync`/`LiteGame.Core/Shared/Battle.Abstractions/Modules.*/Adapters.*/App` + `RoomServer.{Runtime,Application.Runtime}`（Dev 本地服） |
+| AOT 装载入口 | `Assets/LiteGame/Bootstrap/HotUpdateLoader.cs` | 从 `StreamingAssets/HybridCLR/hot/*.dll.bytes` 逐件 `Assembly.Load`；目录缺失返回 false |
+| 入口解析 | `Assets/LiteGame/Bootstrap/ClientEntryLoader.cs` | 先装载再 `Type.GetType`；非编辑器缺 hot 包即显性失败（编辑器允许回退） |
+| 标记与生成 | `Assets/LiteGame/Editor/HybridCLRTool.cs` | 新增 `MarkHotAssemblies`/`GenerateForCommit` 与菜单项（`LiteGame/HybridCLR/*`） |
+| H2 守卫 | `scripts/gate/hot-boundary-check.py` | 解析 asmdef 图：玩家 AOT 不得引用 hot；编辑器/测试程序集豁免 |
+| 构建接线 | `scripts/build/build-player.py` | 构建前跑 H2 守卫与 `GenerateAll`，并把 hot dll 复制到 `StreamingAssets/HybridCLR/hot` 后刷新 |
+
+### 3.2 证据
+
+- Editor 重编译 `failed=false`、`compilationFailed=false`（含新增 Bootstrap/Loader/工具件）。
+- `python scripts/gate/hot-boundary-check.py` → `OK: hot=24 aot=66，无 AOT→hot 引用`。
+- `python scripts/toolchain.py check` 通过；Doc 套件通过。
+
+### 3.3 未做与风险
+
+- `link.xml`/`AOTGenericReferences.cs` 未生成：需要本机先 `python scripts/build/hybridclr.py install` 并跑 `GenerateAll`（约 800MB 生成物、依赖 gitee），属构建前置，留到 P4 在构建机执行。
+- 本机主仓尚未安装 HybridCLR il2cpp：**出包前必须先 install**，否则 `build-player` 的 GenerateAll 步会失败（`restore-check` 报 WARN）。
+- `RoomServer.*` 进 hot 是为满足 H2（本地服仅 Dev 用）；发布包剔除 Dev 面的裁剪随 P4 处理。

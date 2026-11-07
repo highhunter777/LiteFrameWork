@@ -287,6 +287,9 @@ def main(argv=None):
         info("build/player", "== buildhash check ==")
         builder.run_gate("codegen/toolbox.py", ["build-hash", "--check-shared"])
 
+        info("build/player", "== hot boundary (H2) ==")
+        builder.run_gate("gate/hot-boundary-check.py", [])
+
         hybridclr_settings = project / "ProjectSettings" / "HybridCLRSettings.asset"
         if args.skip_hybridclr:
             info("build/player", "== hybridclr: SKIPPED (--skip-hybridclr) ==")
@@ -297,6 +300,20 @@ def main(argv=None):
                 "LiteGame.Editor.Toolchain.HybridCLRTool.GenerateAll();\n"
                 "return \"hybridclr generate ok\";",
             )
+            hot_target = project / "Library" / "HybridCLR" / "HotUpdateDlls" / str(profile.get("platform") or "")
+            hot_dest = project / "Assets" / "StreamingAssets" / "HybridCLR" / "hot"
+            if hot_target.is_dir():
+                hot_dest.mkdir(parents=True, exist_ok=True)
+                dlls = sorted(hot_target.glob("*.dll"))
+                for dll in dlls:
+                    shutil.copy2(dll, hot_dest / (dll.name + ".bytes"))
+                info("build/player", f"hot dlls: {len(dlls)} -> {hot_dest}")
+                builder.eval_file(
+                    "hybridclr-refresh.cs",
+                    "UnityEditor.AssetDatabase.Refresh();\nreturn \"refreshed\";",
+                )
+            else:
+                info("build/player", f"hot dll dir missing: {hot_target}")
         else:
             info("build/player", "== hybridclr: skipped (no ProjectSettings/HybridCLRSettings.asset) ==")
 

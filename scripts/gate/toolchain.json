@@ -899,6 +899,24 @@
       "order": 70
     },
     {
+      "id": "quality.hot-boundary",
+      "title": "热更边界守卫（H2）",
+      "category": "quality",
+      "kind": "gate",
+      "plane": "external",
+      "purpose": "dev",
+      "summary": "玩家 AOT 程序集不得引用 hot 程序集（H2）；读 ProjectSettings/HybridCLRSettings.asset 的 hot 清单。",
+      "docs": "Docs/说明/10-测试与门禁.md",
+      "command": ["python", "scripts/gate/hot-boundary-check.py"],
+      "args": [
+        { "name": "project-path", "type": "path", "description": "Unity 工程根路径" },
+        { "name": "json", "type": "bool", "description": "输出 JSON" }
+      ],
+      "writes": ["none"],
+      "destructive": false,
+      "order": 75
+    },
+    {
       "id": "build.hybridclr",
       "title": "HybridCLR 安装与生成",
       "category": "build",
