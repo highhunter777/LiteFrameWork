@@ -185,6 +185,7 @@ def parse_args(argv=None):
     parser.add_argument("--profile", default="BuildProfiles/windows-x64.json")
     parser.add_argument("--skip-restore-check", action="store_true")
     parser.add_argument("--skip-bundles", action="store_true")
+    parser.add_argument("--skip-hybridclr", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -285,6 +286,19 @@ def main(argv=None):
 
         info("build/player", "== buildhash check ==")
         builder.run_gate("codegen/toolbox.py", ["build-hash", "--check-shared"])
+
+        hybridclr_settings = project / "ProjectSettings" / "HybridCLRSettings.asset"
+        if args.skip_hybridclr:
+            info("build/player", "== hybridclr: SKIPPED (--skip-hybridclr) ==")
+        elif hybridclr_settings.is_file():
+            info("build/player", "== hybridclr generate ==")
+            builder.eval_file(
+                "hybridclr-generate.cs",
+                "LiteGame.Editor.Toolchain.HybridCLRTool.GenerateAll();\n"
+                "return \"hybridclr generate ok\";",
+            )
+        else:
+            info("build/player", "== hybridclr: skipped (no ProjectSettings/HybridCLRSettings.asset) ==")
 
         info(
             "build/player",

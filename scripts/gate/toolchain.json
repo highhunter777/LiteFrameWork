@@ -899,6 +899,30 @@
       "order": 70
     },
     {
+      "id": "build.hybridclr",
+      "title": "HybridCLR 安装与生成",
+      "category": "build",
+      "kind": "cli",
+      "plane": "external",
+      "purpose": "dev",
+      "requires": ["unity-batch"],
+      "summary": "安装 HybridCLR il2cpp（每机一次）、生成 hot 程序集与 AOT 泛型引用、查看安装状态。",
+      "docs": "Docs/说明/10-测试与门禁.md",
+      "command": ["python", "scripts/build/hybridclr.py"],
+      "args": [
+        { "name": "command", "type": "string", "description": "status / install / generate" },
+        { "name": "project-path", "type": "path", "description": "Unity 工程根路径" },
+        { "name": "pipeline", "type": "bool", "description": "驱动运行中的编辑器（默认 batchmode）" }
+      ],
+      "writes": ["generated"],
+      "outputs": [
+        { "path": "Library/HybridCLR/HotUpdateDlls", "kind": "generated" },
+        { "path": "Assets/HybridCLRGenerate", "kind": "generated" }
+      ],
+      "destructive": false,
+      "order": 5
+    },
+    {
       "id": "build.player",
       "title": "构建 Player",
       "category": "build",
@@ -913,7 +937,8 @@
         { "name": "project-path", "type": "path", "description": "Unity 工程根路径" },
         { "name": "profile", "type": "path", "description": "构建 Profile JSON 路径" },
         { "name": "skip-restore-check", "type": "bool", "description": "跳过环境还原校验" },
-        { "name": "skip-bundles", "type": "bool", "description": "跳过内置内容包构建" }
+        { "name": "skip-bundles", "type": "bool", "description": "跳过内置内容包构建" },
+        { "name": "skip-hybridclr", "type": "bool", "description": "跳过 HybridCLR GenerateAll（仅限无热更面的调试构建）" }
       ],
       "writes": ["distribution"],
       "outputs": [

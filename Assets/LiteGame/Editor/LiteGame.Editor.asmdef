@@ -21,6 +21,7 @@
         "LiteGame.Adapters.Dev",
         "LiteGame.Editor.Core",
         "LiteGame.Editor.UITools",
+        "HybridCLR.Editor",
         "LiteGame.Adapters.LuaBridge",
         "LiteNet",
         "LiteSync",

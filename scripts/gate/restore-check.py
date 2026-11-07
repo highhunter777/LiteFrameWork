@@ -211,6 +211,16 @@ def main(argv=None):
     if not shutil.which("java"):
         warn("JDK not detected - Android IL2CPP build (mobile) needs JDK 11 + Android SDK/NDK (not blocking Windows dev)")
 
+    # HybridCLR local il2cpp (player builds; not needed for L1/L3)
+    hybridclr_root = project / "Library" / "HybridCLR"
+    hybridclr_installed = hybridclr_root.is_dir() and any(
+        hybridclr_root.glob("LocalIl2CppData-*/il2cpp/libil2cpp/hybridclr")
+    )
+    if hybridclr_installed:
+        good("HybridCLR local il2cpp installed (player builds can run GenerateAll)")
+    else:
+        warn("HybridCLR not installed: run 'python scripts/build/hybridclr.py install' before player builds")
+
     # Toolchain manifest / surfaces
     cli = project / "scripts" / "toolchain.py"
     if cli.is_file():
