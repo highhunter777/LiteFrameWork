@@ -3,20 +3,18 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
-using LiteGame.Modules.Shared;
 using LiteGame.Modules.UI;
 
 using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 五页页面流（批C-④，《上云测试页面层级设计》§1 页面关系）：页面寻址 （lua_path → PageDefinition id。）。
+    /// 五页页面流（批C-④，《上云测试页面层级设计》§1 页面关系）：页面寻址走生成的 <see cref="PageIds"/>。
     /// </summary>
     public sealed class PageFlow : ILoginSurface
     {
         private readonly UINavigationController _nav;
         private readonly UIService _ui;
-        private readonly IPageDirectory _pages;              // 页面目录端口（页面寻址单源）
         private readonly IPageDataFactory _data;             // 数据面端口（中立树 → 页面导航数据）
         private readonly ISettlementSummary _settlement;     // 结算摘要端口（行表全序/名次口径归 Battle）
 
@@ -24,12 +22,11 @@ namespace LiteGame
         private Landing _landing;                            // 启动落点（对局失败回大厅的语境判据：dev 直入不强行开大厅）
         private Func<UniTask<bool>> _savedPlatformBack;      // 对局菜单 Back 策略启用前的原装订（还原用）
 
-        public PageFlow(UINavigationController nav, UIService ui, IPageDirectory pages, IPageDataFactory data,
+        public PageFlow(UINavigationController nav, UIService ui, IPageDataFactory data,
             ISettlementSummary settlement)
         {
             _nav = nav ?? throw new ArgumentNullException(nameof(nav));
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
-            _pages = pages ?? throw new ArgumentNullException(nameof(pages));
             _data = data ?? throw new ArgumentNullException(nameof(data));
             _settlement = settlement ?? throw new ArgumentNullException(nameof(settlement));
         }
@@ -56,14 +53,14 @@ namespace LiteGame
             _entryOpened = true;
             switch (landing)
             {
-                case Landing.Login: Go(LuaKeys.UI.Page_Login, null); break;
-                case Landing.Lobby: Go(LuaKeys.UI.Page_Lobby, null); break;
+                case Landing.Login: Go(PageIds.Page_Login, null); break;
+                case Landing.Lobby: Go(PageIds.Page_Lobby, null); break;
                 default: break;                                        // None：直入形态，场景/面板接管
             }
         }
 
         /// <summary>登录页是否已在场（账号重入的幂等判据）。</summary>
-        public bool IsLoginOpen => IsOpen(LuaKeys.UI.Page_Login);
+        public bool IsLoginOpen => IsOpen(PageIds.Page_Login);
 
         /// <summary>
         /// 账号重入（恢复链单点）：把页面栈替换为登录页——**忽略启动落点的一次性守卫** （OpenLanding 只在首进 Main 开一次页）。
@@ -72,7 +69,7 @@ namespace LiteGame
         {
             _landing = Landing.Login;
             Log.Info($"账号重入：回登录页（{reason}）", LogTag.UI);
-            Replace(LuaKeys.UI.Page_Login, null);
+            Replace(PageIds.Page_Login, null);
         }
 
         /// <summary>进对局前关掉在开的页面（**dev 测试入口**路径用：从大厅/开发控制台直接进局时，
@@ -82,7 +79,7 @@ namespace LiteGame
 
         /// <summary>对局开局（StartGame 已到）关房间页——对局场景接管画面（房间页若在），
         /// 页面栈随之清空（结算页压栈即新根）。</summary>
-        public void CloseRoomIfOpen() => CloseIfOpen(LuaKeys.UI.Page_Room);
+        public void CloseRoomIfOpen() => CloseIfOpen(PageIds.Page_Room);
 
         /// <summary>
         /// 对局结束（对局运行端口 Ended）：正常结束（Completed + 冻结结果在）→ 结算页（带本局结果）。
@@ -90,10 +87,10 @@ namespace LiteGame
         public void OnMatchEnded(bool completed, LiteNet.Proto.MatchEnded result, int localPlayerId)
         {
             // 对局菜单随对局结束收口：菜单开着时自然结束/离场——结算页/大厅须直接可见，不被设置页压着。
-            CloseIfOpen(LuaKeys.UI.Page_Settings);
+            CloseIfOpen(PageIds.Page_Settings);
             if (completed && result != null)
             {
-                Go(LuaKeys.UI.Page_Result, _data.Create(ResultData(result, localPlayerId)));
+                Go(PageIds.Page_Result, ResultData(result, localPlayerId));
                 return;
             }
 
@@ -103,15 +100,15 @@ namespace LiteGame
         /// <summary>失败/离场统一回大厅（已在大厅 = no-op；dev 直入不涉大厅）。</summary>
         private void ReturnToLobby()
         {
-            if (_landing == Landing.None && !IsOpen(LuaKeys.UI.Page_Lobby)) return;
-            if (IsOpen(LuaKeys.UI.Page_Lobby)) return;
-            Replace(LuaKeys.UI.Page_Lobby, null);
+            if (_landing == Landing.None && !IsOpen(PageIds.Page_Lobby)) return;
+            if (IsOpen(PageIds.Page_Lobby)) return;
+            Replace(PageIds.Page_Lobby, null);
         }
 
         /// <summary>对局中打开设置页（HUD 菜单钮与空栈 Back 共用入口）：导航数据带 <c>battleExit</c>——
         /// 设置页按它门控"退出对局"按钮（登录/大厅/结算的设置入口不带数据，不显退场钮）。</summary>
         public void OpenBattleSettings()
-            => Go(LuaKeys.UI.Page_Settings, _data.Create(new PageData().Set("battleExit", true)));
+            => Go(PageIds.Page_Settings, _data.Create(new PageData().Set("battleExit", true)));
 
         /// <summary>启用对局菜单 Back 策略（对局视图建立后启用、离场收尾停用）：平台返回先走原 Back 链
         /// （Loading 拦截/最顶弹窗/设置页照常关闭），空栈（无可返回目标）时打开设置页——对局中
@@ -143,79 +140,45 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 本局结果 → 结算页数据树（Lua 侧只认具名键）。
+        /// 本局结果 → 结算页数据（排行行 ＋ 本机摘要；名次/击杀/阵亡单源，页面不重算）。
         /// </summary>
-        private PageData ResultData(LiteNet.Proto.MatchEnded result, int localPlayerId)
+        private ResultPageData ResultData(LiteNet.Proto.MatchEnded result, int localPlayerId)
         {
             IReadOnlyList<MatchSettlementRow> rows = _settlement.Build(result.Players);
-
-            // 本机行（本局摘要）与排行同一份行表：名次/击杀/阵亡单源，页面侧不重算。
-            bool found = false;
-            int kills = 0, deaths = 0, rank = 0;
+            var rankRows = new List<ResultPageData.Row>(rows.Count);
             for (int i = 0; i < rows.Count; i++)
             {
-                if (rows[i].PlayerId != localPlayerId) continue;
-                kills = rows[i].Kills;
-                deaths = rows[i].Deaths;
-                rank = rows[i].Rank;
-                found = true;
-                break;
+                rankRows.Add(new ResultPageData.Row(
+                    rows[i].PlayerId, rows[i].Rank, rows[i].Name, rows[i].Kills, rows[i].Deaths));
             }
-
-            var data = new PageData()
-                .Set("hasPlayer", found)
-                .Set("kills", kills)
-                .Set("deaths", deaths)
-                .Set("rank", rank)                             // 0 = 无名次面（页面隐藏 Txt_Score）
-                .Set("reason", ((LiteSim.MatchEndReason)result.GameplayEndReason).ToString());
-
-            var ranks = new List<PageData>(rows.Count);
-            for (int i = 0; i < rows.Count; i++)
-            {
-                ranks.Add(new PageData()
-                    .Set("rank", rows[i].Rank)
-                    .Set("name", rows[i].Name)
-                    .Set("kills", rows[i].Kills)
-                    .Set("deaths", rows[i].Deaths));
-            }
-            return data.Set("ranks", ranks);
+            return new ResultPageData(rankRows, localPlayerId,
+                ((LiteSim.MatchEndReason)result.GameplayEndReason).ToString());
         }
 
-        private void Go(string luaPath, IUIData data)
+        private void Go(int formId, IUIData data)
         {
-            if (!TryResolve(luaPath, "Go", out int id)) return;
-            var aw = _nav.GoAsync(id, data).GetAwaiter();
-            aw.OnCompleted(() => Observe(aw, "Go", luaPath));
+            var aw = _nav.GoAsync(formId, data).GetAwaiter();
+            aw.OnCompleted(() => Observe(aw, "Go", formId));
         }
 
-        private void Replace(string luaPath, IUIData data)
+        private void Replace(int formId, IUIData data)
         {
-            if (!TryResolve(luaPath, "Replace", out int id)) return;
-            var aw = _nav.ReplaceAsync(id, data).GetAwaiter();
-            aw.OnCompleted(() => Observe(aw, "Replace", luaPath));
+            var aw = _nav.ReplaceAsync(formId, data).GetAwaiter();
+            aw.OnCompleted(() => Observe(aw, "Replace", formId));
         }
 
-        private void CloseIfOpen(string luaPath)
+        private void CloseIfOpen(int formId)
         {
-            if (!TryResolve(luaPath, "Close", out int id) || !_ui.IsOpen(id)) return;
-            _ui.CloseAsync(id).ForgetLogged("PageFlow");
+            if (!_ui.IsOpen(formId)) return;
+            _ui.CloseAsync(formId).ForgetLogged("PageFlow");
         }
 
-        private bool IsOpen(string luaPath)
-            => TryResolve(luaPath, "IsOpen", out int id) && _ui.IsOpen(id);
+        private bool IsOpen(int formId) => _ui.IsOpen(formId);
 
-        /// <summary>lua_path → id；未登记 = 装配错误（表漏登记）→ 错误日志 + 跳过（不炸流程）。</summary>
-        private bool TryResolve(string luaPath, string method, out int id)
-        {
-            id = _pages.Resolve(luaPath);
-            if (id < 0) Log.Error($"PageFlow.{method}: 未登记的 lua_path '{luaPath}'（核对生成页面目录）", LogTag.UI);
-            return id >= 0;
-        }
-
-        private static void Observe(UniTask<UIForm>.Awaiter aw, string method, string luaPath)
+        private static void Observe(UniTask<UIForm>.Awaiter aw, string method, int formId)
         {
             try { aw.GetResult(); }
-            catch (Exception ex) { Log.Error($"PageFlow.{method}[{luaPath}]:{ex.Message}", LogTag.UI); }
+            catch (Exception ex) { Log.Error($"PageFlow.{method}[{formId}]:{ex.Message}", LogTag.UI); }
         }
     }
 }

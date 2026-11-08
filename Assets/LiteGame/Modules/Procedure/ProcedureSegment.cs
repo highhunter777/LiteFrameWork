@@ -54,7 +54,7 @@ namespace LiteGame
             ISettlementSummary settlement = context.Require<ISettlementSummary>();   // 结算摘要端口（Battle 段产出）
 
             // 页面流（入口/开局关房/结算三处流程×页面接缝）——只吃目录/数据两个端口，不认生成物与 Lua 表。
-            var pageFlow = new PageFlow(nav, ui, pages, pageData, settlement);
+            var pageFlow = new PageFlow(nav, ui, pageData, settlement);
             // 账号重入单点（登录失效 → 清登录态 → 在途对局回 Main → 登录页）；Bridge.meta 是唯一调用方。
             context.Put<IAccountReentry>(new AccountReentry(accountControl, pageFlow));
 
@@ -94,7 +94,7 @@ namespace LiteGame
                 (ProcedureId.Launch, new ProcedureLaunch(rootToken)),
                 (ProcedureId.Patch, new ProcedurePatch(content, context.Require<ActivationTransactionStore>(),
                     context.Require<PatchRunner>(), rootToken, context.Require<AssetsHealthProbe>(), recovery)),
-                (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, pages,
+                (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler,
                     productBridge, context.Require<EventBus>(), context.Require<UIService>(),
                     () => ListLuaAssetPaths(content), rootToken, context.Require<FeedbackService>(),
                     context.Require<ICandidateLuaSource>())),

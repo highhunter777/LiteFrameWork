@@ -39,7 +39,7 @@
 | # | 前提 | 证据 | 后果 |
 |---|---|---|---|
 | P1 | 逻辑桥早已端口化 | `ILuaHost`（`Packages/com.litegame.framework/Runtime/Services/Scripting/Abstractions/ILuaHost.cs`）、`IUILogicFactory`、`IPageDataFactory`、`ILuaRegistryFiller` 四个端口把适配器挡在产品模块外 | 摘除面集中在装配根与适配层，不动业务模块骨架 |
-| P2 | 框架已优先认 prefab 自带 C# 逻辑 | `UIFormLogicBinder.Resolve` 先 `root.GetComponentInChildren<IUIFormLogic>(true)`，命中即返回；`LuaPath` 只是第二条路 | **可逐页迁移**：清空某页 Lua 并挂 C# 组件即生效，其余页不动 |
+| P2 | 框架已优先认 prefab 自带 C# 逻辑 | `UIFormLogicBinder.Resolve` 先 `root.GetComponentInChildren<IUIFormLogic>(true)`，命中即返回；`LuaPath` 只是第二条路 | **可逐页迁移**：某页挂 C# 组件即生效（不清键、不删文件），其余页不动 |
 | P3 | 三个注册表只有 UI 一支有生产消费者 | `IStrategyLuaRegistry` 只出现在 `RegistryFiller`/`LuaRegistryRefillService`/`LuaDevReload`/`AppComposition`；`IContentLuaRegistry` 同型，且 `Bridge.content` 全仓 Lua 零调用 | 内容/策略两支是纯负债，直接删，无行为影响 |
 | P4 | 生成的 Lua 表零 require | `Assets/LiteGame/Lua/Cfg/*.lua` 15 份无任何 `require("Cfg…")`；全仓 Lua 只 require `Core.class` | 约 29 KB 死数据当前**随 `lua` 收集组进包** |
 | P5 | `Bridge.battle` / `Bridge.content` 零消费 | 7 个页面里 `Bridge.*` 实测分布：Lobby（meta 8／text 6／ui 4／data 1）、Login（meta 5／text 1／ui 2）、Records（meta 3／ui 1）、Result（ui 1）、Room（meta 2／text 1／ui 1／room 12）、Settings（meta 4／text 18／settings 37／ui 2）、ButtonDemo（0）——`battle`/`content` 均 0 | 门面收敛为"页面直接用端口"，无功能损失 |
@@ -52,7 +52,7 @@
 | 面 | 规模 | 现位置 | 处置批 |
 |---|---|---|---|
 | 运行时宿主 | 4 件（`LuaComponent`/`LuaPreloader`/`EventBridge`/`CandidateLuaValidator`）＋ `ILuaHost`＋`LuaScriptsHealthProbe` | `Packages/com.litegame.framework/Runtime/Adapters/XLua/Lua/`、`…/Services/Scripting/Abstractions/` | P2 |
-| 注册表骨架 | `ILuaRegistry<T>`/`LuaRegistry<T>`/`RegistryFillReport` | `Packages/…/Runtime/Core/DI/` | P2 |
+| 注册表骨架 | `ILuaRegistry<T>`/`LuaRegistry<T>`/`RegistryFillReport` | `Packages/…/Runtime/Core/DI/` | P2b |
 | 产品适配层 | **20 个 `.cs`**：`Bridge`／`MetaBridge` 门面、三注册表、`RegistryFiller`、`LuaBehaviourAdapter`（257 行）、`LuaListRows`、`LuaPageDataFactory`、`ProductBridges`、`RoomBridge`、`LuaRegistryRefillService`、两个生成文件 | `Assets/LiteGame/Adapters/LuaBridge/**`、`Assets/LiteGame/Modules/Meta/MetaBridge.cs` | P2 |
 | 产品端口 | `ILuaProductBridge`、`IUILogicFactory`、`ILuaUIBinding`、`IPageDataFactory`、`ILuaRegistryFiller`、`LuaHostSegment`、`LuaLayout`、`BattleLuaFacts` | `Assets/LiteGame/Core/Lua/`、`Modules/UI/Abstractions/`、`Modules/Procedure/Abstractions/`、`Modules/Composition/`、`Modules/Shared/` | P2 |
 | 脚本 | **26 个 `.lua`／215.8 KB**：7 产品页（约 800 行／37 KB）、`class.lua`、`main.lua`、`Tests/UITestPage.lua`、`Cfg/` 15 份（约 29 KB，零 require）、`LuaPanda.lua`（147 KB，零 require、零 C# 引用） | `Assets/LiteGame/Lua/**` | P0（死件）／P1（页） |
@@ -74,10 +74,10 @@
 
 ### 4.2 寻址与目录（D2）
 
-- `PageDefinition` 删除 `LuaPath` 字段；`IPageDirectory.Resolve(string)` 与 `UIPageResolver` 一并删除。
-- 新增生成物 `Assets/LiteGame/Modules/UI/Generated/PageIds.g.cs`：由 `gen-ui-page.py` 与 `UIPageCatalog.g.cs` **同源同批**产出，形如 `public const int Page_Login = 11;`；重名行按 `<名字>_<id>` 消歧（`Tmp_Dialog_201`/`Tmp_Dialog_206`），产品页名保持 `Page_<语义>` 形态可 grep。**落地时点在 P1-0**（见 §6）——它必须先于逐页清空 `lua_path`，否则 `UIPageResolver` 按空路径反查会返回 -1，页面流立刻断。
+- **寻址分两段收口，顺序是硬的**：C# 侧（`PageFlow` 与预载期模态登记）在 P1-0 先切到 `PageIds` 的 `int`；字符串键 `PageDefinition.LuaPath`、`IPageDirectory.Resolve(string)`、`UIPageResolver` **留到 P2a 才删**——未迁移的 Lua 页面之间仍靠它互相导航（`Bridge.ui.Show("UI.Page_Settings")` 一类共 11 处），先删＝页面链当场断。
+- 新增生成物 `Assets/LiteGame/Modules/UI/Generated/PageIds.g.cs`：由 `gen-ui-page.py` 与 `UIPageCatalog.g.cs` **同源同次运行**产出，形如 `public const int Page_Login = 11;`；重名行按 `<名字>_<id>` 消歧（`Tmp_Dialog_201`/`Tmp_Dialog_206`），产品页名保持 `Page_<语义>` 形态可 grep。
 - `PageFlow` 的 `LuaKeys.UI.Page_Login` 全量改为 `PageIds.Page_Login`；`OpenLanding`/`ShowLogin`/`CloseRoomIfOpen`/`OnMatchEnded`/`OpenBattleSettings` 的签名与语义**保持不变**（仍是 int 进导航单写者）。
-- 删除 `LuaKeys`（`Modules/Shared/Generated/`）与 `gen_lua_keys.py`；`RegistryFiller.KnownUIKey` 这类"启动期路径自检"随 P2 消失，其价值由 4.7 的"登记页必须有逻辑件"校验承接。
+- 删除 `LuaKeys`（`Modules/Shared/Generated/`）与 `gen_lua_keys.py`；`RegistryFiller.KnownUIKey` 这类"启动期路径自检"随 P2a 消失，其价值由 4.7 的"登记页必须有逻辑件"校验承接。
 
 ### 4.3 数据面与行表（D3）
 
@@ -183,13 +183,22 @@ HybridCLR 的 `code/` 已经是"代码候选"的落点。把 `lua/` 改名为 `s
 ### P1 页面 C# 化（关键路径，约 6–9 人日）
 
 - **目标**：7 个产品页逐个换成 C# 逻辑组件，**每页一次可交付**。
-- **每页固定动作**：写 `Logic/Page_<Name>Logic.cs` → prefab 根挂组件（走 `unity-pipeline`，红线 4）→ 清 `#uiform.lua_path` 与 `UIPageManifest.luaPath` → 重生成契约与 catalog → 删该页 `.lua` → 该页验收点走真实操作路径（红线 13）。
-- **P1-0 前置（第 1 页之前完成，四项）**：① `PageIds.g.cs` 先出且 `PageFlow` 全量切 `int`，删 `UIPageResolver` 与 `IPageDirectory.Resolve(string)`——**这一步不做，后面任何一页清空 `lua_path` 都会让页面流按空路径反查返回 -1**；② `PageLogicBase`＋`IPageContext`（4.4）；③ `UIListRowSet`（4.3）；④ `UIPageLogicScanner`＋`PageLogicRule`（4.7）。
+- **每页固定动作**：写 `Logic/<Page>/Page_<Name>Logic.cs` → prefab 根挂组件（走 `unity-pipeline`，红线 4）→ 该页验收点走真实操作路径（红线 13）。
+- **不删该页 `.lua`、不清 `lua_path`**：解析器「prefab 自带 C# 逻辑优先」，组件一挂即接管，旧 Lua 只是还注册着、不再被执行。反过来，清空键会打断**尚未迁移**的页面——它们仍在 `Bridge.ui.Show('UI.Page_X')` 形态的调用里按字符串跳转。页面 Lua 面的清理由 P2a 一次性完成（见下）。
+- **P1-0 前置**（第 1 页之前）：`PageIds.g.cs` 与 `PageFlow` 的 int 切换——**只切 C# 侧，不删 resolver**。
+- **P1-1 载体**（与第 1 页同批，避免「待接线」悬空——红线 10）：`PageLogicBase`＋`IPageContext`（4.4）、`UIListRowSet`（4.3）、`UIPageLogicScanner`＋`PageLogicRule`（4.7）。
 - **建议顺序（按依赖面由小到大）**：`Page_ButtonDemo`（0 依赖，验证载体）→ `Page_Result`（ui 1）→ `Page_Records`（meta 3）→ `Page_Login`（meta 5）→ `Page_Room`（room 12，接 `IRoomSessionFace` 事件）→ `Page_Lobby`（meta 8 + data 1，轮询 + 列表）→ `Page_Settings`（settings 37 + text 18，最大）。
 - **逐页验收点**（须与现状等价）：Login 游客登录三态与版本号；Lobby 房间轮询节拍/在途锁/建房下拉/气泡；Room 席位名单/房主开局/被拒 Toast；Result 名次表与本机摘要；Settings 五个页签/即改即生效/关闭落盘/对局中置灰/退场确认；Records 战绩列表与结束原因文案；ButtonDemo 纯演示。
 - **退出条件**：7 页全部 C# 且 `Assets/LiteGame/Lua/UI/` 为空；`Bridge.ui`/`Bridge.meta`/`Bridge.settings`/`Bridge.room` 在页面侧零引用；PlayMode 的"真 Lua 页"用例改写为"真 C# 页"用例（`LuaPagePlayModeTests` 4 例语义保留：冷开/复用不重跑 OnInit/Shutdown 释放租约/在途取消）。
 
-### P2 运行时与框架摘除（约 4–6 人日）
+### P2a 页面 Lua 面收口（约 1–2 人日）
+
+- **目标**：把七个页面的脚本面一次性清干净——它必须是**单次原子动作**（没有「一页一清」的中间态）。
+- **动作**：删 `Assets/LiteGame/Lua/UI/*.lua` → 清 `#uiform.lua_path` 与 `UIPageManifest.luaPath` → 重生成契约/catalog/`LuaKeys` → 删 `PageDefinition.LuaPath`、`IPageDirectory.Resolve(string)`、`UIPageResolver`、`Bridge.ui`、`Bridge.Data.ResolveUIFormId`、`RegistryFiller` 的页路径填充（此时填 0 行）。
+- **退出条件**：编辑期页面链（登录 → 大厅 → 房间 → 结算 → 大厅 → 设置）按真实操作路径走通；`LuaKeys` 零读者；`Bridge` 只剩 `data`/`text`。
+- **依赖**：必须 P1 全绿之后，否则未迁移页面无法导航。
+
+### P2b 运行时与框架摘除（约 3–4 人日）
 
 - **目标**：把 `ILuaHost` 往下的整条链抽掉，产品与框架都不再认识 Lua。
 - **框架面**：`ILuaHost`、`Adapters/XLua/Lua/**`、`ILuaRegistry`/`LuaRegistry`/`RegistryFillReport`、`LuaScriptsHealthProbe`、`SafeCall` 中指向 xLua 封装的注释（lua 专属封装在 `EventBridge`）；`UIFormLogicBinder` 删 `LuaPath` 分支与 stale/refill 编排（`MarkAllStale`/`ApplyToRecycled`/`SwapIfStale`/`DropAll`/`EnsureAfterReload`）、`UIForm` 删 `NeedsReinit` 的换表语义（**保留池化复用语义**）、`UIService` 删 `MarkLogicStale` 一类入口；新增 4.4 的两条注入缝。
@@ -223,12 +232,12 @@ HybridCLR 的 `code/` 已经是"代码候选"的落点。把 `lua/` 改名为 `s
 |---|---|---|---|
 | R1 | **表结构改动＝两端哈希事件** | P4 执行 | 末批隔离；改表与 `build-hash` 同批；按发布顺序同步；不便于动哈希时 P4 可整体延后（列留空） |
 | R2 | 24 份契约重生成产生大量 diff | P1 逐页清 `luaPath` + P4 删列 | 把 `ui.contract-diff` 的差异当"UI API 变更"评审；同批只动 `luaPath` 一个字段，避免与真实 UI 变更混在一起 |
-| R3 | 开发期"改脚本存盘即生效"的体验消失 | P2 之后 | 编辑期用 HybridCLR 热重载 / 域重载补偿；这也是本方案把逻辑热更推给 `code/` 的前提，需与 HybridCLR 线排期对齐 |
+| R3 | 开发期"改脚本存盘即生效"的体验消失 | P2b 之后 | 编辑期用 HybridCLR 热重载 / 域重载补偿；这也是本方案把逻辑热更推给 `code/` 的前提，需与 HybridCLR 线排期对齐 |
 | R4 | PlayMode 用例以真 Lua 为载体 | P1 起 | `LuaPagePlayModeTests`（4）/`EnvRebuildPlayModeTests`（3）/`NavigationPlayModeTests`（1）改用真 C# 页载具，语义逐条对齐；L2 由 nightly 兜 |
 | R5 | `LiteGameIgnoreRule` 的 `DefaultAsset` 放行分支删掉后，可能有别的无导入器文件被误吞 | P3 | 删除前对当前收集清单跑一次"DefaultAsset 命中面"核对；发现再按需白名单 |
 | R6 | hot 程序集清单两份（`HybridCLRSettings.asset` 与 `HybridCLRTool.cs`）易漂 | P3 | 同批同改；顺手登记为单源债，后续由生成收口 |
 | R7 | 归档与一次性产物路径 | P5 | 按 doc-authoring §5：引用归档目录时只写反引号目录路径，不写文件级链接 |
-| R8 | 若 HybridCLR 排期晚于 P2，页面逻辑会短暂"不可热更" | 排期冲突 | 属可接受回退（`code/` 尚未上线时 Lua 热更本就未在生产使用）；需在 P2 前与该线确认 |
+| R8 | 若 HybridCLR 排期晚于 P2b，页面逻辑会短暂"不可热更" | 排期冲突 | 属可接受回退（`code/` 尚未上线时 Lua 热更本就未在生产使用）；需在 P2b 前与该线确认 |
 
 **未决点（需人裁决，出方案时保留两案）**：
 
@@ -266,10 +275,11 @@ HybridCLR 的 `code/` 已经是"代码候选"的落点。把 `lua/` 改名为 `s
 |---|---|---|
 | P0 | 冻结 + 死重 | 1–1.5 |
 | P1 | 7 页 C# 化（含三件载体与 PlayMode 载具替换） | 6–9 |
-| P2 | 运行时与框架摘除 | 4–6 |
+| P2a | 页面 Lua 面收口（单次原子） | 1–2 |
+| P2b | 运行时与框架摘除 | 3–4 |
 | P3 | 内容/构建/程序集/门禁 | 3–4 |
 | P4 | 表结构 + 删 LuaKeys + 两端同步 | 2–3 |
 | P5 | 文档 96 篇 | 4–6 |
 | 合计 | | **20–29.5** |
 
-**关键路径＝P1**（七页迁移，且每页都要走 prefab 与契约的资产管线）。P0 与 P3 的文档预读、P5 的框架文档重写可与 P1 并行；P4 必须排在 P2/P3 之后（`lua_path` 的读者先死，列才能删）。
+**关键路径＝P1**（七页迁移，且每页都要走 prefab 与契约的资产管线）。P0 与 P3 的文档预读、P5 的框架文档重写可与 P1 并行；P4 必须排在 P2a/P3 之后（`lua_path` 的读者先死，列才能删）。

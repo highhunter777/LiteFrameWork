@@ -1,20 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+using System;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteFramework;
-using LiteGame;
 using LiteFramework.UI;
-using LiteTesting.Unity;
-using Luban;
-using NUnit.Framework;
-using UnityEngine;
-using XLua;
-using LiteGame.Modules.Config;
-using LiteGame.Modules.Shared;
 using LiteGame.Modules.Shared;
 using LiteGame.Modules.UI;
+using LiteTesting.Unity;
+using NUnit.Framework;
+using UnityEngine;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -62,7 +54,7 @@ namespace LiteGame.Tests.EditMode
         public void SetUp()
         {
             _probe = new ProbeLogic();
-            PageDefinition lobbyPage = Array.Find(LiteGame.Modules.UI.UIPageCatalog.All, page => page.LuaPath == LuaKeys.UI.Page_Lobby);
+            PageDefinition lobbyPage = LiteGame.Modules.UI.UIPageCatalog.Instance.Get(LiteGame.Modules.UI.PageIds.Page_Lobby);
             Assert.IsNotNull(lobbyPage, "生成页面目录缺大厅页（页面流回大厅用例前置）");
             _ui = new UIService(new StaticCatalog(new[]
                 {
@@ -79,11 +71,9 @@ namespace LiteGame.Tests.EditMode
             var lua = Scope.CreateGameObject("lua-host").AddComponent<LuaComponent>();
             lua.Init(new LuaPreloader((path, ct) => UniTask.FromResult<byte[]>(null), () => Array.Empty<string>(), LuaLayout.LuaDir),
                 new EventBus(new ReferencePoolService()));
-            Bridge.Bind(LoadRealTables);                            // 页面寻址反查（真表——与生产同源）
-
-            // Lua 桥装订面（生产同款：逻辑工厂/数据投射/文本门面）——PageFlow 只吃目录/数据两个端口
+            // Lua 桥装订面（生产同款：逻辑工厂/数据投射/文本门面）——PageFlow 只吃数据面端口与生成页 id
             var binding = new LuaUIBinding(lua, new UILuaRegistry());
-            _flow = new PageFlow(_nav, _ui, UIPageDirectory.Instance, binding.PageData, new SettlementSummary());
+            _flow = new PageFlow(_nav, _ui, binding.PageData, new SettlementSummary());
         }
 
         [TearDown]
@@ -112,26 +102,6 @@ namespace LiteGame.Tests.EditMode
         private void Pump(int maxTicks = 200)
         {
             for (int i = 0; i < maxTicks; i++) _ui.Tick(0.05f);
-        }
-
-        private static cfg.Tables LoadRealTables()
-        {
-            // 与 ConfigService 同款装载（LTextWiringEditModeTests 同款直读磁盘——清单单源 TableLayout）
-            string dir = Path.Combine(ProjectRoot(), ConfigService.DataDir);
-            var cache = new Dictionary<string, byte[]>(ConfigService.TableDataFiles.Length);
-            foreach (string file in ConfigService.TableDataFiles)
-                cache[TableLayout.TableName(file)] = File.ReadAllBytes(Path.Combine(dir, file + ".bytes"));
-            return new cfg.Tables(file => new ByteBuf(cache[file]));
-        }
-
-        private static string ProjectRoot()
-        {
-            var dir = new DirectoryInfo(Path.GetDirectoryName(Application.dataPath) ?? Application.dataPath);
-            for (var cur = dir; cur != null; cur = cur.Parent)
-                if (Directory.Exists(Path.Combine(cur.FullName, "Assets"))
-                    && File.Exists(Path.Combine(cur.FullName, "Tests", "Tests.slnx")))
-                    return cur.FullName;
-            throw new DirectoryNotFoundException("找不到项目根");
         }
 
         [Test]
@@ -182,7 +152,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 会话失败_房间页不在也回大厅()
         {
-            int lobbyId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Lobby);
+            int lobbyId = LiteGame.Modules.UI.PageIds.Page_Lobby;
             _flow.OpenLanding(PageFlow.Landing.Lobby);
             Pump();
             Assert.IsTrue(_ui.IsOpen(lobbyId), "前置：大厅已开");
@@ -199,7 +169,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void dev直入_会话失败不强行开大厅()
         {
-            int lobbyId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Lobby);
+            int lobbyId = LiteGame.Modules.UI.PageIds.Page_Lobby;
             _flow.OpenLanding(PageFlow.Landing.None);      // dev 直入：无大厅语境
 
             _flow.OnMatchEnded(completed: false, result: null, localPlayerId: 1);

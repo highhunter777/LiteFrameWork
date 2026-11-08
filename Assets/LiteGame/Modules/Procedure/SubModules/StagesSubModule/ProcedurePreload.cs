@@ -2,10 +2,8 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.Modules.Config;
-using LiteGame.Modules.Shared;
 using LiteGame.Modules.Shared;
 using LiteGame.Modules.UI;
 
@@ -20,7 +18,6 @@ namespace LiteGame
         private readonly IConfigService _config;
         private readonly ILuaHost _lua;
         private readonly ILuaRegistryFiller _filler;
-        private readonly IPageDirectory _pages;            // 页面目录端口（模态登记反查单源）
         private readonly ILuaProductBridge _productBridge;
         private readonly IEventBus _events;
         private readonly UIService _ui;
@@ -29,7 +26,7 @@ namespace LiteGame
         private readonly ICandidateLuaSource _candidateLua; // 候选 lua/ 段（H4-3；无候选时 null）
 
         public ProcedurePreload(IContentService content, IConfigService config, ILuaHost lua, ILuaRegistryFiller filler,
-            IPageDirectory pages, ILuaProductBridge productBridge, IEventBus events,
+            ILuaProductBridge productBridge, IEventBus events,
             UIService ui, Func<string[]> listLuaFiles = null, CancellationToken rootToken = default,
             FeedbackService feedback = null, ICandidateLuaSource candidateLua = null)
             : base(rootToken)
@@ -38,7 +35,6 @@ namespace LiteGame
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _lua = lua ?? throw new ArgumentNullException(nameof(lua));
             _filler = filler ?? throw new ArgumentNullException(nameof(filler));
-            _pages = pages ?? throw new ArgumentNullException(nameof(pages));
             _productBridge = productBridge ?? throw new ArgumentNullException(nameof(productBridge));
             _events = events ?? throw new ArgumentNullException(nameof(events));
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
@@ -76,10 +72,8 @@ namespace LiteGame
                     return;
                 }
 
-                // ---- 模态登记（配置已装载——表驱动反查单源）。
-                int settingsFormId = _pages.Resolve(LuaKeys.UI.Page_Settings);
-                if (settingsFormId >= 0) _ui.RegisterModal(settingsFormId);
-                else Log.Error($"模态登记失败：生成页面目录未登记 '{LuaKeys.UI.Page_Settings}'", LogTag.UI);
+                // ---- 模态登记（配置已装载；页 id 来自生成的 PageIds，未登记在编译期即失败）。
+                _ui.RegisterModal(PageIds.Page_Settings);
 
                 m.Request(ProcedureId.Main);                     // ⑤ 放行（启动走廊跨流程存续——Main 报进度、首屏收）
             }

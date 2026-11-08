@@ -47,12 +47,13 @@ gen_lua_keys = _load("gen_lua_keys", "Luban/gen_lua_keys.py")
 
 SYNC_OUTPUT = ROOT / "Packages" / "com.litegame.sim" / "Diagnostics" / "Generated" / "EntitySlot.Sync.g.cs"
 
-# artifact path -> toolbox tool token (10 artifacts, plan v8 assumption 1)
+# artifact path -> toolbox tool token (11 artifacts; ui-page now emits catalog + PageIds)
 GENERATED = {
     "Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs": "build-hash",
     "Server/MetaServer/Host/BuildHash.g.cs": "build-hash",
     "Packages/com.litegame.sim/Diagnostics/Generated/EntitySlot.Sync.g.cs": "sync-code",
     "Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs": "ui-page",
+    "Assets/LiteGame/Modules/UI/Generated/PageIds.g.cs": "ui-page",
     "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindIndex.Api.g.cs": "ui-api",
     "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindBase.Api.g.cs": "ui-api",
     "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIApiManifest.g.cs": "ui-api",
@@ -79,8 +80,8 @@ def signature_block(path):
 
 
 class SignatureTests(unittest.TestCase):
-    def test_all_ten_toolbox_artifacts_carry_the_uniform_signature(self):
-        self.assertEqual(len(GENERATED), 10)
+    def test_every_toolbox_artifact_carries_the_uniform_signature(self):
+        self.assertEqual(len(GENERATED), 11)
         for relative, tool in GENERATED.items():
             with self.subTest(artifact=relative):
                 path = ROOT / relative
