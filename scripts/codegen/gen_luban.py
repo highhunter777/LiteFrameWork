@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Regenerate the Luban table chain (C#/binary/lua/LuaKeys) and publish only
+# Regenerate the Luban table chain (C#/binary/LuaKeys) and publish only
 # changed files. Luban clears its output directory, so generation runs OUTSIDE
 # Assets (TestResults staging) and publish copies only declared file types,
 # preserving existing asmdef/meta files under Assets.
@@ -8,7 +8,8 @@
 # Direct entry:   python scripts/codegen/gen_luban.py [--check] [--python <python>]
 # Shim alias:     Luban/gen.bat (delegates here)
 # Outputs:        Assets/GameData/Generated/*.cs, Assets/GameData/Config/*.bytes,
-#                 Assets/LiteGame/Lua/Cfg/*.lua, Assets/LiteGame/Modules/Shared/Generated/LuaKeys.g.cs
+#                 Assets/LiteGame/Modules/Shared/Generated/LuaKeys.g.cs
+#                 (generated Lua tables retired with the Lua exit - see Lua退出专项设计)
 # Rerun when:     table source (Luban/Data/*.xlsx) or schema changed - then rerun
 #                 build-hash (the generated read-side code is in its source set; the
 #                 table .bytes values are out of it since 2026-10-14); Unity import is separate.
@@ -31,7 +32,6 @@ TOOL = 'luban'
 PUBLISH_TARGETS = [
     ('code',      os.path.join('Assets', 'GameData', 'Generated'),          '.cs'),
     ('bin',       os.path.join('Assets', 'GameData', 'Config'),             '.bytes'),
-    ('lua',       os.path.join('Assets', 'LiteGame', 'Lua', 'Cfg'),         '.lua'),
     ('lua-keys',  os.path.join('Assets', 'LiteGame', 'Modules', 'Shared', 'Generated'), '.cs'),
 ]
 
@@ -200,8 +200,6 @@ def generate_stage(root, stage_root, python_exe):
     run_checked([luban_exe, '-t', 'client', '-c', 'cs-bin', '-d', 'bin', '--conf', config_path,
                  '-x', f'outputCodeDir={os.path.join(stage_root, "code")}',
                  '-x', f'outputDataDir={os.path.join(stage_root, "bin")}'])
-    run_checked([luban_exe, '-t', 'client', '-d', 'lua', '--conf', config_path,
-                 '-x', f'outputDataDir={os.path.join(stage_root, "lua")}'])
     run_checked([python_exe, os.path.join(luban_root, 'gen_lua_keys.py'),
                  '--output', os.path.join(stage_root, 'lua-keys', 'LuaKeys.g.cs')])
 

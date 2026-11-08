@@ -12,28 +12,23 @@ using LiteGame.Modules.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 服务桥根类型：Lua 全局表五件（data/ui/content/text/battle）的宿主。
+    /// 服务桥根类型：Lua 全局表三件（data/ui/text）的宿主。
     /// </summary>
     public static class Bridge
     {
         private static Func<Tables> s_tables;                  // 装配期绑定：装配点调 Bind，不碰容器
         private static IUILuaRegistry s_uiRegistry;
-        private static IContentLuaRegistry s_contentRegistry;
         private static UIService s_uiService;
         private static UINavigationController s_nav;           // Lua 侧打开的单写者后端（三通道收口）
         private static Func<ILocalizationService> s_localeProvider;   // LText 门面后端（懒建工厂——表装载在 Preload）
-        private static Func<BattleLuaFacts> s_battleFacts;     // battle 只读门面后端（B3；未绑定 = Default）
 
         /// <summary>绑定查表入口（经 IConfigService.Tables；未加载时其 Tables 访问器会抛）。</summary>
         public static void Bind(Func<Tables> tables)
             => s_tables = tables ?? throw new ArgumentNullException(nameof(tables));
 
-        /// <summary>装配期注入注册表（ui/content 骨架门面的查询底座）。</summary>
-        public static void BindRegistries(IUILuaRegistry ui, IContentLuaRegistry content)
-        {
-            s_uiRegistry = ui ?? throw new ArgumentNullException(nameof(ui));
-            s_contentRegistry = content ?? throw new ArgumentNullException(nameof(content));
-        }
+        /// <summary>装配期注入 UI 注册表（ui 门面的查询底座）。</summary>
+        public static void BindRegistries(IUILuaRegistry ui)
+            => s_uiRegistry = ui ?? throw new ArgumentNullException(nameof(ui));
 
         /// <summary>装配期注入 UI 服务装配（真实门面 Show/Close/IsOpen 的后端）。</summary>
         public static void BindUIService(UIService uiService)
@@ -54,22 +49,12 @@ namespace LiteGame
             s_localeProvider = localeProvider ?? throw new ArgumentNullException(nameof(localeProvider));
         }
 
-        /// <summary>装配期绑定 battle 只读事实（B3）；未绑定即用 <see cref="BattleLuaFacts.Default"/>。</summary>
-        public static void BindBattle(Func<BattleLuaFacts> facts)
-            => s_battleFacts = facts ?? throw new ArgumentNullException(nameof(facts));
-
-        /// <summary>解除 battle 事实绑定（对局离场；回到默认事实，不保留上一局）。</summary>
-        public static void UnbindBattle() => s_battleFacts = null;
-
-        private static BattleLuaFacts BattleFacts() => s_battleFacts?.Invoke() ?? BattleLuaFacts.Default;
-
         /// <summary>
         /// 绑定 Bridge 五门面为 Lua 全局表： 由装配点/编辑器工具经 LuaComponent.Init 注入——宿主（LiteFramework.Scripting.XLua）不认识 Bridge。
         /// </summary>
         public static void BindGlobals(LuaEnv env)
         {
             var data = env.NewTable();
-            data.Set("GetItem", new Func<int, LuaTable>(id => Data.GetItemLua(env, id)));
             data.Set("ListMaps", new Func<LuaTable>(() => Data.ListMapsLua(env)));   // 地图目录（开房选图下拉）
             var ui = env.NewTable();
             ui.Set("GetLogic", new Func<string, LuaTable>(UI.GetLogic));
@@ -77,27 +62,15 @@ namespace LiteGame
             ui.Set("Replace", new Action<string, LuaTable>(UI.Replace));    // 替换打开（返回栈不残留）
             ui.Set("Close", new Action<string>(UI.Close));
             ui.Set("IsOpen", new Func<string, bool>(UI.IsOpen));
-            var content = env.NewTable();
-            content.Set("GetProcessor", new Func<int, LuaTable>(Content.GetProcessor));
             var text = env.NewTable();
             text.Set("Get", new Func<string, string>(Text.Get));
             text.Set("Format", new Func<string, object, object, object, object, string>(Text.Format));
             text.Set("SetLocale", new Action<string>(Text.SetLocale));
             text.Set("Locale", new Func<string>(() => Text.Locale));
-            var battle = env.NewTable();
-            battle.Set("IsBound", new Func<bool>(() => s_battleFacts != null));
-            battle.Set("DurationFrames", new Func<int>(() => BattleFacts().DurationFrames));
-            battle.Set("KillLimit", new Func<int>(() => BattleFacts().KillLimit));
-            battle.Set("RespawnDelayFrames", new Func<int>(() => BattleFacts().RespawnDelayFrames));
-            battle.Set("SpawnProtectionFrames", new Func<int>(() => BattleFacts().SpawnProtectionFrames));
-            battle.Set("RankOrder", new Func<string>(() => BattleFacts().RankOrder));
-            battle.Set("ResultNamePrefix", new Func<string>(() => BattleFacts().ResultNamePrefix));
             var bridge = env.NewTable();
             bridge.Set("data", data);
             bridge.Set("ui", ui);
-            bridge.Set("content", content);
             bridge.Set("text", text);
-            bridge.Set("battle", battle);
             env.Global.Set("Bridge", bridge);
         }
 
@@ -106,14 +79,6 @@ namespace LiteGame
         /// <summary>数据门面：查表。C# 侧强类型直返；Lua 侧经 GetXxxLua 手工展开并按行缓存。</summary>
         public static class Data
         {
-            // ---- C# 侧（强类型直返；行对象由 Luban DataMap 自缓存，不重复建 C# 缓存）----。
-
-            /// <summary>查道具表（ItemConfig：类型 + 刷新/拾取/携带/使用 + 各类型效果数值）。</summary>
-            public static cfg.itemconfig GetItem(int id) => Tables().Tbitemconfig.Get(id);
-
-            /// <summary>查内容条目（解释器消费）。</summary>
-            public static cfg.contententry GetContentEntry(int id) => Tables().Tbcontententry.Get(id);
-
             /// <summary>地图目录（tbmap 全行——开房"选图"下拉的候选面；表未装载即抛，fail-fast）。</summary>
             public static IReadOnlyList<cfg.map> ListMaps()
             {
@@ -123,14 +88,11 @@ namespace LiteGame
                 return table.DataList;
             }
 
-            // ---- Lua 侧入口（§2.5）：行字段手工展开为 LuaTable + 按行缓存 ----
+            // ---- Lua 侧入口（§2.5）：行字段手工展开为 LuaTable + 整表缓存 ----
             // DevReload 时旧 env 的 LuaTable 引用全失效——ClearLuaCaches 由 §2.7 编排调用（顺序钉死）。
 
-        private static readonly Dictionary<int, LuaTable> s_itemLua = new Dictionary<int, LuaTable>(16);
-        private static LuaTable s_mapsLua;                      // 地图目录（整表一次——静态内容）
+            private static LuaTable s_mapsLua;                      // 地图目录（整表一次——静态内容）
 
-            /// <summary>Lua 侧查道具表：同 id 恒返回同一 LuaTable 实例（缓存命中）。
-            /// 全字段展开（19 列）——道具玩法（拾取/使用/投掷）在 Lua 侧落地时按需取用。</summary>
             /// <summary>Lua 侧地图目录：[{Id, Name, Scene}…]（下拉候选项按表序；同一次装载内恒返回同一实例）。</summary>
             public static LuaTable ListMapsLua(LuaEnv env)
             {
@@ -149,45 +111,13 @@ namespace LiteGame
                 return list;
             }
 
-            public static LuaTable GetItemLua(LuaEnv env, int id)
-            {
-                if (s_itemLua.TryGetValue(id, out var hit)) return hit;
-                var row = GetItem(id);
-                var t = env.NewTable();
-                t.Set("Id", row.Id);
-                t.Set("Type", row.Type);
-                t.Set("Name", row.Name);
-                t.Set("SpawnInterval", row.SpawnInterval);
-                t.Set("MaxAlive", row.MaxAlive);
-                t.Set("PickupRadius", row.PickupRadius);
-                t.Set("CarryLimit", row.CarryLimit);
-                t.Set("UseDuration", row.UseDuration);
-                t.Set("HealAmount", row.HealAmount);
-                t.Set("ShieldAmount", row.ShieldAmount);
-                t.Set("GrenadeDamage", row.GrenadeDamage);
-                t.Set("GrenadeRadius", row.GrenadeRadius);
-                t.Set("GrenadeFalloff", row.GrenadeFalloff);
-                t.Set("EmpRadius", row.EmpRadius);
-                t.Set("EmpDuration", row.EmpDuration);
-                t.Set("RadarRadius", row.RadarRadius);
-                t.Set("RadarDuration", row.RadarDuration);
-                t.Set("ProjectileSpeed", row.ProjectileSpeed);
-                t.Set("TravelDistance", row.TravelDistance);
-                s_itemLua[id] = t;
-                return t;
-            }
+            /// <summary>
+            /// lua_path → 页面 id（生成目录反查）。
+            /// </summary>
+            public static int ResolveUIFormId(string luaPath) => LiteGame.Modules.UI.UIPageResolver.Resolve(luaPath);
 
-        /// <summary>
-        /// lua_path → 页面 id（生成目录反查）。
-        /// </summary>
-        public static int ResolveUIFormId(string luaPath) => LiteGame.Modules.UI.UIPageResolver.Resolve(luaPath);
-
-        /// <summary>DevReload 专用（§2.7）：env 重建后旧 LuaTable 引用全失效，缓存必须清空。</summary>
-        public static void ClearLuaCaches()
-        {
-            s_itemLua.Clear();
-            s_mapsLua = null;
-        }
+            /// <summary>DevReload 专用（§2.7）：env 重建后旧 LuaTable 引用全失效，缓存必须清空。</summary>
+            public static void ClearLuaCaches() => s_mapsLua = null;
         }
 
         /// <summary>ui 门面（真实语义）：Show/Replace/Close/IsOpen/GetLogic——**Lua 不碰 GameObject**。
@@ -245,13 +175,6 @@ namespace LiteGame
                 try { aw.GetResult(); }
                 catch (Exception ex) { Log.Error($"Bridge.ui.{method}[{pagePath}]:{ex.Message}", LogTag.UI); }
             }
-        }
-
-        /// <summary>content 骨架门面（注册表查询入口）。</summary>
-        public static class Content
-        {
-            /// <summary>内容条目 id → Entry → Content 注册表处理器表。</summary>
-            public static LuaTable GetProcessor(int id) => s_contentRegistry.Get(Data.GetContentEntry(id).Entry);
         }
 
         /// <summary>

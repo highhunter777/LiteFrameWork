@@ -22,6 +22,8 @@ namespace LiteGame.Editor.UITools.Page
     {
         public const string TemplateDir = "Assets/LiteGame/Editor/UITools/Templates";
         public const string TemplatePath = TemplateDir + "/Tmp_Page.prefab";
+        /// <summary>页面 Lua 目录（根单源＝<c>LiteGame.Modules.Shared.LuaLayout.LuaDir</c>＋`UI`；
+        /// 本程序集不引用 LiteGame.Shared，故此处只能拼常量——随页面 Lua 面在 P2 一并删除。</summary>
         public const string LuaDir = "Assets/LiteGame/Lua/UI";
 
         /// <summary>页根契约参数（模板与起页共用单源）。</summary>

@@ -29,10 +29,5 @@ namespace LiteGame
         public static BattleStrategyProfile Default => new BattleStrategyProfile(
             MatchRules.Default, BattleRankPolicy.Default,
             DamageNumberStyleProfile.Default, DamageNumberMotion.DefaultProfile, "玩家");
-
-        /// <summary>Bridge.battle 只读事实（与策略表投影同源）。</summary>
-        public BattleLuaFacts ToLuaFacts()
-            => new BattleLuaFacts(Rules.DurationFrames, Rules.KillLimit, Rules.RespawnDelayFrames,
-                Rules.SpawnProtectionFrames, Rank.ToWireValue(), ResultNamePrefix);
     }
 }

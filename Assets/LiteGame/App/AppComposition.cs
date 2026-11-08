@@ -21,10 +21,8 @@ namespace LiteGame
     {
         private IDisposable _devDecoration;      // 开发装配装饰句柄（GM/弱网/调试内核；null = 发布形态）
 
-        // ---- Lua 桥三注册表：**本文件是唯一 new 点**（UI 段/填充器/回填服务/门面绑定共用同一批实例）----。
+        // ---- Lua 桥 UI 注册表：**本文件是唯一 new 点**（UI 段/填充器/回填服务/门面绑定共用同一实例）----。
         private readonly UILuaRegistry _uiRegistry = new UILuaRegistry();
-        private readonly ContentLuaRegistry _contentRegistry = new ContentLuaRegistry();
-        private readonly StrategyLuaRegistry _strategyRegistry = new StrategyLuaRegistry();
 
         /// <summary>判定参数覆写实例（判定几何 13 列的调参面）：装配期创建一次，调参面板与编辑器导出器
         /// 共用同一实例（容器登记；编辑器 GM 经 <c>GMEditorResolve</c> 取件）。
@@ -94,11 +92,10 @@ namespace LiteGame
             => lua => new LuaUIBinding(lua as LuaComponent ?? throw new ArgumentException(
                 "LuaUIBinding 需要 LuaComponent（装配根是唯一把端口还原为具体宿主的地方）", nameof(lua)), _uiRegistry);
 
-        /// <summary>注册表填充器工厂（流程段端口 <c>ILuaRegistryFiller</c>）：三注册表由本文件持有，
+        /// <summary>注册表填充器工厂（流程段端口 <c>ILuaRegistryFiller</c>）：UI 注册表由本文件持有，
         /// 页面目录经 UI 域端口传入（流程段不认注册表与页面的具体类型）。</summary>
-        internal Func<IConfigService, ILuaHost, IPageDirectory, ILuaRegistryFiller> LuaRegistryFillerFactory()
-            => (config, lua, pages) => new RegistryFiller(config, pages.All, lua,
-                _uiRegistry, _contentRegistry, _strategyRegistry);
+        internal Func<ILuaHost, IPageDirectory, ILuaRegistryFiller> LuaRegistryFillerFactory()
+            => (lua, pages) => new RegistryFiller(pages.All, lua, _uiRegistry);
 
         // ---- ② 组合根（ClientHost.ComposeRoot 驱动）----。
 
@@ -129,14 +126,11 @@ namespace LiteGame
         {
             IConfigService config = context.Require<IConfigService>();
             Bridge.Bind(() => config.Tables);
-            Bridge.BindRegistries(_uiRegistry, _contentRegistry);
+            Bridge.BindRegistries(_uiRegistry);
             Bridge.BindUIService(context.Require<UIService>());
             Bridge.BindNavigation(context.Require<UINavigationController>());
-            Bridge.BindBattle(() => config.Strategy.ToLuaFacts());   // B3b 事实与对局消费同源（策略表投影）；缺行回落默认
             // 注册表接口键（Lua 门面/回填/工具只经端口取；与具体键同实例）。
             context.Services.RegisterInstance<IUILuaRegistry>(_uiRegistry);
-            context.Services.RegisterInstance<IContentLuaRegistry>(_contentRegistry);
-            context.Services.RegisterInstance<IStrategyLuaRegistry>(_strategyRegistry);
         }
 
         /// <summary>设置门面装订：构造即全量应用持久化值（启动生效点），Lua 门面后端 + 容器取件面。
@@ -185,12 +179,12 @@ namespace LiteGame
                 new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
         }
 
-        /// <summary>注册表回填服务（env 重建后按表补注册）：页面/内容/策略三张表 + Lua 宿主。</summary>
+        /// <summary>注册表回填服务（env 重建后按表补注册）：页面目录 + Lua 宿主。</summary>
         private void BindRegistryRefill(SegmentContext context)
         {
             context.Services.RegisterInstance(new LuaRegistryRefillService(
-                context.Require<ILuaHost>(), context.Require<UIService>(), context.Require<IConfigService>(),
-                context.Require<IPageDirectory>().All, _uiRegistry, _contentRegistry, _strategyRegistry));
+                context.Require<ILuaHost>(), context.Require<UIService>(),
+                context.Require<IPageDirectory>().All, _uiRegistry));
         }
 
         /// <summary>联机入口接流程机与 Lua 门面：进房 = Request(Match, MetaJoin)——走既有 Join 管道（不另开路径）；

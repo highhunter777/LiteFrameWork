@@ -618,14 +618,13 @@
       "kind": "cli",
       "plane": "external",
       "purpose": "dev",
-      "summary": "Luban 表源 → C#/二进制/Lua/LuaKeys。",
+      "summary": "Luban 表源 → C#/二进制/LuaKeys。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
       "command": ["python", "scripts/codegen/toolbox.py", "luban"],
       "writes": ["generated"],
       "outputs": [
         { "path": "Assets/GameData/Generated/", "kind": "generated" },
         { "path": "Assets/GameData/Config/", "kind": "data" },
-        { "path": "Assets/LiteGame/Lua/Cfg/", "kind": "data" },
         { "path": "Assets/LiteGame/Modules/Shared/Generated/LuaKeys.g.cs", "kind": "generated" }
       ],
       "destructive": false,

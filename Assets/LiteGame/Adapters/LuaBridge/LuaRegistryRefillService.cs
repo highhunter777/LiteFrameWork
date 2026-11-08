@@ -3,47 +3,38 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteFramework;
 using LiteFramework.UI;
-using LiteGame.Modules.Config;
 
 namespace LiteGame
 {
     /// <summary>
-    /// 运行期 Lua 注册表增量重填（设计方案 §2.3 的"合法重入之二"）： **不重建 env** —— 重预载 → 释放旧缓存 → 清 require 缓存 → 三注册表 Clear → 走同一条 RegistryFi。
+    /// 运行期 Lua 注册表增量重填（设计方案 §2.3 的"合法重入之二"）： **不重建 env** —— 重预载 → 释放旧缓存 → 清 require 缓存 → 注册表 Clear → 走同一条 RegistryFi。
     /// </summary>
     public sealed class LuaRegistryRefillService : IModuleStats
     {
         /// <summary>注册表根（与 `Luban/gen_lua_keys.py` 的 ROOTS 同源：封闭集，
         /// 也是 `package.loaded` 里可安全清理的前缀集）。</summary>
-        private static readonly string[] RegistryRoots = { "UI", "Content", "Strategies" };
+        private static readonly string[] RegistryRoots = { "UI" };
 
         private readonly ILuaHost _lua;
         private readonly UIService _ui;
-        private readonly IConfigService _config;
         private readonly IReadOnlyList<PageDefinition> _pages;
         private readonly IUILuaRegistry _uiRegistry;
-        private readonly IContentLuaRegistry _contentRegistry;
-        private readonly IStrategyLuaRegistry _strategyRegistry;
 
-        public LuaRegistryRefillService(ILuaHost lua, UIService ui, IConfigService config,
-            IReadOnlyList<PageDefinition> pages,
-            IUILuaRegistry uiRegistry, IContentLuaRegistry contentRegistry, IStrategyLuaRegistry strategyRegistry)
+        public LuaRegistryRefillService(ILuaHost lua, UIService ui, IReadOnlyList<PageDefinition> pages,
+            IUILuaRegistry uiRegistry)
         {
             _lua = lua ?? throw new ArgumentNullException(nameof(lua));
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
             _pages = pages ?? throw new ArgumentNullException(nameof(pages));
             _uiRegistry = uiRegistry ?? throw new ArgumentNullException(nameof(uiRegistry));
-            _contentRegistry = contentRegistry ?? throw new ArgumentNullException(nameof(contentRegistry));
-            _strategyRegistry = strategyRegistry ?? throw new ArgumentNullException(nameof(strategyRegistry));
         }
 
         /// <summary>最近一次重填报告（未重填过为 null）。</summary>
         public RegistryFillReport LastReport { get; private set; }
 
-        /// <summary>三注册表失效纪元之和（HUD 读数；**不作失效判据**——判据是 `UIService.StaleLogicCount`）。</summary>
-        public int Generations => _uiRegistry.Generation + _contentRegistry.Generation + _strategyRegistry.Generation;
+        /// <summary>注册表失效纪元（HUD 读数；**不作失效判据**——判据是 `UIService.StaleLogicCount`）。</summary>
+        public int Generations => _uiRegistry.Generation;
 
         /// <summary>
         /// 执行一次增量重填。返回填充报告（失败项已逐条记日志，不抛——单项失败不阻断整批，§3.4）。
@@ -62,13 +53,11 @@ namespace LiteGame
             // ④ 清 require 缓存：否则 require 命中 package.loaded 里的旧 chunk，重填等于没填。
             int cleared = _lua.ClearRequireCacheByRoots(RegistryRoots);
 
-            // ⑤ 三注册表清空（Fill 重复抛——清是重填的前置；Generation 各前进一位）。
+            // ⑤ 注册表清空（Fill 重复抛——清是重填的前置；Generation 前进一位）。
             _uiRegistry.Clear();
-            _contentRegistry.Clear();
-            _strategyRegistry.Clear();
 
             // ⑥ 同一条填充路径（与启动期 / DevReload 共用 RegistryFiller，不写第二份）。
-            var filler = new RegistryFiller(_config, _pages, _lua, _uiRegistry, _contentRegistry, _strategyRegistry);
+            var filler = new RegistryFiller(_pages, _lua, _uiRegistry);
             var report = filler.FillAll(ct);
             LastReport = report;
 

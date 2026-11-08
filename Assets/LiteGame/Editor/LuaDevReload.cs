@@ -1,11 +1,9 @@
-﻿using System.Threading;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEditor;
 using UnityEngine;
-using LiteFramework;
 using LiteFramework.UI;
-using LiteGame.Modules.Config;
 using LiteGame.Modules.Shared;
 using LiteGame.Modules.UI;
 
@@ -43,19 +41,14 @@ namespace LiteGame.Editor
             }
 
             var container = Object.FindFirstObjectByType<LiteGame.GameEntry>().TakeContainer();
-            var config = container.Resolve<LiteGame.Modules.Config.IConfigService>();
             var events = container.Resolve<LiteFramework.IEventBus>();
             var uiService = container.Resolve<LiteFramework.UI.UIService>();
             var ui = container.Resolve<LiteGame.IUILuaRegistry>();
-            var content = container.Resolve<LiteGame.IContentLuaRegistry>();
-            var strategy = container.Resolve<LiteGame.IStrategyLuaRegistry>();
 
             await uiService.CloseAllOpen();                // ⓪ 重载后全关（旧 env 的适配器随 Dispose 失效）
             uiService.DropAllLogic();                       // ⓪′ 逻辑落空：释放所有界面（含池中件）持有的 Lua 引用
             Bridge.Data.ClearLuaCaches();                  // ① 旧 LuaTable 引用先放手（§2.5 缓存位）
             ui.Clear();                                    // ② 注册表清空
-            content.Clear();
-            strategy.Clear();
             lua.Shutdown();                                // ③ 事件桥退订 → env.Dispose（旧对象全失效时点）
 
             var preloader = new LiteFramework.LuaPreloader(
@@ -67,7 +60,7 @@ namespace LiteGame.Editor
             lua.Init(preloader, events, productBridge.BindGlobals);   //    env 重建 + 事件桥/游戏桥重绑（产品门面单源装订——与 Preload 同口；同一实例保 Bridge.room 会话不丢）
             lua.DoMain();                                  // ⑤ 重跑 main.lua
 
-            var filler = new LiteGame.RegistryFiller(config, LiteGame.Modules.UI.UIPageCatalog.All, lua, ui, content, strategy);
+            var filler = new LiteGame.RegistryFiller(LiteGame.Modules.UI.UIPageCatalog.All, lua, ui);
             var report = filler.FillAll(CancellationToken.None);   // ⑥ 同一条填充路径（§2.4 ③）
             if (report.HasFailures)
             {
