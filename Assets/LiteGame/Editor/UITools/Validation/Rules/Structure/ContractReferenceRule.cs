@@ -13,16 +13,13 @@ namespace LiteGame.Editor.UITools.Validation.Rules
     /// </summary>
     public sealed class ContractReferenceRule : IUIRule
     {
-        private static readonly HashSet<string> NameFirstApis =
-            new HashSet<string>(UIRuleThresholds.LuaNameFirstApis, StringComparer.Ordinal);
+        private readonly Func<UIPageManifestEntry, string> _sourceResolver;
 
-        private readonly Func<string, string> _luaFileResolver;
+        /// <summary>生产形态：C# 页源优先、未迁移页回落 Lua（解析单源＝UIPageLogicScanner）。</summary>
+        public ContractReferenceRule() => _sourceResolver = entry => UIPageLogicScanner.ResolveFile(entry.Name, entry.LuaPath);
 
-        /// <summary>生产形态：默认 luaPath 解析（起页 Lua 目录约定）。</summary>
-        public ContractReferenceRule() => _luaFileResolver = UILuaReferenceScanner.TryResolveLuaFile;
-
-        /// <summary>测试形态：注入替代解析（合成 Lua 落临时路径）。</summary>
-        public ContractReferenceRule(Func<string, string> luaFileResolver) => _luaFileResolver = luaFileResolver;
+        /// <summary>测试形态：注入替代解析（合成页源落临时路径；按扩展名分派语法）。</summary>
+        public ContractReferenceRule(Func<UIPageManifestEntry, string> sourceResolver) => _sourceResolver = sourceResolver;
 
         public string RuleId => UIRuleIds.ContractReference;
         public string Family => "契约";
@@ -51,8 +48,7 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 
             foreach (UIPageManifestEntry entry in manifest.Pages ?? new List<UIPageManifestEntry>())
             {
-                if (!entry.ContractPresent || string.IsNullOrEmpty(entry.ContractPath)
-                    || string.IsNullOrEmpty(entry.LuaPath)) continue;
+                if (!entry.ContractPresent || string.IsNullOrEmpty(entry.ContractPath)) continue;
 
                 UIPageContract contract;
                 try
@@ -72,16 +68,17 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                     continue;
                 }
 
-                string source = ReadLuaSource(entry.LuaPath);
+                string file = _sourceResolver(entry);
+                string source = UIPageLogicScanner.ReadSource(file);
                 if (source == null)
                 {
                     issues.Add(new UIIssue
                     {
                         RuleId = RuleId,
                         Severity = UISeverity.Warning,
-                        Asset = entry.LuaPath,
-                        Message = "页面 Lua 源缺失——引用对账跳过（" + entry.Name + "）",
-                        FixHint = "确认 Lua 文件在起页 Lua 目录；未消费/越界无法核对该页",
+                        Asset = string.IsNullOrEmpty(file) ? entry.Name : file,
+                        Message = "页面逻辑源缺失——引用对账跳过（" + entry.Name + "）",
+                        FixHint = "确认 C# 页源（Logic/**/Page_<Name>Logic.cs）或 Lua 文件存在；未消费/越界无法核对该页",
                     });
                     continue;
                 }
@@ -95,17 +92,17 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                     if (!string.IsNullOrEmpty(nodeName)) face.Add(nodeName);
                 }
 
-                foreach (UILuaApiCall call in UILuaReferenceScanner.ScanApiCalls(source))
+                foreach (UIPageApiCall call in UIPageLogicScanner.ScanApiCalls(file, source))
                 {
-                    if (!NameFirstApis.Contains(call.Api) || string.IsNullOrEmpty(call.Name)) continue;
+                    if (string.IsNullOrEmpty(call.Name)) continue;
                     if (face.Contains(call.Name)) continue;
                     issues.Add(new UIIssue
                     {
                         RuleId = RuleId,
                         Severity = UISeverity.Error,
-                        Asset = entry.LuaPath,
+                        Asset = file,
                         Message = "越界引用：调用点名不在契约面（" + call.Name + " " + call.Api
-                            + " @Page " + entry.Name + "——self.ui 按名寻址依赖 BindNode）",
+                            + " @Page " + entry.Name + "——按名寻址依赖 BindNode）",
                         FixHint = "修正名字或在节点挂 BindName（重跑 ui.contract）",
                     });
                 }
@@ -113,25 +110,19 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                 foreach (UIContractControl control in contract.Controls ?? new List<UIContractControl>())
                 {
                     if (!control.Required || string.IsNullOrEmpty(control.BindName)) continue;
-                    if (UILuaReferenceScanner.ContainsLiteral(source, control.BindName)) continue;
+                    if (UIPageLogicScanner.ContainsLiteral(source, control.BindName)) continue;
                     issues.Add(new UIIssue
                     {
                         RuleId = RuleId,
                         Severity = UISeverity.Warning,
-                        Asset = entry.LuaPath,
-                        Message = "required 控件未被 Lua 消费（" + control.BindName + " @Page " + entry.Name
+                        Asset = file,
+                        Message = "required 控件未被页面逻辑消费（" + control.BindName + " @Page " + entry.Name
                             + "）——字面量全文匹配（动态构造名不识别）",
                         FixHint = "接线消费该控件，或它不该标 required（改标记后重跑 ui.contract）",
                     });
                 }
             }
             return issues;
-        }
-
-        private string ReadLuaSource(string luaPath)
-        {
-            string file = _luaFileResolver(luaPath);
-            return string.IsNullOrEmpty(file) ? null : UILuaReferenceScanner.ReadSource(file);
         }
 
         private static string NodeNameOf(string nodePath)

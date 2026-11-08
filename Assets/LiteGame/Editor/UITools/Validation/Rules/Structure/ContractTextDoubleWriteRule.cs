@@ -13,16 +13,17 @@ namespace LiteGame.Editor.UITools.Validation.Rules
     /// </summary>
     public sealed class ContractTextDoubleWriteRule : IUIRule
     {
-        private static readonly HashSet<string> TextWriteApis =
-            new HashSet<string>(UIRuleThresholds.LuaTextWriteApis, StringComparer.Ordinal);
+        private static readonly HashSet<string> TextWriteApis = new HashSet<string>(
+            UIRuleThresholds.LuaTextWriteApis.Concat(UIRuleThresholds.PageTextWriteApis), StringComparer.Ordinal);
 
-        private readonly Func<string, string> _luaFileResolver;
+        private readonly Func<UIPageManifestEntry, string> _sourceResolver;
 
-        /// <summary>生产形态：默认 luaPath 解析（起页 Lua 目录约定）。</summary>
-        public ContractTextDoubleWriteRule() => _luaFileResolver = UILuaReferenceScanner.TryResolveLuaFile;
+        /// <summary>生产形态：C# 页源优先、未迁移页回落 Lua（解析单源＝UIPageLogicScanner）。</summary>
+        public ContractTextDoubleWriteRule()
+            => _sourceResolver = entry => UIPageLogicScanner.ResolveFile(entry.Name, entry.LuaPath);
 
-        /// <summary>测试形态：注入替代解析（合成 Lua 落临时路径）。</summary>
-        public ContractTextDoubleWriteRule(Func<string, string> luaFileResolver) => _luaFileResolver = luaFileResolver;
+        /// <summary>测试形态：注入替代解析（合成页源落临时路径；按扩展名分派语法）。</summary>
+        public ContractTextDoubleWriteRule(Func<UIPageManifestEntry, string> sourceResolver) => _sourceResolver = sourceResolver;
 
         public string RuleId => UIRuleIds.ContractTextDoubleWrite;
         public string Family => "契约";
@@ -51,8 +52,7 @@ namespace LiteGame.Editor.UITools.Validation.Rules
 
             foreach (UIPageManifestEntry entry in manifest.Pages ?? new List<UIPageManifestEntry>())
             {
-                if (!entry.ContractPresent || string.IsNullOrEmpty(entry.ContractPath)
-                    || string.IsNullOrEmpty(entry.LuaPath)) continue;
+                if (!entry.ContractPresent || string.IsNullOrEmpty(entry.ContractPath)) continue;
 
                 UIPageContract contract;
                 try
@@ -80,11 +80,11 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                 }
                 if (staticNodeNames.Count == 0) continue;
 
-                string file = _luaFileResolver(entry.LuaPath);
-                string source = string.IsNullOrEmpty(file) ? null : UILuaReferenceScanner.ReadSource(file);
+                string file = _sourceResolver(entry);
+                string source = UIPageLogicScanner.ReadSource(file);
                 if (source == null) continue;       // 源缺失归引用对账规则告警，此处不重复
 
-                foreach (UILuaApiCall call in UILuaReferenceScanner.ScanApiCalls(source))
+                foreach (UIPageApiCall call in UIPageLogicScanner.ScanApiCalls(file, source))
                 {
                     if (!TextWriteApis.Contains(call.Api) || string.IsNullOrEmpty(call.Name)) continue;
                     if (!staticNodeNames.Contains(call.Name)) continue;
@@ -92,10 +92,10 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                     {
                         RuleId = RuleId,
                         Severity = UISeverity.Error,
-                        Asset = entry.LuaPath,
-                        Message = "文本双写：静态文案节点被 Lua 再写（" + call.Name + " " + call.Api
+                        Asset = file,
+                        Message = "文本双写：静态文案节点被页面逻辑再写（" + call.Name + " " + call.Api
                             + " @Page " + entry.Name + "——静态键与动态写互相覆盖）",
-                        FixHint = "该节点保留 LTextKeyRef（静态），或摘除静态键全走 Lua（二选一）",
+                        FixHint = "该节点保留 LTextKeyRef（静态），或摘除静态键全走动态写（二选一）",
                     });
                 }
             }

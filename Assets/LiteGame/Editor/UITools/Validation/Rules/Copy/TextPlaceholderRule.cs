@@ -18,12 +18,17 @@ namespace LiteGame.Editor.UITools.Validation.Rules
         private static readonly Regex PlaceholderPattern = new Regex(@"\{[0-3]\}", RegexOptions.CultureInvariant);
 
         private readonly string _luaRootDir;
+        private readonly string _logicRootDir;
 
-        /// <summary>生产形态：Lua 扫描根＝起页 Lua 目录（UIPageScaffold.LuaDir 单源）。</summary>
-        public TextPlaceholderRule() : this(Page.UIPageScaffold.LuaDir) { }
+        /// <summary>生产形态：Lua 根＝起页 Lua 目录（UIPageScaffold.LuaDir）；C# 根＝页面逻辑件根。</summary>
+        public TextPlaceholderRule() : this(Page.UIPageScaffold.LuaDir, UIPageLogicScanner.LogicRoot) { }
 
-        /// <summary>测试形态：注入替代扫描根（合成 Lua 落临时目录）。</summary>
-        public TextPlaceholderRule(string luaRootDir) => _luaRootDir = luaRootDir;
+        /// <summary>测试形态：注入替代扫描根（合成页源落临时目录）。</summary>
+        public TextPlaceholderRule(string luaRootDir, string logicRootDir = null)
+        {
+            _luaRootDir = luaRootDir;
+            _logicRootDir = logicRootDir ?? UIPageLogicScanner.LogicRoot;
+        }
 
         public string RuleId => UIRuleIds.TextPlaceholder;
         public string Family => "文本";
@@ -59,18 +64,20 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                 }
             }
 
-            string luaRoot = Path.Combine(UIValidator.ProjectRoot, _luaRootDir ?? string.Empty);
-            if (!Directory.Exists(luaRoot)) return issues;
-            foreach (string file in Directory.GetFiles(luaRoot, "*.lua"))
+            foreach (string relative in UIPageLogicScanner.EnumerateSources(_luaRootDir, _logicRootDir))
             {
-                string relative = file.Substring(UIValidator.ProjectRoot.Length + 1).Replace('\\', '/');
-                foreach (UILuaApiCall call in UILuaReferenceScanner.ScanApiCalls(File.ReadAllText(file)))
+                string source = UIPageLogicScanner.ReadSource(relative);
+                if (source == null) continue;
+                bool isCSharp = UIPageLogicScanner.IsCSharp(relative);
+                foreach (UIPageApiCall call in UIPageLogicScanner.ScanApiCalls(relative, source))
                 {
                     string key = call.Args.ElementAtOrDefault(1);
                     if (string.IsNullOrEmpty(key) || !placeholders.TryGetValue(key, out int count)) continue;
                     string line = relative + ":" + call.Line;
 
-                    if (call.Api == "SetTextKey" && count > 0)
+                    // Lua 面：无参 API 挂带参条目＝Error，传参走 SetTextKeyArgs；
+                    // C# 面：SetTextKey(name, key, args…) 本身就带参——只核对实参个数。
+                    if (!isCSharp && call.Api == "SetTextKey" && count > 0)
                     {
                         issues.Add(new UIIssue
                         {
@@ -81,7 +88,23 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                             FixHint = "改用 SetTextKeyArgs 传参",
                         });
                     }
-                    else if (call.Api == "SetTextKeyArgs")
+                    else if (isCSharp && call.Api == "SetTextKey")
+                    {
+                        int supplied = System.Math.Max(0, call.ArgCount - 2);
+                        if (supplied != count)
+                        {
+                            issues.Add(new UIIssue
+                            {
+                                RuleId = RuleId,
+                                Severity = UISeverity.Warning,
+                                Asset = relative,
+                                Message = "SetTextKey 参数数不符：" + key + "（实参 " + supplied
+                                    + " / 条目 " + count + "） @" + line,
+                                FixHint = "对齐条目占位符数（arg0..arg3，上限 4）",
+                            });
+                        }
+                    }
+                    else if (!isCSharp && call.Api == "SetTextKeyArgs")
                     {
                         int supplied = System.Math.Max(0, call.ArgCount - 2);      // 名字/key 之后的参数
                         if (supplied != count)

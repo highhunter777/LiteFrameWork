@@ -63,7 +63,10 @@ namespace LiteGame.Editor.UITools.Validation
         /// <summary>契约：引用对账（required 控件未被 Lua 消费＝Warning；Lua 调用点名不在契约面＝Error）。</summary>
         public const string ContractReference = "ui.contract.reference";
 
-        /// <summary>契约：静态文案节点（`LTextKeyRef`）被 Lua `SetText*` 再写（文本双写）。</summary>
+        /// <summary>契约：页面逻辑件与 prefab 载体对账（逻辑件存在 ⇒ 根挂 IUIFormLogic；重复实现报错）。</summary>
+        public const string PageLogic = "ui.page-logic";
+
+        /// <summary>契约：静态文案节点（`LTextKeyRef`）被页面逻辑 `SetText*` 再写（文本双写）。</summary>
         public const string ContractTextDoubleWrite = "ui.contract.text-double-write";
 
         /// <summary>例外登记自身：条目字段非法。</summary>

@@ -223,11 +223,11 @@ namespace LiteGame.Editor.UITools.Contracts
         /// <summary>
         /// 应用 Lua 事件接线（§5.2「events[] 可选——契约只做对账提示」）：按 <c>bindName|event</c> 稳定排序写入 <see cref="UIPageContract.Events"/> 并重。
         /// </summary>
-        public static void ApplyEvents(UIPageContract contract, IReadOnlyList<Reference.UILuaEventWiring> wiring)
+        public static void ApplyEvents(UIPageContract contract, IReadOnlyList<Reference.UIPageEventWiring> wiring)
         {
             if (contract == null) return;
             contract.Events.Clear();
-            foreach (Reference.UILuaEventWiring wire in wiring ?? Array.Empty<Reference.UILuaEventWiring>())
+            foreach (Reference.UIPageEventWiring wire in wiring ?? Array.Empty<Reference.UIPageEventWiring>())
             {
                 if (wire == null || string.IsNullOrEmpty(wire.Name) || string.IsNullOrEmpty(wire.Event)) continue;
                 contract.Events.Add(new UIContractEventBinding

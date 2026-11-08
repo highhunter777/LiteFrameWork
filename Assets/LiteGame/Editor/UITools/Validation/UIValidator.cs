@@ -66,6 +66,7 @@ namespace LiteGame.Editor.UITools.Validation
             new ContractDriftRule(),
             new ContractReferenceRule(),
             new ContractTextDoubleWriteRule(),
+            new PageLogicRule(),
         };
 
         /// <summary>工程根（Assets 之上）。</summary>

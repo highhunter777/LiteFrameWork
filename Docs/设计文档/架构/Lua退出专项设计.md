@@ -67,7 +67,8 @@
 
 ### 4.1 页面逻辑与解析（D1）
 
-- **载体**：`Assets/LiteGame/Modules/UI/Logic/Page_<Name>Logic.cs`，类型 `public sealed class Page_<Name>Logic : PageLogicBase`；组件挂在对应 prefab 根（与 `Canvas` 同层）。`PageLogicBase`（产品侧，`Modules/UI/Logic/`）继承框架 `UIBindBase`，只做两件事：把 `PageContext` 转成强类型端口、提供行表构造件的便捷入口。
+- **载体**：`Assets/LiteGame/Modules/UI/Pages/<Page>/Page_<Name>Logic.cs`，类型 `public sealed class Page_<Name>Logic : PageLogicBase`；组件挂在对应 prefab 根（与 `Canvas` 同层）。`PageLogicBase` 继承框架 `UIBindBase`，只做两件事：把 `PageContext` 转成强类型端口、提供行表构造件的便捷入口。
+- **目录名受守卫约束**：业务域子目录不得取 `Logic`/`View`/`Presentation`/`Domain`（`DomainBoundaryTests.业务域子目录必须按职责命名` 拦），且单目录直接代码文件 ≤5（红线 15）——所以按页进子目录，不要平铺。
 - **解析**：`UIFormLogicBinder.Resolve` 收敛为"prefab 自带 → 可选的 `resolver`（仅测试用）→ `NullUIFormLogic`"，删除 `LuaPath` 分支；`UISegment` 给 `UIService` 传 `logicResolver: null`。
 - **API 面**：页面用的仍是`UIBindBase`/`UIBindIndex` 的受控 API（`GetControl`/`OnButton`/`SetTextKey`/`SetVisible`/`SetList`/`SetDropdownValue`/`OnTabChanged`/`Pulse`…），与 33 个 `self.ui` 门面一一对应，**语义不降级**；区别只是编译期可查、可重构、可断点。
 - **模板页**（`Tmp_*`）与测试载具不挂逻辑组件，落 `NullUIFormLogic`——维持现行"无逻辑页可独立打开"的行为。
@@ -82,7 +83,7 @@
 ### 4.3 数据面与行表（D3）
 
 - 删除 `Core/UI/PageData.cs`、`Modules/UI/Abstractions/IPageDataFactory.cs`、`LuaPageDataFactory`、`LuaUIData`。
-- 页面数据改为**按页定义记录**（`readonly struct`/`sealed class` 实现 `IUIData`），放在同一 `Logic/` 目录：
+- 页面数据改为**按页定义记录**（`readonly struct`/`sealed class` 实现 `IUIData`），与本页逻辑件同目录（`Pages/<Page>/`）：
   - `ResultPageData(IReadOnlyList<MatchSettlementRow> rows, int localPlayerId)` —— 承载 `PageFlow.ResultData` 现有的 `hasPlayer/kills/deaths/rank/reason/ranks` 语义，改为强类型字段；
   - `SettingsPageData(bool battleExit, string exitKey = null)` —— 承载 `.Set("battleExit", true)`；
   - `RoomPageData(string roomId)` —— 承载换房时传的 `{ roomId }`。
@@ -133,7 +134,7 @@
 | `UILuaReferenceScanner` | 从 `.lua` 源提取 `self.ui:Api("名字")` | 改为 `UIPageLogicScanner`：从 C# 页源提取 `OnButton("Btn_X"…)`/`SetTextKey("Txt_X"…)`/`GetControl<T>("X")` 等受控 API 的名字字面量，输出结构不变（`Api/Name/Args/Line`） |
 | `ContractReferenceRule` / `ContractTextDoubleWriteRule` / 文本两条规则 | 以 Lua 源为扫描对象 | 同上换扫描对象；判定口径（越界 Error、required 未消费 Warning、静态文案双写 Error）**不变** |
 | `codegen.lua-reload` / `codegen.lua-refill` / `codegen.xlua` | 三个工具 id + 菜单项 + handler | 删除（`toolchain.json` 与 `EditorToolHandlers` 同批） |
-| 新增守卫 | — | `PageLogicRule`：`status=Registered` 且非 `Tmp_`/`Hud_` 的页，prefab 根必须有实现 `IUIFormLogic` 的组件，且对应 `Logic/Page_<Name>Logic.cs` 存在（替代 `LuaKeys` 自检） |
+| 新增守卫 | — | `PageLogicRule`：逻辑件存在 ⇒ prefab 根必须挂实现 `IUIFormLogic` 的组件（否则页面静默落 NullLogic）；重复实现报错；迁移期不要求每页都有件（P2a 收紧）。替代 `LuaKeys` 自检 |
 | 迁移期棘轮（仅 P0–P3 生效） | — | `lua-freeze` 检查：产品面新增 `.lua` 或新引用 `XLua`/`LuaTable`/`Bridge.` 即失败；P5 后转为全仓零命中检查 |
 
 ### 4.8 构建与包体
@@ -183,7 +184,8 @@ HybridCLR 的 `code/` 已经是"代码候选"的落点。把 `lua/` 改名为 `s
 ### P1 页面 C# 化（关键路径，约 6–9 人日）
 
 - **目标**：7 个产品页逐个换成 C# 逻辑组件，**每页一次可交付**。
-- **每页固定动作**：写 `Logic/<Page>/Page_<Name>Logic.cs` → prefab 根挂组件（走 `unity-pipeline`，红线 4）→ 该页验收点走真实操作路径（红线 13）。
+- **每页固定动作**：写 `Pages/<Page>/Page_<Name>Logic.cs` → prefab 根挂组件（走 `unity-pipeline`，红线 4）→ 该页验收点走真实操作路径（红线 13）。
+- **目录与守卫**：业务域子目录禁 `Logic`/`View`/`Presentation`/`Domain`（`DomainBoundaryTests`），单目录直接代码文件 ≤5（红线 15）。
 - **不删该页 `.lua`、不清 `lua_path`**：解析器「prefab 自带 C# 逻辑优先」，组件一挂即接管，旧 Lua 只是还注册着、不再被执行。反过来，清空键会打断**尚未迁移**的页面——它们仍在 `Bridge.ui.Show('UI.Page_X')` 形态的调用里按字符串跳转。页面 Lua 面的清理由 P2a 一次性完成（见下）。
 - **P1-0 前置**（第 1 页之前）：`PageIds.g.cs` 与 `PageFlow` 的 int 切换——**只切 C# 侧，不删 resolver**。
 - **P1-1 载体**（与第 1 页同批，避免「待接线」悬空——红线 10）：`PageLogicBase`＋`IPageContext`（4.4）、`UIListRowSet`（4.3）、`UIPageLogicScanner`＋`PageLogicRule`（4.7）。

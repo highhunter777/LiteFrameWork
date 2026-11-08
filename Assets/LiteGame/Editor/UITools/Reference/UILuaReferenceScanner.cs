@@ -8,44 +8,6 @@ using LiteGame.Editor.UITools.Validation;
 
 namespace LiteGame.Editor.UITools.Reference
 {
-    /// <summary>一次 Lua 受控 API 调用点（名字型第一参；字面量提取——动态构造名不识别，如实登记）。</summary>
-    public sealed class UILuaApiCall
-    {
-        /// <summary>API 名（受控名单内，如 <c>SetTextKey</c>）。</summary>
-        public string Api;
-
-        /// <summary>名字型第一参字面量（控件名/节点名）；非字面量调用不产出。</summary>
-        public string Name;
-
-        /// <summary>调用内全部字符串字面量（按出现序；<c>SetTextKey</c> 的 key 在 Args[1]）。</summary>
-        public IReadOnlyList<string> Args;
-
-        /// <summary>顶层实参个数（含名字参；闭包体内的参数不计）——参数数对账用。</summary>
-        public int ArgCount;
-
-        /// <summary>源码行号（1 基，报文定位用）。</summary>
-        public int Line;
-    }
-
-    /// <summary>一次事件接线（On* 族）：契约 events[] 的对账数据。</summary>
-    public sealed class UILuaEventWiring
-    {
-        /// <summary>接线 API 名（如 <c>OnButton</c>）。</summary>
-        public string Api;
-
-        /// <summary>契约事件名（与受控 API 同文，如 <c>onClick</c>；映射单源＝UIRuleThresholds.LuaEventApis）。</summary>
-        public string Event;
-
-        /// <summary>控件名（bindName）。</summary>
-        public string Name;
-
-        /// <summary>handler 尽力解析：匿名闭包内首个 <c>self:方法(</c> 的方法名；解析不到记 <c>anonymous</c>。</summary>
-        public string Handler;
-
-        /// <summary>源码行号（1 基）。</summary>
-        public int Line;
-    }
-
     /// <summary>
     /// Lua 引用对账数据面（《UI 编辑器工具链专项设计》§5.2「契约只做对账提示」+ §6.2 契约族「controls 越界/未消费、文本双写」）： 从页面 Lua 源提取受控 API 调用点与名字字面量。
     /// </summary>
@@ -55,9 +17,9 @@ namespace LiteGame.Editor.UITools.Reference
             new HashSet<string>(UIRuleThresholds.LuaNameFirstApis, StringComparer.Ordinal);
 
         /// <summary>提取受控名单内 API 的调用点（<c>self.ui:方法(…)</c> 形态，名字型第一参须为字面量）。</summary>
-        public static List<UILuaApiCall> ScanApiCalls(string source)
+        public static List<UIPageApiCall> ScanApiCalls(string source)
         {
-            var calls = new List<UILuaApiCall>();
+            var calls = new List<UIPageApiCall>();
             if (string.IsNullOrEmpty(source)) return calls;
             var lines = source.Split('\n');
             for (int i = 0; i < lines.Length; i++)
@@ -66,20 +28,20 @@ namespace LiteGame.Editor.UITools.Reference
         }
 
         /// <summary>提取事件接线点（On* 族）并尽力解析 handler。</summary>
-        public static List<UILuaEventWiring> ScanEventWiring(string source)
+        public static List<UIPageEventWiring> ScanEventWiring(string source)
         {
-            var wiring = new List<UILuaEventWiring>();
+            var wiring = new List<UIPageEventWiring>();
             if (string.IsNullOrEmpty(source)) return wiring;
             var map = UIRuleThresholds.LuaEventApis.ToDictionary(p => p.Api, p => p.Event, StringComparer.Ordinal);
             var lines = source.Split('\n');
             for (int i = 0; i < lines.Length; i++)
             {
                 int lineNumber = i + 1;
-                var buffer = new List<UILuaApiCall>();
+                var buffer = new List<UIPageApiCall>();
                 ScanLine(lines[i], lineNumber, buffer, api => map.ContainsKey(api));
                 foreach (var call in buffer)
                 {
-                    wiring.Add(new UILuaEventWiring
+                    wiring.Add(new UIPageEventWiring
                     {
                         Api = call.Api,
                         Event = map[call.Api],
@@ -119,7 +81,7 @@ namespace LiteGame.Editor.UITools.Reference
         // ---------------- 实现 ----------------
 
         /// <summary>单行扫描：找 <c>self.ui:Api(</c>，配对括号取调用段，顶层参数解析。</summary>
-        private static void ScanLine(string line, int lineNumber, List<UILuaApiCall> sink, Func<string, bool> apiFilter)
+        private static void ScanLine(string line, int lineNumber, List<UIPageApiCall> sink, Func<string, bool> apiFilter)
         {
             int searchFrom = 0;
             while (true)
@@ -145,7 +107,7 @@ namespace LiteGame.Editor.UITools.Reference
                 if (args.Count == 0 || !IsStringLiteral(args[0])) continue;
                 string name = Unquote(args[0]);
 
-                sink.Add(new UILuaApiCall
+                sink.Add(new UIPageApiCall
                 {
                     Api = api,
                     Name = name,

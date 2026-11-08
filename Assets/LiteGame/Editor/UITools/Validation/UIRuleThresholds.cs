@@ -49,5 +49,37 @@ namespace LiteGame.Editor.UITools.Validation
 
         /// <summary>事件 API 名（`On*` 接线族）。</summary>
         public static IReadOnlyList<string> LuaEventApiNames => LuaEventApis.Select(p => p.Api).ToList();
+
+        /// <summary>
+        /// C# 页源受控 API 名单（名字型第一参；《UI 逻辑 API 参考》C# 面——`SetTextKey("控件名", …)` 形态）。
+        /// 与 `LuaNameFirstApis` 的差异只是语言写法（`SetDropdown`→`SetDropdownValue`、多 `GetControl`/`OnTabChanged`）。
+        /// </summary>
+        public static readonly IReadOnlyList<string> PageNameFirstApis = new[]
+        {
+            "SetTextKey", "SetTextKeyPlural",
+            "SetText", "SetInteractable", "SetVisible", "SetAnchoredPosition",
+            "OnButton", "OnListClick", "OnToggleChanged", "OnSliderChanged", "OnDropdownChanged", "OnTabChanged",
+            "SetSlider", "GetSlider", "SetToggle", "GetToggle",
+            "SetDropdownOptions", "SetDropdownValue", "GetDropdownValue",
+            "SetTab", "GetTab", "SetList", "Pulse", "Flash", "Slide",
+            "GetControl", "HasControl", "UnbindTextKey", "ShowBubble",
+        };
+
+        /// <summary>文本双写面（C#）：对节点名做动态文本写入的 API。</summary>
+        public static readonly IReadOnlyList<string> PageTextWriteApis = new[]
+        {
+            "SetText", "SetTextKey", "SetTextKeyPlural",
+        };
+
+        /// <summary>事件接线 API → 契约事件名（C# 页源；比 Lua 面多 `OnTabChanged`——页签是 C# 页才接入的接线面）。</summary>
+        public static readonly IReadOnlyList<(string Api, string Event)> PageEventApis = new (string, string)[]
+        {
+            ("OnButton", "onClick"),
+            ("OnListClick", "onListClick"),
+            ("OnToggleChanged", "onToggleChanged"),
+            ("OnSliderChanged", "onSliderChanged"),
+            ("OnDropdownChanged", "onDropdownChanged"),
+            ("OnTabChanged", "onTabChanged"),
+        };
     }
 }

@@ -18,12 +18,17 @@ namespace LiteGame.Editor.UITools.Validation.Rules
             new[] { "SetTextKey", "SetTextKeyArgs", "SetTextKeyPlural" }, System.StringComparer.Ordinal);
 
         private readonly string _luaRootDir;
+        private readonly string _logicRootDir;
 
-        /// <summary>生产形态：Lua 扫描根＝起页 Lua 目录（UIPageScaffold.LuaDir 单源）。</summary>
-        public TextStaticKeyRule() : this(Page.UIPageScaffold.LuaDir) { }
+        /// <summary>生产形态：Lua 根＝起页 Lua 目录（UIPageScaffold.LuaDir）；C# 根＝页面逻辑件根。</summary>
+        public TextStaticKeyRule() : this(Page.UIPageScaffold.LuaDir, UIPageLogicScanner.LogicRoot) { }
 
-        /// <summary>测试形态：注入替代扫描根（合成 Lua 落临时目录）。</summary>
-        public TextStaticKeyRule(string luaRootDir) => _luaRootDir = luaRootDir;
+        /// <summary>测试形态：注入替代扫描根（合成页源落临时目录）。</summary>
+        public TextStaticKeyRule(string luaRootDir, string logicRootDir = null)
+        {
+            _luaRootDir = luaRootDir;
+            _logicRootDir = logicRootDir ?? UIPageLogicScanner.LogicRoot;
+        }
 
         public string RuleId => UIRuleIds.TextStaticKey;
         public string Family => "文本";
@@ -66,10 +71,11 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                 }
             }
 
-            foreach (var luaAsset in EnumerateLuaFiles())
+            foreach (string relative in UIPageLogicScanner.EnumerateSources(_luaRootDir, _logicRootDir))
             {
-                string source = File.ReadAllText(luaAsset.fullPath);
-                foreach (UILuaApiCall call in UILuaReferenceScanner.ScanApiCalls(source))
+                string source = UIPageLogicScanner.ReadSource(relative);
+                if (source == null) continue;
+                foreach (UIPageApiCall call in UIPageLogicScanner.ScanApiCalls(relative, source))
                 {
                     if (!KeyApis.Contains(call.Api)) continue;
                     string key = call.Args.ElementAtOrDefault(1);
@@ -78,22 +84,14 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                     {
                         RuleId = RuleId,
                         Severity = UISeverity.Error,
-                        Asset = luaAsset.relativePath,
-                        Message = "Lua 文案 key 不在 tbltext：" + key + "（" + Path.GetFileName(luaAsset.relativePath)
+                        Asset = relative,
+                        Message = "页面文案 key 不在 tbltext：" + key + "（" + Path.GetFileName(relative)
                             + ":" + call.Line + " " + call.Api + "）",
                         FixHint = "改用已有 key 或在 #text.xlsx 补行后重跑 gen.bat",
                     });
                 }
             }
             return issues;
-        }
-
-        private IEnumerable<(string fullPath, string relativePath)> EnumerateLuaFiles()
-        {
-            string root = Path.Combine(UIValidator.ProjectRoot, _luaRootDir ?? string.Empty);
-            if (!Directory.Exists(root)) yield break;
-            foreach (string file in Directory.GetFiles(root, "*.lua"))
-                yield return (file, file.Substring(UIValidator.ProjectRoot.Length + 1).Replace('\\', '/'));
         }
 
         private static bool IsPrefab(string path)

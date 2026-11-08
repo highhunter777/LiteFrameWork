@@ -107,3 +107,59 @@
 
 - `UIPageScaffoldRegister` 一组 EditMode 用例单次运行超过管道 30s 上限（首次 `UIPage` 过滤跑到一半因 `P2` 的 scaffold 建 prefab + Luban 生成耗时过长而被截断）。该组未被本批触及（`UIPageScaffold.LuaDir` 只在 P2a 动），本轮未复跑；下次动起页/登记工具时必须先跑它。
 - 新生成物需要 `.meta`：`PageIds.g.cs.meta` 由 Unity 导入生成并随本批入库（否则克隆后 GUID 漂移）。
+---
+
+## 第3章 P1-1 编辑器面：契约对账改读页面逻辑源
+
+<a id="ch3-P1-1编辑器面对账"></a>
+
+> **批次**：P1-1 编辑器面（2026-11-08）　**状态**：已完成（附验证证据；L1 红由并行线未提交文件引起，见 3.5）
+> **依据**：[Lua 退出专项设计](../设计文档/架构/Lua退出专项设计.md) §4.7、§6 P1-1。
+> **分工**：页面逻辑件与 prefab 挂组件归并行线；本批只做**编辑器侧对账面**（扫描器 + 规则 + 双源解析）。
+
+### 3.1 做了什么
+
+| # | 项 | 落点 |
+|---:|---|---|
+| 1 | 新增 `UIPageLogicScanner`：C# 页源扫描（名字型首参字面量、泛型取控件 `GetControl<T>(名字)`、事件接线 handler 解析）＋ 双源解析（C# 优先 → Lua 回落）＋ 按扩展名分派；无静态可变状态 | `Assets/LiteGame/Editor/UITools/Reference/UIPageLogicScanner.cs` |
+| 2 | 调用点/接线 DTO 更名 `UILuaApiCall`/`UILuaEventWiring` → `UIPageApiCall`/`UIPageEventWiring`（两种语法共用同一形状，Lua 专属解析留在原扫描器） | 同上 ＋ 6 处消费方同批改名 |
+| 3 | 五个消费方改走双源：引用对账、文本双写、文本 key、占位符、契约 `events[]` 投影（`UIContractBatch`） | `Validation/Rules/{Copy,Structure}`、`Contract/UIContractBatch` |
+| 4 | 新增规则 `ui.page-logic`：逻辑件存在 ⇒ prefab 根必须挂实现 `IUIFormLogic` 的组件；重复实现报错；迁移期不要求每页有件 | `Validation/Rules/Page/PageLogicRule.cs` ＋ `UIRuleIds`/`UIValidator` 注册 |
+| 5 | 文本占位符对 C# 语义分叉：`SetTextKey(name, key, args…)` 本身带参是合法写法，只核对实参个数（Lua 面维持「无参 API 挂带参条目＝Error」） | `Rules/Copy/TextPlaceholderRule.cs` |
+| 6 | API 词表分语言：C# 面 `PageNameFirstApis`（含 `SetDropdownValue`/`GetControl`/`OnTabChanged`）、`PageTextWriteApis`、`PageEventApis` | `UIRuleThresholds.cs` |
+
+### 3.2 计划校正（两处，已回写设计文档）
+
+- **目录名**：原设计写 `Modules/UI/Logic/`，但 `DomainBoundaryTests.业务域子目录必须按职责命名` 明令禁 `Logic`/`View`/`Presentation`/`Domain`。设计文档改为 `Modules/UI/Pages/<Page>/Page_<Name>Logic.cs`，并补「目录名受守卫约束 ＋ 单目录 ≤5 文件」一条。
+- **规则落点**：`Rules/Structure/` 已有 10 个直接文件（红线 15 基线 10、只减不增），新规则放进去会记「回涨 1」。改为独立目录 `Rules/Page/`（1 个文件），`dir-flat-lint` 转绿。
+
+### 3.3 验证证据
+
+| 项 | 命令/方式 | 结果 |
+|---|---|---|
+| Unity 重编译 | `recompile` → `recompile_status` | `failed=false, errors=[]` |
+| 新扫描器用例 | EditMode `--filter UIPageLogicScanner` | **6/6 Passed**（字面量提取／变量名与注释不产出／方法组与 lambda／双源分派／真实页源唯一／规则迁移期告警／模板页豁免） |
+| Lua 侧回归 | `--filter UILuaReferenceScanner` | **6/6 Passed**（DTO 迁移后行为不变） |
+| 文本规则 | `--filter UITextRule` | **7/7 Passed** |
+| 契约对账 | `--filter UIContractReconciliation` | **8/9**；唯一红＝`漂移_契约与prefab一致零误报`——工作区里 `Page_Login.prefab` 被并行线改动而契约未重生成（`git status` 可见），与本批无关 |
+| 目录平铺 | `dir-flat-lint.py` | OK（无增长） |
+| 文档门禁 | `--suite Doc` | PASS（doc-lint 0/0） |
+
+### 3.4 已知边界
+
+- 跨行调用（把控件名字面量折到下一行）不产出调用点——与 Lua 扫描器同口径（单行）；写页逻辑时保持单行调用即可。
+- `PageLogicRule` 的「未挂载体」在迁移期是 **Warning**（`RequireLogicForEveryPage=false`）；P2a 翻成 Error，只改一处常量。
+
+### 3.5 如实记录：本批 L1 为红（归并行线）
+
+`--suite L1` 5 条失败全部指向并行线**未提交**的新文件，与本批改动无关（逐条证据）：
+
+| 失败守卫 | 指向 |
+|---|---|
+| 模块接口必须住 Abstractions | `Modules/UI/Ports/{IMapCatalog,IMetaSession,IRoomView}.cs` |
+| Forget 必须带观测回调 | `Logic/Screens/{Auth,Hub,Settings}/Page_*Logic.cs` 7 处 |
+| 跨模块类型必须住 Abstractions 或 Core | `Logic/Screens/{Match/ResultPageData,Settings/SettingsPageData}.cs` |
+| 模块产物与依赖声明必须可静态解析 | UI Require 的 `IMetaSession`/`IMapCatalog`/`IRoomView` 无产出方登记 |
+| 业务域子目录必须按职责命名 | `Modules/UI/Logic`（守卫禁 `Logic` 这一级名字） |
+
+本批自身的验证面改用：Unity 编译 0 错 ＋ 上面四个 EditMode 分组 ＋ Doc/dir-flat。并行线收口后应重跑 L1 并把本卷结论校正。

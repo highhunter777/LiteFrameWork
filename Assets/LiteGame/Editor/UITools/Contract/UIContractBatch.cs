@@ -123,16 +123,15 @@ namespace LiteGame.Editor.UITools.Contracts
                 UIContractGenerator.ApplyManifestEditorial(result.Contract, entry);
             }
 
-            string luaPath = result.Contract.Page.LuaPath;
-            if (string.IsNullOrEmpty(luaPath)) return;      // 无 Lua 页（纯表单面）——events 恒空
-            string luaFile = UILuaReferenceScanner.TryResolveLuaFile(luaPath);
-            string source = luaFile != null ? UILuaReferenceScanner.ReadSource(luaFile) : null;
+            // 事件接线：C# 页源优先、未迁移页回落 Lua（解析单源＝UIPageLogicScanner）。
+            string sourceFile = UIPageLogicScanner.ResolveFile(result.Contract.Page.Name, result.Contract.Page.LuaPath);
+            string source = UIPageLogicScanner.ReadSource(sourceFile);
             if (source == null)
             {
-                result.Warnings.Add("页面 Lua 源缺失——events[] 留空：" + luaPath);
+                result.Warnings.Add("页面逻辑源缺失——events[] 留空：" + (sourceFile ?? result.Contract.Page.Name));
                 return;
             }
-            UIContractGenerator.ApplyEvents(result.Contract, UILuaReferenceScanner.ScanEventWiring(source));
+            UIContractGenerator.ApplyEvents(result.Contract, UIPageLogicScanner.ScanEventWiring(sourceFile, source));
         }
 
         private static UIPageManifestEntry FindEntry(UIPageManifest manifest, string prefabPath)
