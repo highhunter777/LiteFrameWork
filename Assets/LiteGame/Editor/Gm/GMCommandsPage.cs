@@ -34,7 +34,7 @@ namespace LiteGame.Editor
 
         public void Draw()
         {
-            EditorGUILayout.LabelField("命令与审计（CommandCenter）", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("命令与审计（CommandBus）", EditorStyles.boldLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Button("刷新", GUILayout.Width(60))) RefreshCommands();

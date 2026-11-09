@@ -51,7 +51,7 @@ namespace LiteGame
             // 开发运行期调节件注入（Dev 装配钩子；未绑定/未挂载 = no-op）。
             DevHooks.Current?.InjectRuntimeTuners(_hostObject,
                 _host.Product<IWorldClock>(), _host.Product<IUIClock>(),
-                _host.Product<EventBus>(), _host.Product<CommandCenter>());
+                _host.Product<EventBus>(), _host.Product<CommandBus>());
             // 内存循环实测探针：**不进 dev 条件块**——本构建为非 dev Player（dev 块在此被剔除），
             // 靠 -memloop 命令行门控（未带参数 = 一次数组查找后无操作，同 -content.cdnUrl 风格）
             MemoryLoopProbe.TryArm(_container);
@@ -88,7 +88,7 @@ namespace LiteGame
                     _appComposition.ConfigHealthProbeFactory(),
                     _appComposition.CodeHealthProbeFactory()))
                 .AddSegment(new SettingsSegment())                 // ⑥ 玩家偏好 + 视角偏好单实例（先于 UI/音频）
-                .AddSegment(new EventsSegment())                   // ⑦ 事件总线（唯一产出方；只需 ① 的池）
+                .AddSegment(new EventsSegment())                   // ⑦ 事件总线（唯一产出方）
                 .AddSegment(new ClocksSegment())                   // ⑧ 双轨时钟（事件域已独立，时钟只负责时间）
                 .AddSegment(new TimelineSegment())               // ⑨ 世界时间轴（依赖 ⑧）
                 .AddSegment(new ConfigSegment(_appComposition.ConfigServiceFactory()))          // ⑪ 表投影数据源

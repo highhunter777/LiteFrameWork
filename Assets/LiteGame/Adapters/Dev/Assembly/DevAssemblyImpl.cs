@@ -44,7 +44,7 @@ namespace LiteGame
         public IBattleDevOverlay CreateBattleOverlay() => new DevBattleOverlay();
 
         public void InjectRuntimeTuners(GameObject host, IWorldClock worldClock, IUIClock uiClock,
-            EventBus events, CommandCenter commands)
+            EventBus events, CommandBus commands)
         {
             if (host == null) return;
             host.GetComponent<DebugRuntimeTuner>()

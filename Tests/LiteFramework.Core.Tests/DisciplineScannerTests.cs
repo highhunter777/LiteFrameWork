@@ -601,7 +601,7 @@ namespace LiteFramework.Tests
             Assert.Equal(1, Count("foreach (var o in TestModeOptions.All) { }", LintRule.R14ProjectionDebugPort));
             Assert.Equal(1, Count("TestModeRuntime.Current.BotResetRequested = true;", LintRule.R14ProjectionDebugPort));
             Assert.Equal(1, Count("var f = FeatureDebugTunables.CurrentHeadLine();", LintRule.R14ProjectionDebugPort));
-            Assert.Equal(1, Count("var cc = ResolveFromContainer<CommandCenter>();", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var cc = ResolveFromContainer<CommandBus>();", LintRule.R14ProjectionDebugPort));
             Assert.Equal(1, Count("var w = new WeakNetRuntime();", LintRule.R14ProjectionDebugPort));
         }
 
@@ -614,7 +614,7 @@ namespace LiteFramework.Tests
             Assert.Equal(0, Count("var g = TestModeOptions.Group.Live;", LintRule.R14ProjectionDebugPort));
             Assert.Equal(0, Count("kernel.TryTakeBattleSnapshot(out BattleDiagnostics.Snapshot s);", LintRule.R14ProjectionDebugPort));
             Assert.Equal(0, Count("var cr = result.Reason;", LintRule.R14ProjectionDebugPort));   // CommandResult 不误伤
-            Assert.Equal(0, Count("var ic = ResolveFromContainer<ICommandCenter>();", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("var ic = ResolveFromContainer<ICommandBus>();", LintRule.R14ProjectionDebugPort));
             // 纯格式化助手与门面写口放行
             Assert.Equal(0, Count("Append(DiagTrace.Line(e));", LintRule.R14ProjectionDebugPort));
             Assert.Equal(0, Count("Append('[' + Log.TagName(entry.Tag) + ']');", LintRule.R14ProjectionDebugPort));
@@ -628,7 +628,7 @@ namespace LiteFramework.Tests
         public void 纪律_R14_字符串字面量不误报()
         {
             // 页面文案/Tooltip 常含类型名——先剥字符串再匹配
-            Assert.Equal(0, Count("Append(\"命令与审计（CommandCenter）\");", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("Append(\"命令与审计（CommandBus）\");", LintRule.R14ProjectionDebugPort));
             Assert.Equal(0, Count("[Tooltip(\"最近日志尾巴（Log.Recent 环缓冲渲染）\")]", LintRule.R14ProjectionDebugPort));
             // 字符串外的真调用仍命中
             Assert.Equal(1, Count("Append(\"x\"); var a = TestModeRuntime.Active;", LintRule.R14ProjectionDebugPort));

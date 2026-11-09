@@ -5,7 +5,7 @@ namespace LiteFramework
     /// <summary>框架基础设施的构造选项（装配段只决定"开不开/多吵"，不手拼构造参数）。</summary>
     public readonly struct FrameworkInfrastructureOptions
     {
-        /// <summary>开发形态：引用池检测重复归还、日志下限更低。</summary>
+        /// <summary>开发形态：日志下限更低、命令总线开放 GM。</summary>
         public readonly bool IsDevelopment;
 
         /// <summary>日志最低级别；null = 按形态默认（开发 Info / 发布 Warning）。</summary>
@@ -31,8 +31,6 @@ namespace LiteFramework
     /// </summary>
     public sealed class FrameworkInfrastructure : IDisposable
     {
-        public IReferencePool References { get; }
-
         public IFileStore Files { get; }
 
         public IJsonCodec Json { get; }
@@ -41,14 +39,13 @@ namespace LiteFramework
 
         public IMainThreadDispatcher Dispatcher { get; }
 
-        public CommandCenter Commands { get; }
+        public CommandBus Commands { get; }
 
         private bool _disposed;
 
-        private FrameworkInfrastructure(IReferencePool references, IFileStore files, IJsonCodec json,
-            ILog logger, IMainThreadDispatcher dispatcher, CommandCenter commands)
+        private FrameworkInfrastructure(IFileStore files, IJsonCodec json,
+            ILog logger, IMainThreadDispatcher dispatcher, CommandBus commands)
         {
-            References = references;
             Files = files;
             Json = json;
             Logger = logger;
@@ -59,8 +56,6 @@ namespace LiteFramework
         /// <summary>按固定顺序构造并安装（顺序即契约；幂等之外的失败直接抛给引导层）。</summary>
         public static FrameworkInfrastructure Create(FrameworkInfrastructureOptions options)
         {
-            var references = new ReferencePoolService(trackUsage: options.IsDevelopment);
-
             // 文件端口：路径提供者 + JSON 序列化器是它的构造参数（序列化器刻意不进容器——
             // 唯一消费者是本构造函数，注册进容器却没有容器内消费者会违反"注册必须有生产消费者"）。
             var files = new FileSystem(new UnityPathProvider(), new NewtonsoftJsonSerializer());
@@ -75,16 +70,15 @@ namespace LiteFramework
             if (options.InstallStructuredLog) StructuredLogInstaller.Install();
 
             var dispatcher = new MainThreadDispatcher();
-            var commands = new CommandCenter(references, gmEnabled: options.IsDevelopment);
+            var commands = new CommandBus(gmEnabled: options.IsDevelopment);
 
-            return new FrameworkInfrastructure(references, files, json, logger, dispatcher, commands);
+            return new FrameworkInfrastructure(files, json, logger, dispatcher, commands);
         }
 
         public void Dispose()
         {
             if (_disposed) return;
             _disposed = true;
-            (References as IDisposable)?.Dispose();   // 池的实现可释放（接口只约束取还，不绑生命周期）
         }
     }
 }

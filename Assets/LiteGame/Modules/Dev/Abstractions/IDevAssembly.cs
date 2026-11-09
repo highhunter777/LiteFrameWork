@@ -36,6 +36,6 @@ namespace LiteGame.Modules.Dev
 
         /// <summary>注入宿主上的开发运行期调节件（DebugRuntimeTuner；未挂载 = no-op）。</summary>
         void InjectRuntimeTuners(UnityEngine.GameObject host, IWorldClock worldClock, IUIClock uiClock,
-            EventBus events, CommandCenter commands);
+            EventBus events, CommandBus commands);
     }
 }

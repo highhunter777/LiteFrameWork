@@ -16,7 +16,6 @@ namespace LiteFramework.Core.Tests
         private static readonly HashSet<string> ExternalProducts = new HashSet<string>(StringComparer.Ordinal)
         {
             "ServiceContainer",
-            "IServiceContainer",
             "ClientScope",
         };
 

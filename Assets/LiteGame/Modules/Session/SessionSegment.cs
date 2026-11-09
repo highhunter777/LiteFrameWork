@@ -50,14 +50,12 @@ namespace LiteGame
 
             // 注册面＝服务接口（消费者经构造注入解析）：Account 半边零引擎依赖（L1 源链接直测）。
             context.Put<IMatchSessionFactory>(new MatchSessionFactory(
-                context.RootScope, context.Services, transport.Create, identity.Handshake,
+                context.RootScope, transport.Create, identity.Handshake,
                 battleClients, mapsFn, resolveMapId,
                 () =>
                 {
                     IAccountDomain account = context.Get<IAccountDomain>();
-                    return account != null && account.IsOpen
-                        ? (account.Scope, account.Services)
-                        : (context.RootScope, context.Services);
+                    return account != null && account.IsOpen ? account.Scope : context.RootScope;
                 }));
             return UniTask.CompletedTask;
         }

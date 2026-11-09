@@ -117,12 +117,10 @@ namespace LiteGame.Tests.EditMode
     internal sealed class ControlledMatchSessionFactory : IMatchSessionFactory
     {
         private readonly ClientScope _rootScope;
-        private readonly ServiceContainer _rootServices;
 
-        public ControlledMatchSessionFactory(ClientScope rootScope = null, ServiceContainer rootServices = null)
+        public ControlledMatchSessionFactory(ClientScope rootScope = null)
         {
             _rootScope = rootScope;
-            _rootServices = rootServices;
         }
 
         public int CreateCount;
@@ -148,9 +146,7 @@ namespace LiteGame.Tests.EditMode
             LastPort = port;
             LastRoomId = roomId;
             ClientScope scope = _rootScope != null ? _rootScope.CreateChild("Match") : new ClientScope("Match");
-            ServiceContainer services = _rootServices != null
-                ? (ServiceContainer)_rootServices.CreateScope("Match")
-                : new ServiceContainer();
+            var services = new ServiceContainer();
             scope.Register(services);
             services.Seal();
             Last = new ControlledMatchSession(scope, services);

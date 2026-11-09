@@ -3,72 +3,44 @@ using System.Collections.Generic;
 
 namespace LiteFramework
 {
-    /// <summary>
-    /// 泛型实例池（**机制件**：自研替代 UnityEngine.Pool.ObjectPool）。
-    /// </summary>
-    public sealed class ObjectPool<T> : IModuleStats where T : class
+    /// <summary>泛型实例池（机制件：取还 + 池策略回调 + 借出验证）。</summary>
+    public sealed class ObjectPool<T> where T : class
     {
         private readonly Func<T> _create;
         private readonly Action<T> _onGet;
         private readonly Action<T> _onRelease;
         private readonly Action<T> _onDestroy;
         private readonly Queue<T> _idle;
-        /// <summary>入池时刻队列（ms，消费方时钟域）——与 <see cref="_idle"/> 同进出序；
-        /// 所有可能改变空闲队列前端的路径（Acquire 验证/淘汰、EvictOldest、Trim、TrimExpired）必须双队同步。</summary>
-        private readonly Queue<long> _idleAtMs;
-        private readonly PoolEviction _eviction;
         private readonly Func<T, bool> _validateOnAcquire;
         private readonly string _statsName;
-
-        /// <summary>空闲容量上限。调小不立即裁剪存量，只影响后续归还；立即释放配 <see cref="Trim"/>。</summary>
-        public int MaxIdle { get; private set; }
+        private readonly int _maxIdle;
+        private readonly HashSet<T> _inUseSet;   // 重复归还检测（null = 不检测；见 diagnoseDoubleRelease）
 
         public int UnusedCount => _idle.Count;
-        public int UsingCount => _inUse;
-        public long CreatedCount { get; private set; }
-        public long AcquiredCount { get; private set; }
-        public long ReleasedCount { get; private set; }
-        public long DroppedCount { get; private set; }
-        /// <summary>EvictOldest 淘汰数（与 <see cref="DroppedCount"/>（DropNewest 专属）不混用）。</summary>
-        public long EvictedCount { get; private set; }
-        /// <summary>借出验证失效销毁数。</summary>
-        public long InvalidatedCount { get; private set; }
-        /// <summary>池中直取数；Misses = Acquired − PoolHits，不另建键。复用率 = PoolHits / Acquired。</summary>
-        public long PoolHits { get; private set; }
-        public int PeakUnused { get; private set; }
-
-        private int _inUse;
-        private readonly HashSet<T> _inUseSet;   // 重复归还检测（null = 不检测；见 diagnoseDoubleRelease）
 
         public ObjectPool(Func<T> create, Action<T> onGet = null, Action<T> onRelease = null,
                           Action<T> onDestroy = null, int maxIdle = 64, string statsName = null,
-                          PoolEviction eviction = PoolEviction.DropNewest, Func<T, bool> validateOnAcquire = null,
-                          bool diagnoseDoubleRelease = false)
+                          Func<T, bool> validateOnAcquire = null, bool diagnoseDoubleRelease = false)
         {
             _create = create ?? throw new ArgumentNullException(nameof(create));
+            if (maxIdle < 0) throw new ArgumentOutOfRangeException(nameof(maxIdle));
             _onGet = onGet;
             _onRelease = onRelease;
             _onDestroy = onDestroy;
-            if (maxIdle < 0) throw new ArgumentOutOfRangeException(nameof(maxIdle));
-            MaxIdle = maxIdle;
+            _maxIdle = maxIdle;
             _idle = new Queue<T>(Math.Min(maxIdle, 16));
-            _idleAtMs = new Queue<long>(Math.Min(maxIdle, 16));
-            _eviction = eviction;
             _validateOnAcquire = validateOnAcquire;
-            _inUseSet = diagnoseDoubleRelease ? new HashSet<T>(16) : null;   // 开发形态开、发布形态关（装配点传 DevBuildFacts）
+            _inUseSet = diagnoseDoubleRelease ? new HashSet<T>(16) : null;
             _statsName = statsName ?? $"ObjectPool.{typeof(T).Name}";
         }
 
-        /// <summary>
-        /// 取对象；空池则 create。
-        /// </summary>
+        /// <summary>取对象；空池则 create。工厂返回 null = 资源缺失，按 null 返回（不回调、不入池）。</summary>
         public T Acquire()
         {
             T obj = null;
             while (_idle.Count > 0)
             {
                 T candidate = _idle.Dequeue();
-                _idleAtMs.Dequeue();
                 if (_validateOnAcquire != null)
                 {
                     bool valid;
@@ -80,12 +52,10 @@ namespace LiteFramework
                     {
                         Log.Error(ex, $"{_statsName}.validateOnAcquire");
                         RunOnDestroy(candidate);
-                        InvalidatedCount++;
                         continue;
                     }
                     if (!valid)
                     {
-                        InvalidatedCount++;
                         RunOnDestroy(candidate);
                         continue;
                     }
@@ -95,172 +65,45 @@ namespace LiteFramework
             }
             if (obj == null)
             {
-                obj = CreateAndCount();
-                if (obj == null)
-                {
-                    // 工厂拒绝（如资源缺失）：不回调、不计账，调用方按 null 处理——
-                    // 可空工厂的产出必须仍走 Acquire（经池登记），否则归还时 Debug 重复归还检测误伤
-                    CreatedCount--;
-                    return null;
-                }
+                obj = _create();
+                if (obj == null) return null;
             }
-            else
-                PoolHits++;
-
-            _inUse++;
-            AcquiredCount++;
             _inUseSet?.Add(obj);
             _onGet?.Invoke(obj);
-            if (obj is IPoolable spawnable)
-            {
-                try
-                {
-                    spawnable.OnSpawn();
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, $"{_statsName}.OnSpawn");   // 对象作者代码；炸了销毁并回滚账目（不留幽灵占用）
-                    RollbackAcquire(obj);
-                    throw;
-                }
-            }
             return obj;
         }
 
-        private void RollbackAcquire(T obj)
-        {
-            _inUse--;
-            AcquiredCount--;
-            _inUseSet?.Remove(obj);
-            RunOnDestroy(obj);
-        }
-
-        /// <summary>
-        /// 归还。
-        /// </summary>
-        public void Release(T obj, long nowMs = 0)
+        /// <summary>归还；满池销毁新归还件（不保留峰值）。</summary>
+        public void Release(T obj)
         {
             if (obj == null) throw new ArgumentNullException(nameof(obj));
             if (_inUseSet != null && !_inUseSet.Remove(obj))
                 throw new InvalidOperationException($"ObjectPool<{typeof(T).Name}>: 重复归还或非 Acquire 所得");
-            _inUse--;
-            ReleasedCount++;
-            try
-            {
-                (obj as IPoolable)?.OnDespawn();             // 对象自清理：先清自己的挂载，池再挪动它
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, $"{_statsName}.OnDespawn");    // 回调是对象作者代码；炸了销毁，不入池污染
-                RunOnDestroy(obj);
-                return;
-            }
             try
             {
                 _onRelease?.Invoke(obj);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"{_statsName}.onRelease");        // 回调是对象作者代码；炸了销毁，不入池污染
+                Log.Error(ex, $"{_statsName}.onRelease");     // 回调是对象作者代码；炸了销毁，不入池污染
                 RunOnDestroy(obj);
                 return;
             }
 
-            if (_idle.Count >= MaxIdle)
+            if (_idle.Count >= _maxIdle)
             {
-                if (_eviction == PoolEviction.EvictOldest && _idle.Count > 0)
-                {
-                    // 淘汰队首最旧空闲件（走 onDestroy、计 Evicted），新归还件入池——热点件不被反复重建。
-                    EvictedCount++;
-                    RunOnDestroy(_idle.Dequeue());
-                    _idleAtMs.Dequeue();
-                }
-                else
-                {
-                    DroppedCount++;                              // DropNewest：销毁新归还件，不让池随峰值膨胀
-                    RunOnDestroy(obj);
-                    return;
-                }
+                RunOnDestroy(obj);
+                return;
             }
             _idle.Enqueue(obj);
-            _idleAtMs.Enqueue(nowMs);
-            if (_idle.Count > PeakUnused) PeakUnused = _idle.Count;
         }
 
-        /// <summary>预热：消除业务高峰（进战斗）首帧的 new 尖峰。**count 超过上限时自动上调**——预热即显式声明容量。
-        /// nowMs：入池时刻（消费方时钟域；与 Release 的时刻同域，供 TrimExpired 按龄收缩）。</summary>
-        public void Preload(int count, long nowMs = 0)
+        /// <summary>销毁全部空闲对象（在用对象不受影响）。</summary>
+        public void Clear()
         {
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
-            if (count > MaxIdle) MaxIdle = count;
-            while (count-- > 0 && _idle.Count < MaxIdle)
-            {
-                var obj = CreateAndCount();
-                _idle.Enqueue(obj);
-                _idleAtMs.Enqueue(nowMs);
-                if (_idle.Count > PeakUnused) PeakUnused = _idle.Count;
-            }
+            while (_idle.Count > 0) RunOnDestroy(_idle.Dequeue());
         }
 
-        /// <summary>裁剪：把空闲存量裁到 keep，被裁对象走 onDestroy。在用对象不受影响。</summary>
-        public void Trim(int keep)
-        {
-            if (keep < 0) throw new ArgumentOutOfRangeException(nameof(keep));
-            while (_idle.Count > keep)
-            {
-                RunOnDestroy(_idle.Dequeue());
-                _idleAtMs.Dequeue();
-            }
-        }
-
-        /// <summary>
-        /// 按龄收缩（消费方驱动——时刻只从调用方进入，内核零时钟纪律）：从队首（最旧）销毁空闲时长 **超过** maxIdleMs 的件，返回裁剪数。
-        /// </summary>
-        public int TrimExpired(long nowMs, long maxIdleMs)
-        {
-            int trimmed = 0;
-            while (_idle.Count > 0 && nowMs - _idleAtMs.Peek() > maxIdleMs)
-            {
-                RunOnDestroy(_idle.Dequeue());
-                _idleAtMs.Dequeue();
-                trimmed++;
-            }
-            return trimmed;
-        }
-
-        /// <summary>销毁全部空闲对象（重开局/关服用）。**在用对象不受影响**——按契约归还时自然走完生命周期。</summary>
-        public void Clear() => Trim(0);
-
-        private T CreateAndCount()
-        {
-            var obj = _create();
-            CreatedCount++;
-            return obj;
-        }
-
-        private void RunOnDestroy(T obj)
-        {
-            _onDestroy?.Invoke(obj);
-        }
-
-        // ---- IModuleStats（HUD 数据源）----。
-
-        string IModuleStats.StatsName => _statsName;
-
-        void IModuleStats.Snapshot(Dictionary<string, string> into)
-        {
-            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
-            into["Created"] = CreatedCount.ToString();
-            into["Acquired"] = AcquiredCount.ToString();
-            into["Released"] = ReleasedCount.ToString();
-            into["Unused"] = UnusedCount.ToString();
-            into["Using"] = UsingCount.ToString();
-            into["PeakUnused"] = PeakUnused.ToString();
-            into["Dropped"] = DroppedCount.ToString();
-            into["Evicted"] = EvictedCount.ToString();
-            into["Invalidated"] = InvalidatedCount.ToString();
-            into["PoolHits"] = PoolHits.ToString();
-            into["MaxIdle"] = MaxIdle.ToString();
-        }
+        private void RunOnDestroy(T obj) => _onDestroy?.Invoke(obj);
     }
 }

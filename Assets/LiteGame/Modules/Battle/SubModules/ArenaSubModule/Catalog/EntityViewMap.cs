@@ -98,13 +98,6 @@ namespace LiteGame
             GetPool(PoolKey(view)).Release(view);
         }
 
-        /// <summary>清空本地池（宿主关闭/对局结束；回收方为 null 时的自有池才需要）。</summary>
-        public void ClearPool()
-        {
-            foreach (var pool in _pools.Values) pool.Clear();
-            _pools.Clear();
-        }
-
         private ObjectPool<GameObject> GetPool(string location)
         {
             if (!_pools.TryGetValue(location, out var pool))

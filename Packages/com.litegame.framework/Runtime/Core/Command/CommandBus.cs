@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// 命令中心（《命令中心专项设计》§2/§3/§6）：类型化意图请求的注册-执行-结果链路。
+    /// 命令总线（《命令总线专项设计》§2/§3/§6）：类型化意图请求的注册-执行-结果链路。
     /// </summary>
-    public sealed class CommandCenter : ICommandCenter, IModuleStats, ITickable
+    public sealed class CommandBus : ICommandBus, IModuleStats, ITickable
     {
         private sealed class Registration
         {
@@ -20,7 +20,6 @@ namespace LiteFramework
 
         private readonly Dictionary<Type, Registration> _handlers = new Dictionary<Type, Registration>(16);
         private readonly bool _gmEnabled;
-        private readonly IReferencePool _pool;
         private long _registeredSeq;
         private long _sent;
         private long _gmBlocked;
@@ -47,13 +46,12 @@ namespace LiteFramework
         private long _auditSeq;
         private const int AuditCapacity = DiagnosticsDefaults.AuditRingCapacity;
 
-        public CommandCenter(IReferencePool pool, bool gmEnabled = true,
+        public CommandBus(bool gmEnabled = true,
             int maxQueued = QueueLimits.DefaultCapacity)
         {
             if (maxQueued < 1) throw new ArgumentOutOfRangeException(nameof(maxQueued));
             _gmEnabled = gmEnabled;
             MaxQueued = maxQueued;
-            _pool = pool ?? throw new System.ArgumentNullException(nameof(pool), "IReferencePool 未注入");
         }
 
         public IDisposable Register<TCommand>(ICommandHandler<TCommand> handler, CommandOptions options = null) where TCommand : ICommand
@@ -142,7 +140,7 @@ namespace LiteFramework
         // ---- 批3 高级执行形态方法（§4）----。
 
         /// <summary>排队执行（§4 fire-and-forget）：入队，Tick 驱动到期按入队序执行——无返回结果，
-        /// 失败走审计与日志；命令实现 IReference 则执行完由中心回收（入队即移交）。
+        /// 失败走审计与日志；命令对象生命周期归调用方（中心不回收）。
         /// 执行时同样过权限门（经 Send 同一核心）；无处理器=编程错误，入队时早暴露。</summary>
         public void SendQueued<TCommand>(TCommand command, int delayFrames = 0) where TCommand : ICommand
         {
@@ -155,7 +153,6 @@ namespace LiteFramework
             {
                 _queuedDropped++;
                 Log.Error($"命令队列溢出丢弃（MaxQueued={MaxQueued}）: {typeof(TCommand).Name}", LogTag.Command);
-                RecycleCommand(command);                    // 丢弃同样回收池化命令
                 return;
             }
             _queue.Enqueue(new PendingCommand { CommandType = typeof(TCommand), Command = command, DueTick = _tickCount + delayFrames });
@@ -175,7 +172,6 @@ namespace LiteFramework
                     if (_adapters.TryGetValue(pc.CommandType, out var send)) send(pc.Command);
                 }
                 catch (Exception ex) { Log.Error(ex, $"Command.Tick.{pc.CommandType.Name}"); }   // 中途被注销等边缘:隔离不炸泵
-                RecycleCommand(pc.Command);                 // fire-and-forget:执行完回收（含失败/拦截路径）
             }
         }
 
@@ -271,11 +267,6 @@ namespace LiteFramework
             }
         }
 
-        private void RecycleCommand(object command)
-        {
-            if (command is IReference pooled) _pool.Release(pooled);   // 排队命令入队即移交：执行完（含失败/拦截/溢出）回收
-        }
-
         private struct PendingCommand
         {
             public Type CommandType;
@@ -321,16 +312,16 @@ namespace LiteFramework
 
         private sealed class Unsubscription : IDisposable
         {
-            private readonly CommandCenter _center;
+            private readonly CommandBus _bus;
             private readonly Type _type;
-            public Unsubscription(CommandCenter center, Type type) { _center = center; _type = type; }
+            public Unsubscription(CommandBus bus, Type type) { _bus = bus; _type = type; }
             public void Dispose()
             {
-                _center._handlers.Remove(_type);            // 幂等（二次注销 no-op）；注销后方可重新注册
+                _bus._handlers.Remove(_type);            // 幂等（二次注销 no-op）；注销后方可重新注册
             }
         }
 
-        public string StatsName => "CommandCenter";
+        public string StatsName => "CommandBus";
 
         /// <summary>契约：实现负责 into.Clear() 再填入（IModuleStats 同族口径）。</summary>
         public void Snapshot(Dictionary<string, string> into)

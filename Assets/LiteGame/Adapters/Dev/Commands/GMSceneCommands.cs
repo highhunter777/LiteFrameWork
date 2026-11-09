@@ -69,23 +69,23 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// GM 场景命令注册面（装配点唯一入口）：四命令 GmOnly 注册进命令中心——发现面自动列出
+    /// GM 场景命令注册面（装配点唯一入口）：四命令 GmOnly 注册进命令总线——发现面自动列出
     /// （带参命令由场景页专面板执行）、加载/卸载进审计环；返回合并注销器（调用方持有，随装配生命周期释放）。
     /// </summary>
     public static class GMSceneCommands
     {
-        public static IDisposable RegisterAll(CommandCenter center, ISceneService scenes)
+        public static IDisposable RegisterAll(CommandBus bus, ISceneService scenes)
         {
-            if (center == null) throw new ArgumentNullException(nameof(center));
+            if (bus == null) throw new ArgumentNullException(nameof(bus));
             var handler = new GMSceneCommandHandler(scenes);
             var bag = new SubscriptionBag();
-            bag.Add(center.RegisterAsync<GMLoadSingleSceneCommand>(handler,
+            bag.Add(bus.RegisterAsync<GMLoadSingleSceneCommand>(handler,
                 new CommandOptions(gmOnly: true, description: "单场景加载（卸旧加载新）")).Dispose);
-            bag.Add(center.RegisterAsync<GMLoadAdditiveSceneCommand>(handler,
+            bag.Add(bus.RegisterAsync<GMLoadAdditiveSceneCommand>(handler,
                 new CommandOptions(gmOnly: true, description: "叠加加载场景")).Dispose);
-            bag.Add(center.RegisterAsync<GMUnloadSingleSceneCommand>(handler,
+            bag.Add(bus.RegisterAsync<GMUnloadSingleSceneCommand>(handler,
                 new CommandOptions(gmOnly: true, description: "卸载当前单场景")).Dispose);
-            bag.Add(center.RegisterAsync<GMUnloadAdditiveSceneCommand>(handler,
+            bag.Add(bus.RegisterAsync<GMUnloadAdditiveSceneCommand>(handler,
                 new CommandOptions(gmOnly: true, description: "卸载指定叠加场景")).Dispose);
             return bag;
         }

@@ -5,7 +5,7 @@
 > 定位：GM/调试面的**分层裁决与形态契约**——回答“调试能力的内核放在哪、投影怎么长、写口与读口归谁”。
 > 不做的事：不裁决具体调试工具的能力清单与优先级（归[《调试与开发工具链演进路线图》](../测试与性能/调试与开发工具链演进路线图.md)）；不裁决工具平台形态（归[《开发工具链平台专项设计》](开发工具链平台专项设计.md)）；不登记施工批次（归 [施工进度/GM与调试线](../../施工进度/GM与调试线.md)）。
 > 冲突裁决：内核/投影职责与写口纪律以本文为准；能力优先级以调试路线图 T0～T3 为准；平台形态以平台专项为准；UI 专用投影以[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)为准。
-> 配套：《命令中心专项设计》（命令总线/权限门/审计环）、《烘焙工具箱专项设计》（工具页件范式先例）、
+> 配套：《命令总线专项设计》（命令总线/权限门/审计环）、《烘焙工具箱专项设计》（工具页件范式先例）、
 > 《资源收集目录专项设计》§5.1（表布局单源 `TableLayout`）。设计裁决只在本文件；进度证据在 [施工进度/GM与调试线](../../施工进度/GM与调试线.md)。
 
 ## 1. 四层模型
@@ -27,7 +27,7 @@
 |---|---|---|---|---|---|
 | **DevCheat**（开发作弊） | 本机开发/编辑器 | `LiteGame.Adapters.Dev`：`TestModeRuntime`、`DebugKernel`、`DevHud`、`DebugConsole`、`DebugPanel`；编辑器 GM 页只做投影 | `defineConstraints` 三宏，release 不编译 | 无（本机）；产品只经 `IDevSession` 读 | 端口缺失 = 发布形态空实现；不静默造开发副作用 |
 | **MatchSandbox**（测试沙盒） | 本地测试房/单局 | `MatchTestRules`（LiteSim，每局实例）、`ILocalTestHooks`（LiteGame.Core，开发端口）、`LocalServerTransport`（LiteGame.Adapters.Dev） | 只在本地测试房生效；不进正式匹配 | 测试房由入口/GM 显式创建；钩子只由本地服消费 | 规则缺失 = 本地服构造失败；发布端口恒空 |
-| **OpsGm**（运维 GM） | 云端运维面 | `Server/RoomServer` 的 `/gm/*`（`start`/`abort`/`kick`/`settle-flush`/`rules`/`diag-*`）；`CommandCenter` GM 命令；编辑器 `Gm*Page` 只是投影 | 服务端常驻；客户端 GM 页仅 Editor | `X-GM-Key` + 隧道绑定；命令进审计环 | 缺密钥/隧道 = 拒绝；不降级为开发作弊 |
+| **OpsGm**（运维 GM） | 云端运维面 | `Server/RoomServer` 的 `/gm/*`（`start`/`abort`/`kick`/`settle-flush`/`rules`/`diag-*`）；`CommandBus` GM 命令；编辑器 `Gm*Page` 只是投影 | 服务端常驻；客户端 GM 页仅 Editor | `X-GM-Key` + 隧道绑定；命令进审计环 | 缺密钥/隧道 = 拒绝；不降级为开发作弊 |
 | **AntiCheat**（反作弊） | 服务端判定/校验面 | `RoomServer.Runtime` 的 `InputGate`/`LagCompensator`/快照 checksum；`LiteNet` 协议校验；BuildHash/ConfigHash/CombatConfigDigest 身份 | 服务端与客户端校验链；不是可开关模块 | 服务器权威；客户端只报事实/被拒 | 超界即夹取/拒绝；不得由客户端自证 |
 
 **四条硬规则**：
@@ -42,7 +42,7 @@
 ## 2. 动作三分口径（命令化边界）
 
 1. **pre-Play 请求桥**：进入/退出本地测试模式、传送请求——容器尚不存在，直发一次性请求（写侧 `TestModeRuntime.RequestEnter/RequestExit/RequestTeleport`，消费侧 `TakeEnterRequest/TakeExitRequest/TakeTeleportRequest` **读即清——一次性语义编译期保证**）；传送在对局内的实际派发经 `ProcedureBattle` → `SendQueued(TeleportToAimCommand)` **进审计环且可撤销**。
-2. **Play 中低频动作**：命令中心派发（审计全覆盖）——样例 `GMResetClockCommand`（时钟复位）、`TeleportToAimCommand`（传送，IUndoable）、**场景命令四件**（`GMLoadSingleScene/GMLoadAdditiveScene/GMUnloadSingleScene/GMUnloadAdditiveScene`——带参+异步形态首个落地：`IAsyncCommandHandler` 经 `ISceneService` 执行，注册点 `ContainerModule` 装配期〔dev 三宏，不依赖 DevStartupConfig 是否挂〕，场景页即带参命令的专面板）。新增 GM 动作默认走此形态：命令类型 + 处理器 + `CommandOptions(gmOnly: true, description)`，发现面自动列出。
+2. **Play 中低频动作**：命令总线派发（审计全覆盖）——样例 `GMResetClockCommand`（时钟复位）、`TeleportToAimCommand`（传送，IUndoable）、**场景命令四件**（`GMLoadSingleScene/GMLoadAdditiveScene/GMUnloadSingleScene/GMUnloadAdditiveScene`——带参+异步形态首个落地：`IAsyncCommandHandler` 经 `ISceneService` 执行，注册点 `ContainerModule` 装配期〔dev 三宏，不依赖 DevStartupConfig 是否挂〕，场景页即带参命令的专面板）。新增 GM 动作默认走此形态：命令类型 + 处理器 + `CommandOptions(gmOnly: true, description)`，发现面自动列出。
 3. **只读诊断与高频旋钮不命令化**：现场开关（`TestModeOptions.Set`）、爆头/持枪滑杆——审计环 32 条会被滑杆刷屏；连续旋钮不强行命令化（`GmResetClock` 与 `DebugRuntimeTuner` 连续旋钮并存的既有先例同口径）。**只读投影同口径**（2026-10-12 裁决）：配置诊断页的运行状态/表查询/产物核对为零状态突变的只读面——命令化只刷审计噪音，维持直调。
 
 ## 3. 覆写面治理（沙箱件统一口径）
@@ -81,7 +81,7 @@
 - 审计环不覆盖 pre-Play 请求桥与高频旋钮（§2 取舍，非遗漏）。
 - `MatchTestRules` 链路依赖"客户端预测与进程内服务器同进程同实例"——**本地测试模式/本地服形态专属**；真 KCP 的云端测试房只提供 `gm_flags`（免死/无限弹药）在线下发，爆头带/持枪幅度等覆写仍只在本地测试模式验（`ProcedureMatch` 入口口径）。
 - GM 面板对局中导出爆头区会触发 domain reload 中断对局（既有行为，页内 HelpBox 已提示）。
-- **投影直调禁令（R14）**：两个投影根（`LiteGame.Adapters.Dev/Projection` + `Editor/Gm`）的调试读数/动作/发现面一律经内核；直调底层调试源由纪律扫描把守。唯一 lint-allow 判例＝场景页（带参命令专面板——`CommandCenter.SendAsync` 直用，全量审计）；编辑器页在非 Play（内核未装配）时相关节空态提示。
+- **投影直调禁令（R14）**：两个投影根（`LiteGame.Adapters.Dev/Projection` + `Editor/Gm`）的调试读数/动作/发现面一律经内核；直调底层调试源由纪律扫描把守。唯一 lint-allow 判例＝场景页（带参命令专面板——`CommandBus.SendAsync` 直用，全量审计）；编辑器页在非 Play（内核未装配）时相关节空态提示。
 
 ## 7. 统一内核与三投影
 
@@ -101,11 +101,11 @@
 | 子面 | 内容 | 现行承载 |
 | --- | --- | --- |
 | 读模型 | 模块统计、对局诊断、日志/结构化诊断、页面状态与焦点、配置/内容身份、性能样本、网络调试读数（会话相位/RTT/丢包/弱网注入）、测试模式/日志关联上下文（`IsTestModeActive`/`CurrentMatchId`/`CurrentSessionId`/`StartupBotCount`） | `GameEntry.Stats`、`BattleDiagnostics`、`Log`/`DiagTrace`、`UIService`/`UIModalStack.IUIFormQuery` 只读查询、`DebugPerfSampler`（帧统计 + GC/Draw/Batches recorder——经 `DebugKernel.SampleFrame/TryTakePerf/RecordHudBuildMs`）、`DebugKernel.Network`（`NetworkDebug` 组件） |
-| 动作模型 | 低频离散动作（命令化 + 审计 + 可撤销）、测试开关单表、pre-Play 一次性请求桥、一次性宿主钩子（bot 重置 `RequestBotReset`）、会话动作（强制断线 `ForceDisconnectCommand`／无状态重连 `ForceReconnectCommand`／自动重连抑制 `SetAutoReconnectSuppressedCommand`） | `CommandCenter`、`TestModeOptions`、`TestModeRuntime`、`ILocalTestHooks.BotResetRequested`（经内核收口）、`DebugKernel.TryForceDisconnect/TryBeginReconnect/TrySetSuppressAutoReconnect` |
-| 发现协议 | 命令注册表（类型/描述/GmOnly/注册时序）、选项表、读模型段表、调参描述表 | `CommandCenter.GetRegisteredInfos()`、`TestModeOptions.All`、`IDevHudSection`、`IDebugTunableProvider` |
+| 动作模型 | 低频离散动作（命令化 + 审计 + 可撤销）、测试开关单表、pre-Play 一次性请求桥、一次性宿主钩子（bot 重置 `RequestBotReset`）、会话动作（强制断线 `ForceDisconnectCommand`／无状态重连 `ForceReconnectCommand`／自动重连抑制 `SetAutoReconnectSuppressedCommand`） | `CommandBus`、`TestModeOptions`、`TestModeRuntime`、`ILocalTestHooks.BotResetRequested`（经内核收口）、`DebugKernel.TryForceDisconnect/TryBeginReconnect/TrySetSuppressAutoReconnect` |
+| 发现协议 | 命令注册表（类型/描述/GmOnly/注册时序）、选项表、读模型段表、调参描述表 | `CommandBus.GetRegisteredInfos()`、`TestModeOptions.All`、`IDevHudSection`、`IDebugTunableProvider` |
 | 调参模型 | `DebugTunable` 描述（Id/Group/Tags/Scope/Default/Min/Max/Decimals/RuntimeVisible/Get/Set/Reset）；默认值来自功能数据源 | `DebugKernel.Tunables/RuntimeTunables/TrySetTunable/ResetTunable` + `DebugTunableDiscovery`（容器 + 场景 provider） |
 
-> 调参描述不是业务接口开放：功能自己提供 get/set 并保证不变量；编辑器「调试参数」页按全量渲染，F2 只按 `RuntimeVisible` 白名单渲染 Sandbox/Presentation；`Product` 默认不进运行期。F3 `tune` 可显式访问全量。连续/开关参数不强制命令化（避免审计刷屏），离散动作仍走 `CommandCenter`；`Product` scope 只作临时试验，定档后迁回表/配置；release 三宏剥离。
+> 调参描述不是业务接口开放：功能自己提供 get/set 并保证不变量；编辑器「调试参数」页按全量渲染，F2 只按 `RuntimeVisible` 白名单渲染 Sandbox/Presentation；`Product` 默认不进运行期。F3 `tune` 可显式访问全量。连续/开关参数不强制命令化（避免审计刷屏），离散动作仍走 `CommandBus`；`Product` scope 只作临时试验，定档后迁回表/配置；release 三宏剥离。
 > `Product` 用于“默认值仍写在代码常量、尚未迁入表/配置”的参数（准心/视角）；默认值已由烘焙产物提供的参数（爆头区/持枪幅度）不标 Product，其覆写按调试维度归 Sandbox/Presentation。
 > 参数规模管理：Id 采用 `group.item` 命名、Group 分组、Tags 检索；功能各自 provider，不建中央手写清单；运行期白名单只放现场能解释的少量参数，长尾/未定型参数留在编辑器。
 
@@ -121,7 +121,7 @@
 
 专用调试面板不是第四套逻辑：它是运行期操控投影的一个模块，同一命令集既可被文本控制台调用，也可被面板按钮调用。UI 专用投影见[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)。
 
-投影与内核之下的单源写口没有第二写路径（开关单表/请求桥仍由内核包装调用，R14 拦投影直调）；场景操作页是唯一 `lint-allow R14` 判例——带参/异步命令经 `CommandCenter.SendAsync` 派发（权限门/拦截器/审计链全量生效），内核 `TryExecute` 只覆盖无参形态。
+投影与内核之下的单源写口没有第二写路径（开关单表/请求桥仍由内核包装调用，R14 拦投影直调）；场景操作页是唯一 `lint-allow R14` 判例——带参/异步命令经 `CommandBus.SendAsync` 派发（权限门/拦截器/审计链全量生效），内核 `TryExecute` 只覆盖无参形态。
 
 ### 7.4 取件与依赖方向
 
@@ -154,7 +154,7 @@
 | 层级 | 验证内容 |
 | --- | --- |
 | L1 | 内核纯逻辑：发现表、命令映射、读模型投影、选项表；不依赖 Unity 运行时 |
-| L2 PlayMode | 投影在真实 `UIService`/`CommandCenter` 下的空态、拒绝、读模型与清理 |
+| L2 PlayMode | 投影在真实 `UIService`/`CommandBus` 下的空态、拒绝、读模型与清理 |
 | 开发包人工验证 | 真实操作路径（红线 13）：入口 → 操作 → 副作用断言 → 证据 |
 | release | 类型与资产零残留；调试命令不可达 |
 | Doc | 设计与索引一致（`--suite Doc`） |

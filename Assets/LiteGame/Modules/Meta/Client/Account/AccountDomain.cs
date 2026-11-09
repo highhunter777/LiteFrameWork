@@ -55,7 +55,7 @@ namespace LiteGame
                 throw new InvalidOperationException("IdentityContext 未登记，无法开启账户域");
 
             _scope = _rootScope.CreateChild("Account");
-            _services = (ServiceContainer)_rootServices.CreateScope("Account");
+            _services = new ServiceContainer();
             _context = new AccountContext(accountId, accessToken);
             _account = new MetaAccountSession(client, identity, accountId, accessToken,
                 _template, _gmKey, ReentryProvider());

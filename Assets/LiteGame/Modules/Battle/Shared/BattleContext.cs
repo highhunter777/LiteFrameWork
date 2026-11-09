@@ -235,6 +235,7 @@ namespace LiteGame
         public void Tick(float realDelta)
         {
             if (_disposed) return;
+            _events?.Tick(realDelta);       // 局内延迟事件：帧首派发，先于网络/输入/模拟
             _battle.TickIncoming();
 
             // ① 输入三件（采样入史 → 同一份上行 → 沿用帧预发）——必须**先于**本地服步进（顺序理由见管线类注释）。

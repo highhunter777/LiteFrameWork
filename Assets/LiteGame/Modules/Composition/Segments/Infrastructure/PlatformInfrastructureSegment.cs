@@ -1,4 +1,4 @@
-﻿using System.Threading;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
@@ -18,11 +18,10 @@ namespace LiteGame.Modules.Composition
 
         public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
         {
-            // 引用池实例（Root 域）：生产消费者经 IReferencePool 注入（静态门面已删除）。
+            // 平台基础设施实例（Root 域）：文件/JSON/日志/派发/命令总线。
             _infra = FrameworkInfrastructure.Create(FrameworkInfrastructureOptions.FromDevBuild());
-            context.Put<FrameworkInfrastructure>(_infra);   // 装配入口本身留可读（Events/工具链取池与命令中心）
-            context.Put<IReferencePool>(_infra.References);
-            context.Scope.Register(_infra);                 // 随本模块关闭释放池（清空全部空闲件）
+            context.Put<FrameworkInfrastructure>(_infra);   // 装配入口本身留可读（工具链取命令总线）
+            context.Scope.Register(_infra);                 // 随本模块关闭释放
 
             // 文件端口（进程级）：消费者经 IFileStore 注入（静态门面已删除）。
             context.Put<IFileStore>(_infra.Files);
@@ -34,10 +33,10 @@ namespace LiteGame.Modules.Composition
             // 日志实例（进程级）：静态 Log 只是门面；新代码/适配器经 ILog 注入。
             context.Put<ILog>(_infra.Logger);
 
-            // 主线程派发 + 命令中心（框架基础设施件；命令中心只依赖池）。
+            // 主线程派发 + 命令总线（框架基础设施件；命令总线只依赖池）。
             context.Put<IMainThreadDispatcher>(_infra.Dispatcher);
-            context.Put<CommandCenter>(_infra.Commands);
-            context.Put<ICommandCenter>(_infra.Commands);
+            context.Put<CommandBus>(_infra.Commands);
+            context.Put<ICommandBus>(_infra.Commands);
 
             return UniTask.CompletedTask;
         }

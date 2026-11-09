@@ -15,7 +15,7 @@ namespace LiteFramework.Tests
     public sealed class GMSceneCommandTests
     {
 
-        private readonly ReferencePoolService _pool = new ReferencePoolService();        /// <summary>场景服务替身：记录四操作调用与实参（验证派发协议，不实现加载）。</summary>
+        /// <summary>场景服务替身：记录四操作调用与实参（验证派发协议，不实现加载）。</summary>
         private sealed class FakeSceneService : ISceneService
         {
             public int SingleLoads; public string LastSingleLoad;
@@ -43,7 +43,7 @@ namespace LiteFramework.Tests
         [Fact]
         public async Task 四命令_各派发到对应服务操作_审计进环()
         {
-            var commands = new CommandCenter(_pool, gmEnabled: true);          // 三宏内语义（L1 带 LITEFRAMEWORK_DEBUG）
+            var commands = new CommandBus(gmEnabled: true);          // 三宏内语义（L1 带 LITEFRAMEWORK_DEBUG）
             var scenes = new FakeSceneService();
             using (GMSceneCommands.RegisterAll(commands, scenes))
             {
@@ -71,7 +71,7 @@ namespace LiteFramework.Tests
         [Fact]
         public async Task 空location_带参命令拒绝且不派发()
         {
-            var commands = new CommandCenter(_pool, gmEnabled: true);
+            var commands = new CommandBus(gmEnabled: true);
             var scenes = new FakeSceneService();
             using (GMSceneCommands.RegisterAll(commands, scenes))
             {
@@ -90,7 +90,7 @@ namespace LiteFramework.Tests
         [Fact]
         public async Task 权限门_GmOnly在release语义下拦截_服务零调用()
         {
-            var commands = new CommandCenter(_pool, gmEnabled: false);          // release 语义（构造注入可测接缝）
+            var commands = new CommandBus(gmEnabled: false);          // release 语义（构造注入可测接缝）
             var scenes = new FakeSceneService();
             using (GMSceneCommands.RegisterAll(commands, scenes))
             {
@@ -105,7 +105,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 注册面_四命令GmOnly进发现面_注销器对称清空()
         {
-            var commands = new CommandCenter(_pool, gmEnabled: true);
+            var commands = new CommandBus(gmEnabled: true);
             var scenes = new FakeSceneService();
             IDisposable un = GMSceneCommands.RegisterAll(commands, scenes);
 

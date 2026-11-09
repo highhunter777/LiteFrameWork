@@ -44,60 +44,34 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void 校验与密封_不构造服务_解析后填入原位置()
+        public void 未编排实例_Validate拒绝_不污染现有计划()
         {
             using var services = new ServiceContainer();
             using var frames = new FrameSchedule(services);
-            int constructions = 0;
-            services.RegisterFactory<ITickable>(_ => { constructions++; return new TickProbe(); });
-            frames.SetOrder(typeof(ITickable));
-            services.Seal();
-            Assert.Equal(0, constructions);
-            Assert.Empty(frames.Tickables);
-            var tick = services.Resolve<ITickable>();
-            Assert.Same(tick, Assert.Single(frames.Tickables));
-            Assert.Equal(1, constructions);
+            var planned = new TickProbe();
+            services.RegisterInstance(planned);
+            frames.SetOrder(typeof(TickProbe));
+            services.RegisterInstance(new SecondTick(_ => { }));   // 未编排
+
+            Assert.Contains("未编排", Assert.Throws<InvalidOperationException>(() => frames.Validate()).Message);
+            Assert.Same(planned, Assert.Single(frames.Tickables));
+            services.Seal();                                        // 校验在装配末段显式调用，Seal 只冻结
         }
 
         [Fact]
-        public void 未编排实例注册失败_不污染登记或现有计划()
-        {
-            using var services = new ServiceContainer();
-            using var frames = new FrameSchedule(services);
-            frames.SetOrder();
-            Assert.Throws<InvalidOperationException>(() => services.RegisterInstance(new TickProbe()));
-            Assert.False(services.TryGetInstance<TickProbe>(out _));
-            Assert.Empty(frames.Tickables);
-        }
-
-        [Fact]
-        public void 瞬态工厂隐藏Tickable_发布前拒绝_容器仍回收它()
-        {
-            var services = new ServiceContainer();
-            using var frames = new FrameSchedule(services);
-            var tick = new TickProbe();
-            services.RegisterFactory<object>(_ => tick, ServiceLifetime.Transient);
-            services.Seal();
-            Assert.Contains("Transient", Assert.Throws<InvalidOperationException>(() => services.Resolve<object>()).Message);
-            Assert.False(services.TryGetInstance<object>(out _));
-            Assert.Empty(frames.Tickables);
-            services.Dispose();
-            Assert.Equal(1, tick.DisposeCount);
-            Assert.True(frames.IsDisposed);
-        }
-
-        [Fact]
-        public void 释放帧计划_解除验证订阅_不接管服务资源()
+        public void 释放帧计划_解除订阅_不接管服务资源()
         {
             using var services = new ServiceContainer();
             var frames = new FrameSchedule(services);
             var tick = new TickProbe();
-            services.RegisterFactory<object>(_ => tick);
-            frames.SetOrder();
+            services.RegisterInstance(tick);
+            frames.SetOrder(typeof(TickProbe));
+
             frames.Dispose();
             frames.Dispose();
             services.Seal();
-            Assert.Same(tick, services.Resolve<object>());
+
+            Assert.Same(tick, services.Resolve<TickProbe>());
             Assert.Equal(0, tick.DisposeCount);
             Assert.Throws<ObjectDisposedException>(() => frames.Tick(0));
             Assert.Throws<ObjectDisposedException>(() => frames.SetOrder());
@@ -112,7 +86,9 @@ namespace LiteFramework.Tests
             var frames = new FrameSchedule(services);
             var tick = new TickProbe();
             services.RegisterInstance(tick, ServiceOwnership.ContainerOwned);
+
             services.Dispose();
+
             Assert.True(frames.IsDisposed);
             Assert.Empty(frames.Tickables);
             Assert.Equal(1, tick.DisposeCount);
@@ -121,23 +97,23 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void 子域帧计划_只驱动本域_父域释放清理两侧()
+        public void 独立容器_各自帧计划互不影响()
         {
-            var root = new ServiceContainer();
-            using var rootFrames = new FrameSchedule(root);
-            var rootTick = new TickProbe();
-            root.RegisterInstance(rootTick);
-            root.Seal();
-            var child = (ServiceContainer)root.CreateScope("Match");
-            using var childFrames = new FrameSchedule(child);
-            var childTick = new SecondTick(_ => { });
-            child.RegisterInstance(childTick, ServiceLifetime.Scoped);
-            child.Seal();
-            Assert.Same(rootTick, Assert.Single(rootFrames.Tickables));
-            Assert.Same(childTick, Assert.Single(childFrames.Tickables));
-            root.Dispose();
-            Assert.True(rootFrames.IsDisposed);
-            Assert.True(childFrames.IsDisposed);
+            using var first = new ServiceContainer();
+            using var second = new ServiceContainer();
+            using var firstFrames = new FrameSchedule(first);
+            using var secondFrames = new FrameSchedule(second);
+            var firstTick = new TickProbe();
+            var secondTick = new SecondTick(_ => { });
+            first.RegisterInstance(firstTick);
+            second.RegisterInstance(secondTick);
+            firstFrames.SetOrder(typeof(TickProbe));
+            secondFrames.SetOrder(typeof(SecondTick));
+            first.Seal();
+            second.Seal();
+
+            Assert.Same(firstTick, Assert.Single(firstFrames.Tickables));
+            Assert.Same(secondTick, Assert.Single(secondFrames.Tickables));
         }
 
         [Fact]
@@ -145,12 +121,15 @@ namespace LiteFramework.Tests
         {
             using var services = new ServiceContainer();
             using var frames = new FrameSchedule(services);
+            var dependency = new object();
+            services.RegisterInstance(dependency);
             var tick = new TickProbe { OnTick = _ => services.Resolve<object>() };
             services.RegisterInstance(tick);
-            services.RegisterFactory<object>(_ => new object());
             frames.SetOrder(typeof(TickProbe));
             services.Seal();
+
             frames.Tick(1);
+
             Assert.Equal(1, tick.Calls);
             Assert.Same(tick, Assert.Single(frames.Tickables));
         }
@@ -165,6 +144,7 @@ namespace LiteFramework.Tests
             services.RegisterInstance(new SecondTick(_ => secondCalled = true));
             frames.SetOrder(typeof(TickProbe), typeof(SecondTick));
             services.Seal();
+
             Assert.Equal("tick failed", Assert.Throws<InvalidOperationException>(() => frames.Tick(1)).Message);
             Assert.False(secondCalled);
         }
@@ -196,6 +176,7 @@ namespace LiteFramework.Tests
             var tick = new TickProbe();
             context.Put(tick);
             frames.SetOrder(typeof(TickProbe));
+            frames.Validate();
             context.Services.Seal();
             frames.Tick(1);
             Assert.Equal(1, tick.Calls);

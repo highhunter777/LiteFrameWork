@@ -16,7 +16,6 @@ namespace LiteFramework.Tests
             public void Dispose() => DisposeCount++;
         }
 
-        private sealed class MissingConsumer { public MissingConsumer(IProduct product) { } }
         private sealed class ThrowingDisposer : IDisposable
         {
             public void Dispose() => throw new InvalidOperationException("service dispose failed");
@@ -58,7 +57,6 @@ namespace LiteFramework.Tests
             Assert.Same(product, context.Require<Product>());
             Assert.Same(product, context.Services.Resolve<IProduct>());
             Assert.Same(context.Services, context.Require<ServiceContainer>());
-            Assert.Same(context.Services, context.Require<IServiceContainer>());
             Assert.Same(root, context.Require<ClientScope>());
         }
 
@@ -77,14 +75,12 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void MissingProductCanBeOptionalButBrokenRegisteredGraphCannot()
+        public void MissingProductCanBeOptionalButRequireFails()
         {
             using var root = new ClientScope("Root");
             var context = new ClientContext(root);
             Assert.Null(context.Get<IProduct>());
             Assert.Throws<InvalidOperationException>(() => context.Require<IProduct>());
-            context.Services.Register<MissingConsumer, MissingConsumer>();
-            Assert.Throws<InvalidOperationException>(() => context.Get<MissingConsumer>());
         }
 
         [Fact]
@@ -118,16 +114,15 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public async Task HostPreflightFailureRollsBackCompletedModulesAndOwnedServices()
+        public async Task ModuleFailureRollsBackCompletedModulesAndOwnedServices()
         {
             var trace = new List<string>();
             var product = new Product();
             var host = new ClientHost();
             host.AddSegment(new Module(context =>
-            {
-                context.Services.RegisterInstance(product, ServiceOwnership.ContainerOwned);
-                context.Services.Register<MissingConsumer, MissingConsumer>();
-            }, () => trace.Add("module shutdown")));
+                context.Services.RegisterInstance(product, ServiceOwnership.ContainerOwned),
+                () => trace.Add("module shutdown")));
+            host.AddSegment(new Module(_ => throw new InvalidOperationException("init failed")));
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await host.InitializeAsync());
             Assert.Equal(new[] { "module shutdown" }, trace);
             Assert.Equal(1, product.DisposeCount);
@@ -175,7 +170,7 @@ namespace LiteFramework.Tests
             ServiceContainer container = null;
             host.AddSegment(new Module(context => container = context.Services, () => trace.Add("facility shutdown")));
             host.AddSegment(new Module(context =>
-                context.Services.RegisterFactory<Product>(_ => new Product()), () =>
+                context.Services.RegisterInstance(new Product(), ServiceOwnership.ContainerOwned), () =>
             {
                 container.Dispose();
                 trace.Add("services shutdown");

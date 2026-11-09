@@ -75,7 +75,7 @@ namespace LiteGame.Tests.EditMode
 
             var transports = new List<FakeClientTransport>(Loops);
             var maps = new FakeMapProvider();                    // 判定图提供者替身（经会话端口委托进对局）
-            var accounts = new MatchSessionFactory(rootScope, rootServices, _ =>
+            var accounts = new MatchSessionFactory(rootScope, _ =>
             {
                 var transport = new FakeClientTransport();
                 transports.Add(transport);
@@ -84,7 +84,6 @@ namespace LiteGame.Tests.EditMode
                 new BattleClientFactory(),                       // 客户端只经端口工厂建（A1：会话域不 new）
                 maps.GetMap, BattleScenes.ResolveMapId);         // 地图委托：装配根从 Map 域投影进会话端口
             var matches = new BattleDomainFactory(input: null, gameplayDigestBase: () => 0u,
-                pool: new LiteFramework.ReferencePoolService(),
                 diagnostics: new LiteFramework.Diagnostics.DiagnosticIdentity(
                     LiteNet.BuildHash.Value, "test", "Editor"));
 

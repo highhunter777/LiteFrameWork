@@ -264,7 +264,7 @@ YooInternalException: … AsyncOperationSystem is not initialized.     ← ② �
 
 > **原文件**：`Docs/施工进度/运行阻断修复批.md`（归并前独立成文，内容整段并入本章）
 
-> 触发（2026-10-11 下午）：用户实机进玩法报错 `[GameEntry] 引导失败：重复注册:CommandCenter`。
+> 触发（2026-10-11 下午）：用户实机进玩法报错 `[GameEntry] 引导失败：重复注册:CommandBus`。
 > 边修边验（Play 实跑逐断），共三件阻断**串行显影**（修一个露下一个），全部以实跑收口。
 > 归属：本批处置的是当日并行批（`58fbfd3` GM 批 / `5bbeb72` 资源三层模型批）的运行时回归；
 > 本批自身改动与之同工作区并行，按显式文件清单隔离。
@@ -273,7 +273,7 @@ YooInternalException: … AsyncOperationSystem is not initialized.     ← ② �
 
 | # | 症状（Play 实跑） | 根因 | 修复 |
 |---|---|---|---|
-| 1 | `[GameEntry] 引导失败：重复注册:CommandCenter——同类型只能有一个装配来源`；连锁 `GameEntry.Start → TakeContainer` 抛 `InvalidOperationException: 未装配` | GM 批（`58fbfd3`）在 `ContainerModule` 补注册 `RegisterInstance<CommandCenter>`——而上一行 `context.Put(commands)` 已按**具体类型**占键（`ClientContext.Put→RegisterInstance(product)` 按键=`运行时类型`）⇒ 同键重复，容器 `Add` 查重抛 | 删重复行：具体键经 `Put` 已存在（执行形态消费者 `Require<CommandCenter>` 照常可解）；接口键 `ICommandCenter` 保留 |
+| 1 | `[GameEntry] 引导失败：重复注册:CommandBus——同类型只能有一个装配来源`；连锁 `GameEntry.Start → TakeContainer` 抛 `InvalidOperationException: 未装配` | GM 批（`58fbfd3`）在 `ContainerModule` 补注册 `RegisterInstance<CommandBus>`——而上一行 `context.Put(commands)` 已按**具体类型**占键（`ClientContext.Put→RegisterInstance(product)` 按键=`运行时类型`）⇒ 同键重复，容器 `Add` 查重抛 | 删重复行：具体键经 `Put` 已存在（执行形态消费者 `Require<CommandBus>` 照常可解）；接口键 `ICommandBus` 保留 |
 | 2 | `EditorSimulateBuildPipeline build failed … Collecting asset file already exists: 'Assets/ShareResource/Characters/CombatGirlsAnimationClips.asset'` → `AssetService.InitAsync` 抛 → 启动失败 | 三层模型迁移批（`5bbeb72`）把 `Fonts`/`UI`/`Characters`/`FX` 挪入 `ShareResource` 后，样例①组（`45aa839` 立，CollectPath=`Assets/ShareResource` 整目录 CollectAll）与四个子目录组**全面重叠**（立组时 ShareResource 下仅 SampleContent，无重叠） | 收集器收窄为 `Assets/ShareResource/SampleContent`（组名/寻址/PackSeparately 不变，样例①语义不变）——`FixCollectorOverlap`（pipeline `run_script`，配置资产禁手改）；`ContentSampleBuilder.RegisterCollectGroup` 同步幂等迁移（旧宽路径发现即迁窄/并存删宽）；运行手册 + 《资源收集目录专项设计》§5 同步 |
 | 3 | `KeyNotFoundException: 'tbanimationprofile'`（`ConfigService.LoadAsync` → Luban `Tables` 构造）→ 启动失败 | 域化（同 `5bbeb72`）后 `TableLayout.Files` 条目为"领域/表名"，而 Luban 生成物 `cfg.Tables` 构造**按裸表名**回调 loader——客户端预取缓存仍按领域相对路径作键（服务端 `RoomServer.CombatNumbers` 已是"裸名→领域"正确范式，客户端 `ConfigService`/`AnimationProfileTableSource` 两处没跟上；两个 EditMode 用例件同因失效：`CombatNumbers` 用例未跟 `tbanimationprofile` 进清单、`ConfigSnapshot` 用例损坏键失靶） | `TableLayout.TableName`（裸表名派生口）补为单源；两个装载点缓存键改裸名（位置仍走 `TableDataPath`）；`CombatNumbersEditModeTests` 弃自带残留清单改走 `TableDataFiles` 全清单 + 裸名断言；`ConfigSnapshotEditModeTests` 缓存键改裸名（FromCache 同派生） |
 

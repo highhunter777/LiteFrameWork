@@ -42,7 +42,6 @@ namespace LiteGame
     {
         private readonly IInputService _input;
         private readonly Func<uint> _gameplayDigestBase;
-        private readonly IReferencePool _pool;
         private readonly DiagnosticIdentity _diagnostics;
 
         /// <param name="gameplayDigestBase">本地装载产物的玩法数据身份基摘要提供者
@@ -50,11 +49,10 @@ namespace LiteGame
         /// 首次取值发生在 Create（进房，恒在装载之后）；经 BattleContext 校验 `StartGame.ConfigHash`，
         /// 见该类批 E 校验点）。</param>
         public BattleDomainFactory(IInputService input, Func<uint> gameplayDigestBase,
-            IReferencePool pool, DiagnosticIdentity diagnostics)
+            DiagnosticIdentity diagnostics)
         {
             _input = input;
             _gameplayDigestBase = gameplayDigestBase ?? throw new ArgumentNullException(nameof(gameplayDigestBase));
-            _pool = pool ?? throw new ArgumentNullException(nameof(pool));
             _diagnostics = diagnostics;
         }
 
@@ -64,29 +62,24 @@ namespace LiteGame
             ServiceContainer matchServices = null;
             try
             {
-                // Match 子域由 Account 会话建（未 Seal——本工厂完成注册后 Seal）。
+                // Match 子域由 Account 会话建（未 Seal——本工厂完成登记后 Seal）。
                 matchServices = account.CreateMatchServices();
-                var matchEvents = new EventBus(_pool, strictMode: DevBuildFacts.IsDevelopment);
+                var matchEvents = new EventBus(strictMode: DevBuildFacts.IsDevelopment);
                 matchServices.RegisterInstance<IMatchEventBus>(matchEvents, ServiceOwnership.ContainerOwned);
-                matchServices.RegisterFactory<BattleContext>(
-                    c =>
-                    {
-                        var battle = c.Resolve<IBattleClient>();
-                        // 多图批：本局判定图行键取 **JoinAck 权威事实**（0 = 未标注 → 首图口径，
-                        // 单源裁决经 IMatchRuntime.ResolveMapId）——与 Match 加载的地图场景同一行键（视觉=判定同图）。
-                        int mapId = account.ResolveMapId(battle.Client.MapId);
-                        uint digestBase = _gameplayDigestBase();
-                        return new BattleContext(battle, account.Scope, _input,
-                            account.Maps(mapId),      // 判定图经端口委托取（Battle 不认 Map 域类型）
-                            gameplayDigestBase: digestBase,
-                            rules: rules,             // 每局规则随会话显式注入（无静态"当前局"）
-                            events: matchEvents,      // 局内事件总线随 Match Scope 释放
-                            matchIdentity: new GameplayMatchIdentity(digestBase),
-                            diagnosticsIdentity: _diagnostics);
-                    },
-                    ServiceLifetime.Scoped, typeof(IBattleClient));
+                IBattleClient battle = account.Client;
+                // 多图批：本局判定图行键取 **JoinAck 权威事实**（0 = 未标注 → 首图口径，
+                // 单源裁决经 IMatchRuntime.ResolveMapId）——与 Match 加载的地图场景同一行键（视觉=判定同图）。
+                int mapId = account.ResolveMapId(battle.Client.MapId);
+                uint digestBase = _gameplayDigestBase();
+                var context = new BattleContext(battle, account.Scope, _input,
+                    account.Maps(mapId),      // 判定图经端口委托取（Battle 不认 Map 域类型）
+                    gameplayDigestBase: digestBase,
+                    rules: rules,             // 每局规则随会话显式注入（无静态"当前局"）
+                    events: matchEvents,      // 局内事件总线随 Match Scope 释放
+                    matchIdentity: new GameplayMatchIdentity(digestBase),
+                    diagnosticsIdentity: _diagnostics);
+                matchServices.RegisterInstance<BattleContext>(context, ServiceOwnership.ContainerOwned);
                 matchServices.Seal();
-                var context = matchServices.Resolve<BattleContext>();
                 return new BattleDomain(matchServices, context, matchEvents);
             }
             catch

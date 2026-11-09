@@ -22,16 +22,9 @@ namespace LiteFramework
         public static FrameworkClocks Create() => new FrameworkClocks(new WorldClock(), new UIClock(), new SystemWallClock());
     }
 
-    /// <summary>
-    /// 事件总线装配入口：总线需要池（池化事件）与形态位（严格模式只在开发期开）。
-    /// 事件域与时钟域分离——时钟模块不产出总线（"事件"是独立的能力域）。
-    /// </summary>
+    /// <summary>事件总线装配入口：形态位（严格模式只在开发期开）；事件域与时钟域分离。</summary>
     public static class FrameworkEvents
     {
-        public static EventBus Create(IReferencePool pool, bool strictMode)
-        {
-            if (pool == null) throw new System.ArgumentNullException(nameof(pool));
-            return new EventBus(pool, strictMode);
-        }
+        public static EventBus Create(bool strictMode) => new EventBus(strictMode);
     }
 }

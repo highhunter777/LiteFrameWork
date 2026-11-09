@@ -1,144 +1,206 @@
 using System;
+using System.Collections.Generic;
 using Xunit;
 
 namespace LiteFramework.Tests
 {
-    public sealed class ServiceContainerTests   // 实例容器，无静态状态；EnableRegistrationTrace 默认 false 不触 Log
+    public sealed class ServiceContainerTests
     {
         private interface IAlpha { }
-        private interface IBeta { }
-        private sealed class Alpha : IAlpha
+
+        private sealed class Alpha : IAlpha, IDisposable
         {
-            public readonly IBeta Beta;
-            public Alpha(IBeta beta) => Beta = beta ?? throw new ArgumentNullException(nameof(beta));
+            public int DisposeCount;
+            public void Dispose() => DisposeCount++;
         }
-        private sealed class Beta : IBeta
+
+        private sealed class Leaf : IDisposable
         {
-            public readonly IGamma Gamma;
-            public Beta(IGamma gamma) => Gamma = gamma ?? throw new ArgumentNullException(nameof(gamma));
+            public int DisposeCount;
+            public void Dispose() => DisposeCount++;
         }
-        private interface IGamma { }
-        private sealed class Gamma : IGamma { }
 
-        private sealed class LoopA { public LoopA(LoopB b) { } }
-        private sealed class LoopB { public LoopB(LoopA a) { } }
-
-        private sealed class Missing { public Missing(IDep dep) { } }
-        private interface IDep { }
-
-        private sealed class Boom : IBoom { public Boom() => throw new InvalidOperationException("boom-cause"); }
-        private interface IBoom { }
-
-        [Fact]
-        public void DI_链式注入_A依赖B依赖C_全通()
+        private sealed class ThrowingDisposer : IDisposable
         {
-            var c = new ServiceContainer();
-            c.Register<IAlpha, Alpha>();
-            c.Register<IBeta, Beta>();
-            c.Register<IGamma, Gamma>();
+            public void Dispose() => throw new InvalidOperationException("dispose failed");
+        }
 
-            var alpha = c.Resolve<IAlpha>();
-            Assert.IsAssignableFrom<Alpha>(alpha);
-            Assert.IsAssignableFrom<Beta>(((Alpha)alpha).Beta);
+        private sealed class EqualityDisposer : IDisposable
+        {
+            public int Count;
+            public void Dispose() => Count++;
+            public override bool Equals(object other) => other is EqualityDisposer;
+            public override int GetHashCode() => 1;
+        }
+
+        private sealed class StatsProbe : IModuleStats
+        {
+            public string StatsName => "probe";
+            public void Snapshot(Dictionary<string, string> into) => into["x"] = "1";
         }
 
         [Fact]
-        public void DI_单例_两次Resolve同实例()
+        public void 注册实例_解析同引用_TryResolve命中()
         {
-            var c = new ServiceContainer();
-            c.Register<IGamma, Gamma>();
-            Assert.Same(c.Resolve<IGamma>(), c.Resolve<IGamma>());
+            using var container = new ServiceContainer();
+            var alpha = new Alpha();
+            container.RegisterInstance<IAlpha>(alpha);
+
+            Assert.Same(alpha, container.Resolve<IAlpha>());
+            Assert.True(container.TryResolve<IAlpha>(out var resolved));
+            Assert.Same(alpha, resolved);
         }
 
         [Fact]
-        public void DI_重复注册_注册期当场抛()
+        public void 未注册_Resolve抛_TryResolve返回false()
         {
-            var c = new ServiceContainer();
-            c.Register<IGamma, Gamma>();
-            var ex = Assert.Throws<InvalidOperationException>(() => c.Register<IGamma, Gamma>());
-            Assert.Contains("重复注册", ex.Message);
+            using var container = new ServiceContainer();
+
+            Assert.Contains("未注册", Assert.Throws<InvalidOperationException>(() => container.Resolve<IAlpha>()).Message);
+            Assert.False(container.TryResolve<IAlpha>(out _));
         }
 
         [Fact]
-        public void DI_循环依赖_Resolve抛且信息含环()
+        public void 重复注册_注册期当场抛()
         {
-            var c = new ServiceContainer();
-            c.Register<LoopA, LoopA>();
-            c.Register<LoopB, LoopB>();
-            var ex = Assert.Throws<InvalidOperationException>(() => c.Resolve<LoopA>());
-            Assert.Contains("循环依赖", ex.Message);
-            Assert.Contains("LoopA", ex.Message);
+            using var container = new ServiceContainer();
+            container.RegisterInstance<IAlpha>(new Alpha());
+
+            var error = Assert.Throws<InvalidOperationException>(() => container.RegisterInstance<IAlpha>(new Alpha()));
+            Assert.Contains("重复注册", error.Message);
         }
 
         [Fact]
-        public void DI_构造依赖未注册_Resolve当场抛()
+        public void 空实例与非法所有权_当场抛()
         {
-            var c = new ServiceContainer();
-            c.Register<Missing, Missing>();
-            var ex = Assert.Throws<InvalidOperationException>(() => c.Resolve<Missing>());
-            Assert.Contains("未注册", ex.Message);
+            using var container = new ServiceContainer();
+
+            Assert.Throws<ArgumentNullException>(() => container.RegisterInstance<IAlpha>(null));
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => container.RegisterInstance(new Alpha(), (ServiceOwnership)99));
         }
 
         [Fact]
-        public void DI_构造抛异常_Resolve报真因()
+        public void Seal后_注册抛_解析不受限_重复Seal抛()
         {
-            var c = new ServiceContainer();
-            c.Register<IBoom, Boom>();
-            var ex = Assert.Throws<InvalidOperationException>(() => c.Resolve<IBoom>());
-            Assert.Contains("构造抛异常", ex.Message);
-            Assert.Contains("boom-cause", ex.Message);   // 解包 TargetInvocationException，报真因
+            using var container = new ServiceContainer();
+            var alpha = new Alpha();
+            container.RegisterInstance<IAlpha>(alpha);
+            container.Seal();
+
+            Assert.True(container.IsSealed);
+            Assert.Same(alpha, container.Resolve<IAlpha>());
+            Assert.Throws<InvalidOperationException>(() => container.RegisterInstance<IAlpha>(new Alpha()));
+            Assert.Throws<InvalidOperationException>(() => container.Seal());
         }
 
         [Fact]
-        public void DI_RegisterFactory_首次Resolve调用一次_单例缓存()
+        public void Borrowed不随容器释放_ContainerOwned释放恰一次()
         {
-            var c = new ServiceContainer();
-            int calls = 0;
-            c.RegisterFactory<IGamma>(_ => { calls++; return new Gamma(); });
+            var borrowed = new Alpha();
+            var owned = new Leaf();
+            var container = new ServiceContainer();
+            container.RegisterInstance<IAlpha>(borrowed);
+            container.RegisterInstance(owned, ServiceOwnership.ContainerOwned);
 
-            var first = c.Resolve<IGamma>();
-            var second = c.Resolve<IGamma>();
-            Assert.Same(first, second);
-            Assert.Equal(1, calls);
+            container.Dispose();
+            container.Dispose();
+
+            Assert.Equal(0, borrowed.DisposeCount);
+            Assert.Equal(1, owned.DisposeCount);
+            Assert.True(container.IsDisposed);
         }
 
         [Fact]
-        public void DI_Seal后_一切注册抛_Resolve不受限()
+        public void 别名按引用去重_Equals不参与()
         {
-            var c = new ServiceContainer();
-            c.Register<IGamma, Gamma>();
-            c.Seal();
+            var first = new EqualityDisposer();
+            var second = new EqualityDisposer();
+            using var container = new ServiceContainer();
+            container.RegisterInstance(first, ServiceOwnership.ContainerOwned);
+            container.RegisterInstance<IDisposable>(first, ServiceOwnership.ContainerOwned);
+            container.RegisterInstance<object>(second, ServiceOwnership.ContainerOwned);
 
-            Assert.Throws<InvalidOperationException>(() => c.Register<IGamma, Gamma>());
-            Assert.Throws<InvalidOperationException>(() => c.RegisterInstance<IGamma>(new Gamma()));
-            Assert.Throws<InvalidOperationException>(() => c.RegisterFactory<IGamma>(_ => new Gamma()));
-            Assert.NotNull(c.Resolve<IGamma>());   // Resolve 不受限
+            container.Dispose();
+
+            Assert.Equal(1, first.Count);
+            Assert.Equal(1, second.Count);
         }
 
         [Fact]
-        public void DI_未注册Resolve_报错信息指向装配点()
+        public void 释放单项失败_继续释放并聚合诊断()
         {
-            var c = new ServiceContainer();
-            var ex = Assert.Throws<InvalidOperationException>(() => c.Resolve<IGamma>());
-            Assert.Contains("未注册", ex.Message);
+            var leaf = new Leaf();
+            var container = new ServiceContainer();
+            container.RegisterInstance(leaf, ServiceOwnership.ContainerOwned);
+            container.RegisterInstance(new ThrowingDisposer(), ServiceOwnership.ContainerOwned);
+
+            container.Dispose();
+
+            Assert.Equal(1, leaf.DisposeCount);
+            Assert.Single(container.DisposeFailures);
+            Assert.Empty(container.Stats);
         }
 
         [Fact]
-        public void 帧调度_注册即发现_ITickable自动入列_多接口不双Tick()
+        public void 父作用域释放容器_容器释放不反向释放作用域()
         {
-            var c = new ServiceContainer();
-            using var frames = new FrameSchedule(c);
-            var tickable = new DualInterface();
-            c.RegisterInstance<DualInterface>(tickable);
-            c.RegisterInstance<IThing>(tickable);      // 同一实例注册在两个接口下
+            using var root = new ClientScope("Root");
+            var first = new ServiceContainer(root);
+            var second = new ServiceContainer(root);
+            var firstLeaf = new Leaf();
+            var secondLeaf = new Leaf();
+            first.RegisterInstance(firstLeaf, ServiceOwnership.ContainerOwned);
+            second.RegisterInstance(secondLeaf, ServiceOwnership.ContainerOwned);
 
-            Assert.Single(frames.Tickables);                // Contains 守卫：不双收
+            first.Dispose();
+
+            Assert.False(root.IsDisposed);
+            Assert.Equal(0, secondLeaf.DisposeCount);
+            root.Dispose();
+            Assert.Equal(1, firstLeaf.DisposeCount);
+            Assert.Equal(1, secondLeaf.DisposeCount);
         }
 
-        private interface IThing { }
-        private sealed class DualInterface : IThing, ITickable
+        [Fact]
+        public void 释放后_一切注册与解析抛ObjectDisposed()
         {
-            public void Tick(float realDelta) { }
+            var container = new ServiceContainer();
+            container.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => container.Resolve<IAlpha>());
+            Assert.Throws<ObjectDisposedException>(() => container.TryResolve<IAlpha>(out _));
+            Assert.Throws<ObjectDisposedException>(() => container.RegisterInstance(new Alpha()));
+            Assert.Throws<ObjectDisposedException>(() => container.Seal());
+        }
+
+        [Fact]
+        public void 统计只收已登记IModuleStats_快照清空后填()
+        {
+            using var container = new ServiceContainer();
+            var probe = new StatsProbe();
+            container.RegisterInstance(probe);
+
+            Assert.Same(probe, Assert.Single(container.Stats));
+            Assert.Equal("DI", container.StatsName);
+
+            var snapshot = new Dictionary<string, string> { ["stale"] = "1" };
+            container.Snapshot(snapshot);
+            Assert.False(snapshot.ContainsKey("stale"));
+            Assert.Equal("1", snapshot["注册数"]);
+            Assert.Equal("否", snapshot["已密封"]);
+            Assert.Equal("否", snapshot["已释放"]);
+        }
+
+        [Fact]
+        public void 释放后统计清空_释放失败计数保留()
+        {
+            var container = new ServiceContainer();
+            container.RegisterInstance(new ThrowingDisposer(), ServiceOwnership.ContainerOwned);
+            container.Dispose();
+
+            Assert.Empty(container.Stats);
+            Assert.Single(container.DisposeFailures);
         }
     }
 }

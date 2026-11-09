@@ -126,11 +126,9 @@ namespace LiteFramework
             Services = new ServiceContainer(rootScope);
             Services.RegisterInstance(new FrameSchedule(Services), ServiceOwnership.ContainerOwned);
             Services.RegisterInstance(Services);
-            Services.RegisterInstance<IServiceContainer>(Services);
             Services.RegisterInstance(rootScope);
             _ledger.RecordProvider(typeof(FrameSchedule), AssemblyLedger.FrameworkProvider);
             _ledger.RecordProvider(typeof(ServiceContainer), AssemblyLedger.FrameworkProvider);
-            _ledger.RecordProvider(typeof(IServiceContainer), AssemblyLedger.FrameworkProvider);
             _ledger.RecordProvider(typeof(ClientScope), AssemblyLedger.FrameworkProvider);
         }
 
@@ -144,7 +142,7 @@ namespace LiteFramework
             if (product == null) throw new ArgumentNullException(nameof(product));
             if (IsAssemblySealed)
                 throw new InvalidOperationException($"装配已完成——运行期不得新增注册（{typeof(T).Name}）");
-            if (!Services.IsSealed && Services.TryGetInstance<T>(out T existing) && ReferenceEquals(existing, product))
+            if (!Services.IsSealed && Services.TryResolve<T>(out T existing) && ReferenceEquals(existing, product))
             {
                 RecordProvider(typeof(T), provider);
                 return;

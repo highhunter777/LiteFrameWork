@@ -726,7 +726,7 @@
 | `Assets/LiteClient/Adapters/Platform.Unity/Dev/DevHotkey.cs` | 新增 F12；文本输入改为 owner 所有权（HUD 过滤 / 控制台互斥） |
 | `Assets/LiteGame/DevTool/DevHUD.cs`、`Hud/DevHudSectionSet.cs` | 延迟绑定内核；六段读数改走内核；场景加载重建/每轮剔除由内核承担；HUD 仍只读 |
 | `Assets/LiteGame/DevTool/DebugConsole.cs` | F12 运行期控制台：IMGUI、200 行输出、输入拦截、命令派发、异常隔离 |
-| `Assets/LiteGame/Editor/Gm/GmCommandsPage.cs`、`GmNetDiagPage.cs` | 编辑器投影改消费内核；页内删除 `CommandCenter`/反射执行 |
+| `Assets/LiteGame/Editor/Gm/GmCommandsPage.cs`、`GmNetDiagPage.cs` | 编辑器投影改消费内核；页内删除 `CommandBus`/反射执行 |
 | `Assets/Tests/EditMode/DebugKernelEditModeTests.cs` | 内核/解析器 16 例（发现、执行、审计、选项、请求桥、无对局、读段、解析） |
 | `scripts/gate/unity-tests.py` | Unity 测试门禁包装：`run_tests` 失败时 CLI 仍 exit 0，必须解析 `Summary.Failed` |
 | `Docs/项目说明/13-调试手册.md`、`14-客户端开发能力地图.md` | 增补 F12 控制台、内核读段、F8 目标入口边界与已知不足 |
@@ -1200,7 +1200,7 @@
 
 ### 边界（如实）
 
-- **GmScenePage＝带参命令专面板**（§2.2 既有裁决）：`CommandCenter.SendAsync` 直用为全仓唯一 `lint-allow R14` 判例（权限门/拦截器/审计链全量生效，非旁路）。
+- **GmScenePage＝带参命令专面板**（§2.2 既有裁决）：`CommandBus.SendAsync` 直用为全仓唯一 `lint-allow R14` 判例（权限门/拦截器/审计链全量生效，非旁路）。
 - GmTestModePage 相关段在非 Play（内核未装配）时空态提示——编辑态直改静态表的旧路径退役（静态表态随 domain reload 归零，该路径本就不可靠）。
 - DevHUD 性能段采样起点改为内核装配后（原为 HUD 自创建即采样；装配前空态，与 §7.5 失败语义一致）。
 - `ClientDiagnosticsBundle`（业务诊断包）与 Runtime Pipeline/云端 GM 通道不在 R14 辖区（§7.8 非目标维持）。

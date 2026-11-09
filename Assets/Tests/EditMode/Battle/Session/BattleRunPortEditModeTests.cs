@@ -89,7 +89,7 @@ namespace LiteGame.Tests.EditMode
                 Context = new BattleContext(Battle, Account, map: GreyboxMap());
                 var services = new ServiceContainer();
                 services.Seal();
-                var events = new EventBus(new ReferencePoolService());
+                var events = new EventBus();
                 var match = new BattleDomain(services, Context, events);
                 Run = new BattleSession(match);
             }

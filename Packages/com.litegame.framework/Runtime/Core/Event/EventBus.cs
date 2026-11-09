@@ -7,9 +7,13 @@ namespace LiteFramework
     public sealed class EventBus : IEventBus, IMatchEventBus, IModuleStats
     {
         private readonly Dictionary<Type, IEventChannel> _channels = new Dictionary<Type, IEventChannel>(32);
+        private readonly Queue<PendingEvent> _queue = new Queue<PendingEvent>(16);
+        private readonly int _maxQueued;
         private long _published;
-        private long _recycled;                            // 池化事件回收累计
         private long _strictWarnings;                      // StrictMode 告警累计（没人听的事件信号）
+        private long _queuedDropped;
+        private int _queuedPeak;
+        private long _tickCount;
         private readonly int _mainThreadId = Thread.CurrentThread.ManagedThreadId;
         private bool _disposed;
 
@@ -18,12 +22,14 @@ namespace LiteFramework
         public bool StrictMode { get; set; }
 
         public bool IsDisposed => _disposed;
-        private readonly IReferencePool _pool;
 
-        public EventBus(IReferencePool pool, bool strictMode = false)
+        public int MaxQueued => _maxQueued;
+
+        public EventBus(bool strictMode = false, int maxQueued = QueueLimits.DefaultCapacity)
         {
+            if (maxQueued < 1) throw new ArgumentOutOfRangeException(nameof(maxQueued));
             StrictMode = strictMode;
-            _pool = pool ?? throw new System.ArgumentNullException(nameof(pool), "IReferencePool 未注入");
+            _maxQueued = maxQueued;
         }
 
         /// <summary>订阅（§3.1 优先级派发：小值先派发，同优先级保持注册序）。priority 默认 0 = 既有调用零改动。</summary>
@@ -52,14 +58,45 @@ namespace LiteFramework
             }
         }
 
-        /// <summary>显式池化发布：派发完成后由中心回收（仅 IReference 事件）。普通事件请用 Publish。</summary>
-        public void PublishPooled<T>(T e) where T : class, IReference
+        /// <summary>延迟派发：到期帧由 Tick 驱动；delayFrames 最小 1。入队即移交所有权，调用方不得再改。</summary>
+        public void PublishQueued<T>(T e, int delayFrames = 1) where T : class
         {
             EnsureMainThread();
             ThrowIfDisposed();
             if (e == null) throw new ArgumentNullException(nameof(e));
-            try { Publish(e); }
-            finally { RecycleIfPooled(e); }
+            if (delayFrames < 1) delayFrames = 1;
+            if (_queue.Count >= _maxQueued)
+            {
+                _queuedDropped++;
+                Log.Error($"事件队列溢出丢弃（MaxQueued={_maxQueued}）: {typeof(T).Name}", LogTag.Event);
+                return;
+            }
+            _queue.Enqueue(new PendingEvent
+            {
+                DueTick = _tickCount + delayFrames,
+                Dispatch = () => Publish(e),
+            });
+            if (_queue.Count > _queuedPeak) _queuedPeak = _queue.Count;
+        }
+
+        /// <summary>帧驱动：到期事件按入队序派发；本轮新入队留到下帧。</summary>
+        public void Tick(float realDelta)
+        {
+            EnsureMainThread();
+            ThrowIfDisposed();
+            _tickCount++;
+            int n = _queue.Count;
+            for (int i = 0; i < n; i++)
+            {
+                PendingEvent pending = _queue.Dequeue();
+                if (pending.DueTick > _tickCount)
+                {
+                    _queue.Enqueue(pending);
+                    continue;
+                }
+                try { pending.Dispatch(); }
+                catch (Exception ex) { Log.Error(ex, "EventBus.Tick", LogTag.Event); }
+            }
         }
 
         public void Dispose()
@@ -68,6 +105,7 @@ namespace LiteFramework
             if (_disposed) return;
             _disposed = true;
 
+            _queue.Clear();
             foreach (var channel in _channels.Values) channel.Clear();
             _channels.Clear();
         }
@@ -92,16 +130,6 @@ namespace LiteFramework
             return created;
         }
 
-        /// <summary>池化事件回收点：仅 PublishPooled 与队列路径调用；Publish 不接管所有权。channel 保持纯机制。</summary>
-        private void RecycleIfPooled(object e)
-        {
-            if (e is IReference pooled)
-            {
-                _recycled++;
-                _pool.Release(pooled);
-            }
-        }
-
         public string StatsName => "EventBus";
 
         /// <summary>契约：实现负责 into.Clear() 再填入；key 为常量串零分配，value 为插值串（HUD 低频轮询可接受）。
@@ -123,18 +151,28 @@ namespace LiteFramework
             into["订阅者总数"] = subscribers.ToString();
             into["累计发布"] = _published.ToString();
             into["DispatchErrors"] = dispatchErrors.ToString();
-            into["Recycled"] = _recycled.ToString();
             into["StrictWarnings"] = _strictWarnings.ToString();
+            into["QueuedPeak"] = _queuedPeak.ToString();
+            into["QueuedDropped"] = _queuedDropped.ToString();
+            into["DelayedCount"] = _queue.Count.ToString();
         }
 
-        /// <summary>通道级诊断（§4——"哪个事件被谁订阅了几次、有没有空转"；镜像 ReferencePoolInfo 形态）。
+        /// <summary>通道级诊断（§4——"哪个事件被谁订阅了几次、有没有空转"；HUD Development-only）。
         /// 低频轮询面（每次调用分配一个列表可接受）；HUD 只在开发形态消费。</summary>
         public IReadOnlyList<EventChannelInfo> GetChannelInfos()
         {
+            EnsureMainThread();
+            ThrowIfDisposed();
             var list = new List<EventChannelInfo>(_channels.Count);
             foreach (var ch in _channels.Values)
                 list.Add(new EventChannelInfo(ch.EventType, ch.SubscriberCount, ch.PublishedCount, ch.DispatchErrors));
             return list;
+        }
+
+        private struct PendingEvent
+        {
+            public long DueTick;
+            public Action Dispatch;
         }
     }
 
@@ -166,7 +204,7 @@ namespace LiteFramework
         }
     }
 
-    /// <summary>通道级诊断快照（GetChannelInfos 消费面；HUD Development-only——同 ReferencePoolInfo 先例）。</summary>
+    /// <summary>通道级诊断快照（GetChannelInfos 消费面；HUD Development-only）。</summary>
     public readonly struct EventChannelInfo
     {
         public readonly Type EventType;

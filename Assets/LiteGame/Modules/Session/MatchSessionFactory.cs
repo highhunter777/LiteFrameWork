@@ -67,7 +67,12 @@ namespace LiteGame
 
         /// <summary>建 Match 服务子域（**未 Seal**——注册由 BattleDomainFactory 完成后 Seal）。
         /// Battle 唯一的容器入口：只拿得到 Match 子域，写不到 Account/根容器。</summary>
-        public ServiceContainer CreateMatchServices() => (ServiceContainer)Services.CreateScope("Match");
+        public ServiceContainer CreateMatchServices()
+        {
+            var services = new ServiceContainer();
+            Scope.Register(services);                // 随 Match 作用域释放（显式 Dispose 幂等）
+            return services;
+        }
 
         public void Dispose()
         {
@@ -81,30 +86,28 @@ namespace LiteGame
     public sealed class MatchSessionFactory : IMatchSessionFactory
     {
         private readonly ClientScope _rootScope;
-        private readonly ServiceContainer _rootServices;
         private readonly Func<bool, MatchTransport> _transportFactory;
         private readonly HandshakeIdentity _handshake;
         private readonly IBattleClientFactory _battleClients;
         private readonly Func<int, SimMapData> _maps;
         private readonly Func<int, int> _resolveMapId;
-        private readonly Func<(ClientScope Scope, ServiceContainer Services)> _parentProvider;
+        private readonly Func<ClientScope> _parentScopeProvider;
 
         /// <param name="battleClients">客户端工厂端口（会话域不 `new` 具体客户端；唯一构造点归 Battle 域）。</param>
         /// <param name="maps">地图提供委托（装配根从 <c>IMapProvider</c> 投影；本工厂不依赖 Map 域类型）。</param>
         /// <param name="resolveMapId">地图行键裁决委托（装配根绑单源裁决，与场景装载同键）。</param>
-        public MatchSessionFactory(ClientScope rootScope, ServiceContainer rootServices,
+        public MatchSessionFactory(ClientScope rootScope,
             Func<bool, MatchTransport> transportFactory, HandshakeIdentity handshake,
             IBattleClientFactory battleClients, Func<int, SimMapData> maps, Func<int, int> resolveMapId,
-            Func<(ClientScope Scope, ServiceContainer Services)> parentProvider = null)
+            Func<ClientScope> parentScopeProvider = null)
         {
             _rootScope = rootScope ?? throw new ArgumentNullException(nameof(rootScope));
-            _rootServices = rootServices ?? throw new ArgumentNullException(nameof(rootServices));
             _transportFactory = transportFactory ?? throw new ArgumentNullException(nameof(transportFactory));
             _handshake = handshake;
             _battleClients = battleClients ?? throw new ArgumentNullException(nameof(battleClients));
             _maps = maps ?? throw new ArgumentNullException(nameof(maps));
             _resolveMapId = resolveMapId ?? throw new ArgumentNullException(nameof(resolveMapId));
-            _parentProvider = parentProvider;
+            _parentScopeProvider = parentScopeProvider;
         }
 
         /// <summary>端口面（流程/装配点只认它——流程段拿不到实现件）。</summary>
@@ -114,14 +117,12 @@ namespace LiteGame
         /// <summary>建 Match 会话（具体返回类型供源链接测试与装配点直用；端口面见上方显式实现）。</summary>
         public MatchSession Create(string host, int port, string roomId, string token, bool testRoom)
         {
-            (ClientScope parentScope, ServiceContainer parentServices) = _parentProvider != null
-                ? _parentProvider()
-                : (_rootScope, _rootServices);
+            ClientScope parentScope = _parentScopeProvider != null ? _parentScopeProvider() : _rootScope;
             ClientScope matchScope = parentScope.CreateChild("Match");
             ServiceContainer matchServices = null;
             try
             {
-                matchServices = (ServiceContainer)parentServices.CreateScope("Match");
+                matchServices = new ServiceContainer();
                 // Match 作用域负责动态会话资源（取消/租约/订阅）；服务域作为其一个同步资源登记，
                 // 释放顺序由登记顺序决定（LIFO：客户端先、服务域后）。
                 matchScope.Register(matchServices);
@@ -129,8 +130,7 @@ namespace LiteGame
                 IBattleClient battle = matchScope.Register(_battleClients.Create(host, port, roomId, token,
                     _handshake.BuildHash, match.Transport));
                 // 服务域按**端口**登记（消费面只认 IBattleClient——具体类型不出 Battle 域）。
-                matchServices.RegisterInstance<IBattleClient>(battle, ServiceLifetime.Scoped,
-                    ServiceOwnership.Borrowed);
+                matchServices.RegisterInstance<IBattleClient>(battle);
                 matchServices.Seal();
                 return new MatchSession(matchScope, matchServices, battle,
                     maps: _maps, resolveMapId: _resolveMapId, testRoom: testRoom, rules: match.Rules);

@@ -62,14 +62,14 @@ namespace LiteNet.Tests
         {
             rootScope = new ClientScope("Root");
             var root = new ServiceContainer();
-            root.Register<RootMarker, RootMarker>();
-            root.Seal();                                  // 根域先密封：会话子域只消费根常驻服务
+            root.RegisterInstance(new RootMarker());
+            root.Seal();                                  // 根域先密封：会话域只消费根常驻服务
             return root;
         }
 
-        private static MatchSessionFactory NewFactory(ClientScope rootScope, ServiceContainer rootServices,
+        private static MatchSessionFactory NewFactory(ClientScope rootScope,
             Func<bool, MatchTransport> transportFactory = null)
-            => new MatchSessionFactory(rootScope, rootServices,
+            => new MatchSessionFactory(rootScope,
                 transportFactory ?? (_ => new MatchTransport(new FakeClientTransport(), null)),
                 new HandshakeIdentity(LiteNet.BuildHash.Value),
                 new BattleClientFactory(),                 // 客户端只经端口工厂建（会话域不再 new 具体件）
@@ -81,7 +81,7 @@ namespace LiteNet.Tests
         {
             ServiceContainer root = NewRoot(out ClientScope rootScope);
             var transport = new FakeClientTransport();
-            MatchSessionFactory factory = NewFactory(rootScope, root, _ => new MatchTransport(transport, null));
+            MatchSessionFactory factory = NewFactory(rootScope, _ => new MatchTransport(transport, null));
 
             MatchSession session = factory.Create(Host, Port, RoomId, Token, testRoom: false);
 
@@ -101,7 +101,7 @@ namespace LiteNet.Tests
         {
             ServiceContainer root = NewRoot(out ClientScope rootScope);
             var transport = new FakeClientTransport();
-            MatchSessionFactory factory = NewFactory(rootScope, root, _ => new MatchTransport(transport, null));
+            MatchSessionFactory factory = NewFactory(rootScope, _ => new MatchTransport(transport, null));
             MatchSession session = factory.Create(Host, Port, RoomId, Token, testRoom: false);
 
             session.Dispose();
@@ -118,7 +118,7 @@ namespace LiteNet.Tests
         public void 工厂失败就地回滚_作用域与服务域无残留()
         {
             ServiceContainer root = NewRoot(out ClientScope rootScope);
-            MatchSessionFactory factory = NewFactory(rootScope, root,
+            MatchSessionFactory factory = NewFactory(rootScope,
                 _ => throw new InvalidOperationException("transport unavailable"));
 
             MatchSession session = null;
@@ -144,7 +144,7 @@ namespace LiteNet.Tests
             var firstTransport = new FakeClientTransport();
             var secondTransport = new FakeClientTransport();
             IClientTransport current = firstTransport;
-            MatchSessionFactory factory = NewFactory(rootScope, root, _ =>
+            MatchSessionFactory factory = NewFactory(rootScope, _ =>
             {
                 IClientTransport t = current;
                 current = secondTransport;
@@ -175,7 +175,7 @@ namespace LiteNet.Tests
         {
             ServiceContainer root = NewRoot(out ClientScope rootScope);
             var seen = new List<bool>();
-            MatchSessionFactory factory = NewFactory(rootScope, root, testRoom =>
+            MatchSessionFactory factory = NewFactory(rootScope, testRoom =>
             {
                 seen.Add(testRoom);
                 return new MatchTransport(new FakeClientTransport(), null);

@@ -168,7 +168,7 @@ namespace LiteGame.Tests.UI.PlayMode
                 typeof(LiteFramework.UI.DotweenUIClockDriver), typeof(LiteFramework.UI.UIService),
                 typeof(ITimelineRunner),
                 typeof(IVfxService), typeof(LiteFramework.UI.DialogService),
-                typeof(LiteFramework.UI.ToastTicker), typeof(ICommandCenter),
+                typeof(LiteFramework.UI.ToastTicker), typeof(ICommandBus),
                 typeof(StageMachine<ProcedureId, ProcedureArgs>),
             };
 

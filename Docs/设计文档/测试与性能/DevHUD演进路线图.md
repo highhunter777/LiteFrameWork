@@ -61,7 +61,7 @@ interface IHudTextSink
 
 ### P1 能力件（HUD 之外）
 
-Player 控制台（`CommandCenter` 通道）、弱网注入面板、世界/实体查看器——各独立件；HUD 只增加“状态行”（如控制台开启、注入参数、dump 完成），不承载交互。
+Player 控制台（`CommandBus` 通道）、弱网注入面板、世界/实体查看器——各独立件；HUD 只增加“状态行”（如控制台开启、注入参数、dump 完成），不承载交互。
 
 ### P2 度量
 
@@ -166,7 +166,7 @@ section.Append(sink, ctx);        // IMGUI: ImguiHudSink(StringBuilder)
 
 ## 7. 非目标
 
-- 不在 HUD 内加写操作/命令（控制台走 `CommandCenter`）；不把 HUD 变成 GM 面板。
+- 不在 HUD 内加写操作/命令（控制台走 `CommandBus`）；不把 HUD 变成 GM 面板。
 - 不重写 Unity Profiler、不做全量遥测、不做多客户端聚合/远程 HUD。
 - 不以“统一 UI 栈”扩大迁移范围：控制台/查看器仍独立件；DevHUD 迁移只换渲染后端。
 - 不追求 release 可调试。

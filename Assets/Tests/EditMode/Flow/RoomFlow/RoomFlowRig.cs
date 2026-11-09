@@ -54,7 +54,7 @@ namespace LiteGame.Tests.EditMode
             RootScope.Register(Domain);
             Tickets = new AccountTicketSource(Domain);
 
-            Accounts = accounts ?? new ControlledMatchSessionFactory(RootScope, RootServices);
+            Accounts = accounts ?? new ControlledMatchSessionFactory(RootScope);
             Match = new ProcedureMatch(Accounts, Lifetime, feedback);
             Battle = new ProcedureBattle(null, null, new ControlledBattleCommands(), Views, RoomBridge,
                 Lifetime, default, false, Runs, pages, scenes ?? Scenes, new ControlledMapProvider(), feedback, null);

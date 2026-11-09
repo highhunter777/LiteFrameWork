@@ -23,7 +23,7 @@ namespace LiteGame
             "commands", "options", "stats", "tunables", "log", "diag", "battle", "audit",
         };
 
-        private readonly CommandCenter _commands;
+        private readonly CommandBus _commands;
         private readonly IInputService _input;
         private readonly DebugStatsDiscovery _stats = new DebugStatsDiscovery();
         private readonly DebugTunableDiscovery _tunables;
@@ -35,7 +35,7 @@ namespace LiteGame
         private bool _statsInitialized;
         private bool _tunablesInitialized;
 
-        public DebugKernel(CommandCenter commands, IInputService input,
+        public DebugKernel(CommandBus commands, IInputService input,
             IEnumerable<IDebugTunableProvider> tunableProviders = null, WeakNetRuntime weakNet = null,
             NetworkDebug network = null, LiteGame.IDevSession devSession = null)
         {
@@ -52,15 +52,15 @@ namespace LiteGame
         /// <summary>网络调试组件（读模型 + 断线/重连动作）——投影只经此消费（§7 单一门面）。</summary>
         public NetworkDebug Network => _network;
 
-        /// <summary>强制断线（走命令中心 → 审计；断后由会话相位策略自动重连）。</summary>
+        /// <summary>强制断线（走命令总线 → 审计；断后由会话相位策略自动重连）。</summary>
         public bool TryForceDisconnect(out string error)
             => SendNetworkAction(new ForceDisconnectCommand(), out error);
 
-        /// <summary>强制重连（走命令中心 → 审计；仅 SuspectedLost 有效）。</summary>
+        /// <summary>强制重连（走命令总线 → 审计；仅 SuspectedLost 有效）。</summary>
         public bool TryBeginReconnect(out string error)
             => SendNetworkAction(new ForceReconnectCommand(), out error);
 
-        /// <summary>抑制/恢复自动重连（走命令中心 → 审计；抑制后断线停在 SuspectedLost）。</summary>
+        /// <summary>抑制/恢复自动重连（走命令总线 → 审计；抑制后断线停在 SuspectedLost）。</summary>
         public bool TrySetSuppressAutoReconnect(bool suppressed, out string error)
             => SendNetworkAction(new SetAutoReconnectSuppressedCommand { Suppressed = suppressed }, out error);
 
@@ -392,8 +392,8 @@ namespace LiteGame
         private MethodInfo GetSendMethod(Type commandType)
         {
             if (_sendMethods.TryGetValue(commandType, out MethodInfo send)) return send;
-            MethodInfo definition = typeof(CommandCenter).GetMethod(
-                nameof(CommandCenter.Send), BindingFlags.Public | BindingFlags.Instance);
+            MethodInfo definition = typeof(CommandBus).GetMethod(
+                nameof(CommandBus.Send), BindingFlags.Public | BindingFlags.Instance);
             send = definition.MakeGenericMethod(commandType);
             _sendMethods[commandType] = send;
             return send;

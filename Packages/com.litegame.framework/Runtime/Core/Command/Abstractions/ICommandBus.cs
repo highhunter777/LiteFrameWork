@@ -3,9 +3,9 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 命令中心业务契约（《命令中心专项设计》§2）：类型化"意图请求"的注册-执行-结果链路。
+    /// 命令总线业务契约（《命令总线专项设计》§2）：类型化"意图请求"的注册-执行-结果链路。
     /// </summary>
-    public interface ICommandCenter
+    public interface ICommandBus
     {
         /// <summary>注册处理器（命令类型唯一处理器契约——同类型重复注册抛）。</summary>
         IDisposable Register<TCommand>(ICommandHandler<TCommand> handler, CommandOptions options = null) where TCommand : ICommand;

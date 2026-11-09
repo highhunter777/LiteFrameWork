@@ -63,7 +63,7 @@ namespace LiteGame
             context.Put(_audio);
             context.Put(_vfxService);
             context.Put<IVfxService>(_vfxService);               // 接口键（HUD/消费方只经端口取；与具体键同实例）
-            context.Put<IBattleCommands>(new BattleCommands(context.Require<CommandCenter>()));   // 流程→战斗的命令端口
+            context.Put<IBattleCommands>(new BattleCommands(context.Require<CommandBus>()));   // 流程→战斗的命令端口
             // 根位移摘要登记口：装配期单实例；对局装载 rootmotion.bin 成功时写入摘要（身份面经端口读）。
             var rootMotionDigest = new RootMotionDigestHolder();
             context.Put(rootMotionDigest);
@@ -78,7 +78,6 @@ namespace LiteGame
             var matchSessions = new BattleDomainFactory(
                 context.Require<IInputService>(),
                 () => config.GameplayDigestBase,
-                context.Require<IReferencePool>(),
                 identity.Diagnostics);
             context.Put<IBattleDomainFactory>(matchSessions);
             context.Put<IBattleRunFactory>(new BattleRunFactory(
@@ -88,7 +87,7 @@ namespace LiteGame
             // 视图组工厂：战斗域自持的装配点（流程只认端口；每局再注入 account 作用域/开发叠加层/传送分发）。
             context.Put<IBattleViewGroupFactory>(new BattleViewGroupFactory(
                 content, context.Require<IInputService>(), context.Require<ICameraService>(),
-                _vfxService, context.Require<IWorldClock>(), _audio, context.Require<CommandCenter>(),
+                _vfxService, context.Require<IWorldClock>(), _audio, context.Require<CommandBus>(),
                 new CrosshairFeelProfile(config),
                 context.Require<UIService>().ThemeAssetProvider,      // HUD 状态色主题注入
                 context.Require<IDevSession>(),                        // dev 投影读本局规则（实例端口）

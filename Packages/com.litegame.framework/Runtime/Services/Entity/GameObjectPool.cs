@@ -51,7 +51,6 @@ namespace LiteFramework
             var go = GetBucket(key, create).Acquire();
             if (go == null) return null;
             if (parent != null) go.transform.SetParent(parent, false);
-            go.GetComponent<IPoolLifecycle>()?.OnSpawn();
             return go;
         }
 
@@ -62,7 +61,6 @@ namespace LiteFramework
             if (!_buckets.TryGetValue(key, out var pool) || pool.UnusedCount == 0) return false;
             go = pool.Acquire();
             if (parent != null) go.transform.SetParent(parent, false);
-            go.GetComponent<IPoolLifecycle>()?.OnSpawn();
             return true;
         }
 
@@ -73,7 +71,6 @@ namespace LiteFramework
             if (!_keys.TryGetValue(go, out var key))
                 throw new InvalidOperationException("该 GameObject 不是本池产物（无桶键记录），禁止入池");
 
-            go.GetComponent<IPoolLifecycle>()?.OnRecycle();
             if (_root != null) go.transform.SetParent(_root, false);   // Dispose 后无停放容器——保持在位即可
             GetBucket(key, null).Release(go);       // 桶必然已存在（产物由此而出）
         }

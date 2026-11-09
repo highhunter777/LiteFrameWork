@@ -95,7 +95,9 @@ namespace LiteGame
             BindProductSettings(context);
             BindSimParams(context);
             BindDevDecoration(context);
-            DeclareFrameOrder(context.Require<FrameSchedule>());
+            FrameSchedule frames = context.Require<FrameSchedule>();
+            DeclareFrameOrder(frames);
+            frames.Validate();                         // 密封前校验帧计划覆盖（失败保留未密封，可诊断）
             context.Services.Seal();                   // 装配面密封（最后一步；职责与旧 Container 末段一致）
 
             await UniTask.CompletedTask;               // 无异步步骤：签名保留"装配窗口内执行"的语义
@@ -178,7 +180,7 @@ namespace LiteGame
             _devDecoration = DevHooks.Current?.Decorate(new DevServices
             {
                 Context = context,
-                Commands = context.Require<CommandCenter>(),
+                Commands = context.Require<CommandBus>(),
                 Services = context.Services,
                 Session = context.Require<IDevSession>(),
                 Scenes = context.Require<ISceneService>(),
@@ -186,16 +188,16 @@ namespace LiteGame
             });
         }
 
-        /// <summary>帧驱动序单点声明（11 项）：段只 Put 实例、不各自声明相对序——分段落声明会按段注册序
-        /// 重排全局相对序（行为变更）。CommandCenter 置流程机前：排队/延迟命令到期派发先于机器 Tick。</summary>
+        /// <summary>帧驱动序单点声明（12 项）：段只 Put 实例、不各自声明相对序——分段落声明会按段注册序
+        /// 重排全局相对序（行为变更）。EventBus 置 CommandBus 前：到期事件先于排队命令/流程机派发。</summary>
         private static void DeclareFrameOrder(FrameSchedule frames)
         {
             frames.SetOrder(
                 typeof(IMainThreadDispatcher), typeof(IWorldClock), typeof(IUIClock),
-                typeof(DotweenUIClockDriver), typeof(UIService),   // EventBus 无队列、不再实现 ITickable（M3-7 7b）
+                typeof(DotweenUIClockDriver), typeof(UIService),
                 typeof(ITimelineRunner),
                 typeof(IVfxService), typeof(DialogService), typeof(ToastTicker),
-                typeof(ICommandCenter),
+                typeof(EventBus), typeof(ICommandBus),
                 typeof(StageMachine<ProcedureId, ProcedureArgs>));
         }
 

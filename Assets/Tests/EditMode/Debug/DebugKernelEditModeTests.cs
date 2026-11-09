@@ -12,7 +12,7 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class DebugKernelEditModeTests
     {
-        private CommandCenter _commands;
+        private CommandBus _commands;
         private DebugKernel _kernel;
         private readonly List<IDisposable> _registrations = new List<IDisposable>();
         private readonly Dictionary<TestModeOptions.Id, bool> _optionSnapshot = new Dictionary<TestModeOptions.Id, bool>();
@@ -21,7 +21,7 @@ namespace LiteGame.Tests.EditMode
         [SetUp]
         public void SetUp()
         {
-            _commands = new CommandCenter(new ReferencePoolService(), true);
+            _commands = new CommandBus(true);
             _kernel = new DebugKernel(_commands, null);
             _registrations.Clear();
             _optionSnapshot.Clear();

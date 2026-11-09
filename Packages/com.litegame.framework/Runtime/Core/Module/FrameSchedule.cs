@@ -7,24 +7,25 @@ namespace LiteFramework
     public sealed class FrameSchedule : IModuleStats, IDisposable
     {
         private ServiceContainer _services;
+
         private Type[] _order;
+
         private IReadOnlyList<ITickable> _tickables = Array.Empty<ITickable>();
 
         public bool IsDisposed { get; private set; }
+
         public IReadOnlyList<ITickable> Tickables => _tickables;
+
         public string StatsName => "Frames";
 
         public FrameSchedule(ServiceContainer services)
         {
             _services = services ?? throw new ArgumentNullException(nameof(services));
-            Validate();
             Rebuild();
-            services.ValidatingRegistration += ValidateRegistration;
             services.RegistrationsChanged += OnRegistrationsChanged;
-            services.Validating += Validate;
         }
 
-        /// <summary>设置显式帧序；无构造副作用，校验失败保留原计划，容器密封后不可修改。</summary>
+        /// <summary>设置显式帧序；校验失败保留原计划，容器密封后不可修改。</summary>
         public void SetOrder(params Type[] serviceTypes)
         {
             ThrowIfDisposed();
@@ -36,13 +37,11 @@ namespace LiteFramework
             Rebuild();
         }
 
-        /// <summary>校验登记事实，不解析服务或执行工厂。</summary>
+        /// <summary>校验显式计划覆盖全部已登记 Tickable；装配末段在 Seal 前调用。</summary>
         public void Validate()
         {
             ThrowIfDisposed();
-            ServiceRegistration[] registrations = _services.SnapshotRegistrations();
-            foreach (var registration in registrations) ValidateLifetime(registration);
-            if (_order != null) ValidateOrder(_order, registrations);
+            if (_order != null) ValidateOrder(_order, _services.SnapshotRegistrations());
         }
 
         /// <summary>使用当前帧的稳定快照，按声明顺序传递同一真实帧间隔。</summary>
@@ -66,33 +65,13 @@ namespace LiteFramework
         {
             if (IsDisposed) return;
             IsDisposed = true;
-            _services.ValidatingRegistration -= ValidateRegistration;
-            _services.RegistrationsChanged -= OnRegistrationsChanged;
-            _services.Validating -= Validate;
+            if (_services != null) _services.RegistrationsChanged -= OnRegistrationsChanged;
             _services = null;
             _order = null;
             _tickables = Array.Empty<ITickable>();
         }
 
-        private static bool IsTickable(ServiceRegistration registration)
-            => registration.IsConstructed ? registration.Instance is ITickable
-                : typeof(ITickable).IsAssignableFrom(registration.ImplementationType ?? registration.ServiceType);
-
-        private static void ValidateLifetime(ServiceRegistration registration)
-        {
-            if (registration.Lifetime == ServiceLifetime.Transient && IsTickable(registration))
-                throw new InvalidOperationException($"Transient 服务不能进入帧驱动:{registration.ServiceType.Name}");
-        }
-
-        private void ValidateRegistration(ServiceRegistration registration)
-        {
-            ValidateLifetime(registration);
-            if (_order != null && IsTickable(registration)
-                && !IsPlanned(registration, _order, _services.SnapshotRegistrations()))
-                throw new InvalidOperationException($"驱动服务未编排:{registration.ServiceType.Name}");
-        }
-
-        private static void ValidateOrder(Type[] order, ServiceRegistration[] registrations)
+        private static void ValidateOrder(Type[] order, (Type ServiceType, object Instance)[] registrations)
         {
             var types = new HashSet<Type>();
             foreach (Type type in order)
@@ -101,28 +80,28 @@ namespace LiteFramework
                 if (!types.Add(type)) throw new InvalidOperationException($"驱动类型重复:{type.Name}");
                 if (!TryFind(registrations, type, out var registration))
                     throw new InvalidOperationException($"驱动服务未注册:{type.Name}");
-                if (registration.Lifetime == ServiceLifetime.Transient)
-                    throw new InvalidOperationException($"Transient 服务不能进入帧驱动:{type.Name}");
-                if (!IsTickable(registration))
+                if (!(registration.Instance is ITickable))
                     throw new InvalidOperationException($"驱动服务未实现 ITickable:{type.Name}");
             }
             foreach (var registration in registrations)
-                if (IsTickable(registration) && !IsPlanned(registration, order, registrations))
+                if (registration.Instance is ITickable && !IsPlanned(registration, order, registrations))
                     throw new InvalidOperationException($"驱动服务未编排:{registration.ServiceType.Name}");
         }
 
-        private static bool IsPlanned(ServiceRegistration registration, Type[] order, ServiceRegistration[] registrations)
+        private static bool IsPlanned((Type ServiceType, object Instance) registration, Type[] order,
+            (Type ServiceType, object Instance)[] registrations)
         {
             foreach (Type type in order)
             {
                 if (type == registration.ServiceType) return true;
                 if (registration.Instance != null && TryFind(registrations, type, out var alias)
-                    && alias.IsConstructed && ReferenceEquals(alias.Instance, registration.Instance)) return true;
+                    && ReferenceEquals(alias.Instance, registration.Instance)) return true;
             }
             return false;
         }
 
-        private static bool TryFind(ServiceRegistration[] registrations, Type type, out ServiceRegistration registration)
+        private static bool TryFind((Type ServiceType, object Instance)[] registrations, Type type,
+            out (Type ServiceType, object Instance) registration)
         {
             foreach (var item in registrations)
                 if (item.ServiceType == type) { registration = item; return true; }
@@ -132,13 +111,13 @@ namespace LiteFramework
 
         private void OnRegistrationsChanged()
         {
-            if (_services.IsDisposed) Dispose();
-            else Rebuild();
+            if (_services == null || _services.IsDisposed) { Dispose(); return; }
+            Rebuild();
         }
 
         private void Rebuild()
         {
-            ServiceRegistration[] registrations = _services.SnapshotRegistrations();
+            var registrations = _services.SnapshotRegistrations();
             var tickables = new List<ITickable>();
             if (_order == null)
             {

@@ -42,19 +42,6 @@ namespace LiteFramework.Tests
             }
         }
 
-        /// <summary>冒泡测试用：可选实现 IEventSink（记录是否被问到）。</summary>
-        private sealed class StageWithSink : IStage<Id, Req>, IEventSink<int>
-        {
-            private readonly int _consumes;                        // -1 = 不消费
-            public int Asked;
-            public StageWithSink(int consumes) { _consumes = consumes; }
-            public void OnInit(IStageHost<Id, Req> m) { }
-            public void OnEnter(IStageHost<Id, Req> m, in Req req) { }
-            public void OnUpdate(IStageHost<Id, Req> m, float s) { }
-            public void OnLeave(IStageHost<Id, Req> m) { }
-            public bool TryHandle(in int e) { Asked++; return _consumes == e; }
-        }
-
         private sealed class Fixture
         {
             public readonly List<string> Log = new List<string>();
@@ -264,41 +251,6 @@ namespace LiteFramework.Tests
             Assert.Equal(Id.Ongoing, f.Machine.Current);
         }
 
-        // ---- 冒泡（H9）----
-
-        [Fact]
-        public void HSM_冒泡_最深优先_未处理则上浮()
-        {
-            var log = new List<string>();
-            var mainSink = new StageWithSink(7);                  // 父层消费 7
-            var lobbySink = new StageWithSink(-1);                // 子层不消费
-            var other = new Stage(log, "m");
-
-            var hsm = new HierarchicalStageMachine<Id, Req>("b",
-                new (Id, IStage<Id, Req>)[]
-                {
-                    (Id.Main, mainSink), (Id.Lobby, lobbySink), (Id.Match, other),
-                },
-                composites: new[] { new CompositeSpec<Id>(Id.Main, Id.Lobby, HistoryMode.None, Id.Lobby, Id.Match) });
-
-            hsm.Start(Id.Main);                                   // Main / Lobby（最深 = Lobby）
-            Assert.True(hsm.Raise(7));                            // Lobby 先被问（不消费）→ Main 消费
-            Assert.Equal(1, lobbySink.Asked);
-            Assert.Equal(1, mainSink.Asked);
-
-            Assert.False(hsm.Raise(99));                          // 都不消费 → false
-            Assert.Equal(2, lobbySink.Asked);
-            Assert.Equal(2, mainSink.Asked);
-        }
-
-        [Fact]
-        public void HSM_冒泡_无人处理返回false()
-        {
-            var f = new Fixture();
-            f.Machine.Start(Id.Main);
-            Assert.False(f.Machine.Raise(3));                         // 普通 Stage 未实现 IEventSink
-        }
-
         // ---- Reset（深→浅收尾 + 清历史）----
 
         [Fact]
@@ -459,16 +411,6 @@ namespace LiteFramework.Tests
             Assert.Equal(la.Update, ha.Update);
         }
 
-        [Fact]
-        public void 对拍_flat的Raise等价于HSM单层冒泡()
-        {
-            var sink = new FlatSink(5);
-            var flat = new StageMachine<Id, Req>("f", (Id.Lobby, sink));
-            flat.Start(Id.Lobby);
-            Assert.True(flat.Raise(5));
-            Assert.False(flat.Raise(6));
-        }
-
         private sealed class FlatStage : IStage<Id, Req>
         {
             public int Enter, Leave, Update;
@@ -479,15 +421,5 @@ namespace LiteFramework.Tests
             public void OnLeave(IStageHost<Id, Req> m) => Leave++;
         }
 
-        private sealed class FlatSink : IStage<Id, Req>, IEventSink<int>
-        {
-            private readonly int _hit;
-            public FlatSink(int hit) => _hit = hit;
-            public void OnInit(IStageHost<Id, Req> m) { }
-            public void OnEnter(IStageHost<Id, Req> m, in Req req) { }
-            public void OnUpdate(IStageHost<Id, Req> m, float s) { }
-            public void OnLeave(IStageHost<Id, Req> m) { }
-            public bool TryHandle(in int e) => e == _hit;
-        }
     }
 }

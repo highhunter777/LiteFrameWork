@@ -12,7 +12,7 @@ namespace LiteGame.Modules.Dev
     public sealed class DevServices
     {
         public SegmentContext Context;
-        public CommandCenter Commands;
+        public CommandBus Commands;
         public ServiceContainer Services;
         public IDevSession Session;
         public ISceneService Scenes;

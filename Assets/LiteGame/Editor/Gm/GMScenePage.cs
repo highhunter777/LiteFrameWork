@@ -66,14 +66,14 @@ namespace LiteGame.Editor
             EditorGUILayout.HelpBox("本页为加载机制的机制级验证（加载/卸载/叠加语义），不承担业务流程跳转。", MessageType.Info);
         }
 
-        /// <summary>场景操作经命令中心（SendAsync：权限门/拦截器/审计链全覆盖——加载/卸载进审计环；
+        /// <summary>场景操作经命令总线（SendAsync：权限门/拦截器/审计链全覆盖——加载/卸载进审计环；
         /// 运行态失败以结果返回，编程错误兜底不外泄到编辑器；忙碌守卫与结果落面板保留）。
         /// 本页＝带参命令的专面板（《GM 与调试工具分层专项设计》§2.2 裁决）——内核 TryExecute 只覆盖
         /// 无参形态，带参/异步派发直用命令总线（仍全量审计），故 lint-allow R14。</summary>
         private async UniTask RunSceneOp<TCommand>(TCommand command, string label) where TCommand : ICommand
         {
-            CommandCenter center = GetCommandCenter();   // lint-allow R14 场景页＝带参命令专面板（§2.2）：SendAsync 经命令总线审计，非旁路
-            if (center == null) { _sceneResult = $"{label}失败：CommandCenter 未装配"; return; }
+            CommandBus center = GetCommandBus();   // lint-allow R14 场景页＝带参命令专面板（§2.2）：SendAsync 经命令总线审计，非旁路
+            if (center == null) { _sceneResult = $"{label}失败：CommandBus 未装配"; return; }
 
             _sceneBusy = true;
             _sceneResult = $"{label}中……";
@@ -141,6 +141,6 @@ namespace LiteGame.Editor
 
         private static IContentService GetContentService() => GMEditorResolve.ResolveFromContainer<IContentService>();
 
-        private static CommandCenter GetCommandCenter() => GMEditorResolve.ResolveFromContainer<ICommandCenter>() as CommandCenter;   // lint-allow R14 场景页＝带参命令专面板（§2.2）：带参/异步形态直用命令总线派发（全量审计），非旁路
+        private static CommandBus GetCommandBus() => GMEditorResolve.ResolveFromContainer<ICommandBus>() as CommandBus;   // lint-allow R14 场景页＝带参命令专面板（§2.2）：带参/异步形态直用命令总线派发（全量审计），非旁路
     }
 }

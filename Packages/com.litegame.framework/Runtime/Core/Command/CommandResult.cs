@@ -1,6 +1,6 @@
 namespace LiteFramework
 {
-    /// <summary>命令拒绝原因（《命令中心专项设计》§2）：审计与诊断的归因面。</summary>
+    /// <summary>命令拒绝原因（《命令总线专项设计》§2）：审计与诊断的归因面。</summary>
     public enum CommandReject
     {
         /// <summary>成功/无拒绝。</summary>
@@ -14,7 +14,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 命令执行结果（《命令中心专项设计》§2）：校验/执行失败 = Ok false + Reason/Detail，
+    /// 命令执行结果（《命令总线专项设计》§2）：校验/执行失败 = Ok false + Reason/Detail，
     /// 失败走结果不走异常（GmBlocked 是 release 正常路径；无处理器才是编程错误直接抛）。
     /// </summary>
     public readonly struct CommandResult

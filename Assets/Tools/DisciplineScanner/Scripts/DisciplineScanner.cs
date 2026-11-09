@@ -165,7 +165,7 @@ namespace Tools.DisciplineScan
             @"|\bTestModeRuntime\s*\." +
             @"|\bDiagTrace\s*\.\s*(?:Recent|Total)\b" +
             @"|\bLog\s*\.\s*(?:Recent|ErrorCount|CurrentSessionId|CurrentMatchId|SetMatchContext|SetFrame)\b" +
-            @"|\bCommandCenter\b" +
+            @"|\bCommandBus\b" +
             @"|\bStructuredLogInstaller\b" +
             @"|\bWeakNetRuntime\b" +
             @"|\bWeakNetClientTransport\b" +

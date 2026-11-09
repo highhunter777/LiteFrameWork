@@ -22,7 +22,7 @@ namespace LiteGame
         private readonly IContentService _content;   // 内容服务（grip.bin 数据产物取件）
         private readonly IInputService _input;       // 输入服务（设备源注入/清派发状态）
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
-        private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
+        private readonly CommandBus _commands;    // 命令总线（传送命令化：撤销/重做/排队派发）
         private readonly LiteGame.IDevSession _dev;  // 开发会话端口（激光/飘字开关；可空 = 测试装配）
         private readonly ClientScope _viewScope;     // 视图资源（prefab 租约/视图根）自有作用域
 
@@ -48,7 +48,7 @@ namespace LiteGame
         /// <param name="worldClock">世界钟（伤害数字寿命/合并窗；null = 飘字降级）。</param>
         internal BattleViewRig(IContentService content, IInputService input, ICameraService camera,
             ClientScope account, IVfxService vfx = null, LiteFramework.IWorldClock worldClock = null,
-            AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null,
+            AudioService audio = null, CommandBus commands = null, CrosshairFeelProfile crosshairFeel = null,
             Func<UIThemeAsset> themeProvider = null, LiteGame.IDevSession dev = null,
             IBattleDevOverlay devOverlay = null, Action<SimVector3> teleportDispatch = null,
             ILookPreferences lookPreferences = null, RootMotionDigestHolder rootMotionDigest = null,
@@ -206,7 +206,7 @@ namespace LiteGame
                 _teleportReg = _commands.RegisterUndoable(new TeleportToAimHandler(
                     aimOf: () => _lookController.AimPoint,
                     originOf: ReadLocalOrigin,
-                    dispatch: _teleportDispatch));                     // 传送命令化：撤销/重做随命令中心可用
+                    dispatch: _teleportDispatch));                     // 传送命令化：撤销/重做随命令总线可用
             }
             Log.Info($"view-attached prefab={BattleViewAssets.EntityPrefab}", LogTag.Battle);
         }
