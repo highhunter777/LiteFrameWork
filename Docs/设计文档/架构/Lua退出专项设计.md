@@ -101,7 +101,7 @@
 
 - `IPageContext`（`Modules/UI/Abstractions/`）的成员**全部是端口或延迟工厂**，避免装配段顺序耦合（UI 段早于 Meta/Battle 段）：`Meta`、`Room` 允许为 null（未配置部署/未进房），页面按"能力缺失显性拒绝"处理，与现行 `Bridge.meta.IsConfigured()` 判据同口径。
 - `Bridge`、`MetaBridge`、`RoomBridge` 的 Lua 装订方法全部删除；`MetaBridge` 里的业务逻辑（异步收口、失败原因映射、地图名解析、时间格式化）**不删**，迁进 `IMetaSession` 的实现（`MetaLoginService` 侧的适配件），由页面直接 `await`——Lua 时代的"回调 + 恰一次"由 `UniTask` + `CancellationToken` 承接，页面 `OnHide` 取消在途请求。
-- `ProductSettings.Current` 是既有单例读口，设置页直接用，不新增静态状态（红线 6：**不新增** `public static` 可变状态；`Bridge` 这类静态门面随本方案消失，不是新增）。
+- 设置页经 `ISettingsPagePort`（实现 `ProductSettingsAdapter`）读取既有 `ProductSettings` 实例，不新增静态状态（红线 6：**不新增** `public static` 可变状态；`Bridge` 这类静态门面随本方案消失，不是新增）。
 
 ### 4.5 热更与内容面（D5）
 

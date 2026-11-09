@@ -11,7 +11,7 @@
 | [UI 制作规范](../../../规范/05-UI制作.md) | 目录、Prefab 根、命名、布局、渲染、文本、动效、列表、交互、提交与门禁硬规则 |
 | [UI 命名与控件词表参考](UI命名与控件词表参考.md) | 名字模型、角色词表、控件模板清单、选段指引、硬约束速查 |
 | [UI 逻辑 API 参考](UI逻辑API参考.md) | C# `UIBindBase`/`UIBindIndex` 受控 API、`PageLogicBase`/`IPageContext` 页面逻辑与端口、列表行协议、错误语义 |
-| [设置系统专项设计](设置系统专项设计.md) | 设置项单源（分组/存储键/值域/默认）、四组生效器（音频/图形/显示/控制）、影子管线资产与平台能力矩阵、`ProductSettings` 门面、设置面板页签结构与文案键 |
+| [设置系统专项设计](设置系统专项设计.md) | 设置项单源（分组/存储键/值域/默认）、四组生效器（音频/图形/显示/控制）、影子管线资产与平台能力矩阵、`ISettingsPagePort` 页面端口与 `ProductSettings` 门面、设置面板页签结构与文案键 |
 | [战斗 HUD 对局倒计时专项设计](战斗HUD对局倒计时专项设计.md) | 局时 `mm:ss` 的语义/真值源/显示状态机/刷新纪律/prefab 落位与验收（草案） |
 
 - 机器可读 schema：[UIPageContract.schema.json](UIPageContract.schema.json) · [UIStyleTokens.schema.json](UIStyleTokens.schema.json) · [UIWidgetManifest.schema.json](UIWidgetManifest.schema.json) · [UIPageManifest.schema.json](UIPageManifest.schema.json) · [UIRuleExceptions.schema.json](UIRuleExceptions.schema.json) · [UIDeviceProfiles.schema.json](UIDeviceProfiles.schema.json)。

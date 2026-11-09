@@ -110,6 +110,8 @@ L5 Process      角色 / Lane / 交接 / 评审 / 度量 / CI
 
 依赖方向只能自上而下：**组合依赖组件，组件依赖基座；工具读取资产与运行时，不被运行时依赖**。反向依赖（组件引用具体页面、运行时引用编辑器程序集、release 引用调试类型）一律禁止。
 
+域边界：`LiteGame.Modules.UI` 不引 `LiteGame.Modules.Settings`；页面能力经 UI 域自持端口注入（`IPageContext` 及其 `Settings` 端口 `ISettingsPagePort`，实现住 App），页面逻辑不认设置模型类型。
+
 ### 3.2 三条产品轨
 
 | 轨 | 载体 | 生命周期 | 数据频率 | Owner |

@@ -14,6 +14,7 @@
 C# 页面 (PageLogicBase : UIBindBase) ──► UIBindIndex ──► 控件（按 BindName 寻址）
 C# 页面导航 (Ctx.Nav / Go / Replace / CloseSelf) ──► UINavigationController ──► UIService
 确认缝 (Ctx.Confirm) ──► IConfirmDialog
+设置页 (Ctx.Settings) ──► ISettingsPagePort（生产实现 ProductSettingsAdapter，住 App）
 ```
 
 - 页面逻辑不直接操作 `GameObject`/`Transform`/组件；只经受控 API。
@@ -136,9 +137,9 @@ C# 页面导航 (Ctx.Nav / Go / Replace / CloseSelf) ──► UINavigationContr
 
 ## 5. 页面上下文与数据
 
-- `IPageContext`（`Ctx`）：`Meta`（`IMetaSession`）/`Room`（`IRoomView`）/`Maps`（`IMapCatalog`）/`Nav`（`UINavigationController`）/`UI`（`UIService`）/`Confirm`（`IConfirmDialog`）。`Meta`/`Room` 允许为 null（未配置部署/未进房），页面按“能力缺失显性拒绝”处理。
+- `IPageContext`（`Ctx`）：`Meta`（`IMetaSession`）/`Room`（`IRoomView`）/`Maps`（`IMapCatalog`）/`Nav`（`UINavigationController`）/`UI`（`UIService`）/`Confirm`（`IConfirmDialog`）/`Settings`（`ISettingsPagePort`）。`Meta`/`Room`/`Settings` 允许为 null（未配置部署/未进房/未装配），页面按“能力缺失显性拒绝”处理。`PageLogicBase` 另给同名端口便捷口（`Nav`/`Meta`/`Maps`/`Room`/`Settings`，均经 `Ctx?.` 取值）。
 - 页面数据走强类型 `IUIData`：`ResultPageData`/`SettingsPageData`/`RoomPageData` 等，经 `Go/Replace/ShowAsync` 传入；不传 table/dictionary。
-- 设置页直读 `ProductSettings.Current`（装配期 `Bind` 的实例；既有单例读口）。
+- 设置页只经 `Ctx.Settings`（`ISettingsPagePort`）读写：28 个原语成员（15 读 + 13 写/动作，写即生效、无 `Apply`），端口住 `Modules/UI/Abstractions`、实现 `ProductSettingsAdapter` 住 App；页面不认 `ProductSettings` 类型，UI 域不引 `LiteGame.Modules.Settings`。空端口时 `OnShow` 早退、12 个设置控件禁用、关闭可用。
 
 ## 6. 列表行协议
 
@@ -181,7 +182,7 @@ C# 页面导航 (Ctx.Nav / Go / Replace / CloseSelf) ──► UINavigationContr
 | 复杂列表/大量交互 | 页面逻辑（`PageLogicBase` + `UIListRowSet`） |
 | 低频业务编排/文案/按钮 | 页面逻辑（C#） |
 | 静态文案 | `LTextKeyRef` + key；不写页面逻辑 |
-| 需要强类型/服务调用 | `GetControl<T>` / `Ctx.Meta` / `Ctx.Room` |
+| 需要强类型/服务调用 | `GetControl<T>` / `Ctx.Meta` / `Ctx.Room` / `Ctx.Settings` |
 | 需要热更快速迭代 | 改 `LiteGame.Modules.UI` 页逻辑，随 HybridCLR hot 程序集发布（`code/` 段） |
 
 > 页面逻辑只有一种语言（C#）；不存在“两套生成/两套所有权”的混用选项。
