@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-11-09T15:56:41+08:00",
+  "ok": true,
+  "command_fingerprint": "50bfb88f7daeaa0c06cc389b9973fc1b5af4069d14d9ca7ff1b7a51c2ce768b9",
+  "commands": [
+    {
+      "name": "friend-settings-structural-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~ModuleFriendAllowlistTests|FullyQualifiedName~SettingsPortMigrationTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10634,
+      "ok": true,
+      "output_tail": "  失败 设置端口必须声明28个原语成员 [2 ms]\n  错误消息:\n   缺设置页端口：Assets/LiteGame/Modules/UI/Abstractions/ISettingsPagePort.cs（T4 未完成；应落在 Modules/UI/Abstractions，28 个原语成员，无 Apply）\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.SettingsPortMigrationTests.设置端口必须声明28个原语成员() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\SettingsPortMigrationTests.cs:line 86\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 页面上下文必须暴露设置端口 [1 ms]\n  错误消息:\n   IPageContext 缺 ISettingsPagePort 成员（T4 未完成）：Assets/LiteGame/Modules/UI/Abstractions/IPageContext.cs 未声明设置页端口类型\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.SettingsPortMigrationTests.页面上下文必须暴露设置端口() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\SettingsPortMigrationTests.cs:line 73\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 产品设置适配器必须存在 [< 1 ms]\n  错误消息:\n   缺产品设置适配器：Assets/LiteGame/App/PageServices/ProductSettingsAdapter.cs（T4 未完成；应包 ProductSettings，创建点在 BindProductSettings 之后或惰性取）\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.SettingsPortMigrationTests.产品设置适配器必须存在() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\SettingsPortMigrationTests.cs:line 110\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 模块friend必须与模型逐条一致 [14 ms]\n  错误消息:\n   模块 friend 与 arch/units.json 不一致（未登记即红；friends 写程序集名，不是单元 id）：arch/units.json 单元 LiteGame.Modules.Config 缺 friends 数组（模块 Config） | arch/units.json 单元 LiteGame.Modules.Map 缺 friends 数组（模块 Map） | arch/units.json 单元 LiteGame.Modules.UI 缺 friends 数组（模块 UI） | arch/units.json 单元 LiteGame.Modules.Battle 缺 friends 数组（模块 Battle） | arch/units.json 单元 LiteGame.Modules.Dev 缺 friends 数组（模块 Dev） | arch/units.json 单元 LiteGame.Modules.Meta 缺 friends 数组（模块 Meta） | arch/units.json 单元 LiteGame.Modules.Composition 缺 friends 数组（模块 Composition） | arch/units.json 单元 LiteGame.Modules.Session 缺 friends 数组（模块 Session） | arch/units.json 单元 LiteGame.Modules.Procedure 缺 friends 数组（模块 Procedure） | Battle 模块在 arch/units.json 缺 friends 字段 | Composition 模块在 arch/units.json 缺 friends 字段 | Config 模块在 arch/units.json 缺 friends 字段 | Dev 模块在 arch/units.json 缺 friends 字段 | Map 模块在 arch/units.json 缺 friends 字段 | Meta 模块在 arch/units.json 缺 friends 字段 | Procedure 模块在 arch/units.json 缺 friends 字段 | Session 模块在 arch/units.json 缺 friends 字段 | UI 模块在 arch/units.json 缺 friends 字段\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.ModuleFriendAllowlistTests.模块friend必须与模型逐条一致() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\ModuleFriendAllowlistTests.cs:line 73\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n\n失败!  - 失败:     7，通过:     3，已跳过:     0，总计:    10，持续时间: 187 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[stderr]\n[xUnit.net 00:00:00.75]     模型必须为每个模块登记friends字段 [FAIL]\n[xUnit.net 00:00:00.77]     UI程序集不得引用Settings模块 [FAIL]\n[xUnit.net 00:00:00.77]     设置页不得直取ProductSettings静态门面 [FAIL]\n[xUnit.net 00:00:00.78]     设置端口必须声明28个原语成员 [FAIL]\n[xUnit.net 00:00:00.78]     页面上下文必须暴露设置端口 [FAIL]\n[xUnit.net 00:00:00.79]     产品设置适配器必须存在 [FAIL]\n[xUnit.net 00:00:00.93]     模块friend必须与模型逐条一致 [FAIL]"
+    },
+    {
+      "name": "zero-use-edges-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "scripts.tests.test_zero_use_edges",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 604,
+      "ok": true,
+      "output_tail": "    )\n    ^\nAssertionError: False is not true : 缺零使用边基线：arch/zero-use-edges.json（T3 未完成；--check 只减不增的基线文件）\n\n======================================================================\nFAIL: test_check_passes (scripts.tests.test_zero_use_edges.ZeroUseEdgesTests.test_check_passes)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_zero_use_edges.py\", line 34, in test_check_passes\n    self.assertTrue(\n    ~~~~~~~~~~~~~~~^\n        SCRIPT.is_file(),\n        ^^^^^^^^^^^^^^^^^\n        \"无法运行 --check：缺零使用边门禁脚本 scripts/gate/zero-use-edges.py（T3 未完成）\",\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\nAssertionError: False is not true : 无法运行 --check：缺零使用边门禁脚本 scripts/gate/zero-use-edges.py（T3 未完成）\n\n======================================================================\nFAIL: test_gate_script_exists (scripts.tests.test_zero_use_edges.ZeroUseEdgesTests.test_gate_script_exists)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_zero_use_edges.py\", line 20, in test_gate_script_exists\n    self.assertTrue(\n    ~~~~~~~~~~~~~~~^\n        SCRIPT.is_file(),\n        ^^^^^^^^^^^^^^^^^\n        \"缺零使用边门禁脚本：scripts/gate/zero-use-edges.py\"\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        \"（T3 未完成；应复用 domain-matrix 口径：去注释/字符串、depth=1 顶层类型、按出现次数）\",\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\nAssertionError: False is not true : 缺零使用边门禁脚本：scripts/gate/zero-use-edges.py（T3 未完成；应复用 domain-matrix 口径：去注释/字符串、depth=1 顶层类型、按出现次数）\n\n----------------------------------------------------------------------\nRan 3 tests in 0.019s\n\nFAILED (failures=3)"
+    }
+  ]
+}

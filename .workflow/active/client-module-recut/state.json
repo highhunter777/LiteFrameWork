@@ -3,9 +3,9 @@
   "slug": "client-module-recut",
   "title": "客户端按功能/行为重切模块（方案）",
   "status": "active",
-  "current_stage": "confirm-acceptance",
+  "current_stage": "implement",
   "created_at": "2026-11-09T11:50:08+08:00",
-  "updated_at": "2026-11-09T14:44:46+08:00",
+  "updated_at": "2026-11-09T15:56:53+08:00",
   "completed_at": null,
   "completed_stages": [
     {
@@ -17,6 +17,27 @@
       "id": "review-plan",
       "title": "子代理评审方案",
       "completed_at": "2026-11-09T14:44:46+08:00"
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "completed_at": "2026-11-09T15:32:27+08:00",
+      "approved_by": "user"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-11-09T15:38:59+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "任务评审（本仓默认跳过：2026-11-09 用户裁决）",
+      "completed_at": "2026-11-09T15:38:59+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "子代理先写测试",
+      "completed_at": "2026-11-09T15:56:53+08:00"
     }
   ],
   "history": [
@@ -38,9 +59,255 @@
       "from": "review-plan",
       "to": "confirm-acceptance",
       "approved_by": null
+    },
+    {
+      "at": "2026-11-09T15:32:27+08:00",
+      "event": "advance",
+      "from": "confirm-acceptance",
+      "to": "breakdown",
+      "approved_by": "user"
+    },
+    {
+      "at": "2026-11-09T15:38:59+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T15:38:59+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T15:56:53+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
     }
   ],
-  "tasks": [],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Phase 0 基线快照与 meta 债登记",
+      "description": "",
+      "acceptance": "记录 git status --short -- Assets Packages Tests Server 快照（当前 8 M + 5 ?? WIP）；相对快照无新增；L1/arch/domain/doc/build-hash --check-shared 基线记录；BuildHash meta 红登记到技术债+进度卷（grep BuildHash meta stale）。",
+      "verify": "git status --short -- Assets Packages Tests Server; python scripts/gate/test.py --suite L1 --profile PullRequest; python scripts/gate/arch-check.py --check; python scripts/gate/domain-matrix.py --check; python scripts/gate/doc-lint.py; python scripts/codegen/toolbox.py build-hash --check-shared",
+      "files": [
+        "Docs/审计/客户端/登记/技术债.md",
+        "Docs/施工进度/客户端重构线.md",
+        ".workflow/active/client-module-recut/build-log.md"
+      ],
+      "deps": [],
+      "status": "todo",
+      "evidence": "",
+      "status_reason": "",
+      "created_at": "2026-11-09T15:37:46+08:00",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "T2",
+      "title": "friend 允许集单一来源 + L1 守卫",
+      "description": "",
+      "acceptance": "9 个 Modules/* AssemblyInfo 共 55 条与 arch/units.json friends 一致；未登记即红；AssemblyInfo 归属=最近 asmdef 目录、不递归子单元；合成负例红。",
+      "verify": "python scripts/gate/test.py --suite L1 --profile PullRequest",
+      "files": [
+        "arch/units.json",
+        "Tests/LiteFramework.Core.Tests/ModuleFriendAllowlistTests.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "todo",
+      "evidence": "",
+      "status_reason": "",
+      "created_at": "2026-11-09T15:37:46+08:00",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "T3",
+      "title": "零使用边脚本/基线 + toolchain 注册",
+      "description": "",
+      "acceptance": "zero-use-edges.py 复用 domain-matrix 口径（去注释/字符串、depth=1 顶层类型、出现次数）；arch/zero-use-edges.json 基线；quality.zero-use-edges 登记 toolchain.json；.workflow/config.json 挂 command；--check 只减不增；合成负例红。",
+      "verify": "python scripts/gate/zero-use-edges.py --check; python scripts/toolchain.py docs --check",
+      "files": [
+        "scripts/gate/zero-use-edges.py",
+        "arch/zero-use-edges.json",
+        "scripts/gate/toolchain.json",
+        ".workflow/config.json"
+      ],
+      "deps": [
+        "T2"
+      ],
+      "status": "todo",
+      "evidence": "",
+      "status_reason": "",
+      "created_at": "2026-11-09T15:37:47+08:00",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "T4",
+      "title": "ISettingsPagePort + ProductSettingsAdapter + 页面上下文",
+      "description": "",
+      "acceptance": "ISettingsPagePort 28 成员（15 读+13 写/动作，无 Apply）；ProductSettingsAdapter 在 App；IPageContext.Settings/PageLogicBase.Settings；adapter 创建点在 BindProductSettings 之后/惰性；Unity 重编译 0 错。",
+      "verify": "python scripts/gate/arch-check.py --check; Unity 重编译 0 错",
+      "files": [
+        "Assets/LiteGame/Modules/UI/Abstractions/ISettingsPagePort.cs",
+        "Assets/LiteGame/App/PageServices/ProductSettingsAdapter.cs",
+        "Assets/LiteGame/Modules/UI/Abstractions/IPageContext.cs",
+        "Assets/LiteGame/Modules/UI/Pages/PageLogicBase.cs",
+        "Assets/LiteGame/Modules/UI/Pages/PageContext.cs",
+        "Assets/LiteGame/App/AppComposition.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "todo",
+      "evidence": "",
+      "status_reason": "",
+      "created_at": "2026-11-09T15:38:00+08:00",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "T5",
+      "title": "Page_SettingsLogic 10 处替换 + FrameRateIndex + 空端口守卫",
+      "description": "",
+      "acceptance": "页面代码 ProductSettings.Current=0；FrameRateIndex(ISettingsPagePort)；空端口 OnShow 早退 + 10 处 ?.；Ctx.Meta 仍用于 Version/AccountId/ServerUrl/LeaveMatch；Unity 重编译 0 错。",
+      "verify": "rg ProductSettings.Current Assets/LiteGame/Modules/UI/Pages; Unity 重编译 0 错",
+      "files": [
+        "Assets/LiteGame/Modules/UI/Pages/Screens/Settings/Page_SettingsLogic.cs",
+        "Assets/LiteGame/Modules/Settings/Model/ProductSettings.cs",
+        "Assets/LiteGame/App/AppComposition.cs"
+      ],
+      "deps": [
+        "T4"
+      ],
+      "status": "todo",
+      "evidence": "",
+      "status_reason": "",
+      "created_at": "2026-11-09T15:38:00+08:00",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "T6",
+      "title": "UI asmdef 去 Settings + units/domain/allowlist 收口",
+      "description": "",
+      "acceptance": "UI asmdef 不再引 Settings；units.json UI refs 去 Settings；domain-matrix 去 Ui→Settings；allowlist 删 ProductSettings；arch-check/domain-matrix/L1 绿。",
+      "verify": "python scripts/gate/arch-check.py --check; python scripts/gate/domain-matrix.py --check; python scripts/gate/test.py --suite L1 --profile PullRequest",
+      "files": [
+        "Assets/LiteGame/Modules/UI/LiteGame.Modules.UI.asmdef",
+        "arch/units.json",
+        "Docs/说明/18-域间引用矩阵.md",
+        "Tests/LiteFramework.Core.Tests/CrossModuleContractLocationTests.cs"
+      ],
+      "deps": [
+        "T5"
+      ],
+      "status": "todo",
+      "evidence": "",
+      "status_reason": "",
+      "created_at": "2026-11-09T15:38:01+08:00",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "T7",
+      "title": "Settings 页 PlayMode 用例",
+      "description": "",
+      "acceptance": "新增 SettingsPagePlayModeTests：fake ILocalizationService、真 Page_Settings.prefab、Dropdown/Slider 事件、空端口 10 处 ?. + OnShow 早退；打开/改画质/改音量/Back 保存/空端口绿。",
+      "verify": "python scripts/gate/unity-tests.py --mode playmode --filter SettingsPagePlayModeTests",
+      "files": [
+        "Assets/Tests/UI/PlayMode/UI/SettingsPagePlayModeTests.cs"
+      ],
+      "deps": [
+        "T5"
+      ],
+      "status": "todo",
+      "evidence": "",
+      "status_reason": "",
+      "created_at": "2026-11-09T15:38:12+08:00",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "T8",
+      "title": "friend/零使用边棘轮",
+      "description": "",
+      "acceptance": "friend 55；零使用边基线只减不增；白名单 15→14 已在 Phase 1；记录数字。",
+      "verify": "python scripts/gate/zero-use-edges.py --check; python scripts/gate/test.py --suite L1 --profile PullRequest",
+      "files": [
+        "arch/zero-use-edges.json",
+        "Tests/LiteFramework.Core.Tests/ModuleFriendAllowlistTests.cs"
+      ],
+      "deps": [
+        "T2",
+        "T3",
+        "T6"
+      ],
+      "status": "todo",
+      "evidence": "",
+      "status_reason": "",
+      "created_at": "2026-11-09T15:38:13+08:00",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "T9",
+      "title": "文档回写与审计登记路径核销",
+      "description": "",
+      "acceptance": "说明 03/08/10/14/15/17/18/19/20、UI 系统/UI 工具链/UI API/DI/设置/技术债/进度卷事实性回写；章程类只记不变/待另立设计；审计路径核销；doc-lint/toolchain docs 绿。",
+      "verify": "python scripts/gate/doc-lint.py; python scripts/toolchain.py docs --check",
+      "files": [
+        "Docs/说明/03-客户端框架与运行时.md",
+        "Docs/说明/08-UI与页面逻辑层.md",
+        "Docs/说明/10-测试与门禁.md",
+        "Docs/说明/14-代码地图与根目录.md",
+        "Docs/说明/15-工具链手册.md",
+        "Docs/说明/17-全项目数据流.md",
+        "Docs/说明/18-域间引用矩阵.md",
+        "Docs/说明/19-模块发行矩阵.md",
+        "Docs/说明/20-架构单元模型.md",
+        "Docs/设计文档/客户端/UI系统/UI系统总设计.md",
+        "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+        "Docs/设计文档/客户端/UI系统/UI逻辑API参考.md",
+        "Docs/设计文档/架构/客户端依赖注入专项设计.md",
+        "Docs/设计文档/客户端/UI系统/设置系统专项设计.md",
+        "Docs/审计/客户端/登记/技术债.md",
+        "Docs/施工进度/客户端重构线.md"
+      ],
+      "deps": [
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8"
+      ],
+      "status": "todo",
+      "evidence": "",
+      "status_reason": "",
+      "created_at": "2026-11-09T15:38:13+08:00",
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
   "verification": null,
-  "red_verification": null
+  "red_verification": {
+    "at": "2026-11-09T15:56:41+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "50bfb88f7daeaa0c06cc389b9973fc1b5af4069d14d9ca7ff1b7a51c2ce768b9",
+    "summary": {
+      "total": 2,
+      "passed": 2
+    }
+  }
 }

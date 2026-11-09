@@ -7,6 +7,11 @@
     "min_section_chars": 1
   },
   "timeout_seconds": 600,
+  "preferences": {
+    "task_review": "skip",
+    "tests_and_implementation": "subagent",
+    "note": "2026-11-09 用户裁决：任务清单不做子代理评审；测试与施工由子代理执行。"
+  },
   "commands": [
     {
       "name": "L1",
@@ -880,214 +885,27 @@
   ],
   "red_commands": [
     {
-      "name": "build-player-platform-red",
+      "name": "friend-settings-structural-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~ModuleFriendAllowlistTests|FullyQualifiedName~SettingsPortMigrationTests",
+        "--nologo"
+      ],
+      "timeout": 600
+    },
+    {
+      "name": "zero-use-edges-red",
       "cmd": [
         "python",
         "-m",
         "unittest",
-        "discover",
-        "-s",
-        "scripts/tests",
-        "-p",
-        "test_build_player.py",
+        "scripts.tests.test_zero_use_edges",
         "-v"
       ],
       "timeout": 300
-    },
-    {
-      "name": "ui-selectable-theme-red",
-      "cmd": [
-        "python",
-        "scripts/gate/unity-tests.py",
-        "--mode",
-        "editor",
-        "--filter",
-        "UiSelectableThemeEditModeTests",
-        "--timeout",
-        "600"
-      ],
-      "timeout": 900
-    },
-    {
-      "name": "ui-selectable-applier-red",
-      "cmd": [
-        "python",
-        "scripts/gate/unity-tests.py",
-        "--mode",
-        "editor",
-        "--filter",
-        "UiSelectableThemeApplierEditModeTests",
-        "--timeout",
-        "600"
-      ],
-      "timeout": 900
-    },
-    {
-      "name": "ui-theme-binder-red",
-      "cmd": [
-        "python",
-        "scripts/gate/unity-tests.py",
-        "--mode",
-        "editor",
-        "--filter",
-        "UiThemeBinderEditModeTests",
-        "--timeout",
-        "600"
-      ],
-      "timeout": 900
-    },
-    {
-      "name": "ui-style-selectable-rule-red",
-      "cmd": [
-        "python",
-        "scripts/gate/unity-tests.py",
-        "--mode",
-        "editor",
-        "--filter",
-        "UiStyleSelectableRuleEditModeTests",
-        "--timeout",
-        "600"
-      ],
-      "timeout": 900
-    },
-    {
-      "name": "ui-text-migration-red",
-      "cmd": [
-        "python",
-        "scripts/gate/unity-tests.py",
-        "--mode",
-        "editor",
-        "--filter",
-        "UiTextStyleEditModeTests",
-        "--timeout",
-        "600"
-      ],
-      "timeout": 900
-    },
-    {
-      "name": "ui-style-ref-red",
-      "cmd": [
-        "python",
-        "scripts/gate/unity-tests.py",
-        "--mode",
-        "editor",
-        "--filter",
-        "UiStyleRefEditModeTests",
-        "--timeout",
-        "600"
-      ],
-      "timeout": 900
-    },
-    {
-      "name": "ui-validation-b4-red",
-      "cmd": [
-        "python",
-        "scripts/gate/unity-tests.py",
-        "--mode",
-        "editor",
-        "--filter",
-        "UiValidationEditModeTests",
-        "--timeout",
-        "600"
-      ],
-      "timeout": 900
-    },
-    {
-      "name": "module-dependency-decl-red",
-      "cmd": [
-        "dotnet",
-        "test",
-        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
-        "--filter",
-        "FullyQualifiedName~ModuleDependencyDeclTests",
-        "--nologo"
-      ],
-      "timeout": 600
-    },
-    {
-      "name": "composition-budget-red",
-      "cmd": [
-        "dotnet",
-        "test",
-        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
-        "--filter",
-        "FullyQualifiedName~CompositionBudgetTests",
-        "--nologo"
-      ],
-      "timeout": 600
-    },
-    {
-      "name": "domain-boundary-red",
-      "cmd": [
-        "dotnet",
-        "test",
-        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
-        "--filter",
-        "FullyQualifiedName~DomainBoundaryTests",
-        "--nologo"
-      ],
-      "timeout": 600
-    },
-    {
-      "name": "sync-and-sim-geometry-red",
-      "cmd": [
-        "dotnet",
-        "test",
-        "Tests/LiteSim.Core.Tests/LiteSim.Core.Tests.csproj",
-        "--filter",
-        "FullyQualifiedName~SyncAndSimGeometryContract",
-        "--nologo"
-      ],
-      "timeout": 600
-    },
-    {
-      "name": "sync-and-sim-contract-red",
-      "cmd": [
-        "dotnet",
-        "test",
-        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
-        "--filter",
-        "FullyQualifiedName~SyncAndSimContract",
-        "--nologo"
-      ],
-      "timeout": 600
-    },
-    {
-      "name": "toolbox-tests",
-      "cmd": ["python", "-m", "unittest", "scripts.tests.test_toolbox", "-v"],
-      "timeout": 300
-    },
-    {
-      "name": "codegen-rot-tests",
-      "cmd": ["python", "-m", "unittest", "scripts.tests.test_codegen_rot", "-v"],
-      "timeout": 300
-    },
-    {
-      "name": "gen-path-report-tests",
-      "cmd": ["python", "-m", "unittest", "scripts.tests.test_gen_path_report", "-v"],
-      "timeout": 300
-    },
-    {
-      "name": "gen-luban-check-tests",
-      "cmd": ["python", "-m", "unittest", "scripts.tests.test_gen_luban_check", "-v"],
-      "timeout": 300
-    },
-    {
-      "name": "gen-proto-check-tests",
-      "cmd": ["python", "-m", "unittest", "scripts.tests.test_gen_proto_check", "-v"],
-      "timeout": 300
-    },
-    {
-      "name": "session-boundary-red",
-      "cmd": [
-        "dotnet",
-        "test",
-        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
-        "--filter",
-        "FullyQualifiedName~SessionBoundaryTests",
-        "--nologo"
-      ],
-      "timeout": 600
     }
   ],
   "stages": [
@@ -1195,38 +1013,10 @@
     },
     {
       "id": "review-tasks",
-      "title": "子代理评审任务",
-      "artifacts": [
-        {
-          "path": "reviews/task-review.md",
-          "template": "reviews/task-review.md",
-          "sections": [
-            "评审输入",
-            "覆盖与追溯",
-            "检查项",
-            "发现的问题与处理",
-            "评审结论"
-          ]
-        }
-      ],
-      "verdicts": [
-        {
-          "path": "reviews/task-review.md",
-          "fields": {
-            "评审方式": [
-              "独立子代理"
-            ],
-            "结论": [
-              "PASS",
-              "通过"
-            ],
-            "阻塞问题": [
-              "0",
-              "无"
-            ]
-          }
-        }
-      ]
+      "title": "任务评审（本仓默认跳过：2026-11-09 用户裁决）",
+      "artifacts": [],
+      "verdicts": [],
+      "note": "本仓默认不设子代理任务评审；测试与施工由子代理执行。"
     },
     {
       "id": "tests-first",
