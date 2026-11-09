@@ -10,7 +10,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 单页布局预览驱动（《UI编辑器工具专项设计》§8.4）：编辑器 Play 内直接实例化目标 prefab， 不跑 Boot/Lua/数据。
+    /// 单页布局预览驱动（《UI编辑器工具专项设计》§8.4）：编辑器 Play 内直接实例化目标 prefab， 不跑 Boot/页面逻辑/数据。
     /// </summary>
     public sealed class UIPreviewDriver : MonoBehaviour
     {
@@ -267,7 +267,7 @@ namespace LiteGame
 
             GUI.Box(new Rect(8f, 8f, 720f, 112f), GUIContent.none);
             GUI.Label(new Rect(18f, 12f, 480f, 20f),
-                "UI 单页预览（布局档：无 Lua/数据）", GUI.skin.label);
+                "UI 单页预览（布局档：无页面逻辑/数据）", GUI.skin.label);
             if (GUI.Button(new Rect(510f, 12f, 80f, 22f), "重载")) Reload();
             if (GUI.Button(new Rect(596f, 12f, 112f, 22f), "退出预览"))
                 EditorApplication.isPlaying = false;

@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "command": "command run_script",
+  "data": {
+    "command": "run_script",
+    "parameters": {
+      "file": "AgentScripts/LobbyRoomFlow/RunRoomFlowUi.cs",
+      "entry": "RunRoomFlowUi.Run",
+      "args": "[\"RoomList\"]",
+      "timeout_ms": 45000
+    },
+    "result": {
+      "diagnostics": [],
+      "compileMs": 586,
+      "executeMs": 12019,
+      "assemblyName": "PipelineRunScript_RunRoomFlowUi_6e9ae0ddc0fa471c86000ff4530915dc",
+      "success": false,
+      "error": "Runtime Error",
+      "errorDetails": "InvalidOperationException: 超时(12s) 等待 真实列表行可点；列表无已渲染且可点的真实行（不补数据）。VList_Rooms 下激活 Button=0（0=未渲染行；>0=行被遮挡或禁用）;list_status=房间列表加载失败，请重试;visible_pages=Page_Lobby;page_login=false;page_lobby=true;page_room=false;loading_form=false;modal_open=False;top_modal=0\n  at RunRoomFlowUi.WaitUntil (System.Func`1[TResult] condition, System.String what, RunRoomFlowUi+Deadline deadline, System.Func`1[TResult] diagnostic) [0x00027] in E:\\unityProject\\Test\\AgentScripts\\LobbyRoomFlow\\RunRoomFlowUi.cs:764 \r\n  at RunRoomFlowUi.RoomList (LiteFramework.ServiceContainer container, LiteFramework.UI.UIService ui) [0x002c1] in E:\\unityProject\\Test\\AgentScripts\\LobbyRoomFlow\\RunRoomFlowUi.cs:244 \r\n  at RunRoomFlowUi.Run (System.String action) [0x00493] in E:\\unityProject\\Test\\AgentScripts\\LobbyRoomFlow\\RunRoomFlowUi.cs:51 \r\n  at Unity.Pipeline.Editor.Commands.Scripts.RunScriptCommand.RunEphemeral (System.String file, System.String entry, Newtonsoft.Json.Linq.JArray args, System.String[] references, System.String[] defines, System.Boolean pdb, System.Boolean dryRun, System.Int32 timeoutMs, System.Diagnostics.Stopwatch total) [0x005a3] in .\\Packages\\com.unity.pipeline\\Editor\\Commands\\Scripts\\RunScriptCommand.cs:252 "
+    },
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7801,
+      "projectPath": "E:\\unityProject\\Test"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}

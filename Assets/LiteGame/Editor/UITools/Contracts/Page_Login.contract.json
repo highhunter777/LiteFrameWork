@@ -9,7 +9,6 @@
     "name": "Page_Login",
     "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Login.prefab",
     "prefabGuid": "99f22f926331970459aa10b89651fe19",
-    "luaPath": "UI.Page_Login",
     "layer": 0,
     "fullScreen": true,
     "cacheStrategy": "Lru",
@@ -73,7 +72,7 @@
     {
       "bindName": "Btn_GuestLogin",
       "event": "onClick",
-      "handler": "_Login"
+      "handler": "Login"
     },
     {
       "bindName": "Btn_Settings",
@@ -81,5 +80,5 @@
       "handler": "anonymous"
     }
   ],
-  "sourceHash": "sha256:31921ee5ea0ea258bc059a0af945a53e071edd9fbcc25d34050030833da213aa"
+  "sourceHash": "sha256:1e4681a0c2608282da35d851da951f6553bbe8020c6c1cfbbf1539d0deb52bc0"
 }

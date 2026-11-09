@@ -9,7 +9,6 @@
     "name": "Tmp_BaselineB",
     "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_BaselineB.prefab",
     "prefabGuid": "cbb23dba0ffd4b54fb9a54e7bf6e7faf",
-    "luaPath": null,
     "layer": 2,
     "fullScreen": true,
     "cacheStrategy": "Lru",

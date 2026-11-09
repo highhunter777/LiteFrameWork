@@ -1,0 +1,5 @@
+继续同一T2生产作者会话。主代理已观察到38次规则/源码调查，你尚未write/edit生产文件。现在进入代码交付，不再广泛扫描全仓。
+重要并发变更：主代理发现另外7个UI页面的OnButton正在改为OnButtonClick；你的派单记录尚无写入，不将这些改动算作本批。已在.workflow/active/lobby-room-flow/evidence/concurrent-ui-change.json和pre-t2-current保存当前7个页面基线。编辑Page_LobbyLogic前必须重新读取当前版本，保留OnButtonClick和其他并发改动，禁止用旧快照整文件覆盖；Auth/Demo/Records/Result页面不在你写集，不要改它们。
+你已获得足够方案和接口上下文。下一步先实现IRoomTicketSource/IRoomFlow、纯取票Meta服务和操作寿命/ProcedureFlow，再局部接线/阶段前验活/App/GM/页面旧回调保护。生产文件可批量直接编辑；不要改测试、Tests.csproj或.workflow；不要手写meta、直删Assets旧契约。宿主Unity验证由主代理做，你的沙箱不查找/启动/安装Unity。
+T2允许域和全部要求沿用原派单（含Page_LobbyLogic同根因回调、原OnLeave不可Request红线）；新增小源码文件限这些域内并说明理由。需要PageFlow的最小导航代次契约才可完成接线时，先在返回中明确它的必要签名和T3写入范围；不要为尚缺T3实现去写测试兼容特判。若T2/T3共享契约导致必须原子落源码才能编译，返回具体依赖，不要无限空转；主代理会协调，但你至少交付已确定的源文件和API。
+T1已在当前实现真实9/9 NUnit断言red，冻结在evidence/t1-assertion-manifest.json；生产作者不得接触测试。完成T2源码后返回API签名/装配/句柄接管/阶段移交及T6迁移说明；不能声称未执行的编译/测试通过。请在本次调用内交付代码与结构化结果。

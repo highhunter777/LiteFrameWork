@@ -68,8 +68,8 @@ class BuildPlanTests(unittest.TestCase):
         plan = self.plan([])
         paths = {entry["path"] for entry in plan["manifestDrift"]}
         for registered in (
-            "Assets/LiteGame/Modules/Config/SimConfigMapper.cs",
-            "Assets/LiteGame/Modules/Config/TableLayout.cs",
+            "Assets/LiteGame/Modules/Config/Table/SimConfigMapper.cs",
+            "Assets/LiteGame/Modules/Config/Table/TableLayout.cs",
             "Assets/RoomServer/Modules/JoinTicketFormat.cs",
             "Assets/RoomServer/Modules/Base64Url.cs",
             "Assets/RoomServer/Core/MatchStateMachine.cs",
@@ -105,12 +105,12 @@ class BuildPlanTests(unittest.TestCase):
             self.assertIn(action, item["deliveryActions"])
 
     def test_shared_link_file_is_shared(self):
-        plan = self.plan(["Assets/LiteGame/Modules/Config/TableLayout.cs"])
-        self.assertEqual(self.finding(plan, "Assets/LiteGame/Modules/Config/TableLayout.cs")["area"], "shared")
+        plan = self.plan(["Assets/LiteGame/Modules/Config/Table/TableLayout.cs"])
+        self.assertEqual(self.finding(plan, "Assets/LiteGame/Modules/Config/Table/TableLayout.cs")["area"], "shared")
 
     def test_known_missing_shared_link_is_shared_with_warning(self):
-        plan = self.plan(["Assets/LiteGame/Modules/Config/MapTableProjection.cs"])
-        item = self.finding(plan, "Assets/LiteGame/Modules/Config/MapTableProjection.cs")
+        plan = self.plan(["Assets/LiteGame/Modules/Config/Table/MapTableProjection.cs"])
+        item = self.finding(plan, "Assets/LiteGame/Modules/Config/Table/MapTableProjection.cs")
         self.assertEqual(item["area"], "shared")
         self.assertIn("rebuild_server_room", item["deliveryActions"])
         self.assertTrue(any("MapTableProjection" in note for note in plan["notes"]), plan["notes"])
@@ -163,8 +163,8 @@ class BuildPlanTests(unittest.TestCase):
     # ---- client / content / editor / docs ----
 
     def test_client_code(self):
-        plan = self.plan(["Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureMatch.cs"])
-        item = self.finding(plan, "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureMatch.cs")
+        plan = self.plan(["Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs"])
+        item = self.finding(plan, "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs")
         self.assertEqual(item["area"], "client_code")
         self.assertIn("rebuild_client_player", item["deliveryActions"])
         self.assertNotIn("publish_server", item["deliveryActions"])
@@ -173,7 +173,7 @@ class BuildPlanTests(unittest.TestCase):
         paths = [
             "Assets/Art/weapons/rifle.png",
             "Assets/Animation/aim.anim",
-            "Assets/LiteGame/Lua/UI/Page_Login.lua",
+            "Assets/LiteGame/Modules/UI/Content/Widgets/Tmp_Toast.prefab",
             "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
             "Assets/Scenes/Boot.unity",
             "Assets/GameData/Config/UI/UITheme.asset",
@@ -194,10 +194,10 @@ class BuildPlanTests(unittest.TestCase):
 
     def test_meta_files_follow_their_asset_area(self):
         plan = self.plan([
-            "Packages/com.litegame.framework/Runtime/Services/UI/Style/UIThemeAsset.cs.meta",
+            "Packages/com.litegame.framework/Runtime/Services/UI/Style/Theme/UIThemeAsset.cs.meta",
             "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab.meta",
         ])
-        self.assertEqual(self.finding(plan, "Packages/com.litegame.framework/Runtime/Services/UI/Style/UIThemeAsset.cs.meta")["area"], "client_code")
+        self.assertEqual(self.finding(plan, "Packages/com.litegame.framework/Runtime/Services/UI/Style/Theme/UIThemeAsset.cs.meta")["area"], "client_code")
         self.assertEqual(self.finding(plan, "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab.meta")["area"], "content")
 
     def test_editor_code(self):
@@ -244,11 +244,11 @@ class BuildPlanTests(unittest.TestCase):
     def test_priority_conflicts(self):
         plan = self.plan([
             "Packages/com.litegame.sim/Scripts/Editor/Helper.cs",
-            "Assets/LiteGame/Lua/UI/Page_Login.lua",
+            "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
             "Assets/LiteGame/Editor/Toolchain/Registry/EditorToolHandlers.cs",
         ])
         self.assertEqual(self.finding(plan, "Packages/com.litegame.sim/Scripts/Editor/Helper.cs")["area"], "editor_code")
-        self.assertEqual(self.finding(plan, "Assets/LiteGame/Lua/UI/Page_Login.lua")["area"], "content")
+        self.assertEqual(self.finding(plan, "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab")["area"], "content")
         self.assertEqual(self.finding(plan, "Assets/LiteGame/Editor/Toolchain/Registry/EditorToolHandlers.cs")["area"], "editor_code")
 
 
@@ -258,7 +258,7 @@ class BuildPlanTests(unittest.TestCase):
         drift = self.mod.drift_for_links(
             [meta_link], ROOT, registered=set(build_hash.SHARED_LINK_FILES), wildcards=())
         self.assertTrue(any(not entry["known"] for entry in drift), drift)
-        shared_link = "../../Assets/LiteGame/Modules/Config/TableLayout.cs"
+        shared_link = "../../Assets/LiteGame/Modules/Config/Table/TableLayout.cs"
         drift = self.mod.drift_for_links(
             [shared_link], ROOT, registered=set(build_hash.META_EXTRA_FILES), wildcards=())
         self.assertTrue(any(not entry["known"] for entry in drift), drift)
@@ -270,7 +270,7 @@ class BuildPlanTests(unittest.TestCase):
     def test_mixed_changes_are_deduped_in_semantic_order(self):
         plan = self.plan([
             "Packages/com.litegame.net/Core/Protocol/Wire.cs",
-            "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureMatch.cs",
+            "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs",
             "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
             "Docs/项目说明/11-联机测试流程.md",
         ])

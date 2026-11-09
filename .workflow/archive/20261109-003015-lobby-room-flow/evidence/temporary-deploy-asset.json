@@ -1,0 +1,9 @@
+{
+  "initially_existed": false,
+  "created_by": "unity-pipeline write_text_file, empty text; no meta hand-written",
+  "cleanup": "after helper stop restores this placeholder hash, delete temporary asset via Unity pipeline",
+  "command_exit": 0,
+  "exists_after": true,
+  "placeholder_sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+  "placeholder_bytes": 1
+}

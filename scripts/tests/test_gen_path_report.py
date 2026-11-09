@@ -213,7 +213,7 @@ class PathSingleSourceTests(unittest.TestCase):
                     any(covers(target, declared) for declared in outputs),
                     f"luban does not declare publish target {target}: {outputs}")
         self.assertEqual(module.TABLE_LAYOUT_REL.replace("\\", "/"),
-                         "Assets/LiteGame/Modules/Config/TableLayout.cs")
+                         "Assets/LiteGame/Modules/Config/Table/TableLayout.cs")
         self.assertIn(module.TABLE_LAYOUT_REL.replace("\\", "/"), paths_of(entries, "input"))
 
     def test_ui_page_inputs_and_output(self):

@@ -3,7 +3,7 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 阶段宿主：`IStage` 的钩子只认这个**窄接口**，因此同一份阶段实现可以挂在 **平面机**（<see cref="StageMachine{TId,TReq}"/>）与**层级机**（<see cref="Hi。
+    /// 阶段宿主：阶段钩子经此接口查询活动态并请求迁移，可用于平面机与层级机。
     /// </summary>
     public interface IStageHost<TId, TReq> where TId : struct
     {
@@ -19,9 +19,7 @@ namespace LiteFramework
         /// <summary>当前阶段驻留的**整数帧数**（每次 `Tick` +1，迁移后归零）——表驱动状态的帧窗口判据（如前 N 帧可取消）。</summary>
         int StageFrames { get; }
 
-        /// <summary>发起迁移请求（只入队，last-wins；平面机 = 一次迁移，层级机 = 一次迁移事务）。
-        /// 返回 **false** = 被优先级/中断规则挡下（不改变挂起）——仅抢占型机体（平面/层级）可能；
-        /// 基础平面机与层级机恒为 true。</summary>
+        /// <summary>发起迁移请求（只入队，last-wins）；通过守卫后返回 true。</summary>
         bool Request(TId nextId, in TReq req);
 
         /// <summary>无 payload 的迁移请求。</summary>

@@ -31,7 +31,7 @@ SCAN_ROOTS = ('Assets', 'Packages', 'Server', 'Tests')
 EXCLUDE = re.compile(
     r'(^|/)(obj|bin|\.dotnet|ThirdParty|ThirdPartyPkg|TextMesh Pro|MCPForUnity|Tests~)/'
     r'|com\.unity\.pipeline'
-    r'|/(kcp2k|UniTask|UniRx|XLua|DOTween|Cinemachine)/',
+    r'|/(kcp2k|UniTask|UniRx|DOTween|Cinemachine)/',
     re.IGNORECASE)
 GENERATED = re.compile(r'/Generated/|\.g\.cs$|\.Generated\.cs$|\.Designer\.cs$', re.IGNORECASE)
 # 原始资源目录（非代码入库面）：只按 Assets 顶层锚定，避免误伤 Modules/Map 之类

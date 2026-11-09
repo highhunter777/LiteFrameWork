@@ -9,7 +9,7 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// Lua 退出迁移期棘轮（《Lua 退出专项设计》§4.7）：存量只减不增。
-    /// P2 删完适配层与 P3 清完构建面后允许面随之收缩；P5 改为全仓零命中。
+    /// P3 清完构建面后允许面已为空；P5 改为全仓零命中。
     /// </summary>
     public sealed class LuaFreezeGuardTests
     {
@@ -28,19 +28,11 @@ namespace LiteFramework.Core.Tests
             "UI/Page_Settings.lua",
         };
 
-        /// <summary>允许持有 XLua 类型的目录（整目录随 P2 删除）。</summary>
-        private static readonly string[] AdapterRoots =
-        {
-            "Assets/LiteGame/Adapters/LuaBridge/",
-            "Packages/com.litegame.framework/Runtime/Adapters/XLua/",
-        };
+        /// <summary>允许持有 XLua 类型的目录（P3 已全部删除，允许面为空）。</summary>
+        private static readonly string[] AdapterRoots = Array.Empty<string>();
 
-        /// <summary>适配层外的存量例外（随 P2 迁出；不得再新增）。</summary>
-        private static readonly HashSet<string> AdapterExceptions = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "Assets/LiteGame/Editor/GenConfig/GenConfig.cs",
-            "Assets/LiteGame/Modules/Meta/MetaBridge.cs",
-        };
+        /// <summary>适配层外的存量例外（P3 已清空；不得再新增）。</summary>
+        private static readonly HashSet<string> AdapterExceptions = new HashSet<string>(StringComparer.Ordinal);
 
         private static readonly Regex TypeUsage = new Regex(@"\b(?:LuaTable|LuaEnv|LuaFunction|XLua)\b", RegexOptions.Compiled);
 

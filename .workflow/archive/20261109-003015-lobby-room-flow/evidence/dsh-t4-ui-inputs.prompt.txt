@@ -1,0 +1,7 @@
+继续真实UI脚本作者。你的RunRoomFlowUi.cs已通过宿主dryrun编译，真实Login动作成功从Page_Login到Page_Lobby。QuickEnter实际触发了本地Join等待10s超时，脚本正确因无席位失败，现在错误弹窗201可见，主代理定位是RoomServer构建产物LiteSim版本混合并在修生成物，不是让你绕API。
+只改AgentScripts/LobbyRoomFlow/RunRoomFlowUi.cs，别改生产/测试/.workflow，别跑Unity。最多2次读现脚本直接edit，沿现有Raycast→pointerDown/up/click助手新增：
+- ConfirmError：找到实际UIDialog或当前System模态的可见OkButton，先raycast首命中再真实pointer点击，等待模态关闭与大厅可操作；如仍其他页明确失败，不直接_nav/flow恢复。
+- CancelWait：通过UnityEngine.InputSystem.Keyboard.current（若不存在临时InputSystem.AddDevice<Keyboard>并记录创建）与QueueStateEvent(new KeyboardState(Key.Escape))按下，await一真实帧（可用UniTask.Yield(PlayerLoopTiming...)/Task.Yield），再QueueStateEvent(default KeyboardState)释放，等Loading关闭/大厅可操作。已有项目UIInput读Keyboard.current.escapeKey.wasPressedThisFrame，正确注入真实输入，不调用导航Back/Feedback.Cancel。
+- BattleMenuLeave：同Esc事件打开真实Page_Settings；点击Btn_ExitMatch，再找到真实confirm UIDialog.OkButton pointer确认，等待大厅/房间投影空。不要直接调用ConfirmDialog逻辑。
+如Task.Yield不保证真正下一帧，请用UniTask.NextFrame().AsTask/await其任务（现Roslyn引用包含UniTask），避免同一帧按/放抵消。脚本await不能阻塞主线程。临时Keyboard只在你确实创建时RemoveDevice，不碰用户真实键盘。
+保留原6动作，不改成功判据弱化为仅Page_Room，仍要JoinAck/Seats。返回新增入口/实际按钮定位方案和未执行项。

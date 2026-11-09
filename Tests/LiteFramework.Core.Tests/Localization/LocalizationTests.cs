@@ -1,23 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
 using Xunit;
 
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// <see cref="IJsonSerializer"/> 的测试替身——.NET 内建 <c>System.Text.Json</c>，
-    /// 零新依赖（与 <c>FileSystemTests.FakeJsonSerializer</c> 同款；Newtonsoft 属 Unity 层）。
-    /// </summary>
-    internal sealed class TestJsonSerializer : IJsonSerializer
-    {
-        public string Serialize<T>(T value) => JsonSerializer.Serialize(value);
-        public T Deserialize<T>(string json) => JsonSerializer.Deserialize<T>(json);
-    }
-
-    /// <summary>
     /// 本地化（《UI框架总设计》§9）：目录查询、回退链、缺 key 策略、复数选取、
-    /// 参数转义、key 命名校验、覆盖率诊断。
+    /// 参数转义与 key 命名校验。
     /// </summary>
     public sealed class LocalizationTests
     {
@@ -282,73 +271,6 @@ namespace LiteFramework.Tests
         public void key命名_非法(string key)
         {
             Assert.NotNull(LTextKey.Validate(key));
-        }
-
-        // ---- 表解析与覆盖率 ----
-
-        private const string TableJson = @"[
-          {""key"":""UI.Main.Title"",""zh-CN"":""主界面"",""en"":""Main""},
-          {""key"":""Common.Ok"",""zh-CN"":""确定""}
-        ]";
-
-        [Fact]
-        public void 表解析_正常()
-        {
-            var serializer = new TestJsonSerializer();
-            LocalizationCatalog c = LocalizationTable.Parse(TableJson, serializer, true, out var problems);
-            Assert.NotNull(c);
-            Assert.Equal(2, c.KeyCount);
-            c.TryGet("UI.Main.Title", "en", out string t, out _);
-            Assert.Equal("Main", t);
-            Assert.Empty(problems);
-        }
-
-        [Fact]
-        public void 表解析_严格模式_坏key整表拒绝()
-        {
-            var serializer = new TestJsonSerializer();
-            const string bad = @"[{""key"":""BadKey"",""en"":""x""}]";
-            Assert.Null(LocalizationTable.Parse(bad, serializer, strictKeyNaming: true, out var problems));
-            Assert.NotEmpty(problems);
-        }
-
-        [Fact]
-        public void 表解析_宽松模式_坏key跳过并计数()
-        {
-            var serializer = new TestJsonSerializer();
-            const string mixed = @"[{""key"":""BadKey"",""en"":""x""},{""key"":""UI.A"",""en"":""y""}]";
-            LocalizationCatalog c = LocalizationTable.Parse(mixed, serializer, strictKeyNaming: false, out var problems);
-            Assert.NotNull(c);
-            Assert.Equal(1, c.KeyCount);
-            Assert.NotEmpty(problems);
-        }
-
-        [Fact]
-        public void 表解析_畸形或空返回null()
-        {
-            var serializer = new TestJsonSerializer();
-            Assert.Null(LocalizationTable.Parse(null, serializer, false, out _));
-            Assert.Null(LocalizationTable.Parse("", serializer, false, out _));
-            Assert.Null(LocalizationTable.Parse("{ not json", serializer, false, out _));
-            Assert.Null(LocalizationTable.Parse("[]", serializer, false, out _));
-        }
-
-        [Fact]
-        public void 覆盖率_en缺哪些key()
-        {
-            // §9 本地化覆盖率：发布期据此判断翻译完整性
-            var serializer = new TestJsonSerializer();
-            LocalizationCatalog c = LocalizationTable.Parse(TableJson, serializer, true, out _);
-            var missing = LocalizationTable.FindMissingFor(c, new[] { "UI.Main.Title", "Common.Ok" }, "en");
-            Assert.Equal(new[] { "Common.Ok" }, missing);   // 只有回退源语言的那个
-        }
-
-        [Fact]
-        public void 覆盖率_源语言无缺()
-        {
-            var serializer = new TestJsonSerializer();
-            LocalizationCatalog c = LocalizationTable.Parse(TableJson, serializer, true, out _);
-            Assert.Empty(LocalizationTable.FindMissingFor(c, new[] { "UI.Main.Title", "Common.Ok" }, "zh-CN"));
         }
     }
 }

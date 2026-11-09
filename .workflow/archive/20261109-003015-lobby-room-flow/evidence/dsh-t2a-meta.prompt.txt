@@ -1,0 +1,14 @@
+你继续同一T2生产作者会话。前面已完成充分源码调查，主代理将T2拆为小交付片；本次只交付T2-A纯Meta票据边界，不实现RoomFlowLifetime/ProcedureFlow/页面接线，不改测试、.workflow、门禁或其他模块，不调用Unity。你只需读当前4个目标（最多4次read），然后实际write/edit并返回，不再grep/递归查找。
+唯一允许写集：
+1 Assets/LiteGame/Modules/Meta/Abstractions/IRoomTicketSource.cs（新建）
+2 Assets/LiteGame/Modules/Meta/Abstractions/IRoomFlow.cs（新建）
+3 Assets/LiteGame/Modules/Meta/Client/MetaEntryService.cs
+4 Assets/LiteGame/Modules/Meta/MetaSegment.cs
+保持现有目录直接cs≤5；不手写meta。
+设计契约由主代理确定，按此实施以供后续片接线：
+IRoomTicketSource：IsConfigured/AccountId/IsLoggedIn只读属性，Logout(string reason)；UniTask<MetaCall<JoinTicketInfo>> RequestJoinTicketAsync(string roomId,CancellationToken ct=default)；CreateRoomTicketAsync(int mapId=0,int expectedPlayers=0,CancellationToken ct=default)，另一个同名重载支持(int mapId,int expectedPlayers,string template,string gmKey,CancellationToken ct=default)。不暴露accessToken。
+IRoomFlow：EnterRoomAsync(string roomId,CancellationToken ct=default)；CreateRoomAsync(int mapId=0,int expectedPlayers=0,CancellationToken ct=default)及(int,int,string template,string gmKey,CancellationToken ct=default)，返回同一MetaCall<JoinTicketInfo>；bool LeaveMatch()。此接口由后续实质ProcedureFlow实现，不在本片加空实现。
+MetaEntryService实现IRoomTicketSource和IMetaConfigFacts，取消IAccountSessionControl实现。将旧EnterRoomAsync/两个CreateRoomAsync迁移成上述纯票据方法：保持配置/未登录错误、BuildHash、地图/人数、默认模板和显式GM参数传递；ct在发请求前检查，并传给已有IMetaClientAPI，返回后检查取消。只返回请求事实，不解析票据地址、不Request流程。移除_flow、BindFlow、JoinWith、LeaveMatch和FlowUnbound。登录/列表/战绩/配置业务保持局部原实现，不借此重构。注意接口/类均需using System.Threading/Cysharp等必要引用；注释只写现行契约，无历史流水。
+MetaSegment继续Put(meta)/IMetaConfigFacts，改为Put<IRoomTicketSource>(meta)，取消Put<IAccountSessionControl>(meta)。不登记IRoomFlow（后续由ProcedureSegment登记）。
+旧调用方暂时还未迁移，这是本交付片后续工作，不要为临时编译错误加旧副作用兼容层或改测试；本片结束后主代理会接续T2-B/C和T6，再一次宿主编译。旧IAppFlow文件暂留不删，后续经pipeline退役。
+完成本片4文件后立即返回实际路径和精确方法签名/移除的API，说明未执行编译与后续调用迁移，不再继续阅读或施工其他文件。若文件已有你刚才完成的部分改动，在当前版本上补齐，禁止回滚或覆盖并发改动。

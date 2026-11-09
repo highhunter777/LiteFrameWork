@@ -1,0 +1,6 @@
+T1主代理实际验证：Unity宿主recompile_status为up_to_date failed:false errors:[]；python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 600选择9个测试，9个都因真实NUnit断言失败（取消/重复/两个排队窗口/卸载/登录覆盖）。说明你已写出真实red，不是编译错误。你沙箱中的CLI看不到宿主Editor，主代理能连接同一项目7801；不要再启动/探测/安装Unity或跑CLI，所有编译/测试由主代理负责。
+进入生产施工前，只允许你修测试刺激/夹具正确性（不改生产/旧测试/.workflow），写集仍是当前RoomFlow四个测试文件：
+1. RoomFlowEntryTests.旧A取消后新B成功_A晚到不得推进流程：现在在取消A之前就调用B，然后期待TicketCalls=2。这和重复请求排他保护矛盾。必须先启动A，再取消A，再启动B，再让A晚到时B仍在途；保留“A不排队/只有B建连/房号B”断言，不能降低强度。测试名和既定外部场景不变。
+2. RoomFlowLifecycleTests.必要卸载未结束_再次入场零取票_完成后放行：当前run.HasSimulation=false/WaitStarted挂起，SceneService.IsLoaded一直true，测试没有让本次操作实际加载任何场景，却要求离场卸载。正确实现只卸自己加载/持有的场景时，这个测试会错误失败。请把夹具改为可控的真实阶段启动/加载路径：本次确实进入HasSimulation=true/Started、通过现有ISceneService.LoadAdditiveAsync加载并记录本次拥有场景，然后离房挂起其卸载；再断言取票被阻断、完成后放行。不要把“预先存在的他人场景也必须卸载”当需求，不在测试适配器实现待验生命周期算法。可控fake必须反映加载/卸载真实事实，避免缺相机/地图配置或非断言日志错误。
+3. 阶段/资源清理测试finally只清理尚未被生产回收的测试资源，避免额外Dispose调用使计数语义混乱；仍要求生产接管前会话恰好回收一次。
+完成后请直接返回：修改文件、这两处刺激/前置条件为何现在正确、仍无法用现有接口表达的明确用例缺口。不运行Unity；主代理将再跑9用例冻结断言和真实red记录。不要再广泛读文件，基于当前四个文件与已读签名修改。

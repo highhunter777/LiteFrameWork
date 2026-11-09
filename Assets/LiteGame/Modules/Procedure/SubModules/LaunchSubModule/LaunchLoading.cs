@@ -3,7 +3,7 @@ using LiteFramework.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 启动走廊装载作用域持有件（《通用加载页设计》§1 时间轴与 §8 批B）： **开在 Preload**（窗口③ Lua 预载，不定态）、**Main 只报场景进度**（窗口④。）。
+    /// 启动走廊装载作用域持有件（《通用加载页设计》§1 时间轴与 §8 批B）： **开在 Preload**（窗口③ 预载，不定态）、**Main 只报场景进度**（窗口④。）。
     /// </summary>
     internal static class LaunchLoading
     {

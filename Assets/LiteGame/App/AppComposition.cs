@@ -20,9 +20,10 @@ namespace LiteGame
     internal sealed class AppComposition
     {
         private IDisposable _devDecoration;      // 开发装配装饰句柄（GM/弱网/调试内核；null = 发布形态）
-
-        // ---- Lua 桥 UI 注册表：**本文件是唯一 new 点**（UI 段/填充器/回填服务/门面绑定共用同一实例）----。
-        private readonly UILuaRegistry _uiRegistry = new UILuaRegistry();
+        private RoomBridge _roomSession;          // 房间会话门面（流程端口与页面端口 IRoomView 同实例）
+        private IMetaSession _metaSession;       // 页面联机端口（IMetaSession 的生产实现）
+        private IMapCatalog _mapCatalog;         // 页面地图目录端口
+        private PageContext _pageContext;        // 页面上下文（UI 段经工厂延迟取件）
 
         /// <summary>判定参数覆写实例（判定几何 13 列的调参面）：装配期创建一次，调参面板与编辑器导出器
         /// 共用同一实例（容器登记；编辑器 GM 经 <c>GMEditorResolve</c> 取件）。
@@ -58,10 +59,6 @@ namespace LiteGame
             => content => new SceneService(content as YooAssetContentService
                 ?? throw new ArgumentException("SceneService 需要 YooAsset 内容服务", nameof(content)));
 
-        /// <summary>Lua 候选脚本健康探针（受控 XLua 沙箱）：只经 IHealthProbe 注入内容编排。</summary>
-        internal Func<string, IFileStore, IHealthProbe> LuaHealthProbeFactory()
-            => (candidateRoot, files) => new LuaScriptsHealthProbe(candidateRoot, ReleaseLayout.LuaScripts, files);
-
         /// <summary>热更程序集健康探针（code/ 段）：只经 IHealthProbe 注入内容编排。</summary>
         internal Func<string, IFileStore, IHealthProbe> CodeHealthProbeFactory()
             => (candidateRoot, files) => new CodeAssembliesHealthProbe(candidateRoot, ReleaseLayout.CodeAssemblies, files);
@@ -71,31 +68,15 @@ namespace LiteGame
         internal Func<string, IFileStore, IHealthProbe> ConfigHealthProbeFactory()
             => (candidateRoot, files) => new ConfigCandidateHealthProbe(files, candidateRoot);
 
-        /// <summary>Bridge 能力探针（H4-4）：候选清单 RequiredCapabilities vs 本包 BridgeCapabilitySet；
-        /// 能力事实源由本装配点声明，Core/编排只做比较。</summary>
-        internal Func<IHealthProbe> BridgeHealthProbeFactory()
-            => () => new BridgeCapabilityHealthProbe(
-                BridgeCapabilitySet.Default(), manifest => manifest.RequiredCapabilities);
-
-        /// <summary>Lua 桥装订口工厂（房间会话门面 + 产品桥，**同一实例**）：适配器类型只出现在这里，
-        /// 流程段经 <c>IRoomSessionBridge</c>/<c>ILuaProductBridge</c> 端口消费。</summary>
-        internal Func<(IRoomSessionBridge room, ILuaProductBridge product)> LuaBridgesFactory()
+        /// <summary>房间会话装订口工厂（流程段端口 <c>IRoomSessionBridge</c>）：适配器类型只出现在这里，
+        /// 与页面端口 <c>IRoomView</c> 共用同一实例（同源同帧）。</summary>
+        internal Func<IRoomSessionBridge> RoomBridgeFactory()
             => () =>
             {
                 var room = new RoomBridge();
-                return (room, new ProductBridges(room));
+                _roomSession = room;
+                return room;
             };
-
-        /// <summary>Lua 桥装订面工厂（UI 段端口）：逻辑工厂/数据投射/文本门面三件共用同一 Lua 宿主与
-        /// UI 注册表；适配器类型只出现在本文件，UI 段经 <c>ILuaUIBinding</c> 消费。</summary>
-        internal Func<ILuaHost, ILuaUIBinding> LuaUIBindingFactory()
-            => lua => new LuaUIBinding(lua as LuaComponent ?? throw new ArgumentException(
-                "LuaUIBinding 需要 LuaComponent（装配根是唯一把端口还原为具体宿主的地方）", nameof(lua)), _uiRegistry);
-
-        /// <summary>注册表填充器工厂（流程段端口 <c>ILuaRegistryFiller</c>）：UI 注册表由本文件持有，
-        /// 页面目录经 UI 域端口传入（流程段不认注册表与页面的具体类型）。</summary>
-        internal Func<ILuaHost, IPageDirectory, ILuaRegistryFiller> LuaRegistryFillerFactory()
-            => (lua, pages) => new RegistryFiller(pages.All, lua, _uiRegistry);
 
         // ---- ② 组合根（ClientHost.ComposeRoot 驱动）----。
 
@@ -106,34 +87,38 @@ namespace LiteGame
             if (context == null) throw new ArgumentNullException(nameof(context));
             context.Scope.Register(new DelegatedDisposable(DisposeComposition));
 
-            BindLuaFacades(context);
+            BindPageServices(context);
             BindIdentity(context);
             BindModals(context);
             BindInputGate(context);
-            BindRegistryRefill(context);
-            BindMetaEntry(context);
             BindProductSettings(context);
             BindSimParams(context);
             BindDevDecoration(context);
-            DeclareTickOrder(context.Services);
+            DeclareFrameOrder(context.Require<FrameSchedule>());
             context.Services.Seal();                   // 装配面密封（最后一步；职责与旧 Container 末段一致）
 
             await UniTask.CompletedTask;               // 无异步步骤：签名保留"装配窗口内执行"的语义
         }
 
-        /// <summary>Lua 门面后端（Bridge.*）：表源/注册表/UI 服务/导航——页面与脚本消费的唯一绑定面。</summary>
-        private void BindLuaFacades(SegmentContext context)
+        /// <summary>页面消费端口（P1 页面 C# 化）：联机业务面与地图目录由组合根适配，UI 段只认端口。</summary>
+        private void BindPageServices(SegmentContext context)
         {
             IConfigService config = context.Require<IConfigService>();
-            Bridge.Bind(() => config.Tables);
-            Bridge.BindRegistries(_uiRegistry);
-            Bridge.BindUIService(context.Require<UIService>());
-            Bridge.BindNavigation(context.Require<UINavigationController>());
-            // 注册表接口键（Lua 门面/回填/工具只经端口取；与具体键同实例）。
-            context.Services.RegisterInstance<IUILuaRegistry>(_uiRegistry);
+            _metaSession = new MetaSessionFacade(
+                context.Require<IAccountDomain>(), context.Require<MetaLoginService>(),
+                context.Require<IRoomFlow>(), () => config.Tables);
+            _mapCatalog = new ConfigMapCatalog(config);
+            UINavigationController nav = context.Require<UINavigationController>();
+            UIService ui = context.Require<UIService>();
+            IConfirmDialog confirm = context.Require<IConfirmDialog>();
+            _pageContext = new PageContext(() => nav, () => _metaSession, () => _mapCatalog,
+                () => _roomSession, () => confirm, () => ui);   // 房间会话装订/摘除仍由流程段驱动
         }
 
-        /// <summary>设置门面装订：构造即全量应用持久化值（启动生效点），Lua 门面后端 + 容器取件面。
+        /// <summary>页面上下文工厂（UI 段构造注入；延迟取件——首次页面打开时组合根已装订完毕）。</summary>
+        internal Func<object> PageContextFactory() => () => _pageContext;
+
+        /// <summary>设置门面装订：构造即全量应用持久化值（启动生效点），容器取件面。
         /// 视角偏好用设置段的**同一实例**（<c>LookPreferences</c>）——改灵敏度后对局即时生效。</summary>
         private static void BindProductSettings(SegmentContext context)
         {
@@ -179,25 +164,6 @@ namespace LiteGame
                 new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
         }
 
-        /// <summary>注册表回填服务（env 重建后按表补注册）：页面目录 + Lua 宿主。</summary>
-        private void BindRegistryRefill(SegmentContext context)
-        {
-            context.Services.RegisterInstance(new LuaRegistryRefillService(
-                context.Require<ILuaHost>(), context.Require<UIService>(),
-                context.Require<IPageDirectory>().All, _uiRegistry));
-        }
-
-        /// <summary>联机入口接流程机与 Lua 门面：进房 = Request(Match, MetaJoin)——走既有 Join 管道（不另开路径）；
-        /// 重新登录唯一调用方 = Bridge.meta（凭证失效分支）。</summary>
-        private static void BindMetaEntry(SegmentContext context)
-        {
-            MetaEntryService meta = context.Require<MetaEntryService>();
-            meta.BindFlow(context.Require<IAppFlow>());
-            IConfigService config = context.Require<IConfigService>();
-            MetaBridge.Bind(meta, context.Require<IdentityContext>(), () => config.Tables,
-                context.Require<IAccountReentry>());
-        }
-
         /// <summary>判定参数覆写面装订：实例登记进容器（调参面板/编辑器导出器共用），**此处不求门**——
         /// 装配完成时本地测试模式还没开启（门恒假），求值点是进房单点（每局创建传输前一次，
         /// 见 <c>ProductTransportFactory</c>）；运行期取件一律经容器。</summary>
@@ -218,14 +184,14 @@ namespace LiteGame
             });
         }
 
-        /// <summary>帧驱动序单点声明（13 项）：段只 Put 实例、不各自声明相对序——分段落声明会按段注册序
+        /// <summary>帧驱动序单点声明（11 项）：段只 Put 实例、不各自声明相对序——分段落声明会按段注册序
         /// 重排全局相对序（行为变更）。CommandCenter 置流程机前：排队/延迟命令到期派发先于机器 Tick。</summary>
-        private static void DeclareTickOrder(ServiceContainer services)
+        private static void DeclareFrameOrder(FrameSchedule frames)
         {
-            services.SetTickOrder(
+            frames.SetOrder(
                 typeof(IMainThreadDispatcher), typeof(IWorldClock), typeof(IUIClock),
                 typeof(DotweenUIClockDriver), typeof(UIService),   // EventBus 无队列、不再实现 ITickable（M3-7 7b）
-                typeof(ILogicScheduler), typeof(IUIScheduler), typeof(ITimelineRunner),
+                typeof(ITimelineRunner),
                 typeof(IVfxService), typeof(DialogService), typeof(ToastTicker),
                 typeof(ICommandCenter),
                 typeof(StageMachine<ProcedureId, ProcedureArgs>));

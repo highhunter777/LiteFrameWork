@@ -18,7 +18,6 @@ public sealed partial class strategy : Luban.BeanBase
     {
         Id = _buf.ReadInt();
         Name = _buf.ReadString();
-        LuaPath = _buf.ReadString();
     }
 
     public static strategy Deserializestrategy(ByteBuf _buf)
@@ -34,10 +33,6 @@ public sealed partial class strategy : Luban.BeanBase
     /// 策略名(壳策略接口)
     /// </summary>
     public readonly string Name;
-    /// <summary>
-    /// Lua策略路径(Strategies.策略名),空=用C#默认实现
-    /// </summary>
-    public readonly string LuaPath;
    
     public const int __ID__ = 1787798387;
     public override int GetTypeId() => __ID__;
@@ -51,7 +46,6 @@ public sealed partial class strategy : Luban.BeanBase
         return "{ "
         + "id:" + Id + ","
         + "name:" + Name + ","
-        + "luaPath:" + LuaPath + ","
         + "}";
     }
 }

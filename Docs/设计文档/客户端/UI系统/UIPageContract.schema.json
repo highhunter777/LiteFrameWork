@@ -82,7 +82,6 @@
         "name",
         "prefabPath",
         "prefabGuid",
-        "luaPath",
         "layer",
         "fullScreen",
         "cacheStrategy"
@@ -96,10 +95,6 @@
         "name": { "type": "string", "pattern": "^(Page|Hud|Tmp)_[A-Za-z0-9]+$" },
         "prefabPath": { "type": "string", "pattern": "^Assets/LiteGame/Modules/(UI/Content/Screens|Battle/Content/Hud)/.+\\.prefab$" },
         "prefabGuid": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
-        "luaPath": {
-          "type": ["string", "null"],
-          "description": "Lua 逻辑路径；空 = 无 Lua 逻辑（展示面/C# 逻辑）。"
-        },
         "layer": { "type": "integer", "minimum": 0, "maximum": 3 },
         "fullScreen": { "type": "boolean" },
         "cacheStrategy": { "enum": ["Resident", "Lru", "DestroyOnClose"] },

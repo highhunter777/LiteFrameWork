@@ -1,0 +1,9 @@
+{
+  "authorized_by": "user",
+  "authorization": "你来分配任务和验收就行，具体实施交给dsh代理",
+  "acceptance_owner": "main agent",
+  "implementation_agent": "dsh headless, separate test/implementation sessions",
+  "date": "2026-11-08T20:09:58.093912+08:00",
+  "cli": "E:/DeepSeekHarness/resources/runtime/cli/bin/dsh.cmd",
+  "credentials_access": "none; must not read credential files"
+}

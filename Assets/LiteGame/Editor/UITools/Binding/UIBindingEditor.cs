@@ -191,7 +191,7 @@ namespace LiteGame.Editor.UITools.Binding
             }
             else
             {
-                EditorGUILayout.HelpBox("同文修复：BindName := 节点名（§9.1 同文纪律；Lua/C# 引用须按清单同批同步）。", MessageType.None);
+                EditorGUILayout.HelpBox("同文修复：BindName := 节点名（§9.1 同文纪律；页面逻辑引用须按清单同批同步）。", MessageType.None);
             }
 
             using (new EditorGUILayout.HorizontalScope())
@@ -275,7 +275,7 @@ namespace LiteGame.Editor.UITools.Binding
         {
             if (_previews.Count == 0 && _previewErrors.Count == 0) return;
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("预览（引用点提示＝Lua/C# 同批同步清单，§9.2 改名联动）", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("预览（引用点提示＝页面逻辑同批同步清单，§9.2 改名联动）", EditorStyles.boldLabel);
             _previewScroll = EditorGUILayout.BeginScrollView(_previewScroll, GUILayout.MaxHeight(180f));
             foreach (var error in _previewErrors)
                 EditorGUILayout.HelpBox(error, MessageType.Error);

@@ -28,7 +28,7 @@ namespace LiteGame.Editor.UITools.Workbench
         /// <summary>起页（仅 prefab + 草稿清单；P2-2 落地，P2-1 置灰）。</summary>
         Scaffold,
 
-        /// <summary>页面登记（表/Lua/Luban/hash；P2-2 落地，P2-1 置灰）。</summary>
+        /// <summary>页面登记（表/Luban/hash；P2-2 落地，P2-1 置灰）。</summary>
         Register,
 
         /// <summary>控件库插入 <c>Tmp_*</c> 实例。</summary>

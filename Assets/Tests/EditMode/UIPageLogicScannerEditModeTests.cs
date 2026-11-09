@@ -11,8 +11,8 @@ using UnityEditor;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 页面逻辑源扫描面（《Lua 退出专项设计》§4.7）：C# 页源的调用点/事件接线提取、
-    /// 按扩展名分派的双源解析，以及"逻辑件 ↔ prefab 载体"对账规则。
+    /// 页面逻辑源扫描面（《Lua 退出专项设计》§4.7）：C# 页源的调用点/事件接线提取，
+    /// 以及"逻辑件 ↔ prefab 载体"对账规则。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIPageLogicScannerEditModeTests
@@ -25,12 +25,12 @@ namespace LiteGame.Tests.EditMode
     {
         SetTextKey(""Txt_Title"", ""UI.Demo.Title"");
         GetControl<UnityEngine.UI.Button>(""Btn_Go"");
-        OnButton(""Btn_Go"", Go);
-        OnButton(""Btn_Lambda"", () => { });
+        OnButtonClick(""Btn_Go"", Go);
+        OnButtonClick(""Btn_Lambda"", () => { });
         OnListClick(""VList_Rows"", Enter);
         var dynamicName = ""Txt_Dynamic"";
-        OnButton(dynamicName, Go);
-        // OnButton(""Btn_Commented"", Go);
+        OnButtonClick(dynamicName, Go);
+        // OnButtonClick(""Btn_Commented"", Go);
     }
 }
 ";
@@ -54,7 +54,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void CSharp调用点_字面量名提取_变量名与注释不产出()
         {
-            List<UIPageApiCall> calls = UIPageLogicScanner.ScanCSharpApiCalls(CSharpSample);
+            List<UIPageApiCall> calls = UIPageLogicScanner.ScanApiCalls(CSharpSample);
 
             CollectionAssert.Contains(calls.Select(c => c.Api).ToList(), "SetTextKey");
             CollectionAssert.Contains(calls.Select(c => c.Api).ToList(), "GetControl");
@@ -68,9 +68,9 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void CSharp事件接线_方法组与lambda解析()
         {
-            List<UIPageEventWiring> wiring = UIPageLogicScanner.ScanCSharpEventWiring(CSharpSample);
+            List<UIPageEventWiring> wiring = UIPageLogicScanner.ScanEventWiring(CSharpSample);
 
-            UIPageEventWiring go = wiring.Single(w => w.Name == "Btn_Go" && w.Api == "OnButton");
+            UIPageEventWiring go = wiring.Single(w => w.Name == "Btn_Go" && w.Api == "OnButtonClick");
             Assert.AreEqual("Go", go.Handler, "方法组取末段");
             Assert.AreEqual("onClick", go.Event);
 
@@ -79,18 +79,6 @@ namespace LiteGame.Tests.EditMode
 
             UIPageEventWiring list = wiring.Single(w => w.Name == "VList_Rows");
             Assert.AreEqual("onListClick", list.Event, "列表接线映射到 onListClick");
-        }
-
-        [Test]
-        public void 双源分派_按扩展名走对应语法()
-        {
-            Assert.IsTrue(UIPageLogicScanner.IsCSharp("Assets/LiteGame/Modules/UI/Logic/Screens/Demo/Page_ButtonDemoLogic.cs"));
-            Assert.IsFalse(UIPageLogicScanner.IsCSharp("Assets/LiteGame/Lua/UI/Page_Login.lua"));
-
-            List<UIPageApiCall> luaCalls = UIPageLogicScanner.ScanApiCalls(
-                "Assets/LiteGame/Lua/UI/Page_Login.lua", "self.ui:SetVisible(\"Txt_Status\", false)");
-            Assert.AreEqual(1, luaCalls.Count, "Lua 源经分发器仍按 Lua 语法解析");
-            Assert.AreEqual("Txt_Status", luaCalls[0].Name);
         }
 
         [Test]

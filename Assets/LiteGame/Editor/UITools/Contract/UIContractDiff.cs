@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -69,8 +69,6 @@ namespace LiteGame.Editor.UITools.Contracts
             CheckPageField(a.FormId != b.FormId, "formId", a.FormId, b.FormId, a.FormId != 0, result);
             CheckPageField(!string.Equals(a.Name, b.Name, StringComparison.Ordinal), "name", a.Name, b.Name, true, result);
             CheckPageField(!string.Equals(a.PrefabPath, b.PrefabPath, StringComparison.Ordinal), "prefabPath", a.PrefabPath, b.PrefabPath, true, result);
-            CheckPageField(!string.Equals(a.LuaPath, b.LuaPath, StringComparison.Ordinal), "luaPath", a.LuaPath, b.LuaPath,
-                !(string.IsNullOrEmpty(a.LuaPath) && !string.IsNullOrEmpty(b.LuaPath)), result);
             CheckPageField(a.Layer != b.Layer, "layer", a.Layer, b.Layer, false, result);
             CheckPageField(a.FullScreen != b.FullScreen, "fullScreen", a.FullScreen, b.FullScreen, false, result);
             CheckPageField(!string.Equals(a.CacheStrategy, b.CacheStrategy, StringComparison.Ordinal), "cacheStrategy", a.CacheStrategy, b.CacheStrategy, false, result);

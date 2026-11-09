@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -51,7 +51,7 @@ namespace LiteGame.Editor.UITools.Contracts
 
             if (metadata == null)
             {
-                result.Errors.Add("页面元数据为空——契约生成需要 tbuiform 行（formId/luaPath/layer/fullScreen）");
+                result.Errors.Add("页面元数据为空——契约生成需要 tbuiform 行（formId/layer/fullScreen）");
                 return result;
             }
             if (metadata.IsDraft)
@@ -94,7 +94,6 @@ namespace LiteGame.Editor.UITools.Contracts
                     Name = prefab.name,
                     PrefabPath = path,
                     PrefabGuid = guid,
-                    LuaPath = string.IsNullOrEmpty(metadata.LuaPath) ? null : metadata.LuaPath,
                     Layer = metadata.Layer,
                     FullScreen = metadata.FullScreen,
                     CacheStrategy = string.IsNullOrEmpty(metadata.CacheStrategy)
@@ -160,7 +159,6 @@ namespace LiteGame.Editor.UITools.Contracts
             UIContractGenerationResult result = Generate(normalized, new UIPageMetadata
             {
                 FormId = primary.id,
-                LuaPath = string.IsNullOrEmpty(primary.lua) ? null : primary.lua,
                 Layer = primary.layer,
                 FullScreen = primary.fullScreen,
                 CacheStrategy = UIPageContract.DefaultCacheStrategy,
@@ -221,7 +219,7 @@ namespace LiteGame.Editor.UITools.Contracts
         }
 
         /// <summary>
-        /// 应用 Lua 事件接线（§5.2「events[] 可选——契约只做对账提示」）：按 <c>bindName|event</c> 稳定排序写入 <see cref="UIPageContract.Events"/> 并重。
+        /// 应用页面事件接线（§5.2「events[] 可选——契约只做对账提示」）：按 <c>bindName|event</c> 稳定排序写入 <see cref="UIPageContract.Events"/> 并重。
         /// </summary>
         public static void ApplyEvents(UIPageContract contract, IReadOnlyList<Reference.UIPageEventWiring> wiring)
         {

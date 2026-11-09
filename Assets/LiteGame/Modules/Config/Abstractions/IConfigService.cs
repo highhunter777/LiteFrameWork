@@ -13,7 +13,7 @@ namespace LiteGame.Modules.Config
         uint GameplayDigestBase { get; }
 
         /// <summary>B3 战斗策略投影（规则/排行/伤害数字参数；表装载后构建，缺行回落 C# 默认）。
-        /// 未装载即访问抛——装配序上消费点（对局/本地测试房/Bridge.battle）恒在 Preload 之后。</summary>
+        /// 未装载即访问抛——装配序上消费点（对局/本地测试房/战斗只读事实）恒在 Preload 之后。</summary>
         BattleStrategyProfile Strategy { get; }
 
         /// <summary>

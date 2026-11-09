@@ -1,0 +1,77 @@
+{
+  "date": "2026-11-08",
+  "timezone": "Asia/Hong_Kong",
+  "head": "d4f284c79adb3852b3eb68f7303d439cb4def969",
+  "branch": "slim/client-skeleton",
+  "worktree_entry_count": 3487,
+  "files": {
+    "Assets/LiteGame/Core/Flow/IAppFlow.cs": {
+      "sha256": "053d6cf77264bd1baa407661a53016ce4998c715ebc5762e21d306484bc6b657",
+      "git_status": ""
+    },
+    "Assets/LiteGame/App/AppComposition.cs": {
+      "sha256": "137139903c3c95a57e9bb3a70d1a264eac07f6b69de175747f7ff26c71ad1378",
+      "git_status": "M Assets/LiteGame/App/AppComposition.cs"
+    },
+    "Assets/LiteGame/App/PageServices/MetaEntrySession.cs": {
+      "sha256": "8ac13b69f32016daa9497270c8aa7ccdf51d84015d40aa6eae65c69913b2e68b",
+      "git_status": "?? Assets/LiteGame/App/PageServices/MetaEntrySession.cs"
+    },
+    "Assets/LiteGame/Modules/Meta/Client/MetaEntryService.cs": {
+      "sha256": "3d56c4121d11266c3c3fc74db259e0590e208bffd3bb0034f41dc6edc941c62d",
+      "git_status": "?? Assets/LiteGame/Modules/Meta/Client/MetaEntryService.cs"
+    },
+    "Assets/LiteGame/Modules/Meta/MetaSegment.cs": {
+      "sha256": "3ae90367d09d20c4402db6384d4dcbfc84db95353cc9b5419772b8c1744cb035",
+      "git_status": ""
+    },
+    "Assets/LiteGame/Modules/Meta/Abstractions/IAccountSessionControl.cs": {
+      "sha256": "1b9f0906d0891323b68807933fd26e947d5b94d2abc43eb31e36c8da6e7dba15",
+      "git_status": ""
+    },
+    "Assets/LiteGame/Modules/Procedure/Flow/ProcedureFlow.cs": {
+      "sha256": "c54b19d626e2879e0edff6c3ea39c523af365eb195e019772dd38a7c1dd474b2",
+      "git_status": "?? Assets/LiteGame/Modules/Procedure/Flow/ProcedureFlow.cs"
+    },
+    "Assets/LiteGame/Modules/Procedure/Flow/AccountReentry.cs": {
+      "sha256": "a9b5aeaf2fa9b0e33059801c7d96b18058445f562376ee0e4792f774a1d0ff68",
+      "git_status": "?? Assets/LiteGame/Modules/Procedure/Flow/AccountReentry.cs"
+    },
+    "Assets/LiteGame/Modules/Procedure/Flow/PageFlow.cs": {
+      "sha256": "50362a77cc3075de679b6eb5d989c1f853b3ac31da1881634a94d49d76847c59",
+      "git_status": "?? Assets/LiteGame/Modules/Procedure/Flow/PageFlow.cs"
+    },
+    "Assets/LiteGame/Modules/Procedure/ProcedureSegment.cs": {
+      "sha256": "ad0f92099e0b9f6cab2478ca5b0d5cd12dcbaca263f4a0a60fa4afad01fe86f1",
+      "git_status": "M Assets/LiteGame/Modules/Procedure/ProcedureSegment.cs"
+    },
+    "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs": {
+      "sha256": "1625a117d8416bea01e29f707c0a882cbac50dbe4728f0afbfb88ab4c372e229",
+      "git_status": "?? Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs"
+    },
+    "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureBattle.cs": {
+      "sha256": "886999c5d896e44897c0073f7de5f9bb009d8e1c598297e4d9ad69c4bbb7e711",
+      "git_status": "?? Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureBattle.cs"
+    },
+    "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_LobbyLogic.cs": {
+      "sha256": "d879c54f992074900f47c649da5496c692873a059f0276a3dd9238eb665af23b",
+      "git_status": "?? Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_LobbyLogic.cs"
+    },
+    "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_RoomLogic.cs": {
+      "sha256": "85040ec1cd05081032393ba554bdfe8c1b2fc76d6ee7aaa4702f1996b6735a8e",
+      "git_status": "?? Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_RoomLogic.cs"
+    },
+    "Assets/LiteGame/Modules/UI/Pages/Screens/Settings/Page_SettingsLogic.cs": {
+      "sha256": "b58c790425b6847c1cb3395826f2728f0b642951eb95cdbb46123f49dc475a57",
+      "git_status": "?? Assets/LiteGame/Modules/UI/Pages/Screens/Settings/Page_SettingsLogic.cs"
+    },
+    "Assets/LiteGame/Editor/Gm/GMTestModePage.cs": {
+      "sha256": "451372d3b1f6c153be6658a1a36ac9efe1e98da95f80194dfefd12bed1285919",
+      "git_status": ""
+    },
+    "Assets/LiteGame/Modules/Session/AccountSessionFactory.cs": {
+      "sha256": "f2f60af5736d20b80f0c174a5b8ab92aa0fa34b06f0f5fd078fe63a55d356fab",
+      "git_status": ""
+    }
+  }
+}

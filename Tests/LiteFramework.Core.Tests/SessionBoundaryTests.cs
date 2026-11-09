@@ -23,10 +23,10 @@ namespace LiteFramework.Core.Tests
         private static readonly HashSet<string> A2Allowlist = new HashSet<string>(StringComparer.Ordinal);
 
         [Fact]
-        public void AccountSessionFactory_不直接新建BattleClient()
+        public void MatchSessionFactory_不直接新建BattleClient()
         {
             string root = RepoRoot();
-            const string relative = "Assets/LiteGame/Modules/Session/AccountSessionFactory.cs";
+            const string relative = "Assets/LiteGame/Modules/Session/MatchSessionFactory.cs";
             string path = Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
             Assert.True(File.Exists(path),
                 "守卫目标文件不存在（搬迁后须同步更新守卫路径）：" + relative);

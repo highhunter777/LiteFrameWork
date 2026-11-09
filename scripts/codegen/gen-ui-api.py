@@ -25,12 +25,9 @@ from _codegen import signature as artifact_signature  # noqa: E402
 ROOT = Path(repo_root())
 TOOL = "ui-api"
 SPEC_PATH = ROOT / "Assets" / "LiteGame" / "Editor" / "UITools" / "UIApi" / "UIApiSpec.json"
-OUT_INDEX = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Services" / "UI" / "Bind" / "Generated" / "UIBindIndex.Api.g.cs"
-OUT_BASE = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Services" / "UI" / "Bind" / "Generated" / "UIBindBase.Api.g.cs"
-OUT_MANIFEST = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Services" / "UI" / "Bind" / "Generated" / "UIApiManifest.g.cs"
-OUT_SHIM = ROOT / "Assets" / "LiteGame" / "Adapters" / "LuaBridge" / "Generated" / "UIApiShim.g.cs"
-OUT_DISPATCH = ROOT / "Assets" / "LiteGame" / "Adapters" / "LuaBridge" / "Generated" / "LuaBehaviourAdapter.Dispatch.g.cs"
-DOC = ROOT / "Docs" / "设计文档" / "客户端" / "UI系统" / "UI逻辑API参考.md"
+OUT_INDEX = ROOT / "Packages" / "com.litegame.framework" / "Runtime" / "Services" / "UI" / "Bind" / "Generated" / "UIBindIndex.Api.g.cs"
+OUT_BASE = ROOT / "Packages" / "com.litegame.framework" / "Runtime" / "Services" / "UI" / "Bind" / "Generated" / "UIBindBase.Api.g.cs"
+OUT_MANIFEST = ROOT / "Packages" / "com.litegame.framework" / "Runtime" / "Services" / "UI" / "Bind" / "Generated" / "UIApiManifest.g.cs"
 
 
 def _rel(path):
@@ -39,15 +36,11 @@ def _rel(path):
 
 
 def path_report():
-    """Declared input/outputs derived from SPEC_PATH / OUT_* / DOC."""
+    """Declared input/outputs derived from SPEC_PATH / OUT_*."""
     entries = [{"path": _rel(SPEC_PATH), "kind": "input"}]
-    for output in (OUT_INDEX, OUT_BASE, OUT_MANIFEST, OUT_SHIM, OUT_DISPATCH, DOC):
+    for output in (OUT_INDEX, OUT_BASE, OUT_MANIFEST):
         entries.append({"path": _rel(output), "kind": "output"})
     return entries
-
-
-BEGIN_MARK = "<!-- BEGIN:ui-api:lua -->"
-END_MARK = "<!-- END:ui-api:lua -->"
 
 _HEADER = None
 
@@ -81,28 +74,28 @@ def load_spec():
         spec = json.load(handle)
 
     categories = {c["id"] for c in spec["categories"]}
-    lua_names = set()
+    spec_names = set()
     for method in spec["methods"]:
         if not method.get("params"):
             fail("method without params: " + method["name"])
-        for lua in method.get("lua", []):
-            name = lua["name"]
-            if name in lua_names:
-                fail("duplicate lua name: " + name)
-            lua_names.add(name)
-            if lua["category"] not in categories:
-                fail("unknown category '" + lua["category"] + "' on " + name)
-            for entry in lua["call"]:
+        for api in method.get("api", []):
+            name = api["name"]
+            if name in spec_names:
+                fail("duplicate api name: " + name)
+            spec_names.add(name)
+            if api["category"] not in categories:
+                fail("unknown category '" + api["category"] + "' on " + name)
+            for entry in api["call"]:
                 if entry["kind"] not in KINDS:
                     fail("unknown kind '" + entry["kind"] + "' on " + name)
                 if (entry["kind"] not in ("formatArgs", "passthrough")
                         and not entry["kind"].startswith("callback")
                         and not entry.get("field")):
                     fail("call entry without field on " + name)
-                if entry["kind"] == "passthrough" and not lua.get("manual"):
+                if entry["kind"] == "passthrough" and not api.get("manual"):
                     fail("passthrough is only valid on manual entries: " + name)
-            extras = int(lua.get("extraArgs", 0))
-            formats = [e for e in lua["call"] if e["kind"] == "formatArgs"]
+            extras = int(api.get("extraArgs", 0))
+            formats = [e for e in api["call"] if e["kind"] == "formatArgs"]
             if formats and extras <= 0:
                 fail("formatArgs needs extraArgs: " + name)
 
@@ -164,12 +157,12 @@ def render_base(spec):
     body = []
     for forward in spec["baseForwards"]:
         body.append("        /// <summary>" + xml(forward["summary"]) + "</summary>")
-        if forward.get("shape") == "bindButton":
+        if forward.get("shape") == "bindButtonClick":
             params = ", ".join(p["name"] for p in forward["params"])
             body.append("        " + forward["access"] + " " + signature(forward, True))
             body.append("        {")
-            body.append("            _index.BindButton(" + params + ");")
-            body.append("            return () => _index.UnbindButton(name);")
+            body.append("            _index.BindButtonClick(" + params + ");")
+            body.append("            return () => _index.UnbindButtonClick(name);")
             body.append("        }")
         else:
             args = ", ".join(p["name"] for p in forward["params"])
@@ -200,151 +193,10 @@ def pascal(name):
     return name[0].upper() + name[1:]
 
 
-def shim_params(lua):
-    params = [entry["arg"] for entry in lua["call"] if entry.get("arg")]
-    if any(entry["kind"].startswith("callback") for entry in lua["call"]):
-        params.append("fn")
-    params.extend("a" + str(i) for i in range(int(lua.get("extraArgs", 0))))
-    return params
-
-
-def shim_payload(lua):
-    parts = []
-    for entry in lua["call"]:
-        if entry["kind"] == "formatArgs":
-            parts.extend("arg" + str(i) + " = a" + str(i) for i in range(int(lua.get("extraArgs", 0))))
-            continue
-        if entry["kind"].startswith("callback"):
-            parts.append("fn = fn")
-            continue
-        expr = entry["arg"]
-        if entry.get("default"):
-            expr = expr + " or " + entry["default"]
-        parts.append(entry["field"] + " = " + expr)
-    return ", ".join(parts)
-
-
-def render_shim(spec):
-    lines = ["local c = __ui_api_c", "__ui_api_c = nil", "return {"]
-    for method in spec["methods"]:
-        for lua in method.get("lua", []):
-            params = shim_params(lua)
-            param_text_ = ", " + ", ".join(params) if params else ""
-            ret = "return " if lua.get("returns") else ""
-            lines.append(
-                "    " + pascal(lua["name"]) + " = function(_" + param_text_ + ") " + ret
-                + "c('" + lua["name"] + "', { " + shim_payload(lua) + " }) end,"
-            )
-    lines.append("}")
-    out = [
-        header(),
-        "",
-        "namespace LiteGame",
-        "{",
-        "    /// <summary>Lua 侧 self.ui 门面（生成；缺省时长占位符由适配器用 UIFxDefaults 替换）。</summary>",
-        "    public static class UIApiShim",
-        "    {",
-        "        /// <summary>shim 模板（%Fx*% 占位符：PulseStrength/PulseDuration/FlashDuration/SlideDuration/BubbleDuration）。</summary>",
-        "        public const string LuaTemplate = @\"",
-    ]
-    out.extend(lines)
-    out.extend(["    \";", "    }", "}", ""])
-    return "\n".join(out)
-
-
-def expr_of(entry):
-    kind = entry["kind"]
-    field = entry.get("field")
-    if kind == "string":
-        return 'payload.Get<string, string>("' + field + '")'
-    if kind == "text":
-        return 'Text(payload, "' + field + '")'
-    if kind == "bool":
-        return 'payload.Get<string, bool>("' + field + '")'
-    if kind == "float":
-        return 'payload.Get<string, float>("' + field + '")'
-    if kind == "int":
-        return 'payload.Get<string, int>("' + field + '")'
-    if kind == "count":
-        return '(long)payload.Get<string, double>("' + field + '")'
-    if kind == "formatArgs":
-        return "LuaFormatArgs(payload)"
-    if kind == "strings":
-        return 'ReadStrings(payload, "' + field + '")'
-    if kind == "callbackFloat":
-        return "Arg1<float>(payload, (fn, v) => fn.Call(v))"
-    if kind == "callbackBool":
-        return "Arg1<bool>(payload, (fn, v) => fn.Call(v))"
-    if kind == "callbackInt":
-        return "Arg1<int>(payload, (fn, v) => fn.Call(v))"
-    fail("unrenderable kind for dispatch: " + kind)
-
-
-def call_exprs(lua):
-    exprs = []
-    entries = lua["call"]
-    index = 0
-    while index < len(entries):
-        entry = entries[index]
-        if entry.get("group") == "vector2":
-            members = []
-            while index < len(entries) and entries[index].get("group") == "vector2":
-                members.append(entries[index])
-                index += 1
-            if len(members) != 2:
-                fail("vector2 group needs exactly 2 entries: " + lua["name"])
-            exprs.append("new Vector2(" + expr_of(members[0]) + ", " + expr_of(members[1]) + ")")
-            continue
-        exprs.append(expr_of(entry))
-        index += 1
-    return exprs
-
-
-def render_dispatch(spec):
-    lines = []
-    for method in spec["methods"]:
-        for lua in method.get("lua", []):
-            if lua.get("manual"):
-                continue
-            call = "_index." + method["name"] + "(" + ", ".join(call_exprs(lua)) + ")"
-            if method["returns"] != "void":
-                lines.append('                case "' + lua["name"] + '": result = ' + call + "; return true;")
-            else:
-                lines.append('                case "' + lua["name"] + '": ' + call + "; return true;")
-    out = [
-        header(),
-        "using System;",
-        "using UnityEngine;",
-        "using XLua;",
-        "",
-        "namespace LiteGame",
-        "{",
-        "    public sealed partial class LuaBehaviourAdapter",
-        "    {",
-        "        /// <summary>生成的 ui-API 派发：payload 表协议；未命中的方法交给手工处理器。</summary>",
-        "        private bool TryDispatchApi(string method, LuaTable payload, out object result)",
-        "        {",
-        "            result = null;",
-        "            switch (method)",
-        "            {",
-    ]
-    out.extend(lines)
-    out.extend([
-        "                default:",
-        "                    return TryDispatchManual(method, payload, out result);",
-        "            }",
-        "        }",
-        "    }",
-        "}",
-        "",
-    ])
-    return "\n".join(out)
-
-
 def render_manifest(spec):
-    lua_names = [lua["name"] for method in spec["methods"] for lua in method.get("lua", [])]
-    shim_names = [pascal(name) for name in lua_names]
-    manual_names = [lua["name"] for method in spec["methods"] for lua in method.get("lua", []) if lua.get("manual")]
+    spec_names = [api["name"] for method in spec["methods"] for api in method.get("api", [])]
+    generated_names = [pascal(name) for name in spec_names]
+    manual_names = [api["name"] for method in spec["methods"] for api in method.get("api", []) if api.get("manual")]
     index_names = [m["name"] for m in spec["methods"] if m.get("index", True) is not False]
 
     def block(name, values):
@@ -366,68 +218,14 @@ def render_manifest(spec):
         "        public const int ApiVersion = " + str(spec["apiVersion"]) + ";",
         "",
     ]
-    lines.extend(block("LuaMethods", lua_names))
-    lines.extend(block("ShimMethods", shim_names))
+    lines.extend(block("SpecMethods", spec_names))
+    lines.extend(block("GeneratedMethods", generated_names))
     lines.extend(block("ManualMethods", manual_names))
     lines.extend(block("IndexMethods", index_names))
     if lines[-1] == "":
         lines.pop()
     lines.extend(["    }", "}", ""])
     return "\n".join(lines)
-
-
-def doc_signature(lua):
-    if lua["doc"].get("sig"):
-        return lua["doc"]["sig"]
-    args = []
-    for entry in lua["call"]:
-        if entry["kind"] == "formatArgs":
-            continue
-        name = entry.get("arg")
-        if not name:
-            continue
-        args.append(name + "?" if entry.get("default") else name)
-    extras = int(lua.get("extraArgs", 0))
-    if extras:
-        args.append("a0..a" + str(extras - 1))
-    return pascal(lua["name"]) + "(" + ", ".join(args) + ")"
-
-
-def render_doc_region(spec):
-    lines = []
-    number = 0
-    for category in spec["categories"]:
-        rows = []
-        for method in spec["methods"]:
-            for lua in method.get("lua", []):
-                if lua["category"] == category["id"]:
-                    rows.append((lua, method))
-        if not rows:
-            continue
-        number += 1
-        lines.append("### 3." + str(number) + " " + category["title"])
-        lines.append("")
-        lines.append("| 方法 | 参数 | 说明 |")
-        lines.append("| --- | --- | --- |")
-        for lua, _method in rows:
-            tick = chr(96)
-            lines.append("| " + tick + doc_signature(lua) + tick + " | " + lua["doc"]["args"] + " | " + lua["doc"]["note"] + " |")
-        lines.append("")
-        for note in category.get("notes", []):
-            lines.append("- " + note)
-        if category.get("notes"):
-            lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
-
-
-def render_doc(spec, current):
-    begin = current.find(BEGIN_MARK)
-    end = current.find(END_MARK)
-    if begin < 0 or end < 0 or end < begin:
-        fail("doc markers missing in " + str(DOC))
-    head = current[: begin + len(BEGIN_MARK)]
-    tail = current[end:]
-    return head + "\n\n" + render_doc_region(spec) + "\n" + tail
 
 
 def write_or_check(path, text, check):
@@ -452,23 +250,16 @@ def main(argv=None):
     index_text = render_index(spec)
     base_text = render_base(spec)
     manifest_text = render_manifest(spec)
-    shim_text = render_shim(spec)
-    dispatch_text = render_dispatch(spec)
-    doc_current = DOC.read_text(encoding="utf-8") if DOC.is_file() else ""
-    doc_text = render_doc(spec, doc_current)
 
     ok = True
     ok = write_or_check(OUT_INDEX, index_text, args.check) and ok
     ok = write_or_check(OUT_BASE, base_text, args.check) and ok
     ok = write_or_check(OUT_MANIFEST, manifest_text, args.check) and ok
-    ok = write_or_check(OUT_SHIM, shim_text, args.check) and ok
-    ok = write_or_check(OUT_DISPATCH, dispatch_text, args.check) and ok
-    ok = write_or_check(DOC, doc_text, args.check) and ok
 
     if args.check:
         if ok:
-            total = sum(len(m.get("lua", [])) for m in spec["methods"])
-            info(TOOL, "CHECK OK: " + str(len(spec["methods"])) + " methods / " + str(total) + " lua entries")
+            total = sum(len(m.get("api", [])) for m in spec["methods"])
+            info(TOOL, "CHECK OK: " + str(len(spec["methods"])) + " methods / " + str(total) + " spec entries")
             return 0
         return 1
     return 0

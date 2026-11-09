@@ -14,19 +14,19 @@ namespace LiteGame.Modules.UI
         /// <summary>具名键值对（插入序＝投射序，便于对照页面约定的表字面量）。</summary>
         public IReadOnlyList<KeyValuePair<string, object>> Values => _values;
 
-        /// <summary>布尔值（Lua 侧 boolean）。</summary>
+        /// <summary>布尔值（布尔）。</summary>
         public PageData Set(string key, bool value) => Add(key, value);
 
-        /// <summary>整数值（Lua 侧 number）。</summary>
+        /// <summary>整数值（整数）。</summary>
         public PageData Set(string key, int value) => Add(key, value);
 
-        /// <summary>文本值（Lua 侧 string）。</summary>
+        /// <summary>文本值（文本）。</summary>
         public PageData Set(string key, string value) => Add(key, value);
 
         /// <summary>子表（嵌套具名键）。</summary>
         public PageData Set(string key, PageData value) => Add(key, value);
 
-        /// <summary>行数组（Lua 侧 1 基序数组，按列表序）。</summary>
+        /// <summary>行数组（按列表序的数组）。</summary>
         public PageData Set(string key, IReadOnlyList<PageData> rows) => Add(key, rows);
 
         /// <summary>是否没有任何键（装配点据此判定"页面无数据"）。</summary>

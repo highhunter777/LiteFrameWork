@@ -49,7 +49,7 @@ IGNORED_PREFIXES = (
     "__pycache__/",
 )
 
-KNOWN_MISSING_SHARED = "Assets/LiteGame/Modules/Config/MapTableProjection.cs"
+KNOWN_MISSING_SHARED = "Assets/LiteGame/Modules/Config/Table/MapTableProjection.cs"
 CSProj_FILES = (
     "Server/RoomServer/RoomServer.csproj",
     "Server/MetaServer/MetaServer.csproj",
@@ -225,7 +225,7 @@ def _area_for(path, shared_files, shared_targets, shared_links, meta_targets, me
         return "test"
     if p.startswith("Docs/") or (p.endswith(".md") and "/" not in p):
         return "docs"
-    if p.startswith("Assets/GameData/Config/") or p.startswith("Assets/LiteGame/Lua/") \
+    if p.startswith("Assets/GameData/Config/")\
             or p.startswith("Assets/ShareResource/") or p.startswith("Assets/Scenes/"):
         return "content"
     if p.startswith("Assets/") and not p.endswith(".cs"):

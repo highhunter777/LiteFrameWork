@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using LiteGame.Editor.UITools.Contracts;
 using LiteGame.Editor.UITools.Page;
 using LiteGame.Editor.UITools.Reference;
@@ -9,18 +8,18 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Validation.Rules
 {
     /// <summary>
-    /// 契约族：文本双写（工具链设计 §6.2「文本双写」；《UI 逻辑 API 参考》「有静态 key 的节点 Lua 不得再 SetTextKey/SetText」）。
+    /// 契约族：文本双写（工具链设计 §6.2「文本双写」；《UI 逻辑 API 参考》「有静态 key 的节点页面逻辑不得再 SetTextKey/SetText」）。
     /// </summary>
     public sealed class ContractTextDoubleWriteRule : IUIRule
     {
         private static readonly HashSet<string> TextWriteApis = new HashSet<string>(
-            UIRuleThresholds.LuaTextWriteApis.Concat(UIRuleThresholds.PageTextWriteApis), StringComparer.Ordinal);
+            UIRuleThresholds.PageTextWriteApis, StringComparer.Ordinal);
 
         private readonly Func<UIPageManifestEntry, string> _sourceResolver;
 
-        /// <summary>生产形态：C# 页源优先、未迁移页回落 Lua（解析单源＝UIPageLogicScanner）。</summary>
+        /// <summary>生产形态：解析单源＝UIPageLogicScanner（C# 页源）。</summary>
         public ContractTextDoubleWriteRule()
-            => _sourceResolver = entry => UIPageLogicScanner.ResolveFile(entry.Name, entry.LuaPath);
+            => _sourceResolver = entry => UIPageLogicScanner.ResolveFile(entry.Name);
 
         /// <summary>测试形态：注入替代解析（合成页源落临时路径；按扩展名分派语法）。</summary>
         public ContractTextDoubleWriteRule(Func<UIPageManifestEntry, string> sourceResolver) => _sourceResolver = sourceResolver;
@@ -84,7 +83,7 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                 string source = UIPageLogicScanner.ReadSource(file);
                 if (source == null) continue;       // 源缺失归引用对账规则告警，此处不重复
 
-                foreach (UIPageApiCall call in UIPageLogicScanner.ScanApiCalls(file, source))
+                foreach (UIPageApiCall call in UIPageLogicScanner.ScanApiCalls(source))
                 {
                     if (!TextWriteApis.Contains(call.Api) || string.IsNullOrEmpty(call.Name)) continue;
                     if (!staticNodeNames.Contains(call.Name)) continue;

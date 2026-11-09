@@ -13,7 +13,7 @@ Tools (form/operation details: the generator toolbox design doc, Docs design
 center; per-tool why/notes stay in each script's header):
   build-hash    buildHash generator; --check = build gate (Join handshake red line)
   proto         battle.proto -> Packages/com.litegame.net/Core/Proto/Generated/Battle.cs
-  luban         table chain regen (C#/binary/lua/LuaKeys); alias of Luban/gen.bat
+  luban         table chain regen (C#/binary); alias of Luban/gen.bat
   sync-code     [StateLayer] fields -> EntitySlot.Sync.g.cs (checksum plumbing)
   ui-page       #uiform + UIPageManifest + Contracts -> UIPageCatalog.g.cs
   ui-api        UIApiSpec.json -> UIBindIndex/UIBindBase/shim/dispatch/manifest/参考表
@@ -66,7 +66,7 @@ TOOL = 'toolbox'
 TOOLS = {
     'build-hash':   ('gen-build-hash.py', '[--check | --check-shared]',      'buildHash generator; --check is the build gate (Join handshake red line)'),
     'proto':        ('gen_proto.py',      '--protoc <protoc.exe>',           'battle.proto -> Generated/Battle.cs (protoc must match runtime version)'),
-    'luban':        ('gen_luban.py',      '[--python <python>]',             'table chain regen (C#/binary/lua/LuaKeys); alias of Luban/gen.bat'),
+    'luban':        ('gen_luban.py',      '[--python <python>]',             'table chain regen (C#/binary); alias of Luban/gen.bat'),
     'sync-code':    ('gen_sync_code.py',  '',                                '[StateLayer] fields -> EntitySlot.Sync.g.cs (checksum plumbing)'),
     'ui-page':      ('gen-ui-page.py',    '[--check]',                        '#uiform + UIPageManifest + Contracts -> UIPageCatalog.g.cs'),
     'ui-api':       ('gen-ui-api.py',     '[--check]',                        'UIApiSpec.json -> UIBindIndex/UIBindBase/shim/dispatch/manifest/参考表'),
@@ -96,7 +96,7 @@ LOCAL_CHAIN_REL = 'scripts/local/local-chain.py'
 # as MapTarget inline constructor arguments (e.g. TrainingGround).
 UNITY_DECLARERS = (
     ('sim-trig', 'Packages/com.litegame.sim/Editor/SimTrigTableGenerator.cs'),
-    ('bake-targets', 'Assets/LiteGame/Editor/Baking/BakeTargets.cs'),
+    ('bake-targets', 'Assets/LiteGame/Editor/Baking/Targets/BakeTargets.cs'),
 )
 UNITY_REPO_ROOTS = ('Assets/', 'Luban/', 'Tests/', 'Server/', 'Docs/',
                     'ProjectSettings/', 'Packages/')
@@ -125,7 +125,7 @@ Generation mode requires --protoc (protoc is not vendored in the repository);
 # not read as stale). trig is NOT part of ALL_ORDER and is not a gate: it needs
 # a running Unity editor with the unity-pipeline server.
 UNITY_PORT_REL = 'Library/Pipeline/.unity-pipeline-port'
-TRIG_SOURCE_REL = 'Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs'
+TRIG_SOURCE_REL = 'Packages/com.litegame.sim/Scripts/Map/Trig/SimTrigTables.cs'
 TRIG_CHECK_CODE = 'return LiteGame.Toolchain.SimTrigCli.IsUpToDate();'
 TRIG_GENERATE_CODE = 'return LiteGame.Toolchain.SimTrigCli.Run(false);'
 TRIG_EVAL_TIMEOUT = 300

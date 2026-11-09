@@ -20,7 +20,7 @@ namespace LiteFramework.UI
         private TransitionContext _current;
         private readonly IUIOperationQueue<TransitionContext> _queued = new UIOperationQueue<TransitionContext>(1);
 
-        /// <summary>事务开始（Lua 侧 begin 事件的来源）。</summary>
+        /// <summary>事务开始（转场开始事件的来源）。</summary>
         public event Action<TransitionContext> Began;
 
         /// <summary>事务结束（与 <see cref="Began"/> 成对；超时也发，`Completed=false`）。</summary>

@@ -44,7 +44,7 @@ namespace LiteFramework.UI
         Failed = 4,
     }
 
-    /// <summary>一次转场的结果（<see cref="UITransitionRunner.PlayAsync"/> 的返回；供调用方与 Lua 事件消费）。</summary>
+    /// <summary>一次转场的结果（<see cref="UITransitionRunner.PlayAsync"/> 的返回；供调用方消费）。</summary>
     public sealed class TransitionOutcome
     {
         public TransitionMode Mode;

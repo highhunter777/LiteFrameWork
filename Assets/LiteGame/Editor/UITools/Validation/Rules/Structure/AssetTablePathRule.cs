@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -125,7 +125,7 @@ namespace LiteGame.Editor.UITools.Validation.Rules
             => CheckPaths(projectRoot, ExtractPathEntries(projectRoot));
 
         /// <summary>路径形态判据：.prefab/.unity 结尾（忽略大小写）——覆盖已知表内资源引用形态，
-        /// 不含糊到把 LuaPath 这类点分模块名误判。</summary>
+        /// 不含糊到把 Frontend.Module 这类点分模块名误判。</summary>
         public static bool IsPathLike(string value)
             => !string.IsNullOrEmpty(value)
                && (value.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase)

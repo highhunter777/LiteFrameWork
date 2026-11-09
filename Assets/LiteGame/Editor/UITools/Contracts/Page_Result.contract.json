@@ -9,7 +9,6 @@
     "name": "Page_Result",
     "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Result.prefab",
     "prefabGuid": "cf379075bb8ec834baba51647327c74c",
-    "luaPath": "UI.Page_Result",
     "layer": 0,
     "fullScreen": true,
     "cacheStrategy": "Lru",

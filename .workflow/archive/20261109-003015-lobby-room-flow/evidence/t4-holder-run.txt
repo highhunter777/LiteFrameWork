@@ -1,0 +1,10 @@
+[KCP] kcp2k.KcpClient: created with cookie=0
+[KCP] Client: connect to 127.0.0.1:17788
+[KCP] RecvBuf = 65536=>7340032 (112x) SendBuf = 65536=>7340032 (112x)
+[KCP] kcp2k.KcpClient: sending handshake to other end with cookie=0
+[KCP] Client: received initial cookie: 1503097630
+[KCP] kcp2k.KcpClient: received hello with cookie=1503097630
+[KCP] Client: OnConnected
+READY roomId=R-CJK2A6 playerId=0
+[KCP] kcp2k.KcpClient: Disconnected.
+[KCP] Client: OnDisconnected

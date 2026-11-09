@@ -13,16 +13,16 @@ namespace LiteGame.Editor.UITools.Binding
     }
 
     /// <summary>
-    /// 引用点扫描（《UI编辑器工具专项设计》§2.1.2"改名时列出 Lua/C# 字符串字面量引用点辅助同步"）。
+    /// 引用点扫描（《UI编辑器工具专项设计》§2.1.2"改名时列出 C# 页面逻辑与字符串字面量引用点辅助同步"）。
     /// </summary>
     public static class UIBindingReferenceScan
     {
         /// <summary>
-        /// 默认扫描根：Lua 页面 + UI 运行时 + 流程装配 + 测试夹具——§9.2 联动清单的现实消费面。
+        /// 默认扫描根：页面逻辑（C#）+ UI 运行时 + 流程装配 + 测试夹具——§9.2 联动清单的现实消费面。
         /// </summary>
         public static readonly string[] DefaultScanRoots =
         {
-            "Assets/LiteGame/Lua",
+            "Assets/LiteGame/Modules/UI/Pages",
             "Packages/com.litegame.framework/Runtime/Services/UI",
             "Assets/LiteGame/App",
             "Assets/Tests",
@@ -68,7 +68,6 @@ namespace LiteGame.Editor.UITools.Binding
         private static IEnumerable<string> EnumerateSources(string dir)
         {
             foreach (var cs in Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories)) yield return cs;
-            foreach (var lua in Directory.EnumerateFiles(dir, "*.lua", SearchOption.AllDirectories)) yield return lua;
         }
     }
 }

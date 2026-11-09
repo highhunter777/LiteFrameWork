@@ -1,0 +1,29 @@
+{
+  "success": true,
+  "command": "command run_script",
+  "data": {
+    "command": "run_script",
+    "parameters": {
+      "file": "AgentScripts/LobbyRoomFlow/RunRoomFlowUi.cs",
+      "entry": "RunRoomFlowUi.Run",
+      "args": "[\"Leave\"]",
+      "timeout_ms": 45000
+    },
+    "result": {
+      "diagnostics": [],
+      "compileMs": 580,
+      "executeMs": 533,
+      "assemblyName": "PipelineRunScript_RunRoomFlowUi_8498a249bca24547a8a200a8295d7e1e",
+      "success": true,
+      "result": "action=Leave\r\nroom_before=source=IRoomView(RoomBridge);view=true;seats=1;expected=2;owner=true;ui_rows=1\r\nok=true\r\nbefore_pages=Page_Room\r\nafter_pages=Page_Lobby\r\nclick_target=Room.Btn_Leave(Btn_Leave)\r\nclick_center=(780.0,180.0)\r\nclick_first_hit=[UIRoot]/Bottom/Page_Room(Clone)/Cot_SafeArea/Cot_ActionBar/Btn_Leave\r\nclick_handler=Btn_Leave\r\nstep1=expect=Btn_Leave 真实指针可点\r\nstep2=click=target=Room.Btn_Leave(Btn_Leave);page=Page_Room;center=(780.0,180.0);hit=[UIRoot]/Bottom/Page_Room(Clone)/Cot_SafeArea/Cot_ActionBar/Btn_Leave\r\nstep3=assert=Page_Lobby IsOpen\r\nstep4=assert=大厅可操作\r\nstep5=assert=房间页关闭且席位/期望人数清零\r\n"
+    },
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7801,
+      "projectPath": "E:\\unityProject\\Test"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}

@@ -1,0 +1,402 @@
+{
+  "schema_version": 1,
+  "slug": "account-match-lifecycle",
+  "title": "Account/Match 名称与生命周期纠偏（第二批）",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-11-09T00:36:35+08:00",
+  "updated_at": "2026-11-09T04:42:58+08:00",
+  "completed_at": "2026-11-09T04:42:46+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-11-09T01:42:46+08:00"
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "completed_at": "2026-11-09T02:28:39+08:00"
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "completed_at": "2026-11-09T02:31:49+08:00",
+      "approved_by": "user"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-11-09T02:32:54+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "子代理评审任务",
+      "completed_at": "2026-11-09T03:23:05+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "子代理先写测试",
+      "completed_at": "2026-11-09T03:57:32+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "子代理正式施工",
+      "completed_at": "2026-11-09T04:41:30+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-11-09T04:41:36+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "主代理评审代码",
+      "completed_at": "2026-11-09T04:42:29+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-11-09T04:42:46+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-11-09T00:36:35+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-11-09T00:39:52+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T01:38:55+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T01:41:28+08:00",
+      "event": "rewind",
+      "to": "propose",
+      "reason": "用户确认验收时扩大范围：401 令牌路径必须接线；Meta 会话/Profile/RemoteConfig 本批迁入 Account 域（方案 C）；真实 UI 冒烟降为只做自动化。需按新范围重写方案并重新独立评审、重新提审。"
+    },
+    {
+      "at": "2026-11-09T01:42:46+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T02:28:39+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T02:31:49+08:00",
+      "event": "advance",
+      "from": "confirm-acceptance",
+      "to": "breakdown",
+      "approved_by": "user"
+    },
+    {
+      "at": "2026-11-09T02:32:54+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T03:23:05+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T03:57:32+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T04:41:30+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T04:41:36+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T04:42:29+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T04:42:46+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T04:42:58+08:00",
+      "event": "archive",
+      "path": "20261109-044258-account-match-lifecycle"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "最小可编译契约与依赖闭包",
+      "description": "为 401/账户域/门面/LeaveMatchAsync 落最小可编译契约（接口+空实现/NotImplemented），不改行为；补齐 L1/Core 源链接与测试替身所需签名，使测试作者可在现有 API 上写真实断言。禁止把新 API 不存在作为延期理由。",
+      "acceptance": "生产编译 0 错；新增 MetaLoginService/MetaAccountSession/AccountTicketSource/MetaSessionFacade 真实 public 签名与空实现；AccountReentry 增 async 目标形状（新构造 + LeaveMatchAsync 调用，行为暂沿旧路径）；IRoomFlow.LeaveMatchAsync 桩返回 true；测试工程可编译；不改变现有行为。",
+      "verify": "unity --project-path E:\\unityProject\\Test command recompile；unity --project-path E:\\unityProject\\Test command recompile_status；dotnet build Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+      "files": [
+        "Assets/LiteGame/Modules/Meta/Abstractions/Account/",
+        "Assets/LiteGame/Modules/Meta/Client/Account/",
+        "Assets/LiteGame/Modules/Meta/Abstractions/IRoomFlow.cs",
+        "Assets/LiteGame/Modules/Procedure/Flow/ProcedureFlow.cs",
+        "Assets/LiteGame/Modules/Procedure/Flow/RoomFlowLifetime.cs",
+        "Assets/LiteGame/Modules/Procedure/Flow/AccountReentry.cs",
+        "Assets/LiteGame/App/PageServices/",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "契约编译 0 错；AccountReentry 新构造(async LeaveMatchAsync)+旧构造兼容；evidence/t1-contracts.txt",
+      "status_reason": "",
+      "created_at": "2026-11-09T02:32:18+08:00",
+      "started_at": "2026-11-09T03:08:09+08:00",
+      "completed_at": "2026-11-09T03:17:51+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "C1 纯改名（生产）",
+      "description": "C1 纯改名（仅生产）：7 文件 + 2 类名同一批 unity-pipeline；同步生产引用/注释/ClientScope 名；测试与守卫符号替换归 T9。",
+      "acceptance": "AC1(a)：生产旧名零命中（rg 见 verify）；改名 GUID 不变、无孤儿 meta；不要求 Unity 全量编译（测试程序集由 T9 同步后才绿）。",
+      "verify": "rg 生产旧名（期望 0）；rg Battle 侧 class MatchSession/IMatchSessionFactory/MatchSessionFactory（期望 0）；rename_asset 回执 GUID 清单",
+      "files": [
+        "Assets/LiteGame/Modules/Session/",
+        "Assets/LiteGame/Modules/Battle/",
+        "Assets/LiteGame/Modules/Meta/Abstractions/",
+        "Assets/LiteGame/Modules/Procedure/"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "7 文件改名 GUID 不变；生产旧名词边界 0；evidence/t2-rename.txt",
+      "status_reason": "",
+      "created_at": "2026-11-09T02:32:45+08:00",
+      "started_at": "2026-11-09T03:17:52+08:00",
+      "completed_at": "2026-11-09T03:17:52+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "先写完整失败测试（独立测试作者）",
+      "description": "独立 dsh 测试作者在契约与改名后写账户域/401/门面/离场顺序/Match-Battle 域真实断言；复用 rig/doubles；只改调用不降断言。",
+      "acceptance": "L1 只测 AccountReentry 顺序（假端口）；AccountDomain 生命周期（开/关/重登/软硬/ForceReleaseRoot）放 EditMode 真实 MetaSegment/RootScope；401×4/门面切换/LeaveMatchAsync 四终态含 !Started/卸载失败 false/超时/未登录/dev 直入/13 例/rig root 均覆盖；red 五命令各有断言级失败并写 red-manifest。",
+      "verify": "python .agents/skills/staged-delivery/scripts/workflow.py --root C:\\Users\\hunter\\.codex\\tmp\\workflows\\account-match-lifecycle-20261109 --run account-match-lifecycle verify --red；python scripts/gate/unity-tests.py --mode editor --filter MetaEntryEditModeTests --timeout 600；--filter RoomFlow --timeout 900；--filter BattleRunPort --timeout 600；--filter MatchLoopLeakEditModeTests --timeout 900；dotnet test Tests/LiteFramework.Core.Tests --filter FullyQualifiedName~AccountDomain",
+      "files": [
+        "Tests/LiteFramework.Core.Tests/AccountDomainTests.cs",
+        "Tests/LiteFramework.Core.Tests/Meta/AccountReentryTests.cs",
+        "Assets/Tests/EditMode/Meta/MetaEntryEditModeTests.cs",
+        "Assets/Tests/EditMode/Flow/RoomFlow/",
+        "Assets/Tests/EditMode/Battle/Session/",
+        "Assets/Tests/EditMode/Battle/Net/MatchLoopLeakEditModeTests.cs"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T9",
+        "T8"
+      ],
+      "status": "done",
+      "evidence": "80 例/50 红；red.json + red-manifest.json + t3-cases.md；编译 0 错",
+      "status_reason": "",
+      "created_at": "2026-11-09T02:32:45+08:00",
+      "started_at": "2026-11-09T03:57:32+08:00",
+      "completed_at": "2026-11-09T03:57:32+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "账户域、门面与 401 接线",
+      "description": "MetaLoginService + MetaAccountSession + IAccountDomain（Open/Revoke/Close）+ AccountTicketSource + MetaSessionFacade 三组路由 + 401 四调用点离栈调度 + GM 页迁移 + NotConfigured>NotLoggedIn。",
+      "acceptance": "AC2/AC8：登录开、登出/401/宿主关闭/ForceReleaseRoot 关；软/硬分离；重登恰一次；门面切换；401 一次不自拆；token 不进日志/公开端口（M3 守卫改为 MetaLoginService/MetaAccountSession 并新增断言）；facade 在 AppComposition 装配；M3/ProcedureBoundary 守卫同步；Meta 不引 UI。",
+      "verify": "python scripts/gate/test.py --suite L1 --profile PullRequest；python scripts/gate/unity-tests.py --mode editor --filter MetaEntryEditModeTests --timeout 600；python scripts/gate/domain-matrix.py --check；python scripts/gate/arch-check.py --check",
+      "files": [
+        "Assets/LiteGame/Modules/Meta/",
+        "Assets/LiteGame/App/AppComposition.cs",
+        "Assets/LiteGame/App/PageServices/",
+        "Assets/LiteGame/Modules/UI/Pages/PageContext.cs",
+        "Assets/LiteGame/Editor/Gm/GMTestModePage.cs",
+        "Tests/LiteFramework.Core.Tests/M3WiringGuardTests.cs",
+        "Tests/LiteFramework.Core.Tests/ProcedureBoundaryTests.cs"
+      ],
+      "deps": [
+        "T2",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "账户域/门面/401；MetaEntry 22/22；L1 11/11；evidence/t4-t5-production.txt",
+      "status_reason": "",
+      "created_at": "2026-11-09T02:32:45+08:00",
+      "started_at": "2026-11-09T04:24:03+08:00",
+      "completed_at": "2026-11-09T04:24:04+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "Match/Battle 域与异步离场",
+      "description": "MatchSession 进房创建（Account 子域，交付即 Seal）；BattleDomainFactory 派生 Battle 子域；BattleContext 子 scope 改 Battle；IRoomFlow.LeaveMatchAsync 终态判据 + 超时常量；AccountReentry async（Logout→await→Close→ShowLogin）；dev 直入 Root 旁路。",
+      "acceptance": "AC3/AC4/AC5：Match 释放恰一次、Battle 前失败释放、无重名、100 局无泄漏；LeaveMatchAsync 四终态（无操作/CleanupTask+Main,Error/!Started/根取消）、卸载失败 false、超时 false；重入 false 仍 ShowLogin；重入顺序通过；IAccountLoginControl 移除 LeaveMatch（离场统一 IRoomFlow）。",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 900；python scripts/gate/unity-tests.py --mode editor --filter MatchLoopLeakEditModeTests --timeout 900；python scripts/gate/unity-tests.py --mode editor --filter BattleRunPort --timeout 600；dotnet test Tests/LiteFramework.Core.Tests --filter FullyQualifiedName~AccountReentryTests",
+      "files": [
+        "Assets/LiteGame/Modules/Session/",
+        "Assets/LiteGame/Modules/Battle/",
+        "Assets/LiteGame/Modules/Procedure/",
+        "Assets/LiteGame/Modules/Meta/Abstractions/IAccountLoginControl.cs"
+      ],
+      "deps": [
+        "T3",
+        "T4"
+      ],
+      "status": "done",
+      "evidence": "Match/Battle/LeaveMatchAsync；RoomFlow 39/39；evidence/t4-t5-production.txt",
+      "status_reason": "",
+      "created_at": "2026-11-09T02:32:46+08:00",
+      "started_at": "2026-11-09T04:24:14+08:00",
+      "completed_at": "2026-11-09T04:24:14+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "文档回写、门禁单源与债登记",
+      "description": "回写说明 02/03/14/17、DI §6、商业级 §6.2/§7.1、路线图、地图专项、架构图 README、规范 03/04、待办总览；arch/units.json 三处 + domain-matrix --write；技术债 B2-ACCOUNT-PROFILE；施工进度追加一章。",
+      "acceptance": "AC1(c)(d)/AC7：文档语义与代码一致、domain-matrix --check 绿、Doc 0/0。",
+      "verify": "python scripts/gate/arch-check.py --check；python scripts/gate/domain-matrix.py --write；python scripts/gate/domain-matrix.py --check；python scripts/gate/test.py --suite Doc",
+      "files": [
+        "Docs/",
+        "arch/units.json"
+      ],
+      "deps": [
+        "T4",
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "docs 11 文件 + units/domain-matrix + 进度 57 章 + 债 B2-ACCOUNT-PROFILE",
+      "status_reason": "",
+      "created_at": "2026-11-09T02:32:46+08:00",
+      "started_at": "2026-11-09T04:24:14+08:00",
+      "completed_at": "2026-11-09T04:24:14+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "全量回归与交付证据",
+      "description": "主代理跑全量 RoomFlow/MetaEntry/PageFlow/Core/Net/L1/doc/l0/domain-matrix/toolchain/comment/dir-flat/Unity 编译；整理 red→green 与未验证项；wf verify。",
+      "acceptance": "AC6：verify.json 覆盖 AC6 全部命令且 exit=0；red-manifest 与 green 证据齐全；git diff/status 证据核对协议/页面契约/UI 零变更；未验证项如实披露。",
+      "verify": "python .agents/skills/staged-delivery/scripts/workflow.py --root C:\\Users\\hunter\\.codex\\tmp\\workflows\\account-match-lifecycle-20261109 --run account-match-lifecycle verify",
+      "files": [
+        ".workflow/active/account-match-lifecycle/evidence/"
+      ],
+      "deps": [
+        "T4",
+        "T5",
+        "T6",
+        "T8"
+      ],
+      "status": "done",
+      "evidence": "verify 19/19 exit=0；evidence/verify.json；red.json/red-manifest",
+      "status_reason": "",
+      "created_at": "2026-11-09T02:32:46+08:00",
+      "started_at": "2026-11-09T04:24:21+08:00",
+      "completed_at": "2026-11-09T04:37:54+08:00"
+    },
+    {
+      "id": "T8",
+      "title": "门禁配置（red/green 命令）",
+      "description": "主代理独占：更新 .workflow/config.json 的 commands/red_commands，使本批 red 来自新用例、verify 覆盖 RoomFlow/MetaEntry/PageFlow/Core full/BattleSession/BattleRunPort/MatchLoopLeak/comment/dir-flat/Unity 编译。",
+      "acceptance": "config show 列出新增命令；T3 首次 verify --red 的失败来自本批用例（非旧命令/编译/环境）。",
+      "verify": "python .agents/skills/staged-delivery/scripts/workflow.py --root C:\\Users\\hunter\\.codex\\tmp\\workflows\\account-match-lifecycle-20261109 --run account-match-lifecycle config show --json（断言含 account-domain-red/meta-entry-red/room-flow-red/battle-red/match-loop-red、room-flow-editmode/meta-entry-editmode）",
+      "files": [
+        ".workflow/config.json"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "config 19 commands/5 red；net 过滤 MatchSessionFactoryTests；red 名称已核对",
+      "status_reason": "",
+      "created_at": "2026-11-09T02:46:07+08:00",
+      "started_at": "2026-11-09T03:22:32+08:00",
+      "completed_at": "2026-11-09T03:22:32+08:00"
+    },
+    {
+      "id": "T9",
+      "title": "测试与守卫机械同步（T2b，独立测试作者）",
+      "description": "纯符号替换：Tests/** 守卫与 EditMode 夹具中的旧名（M3WiringGuardTests、SessionBoundaryTests、ModuleInterfaceOwnershipTests、ProcedureBoundaryTests、CrossModuleContractLocationTests、AccountReentryTests、AccountSessionFactoryTests、RoomFlow/**、Battle/Session|Net/**），只改符号不改断言，与 T2 生产改名同批串行。",
+      "acceptance": "只改旧符号/路径，不改断言/期望值/用例数；旧类型名在 Tests/ 与 EditMode/ 零命中；类名/文件随产物改名（MatchSessionFactoryTests），net 过滤同步；Unity recompile 0 错；既有 L1 用例全绿。",
+      "verify": "rg -w 旧类型名 Tests Assets/Tests/EditMode（期望 0）；unity recompile；dotnet test Tests/LiteFramework.Core.Tests --filter AccountReentryTests|M3WiringGuardTests|SessionBoundaryTests|ProcedureBoundaryTests",
+      "files": [
+        "Tests/LiteFramework.Core.Tests/M3WiringGuardTests.cs",
+        "Tests/LiteFramework.Core.Tests/SessionBoundaryTests.cs",
+        "Tests/LiteFramework.Core.Tests/ProcedureBoundaryTests.cs",
+        "Tests/LiteFramework.Core.Tests/ModuleInterfaceOwnershipTests.cs",
+        "Tests/LiteFramework.Core.Tests/CrossModuleContractLocationTests.cs",
+        "Tests/LiteFramework.Core.Tests/Meta/AccountReentryTests.cs",
+        "Tests/LiteNet.Tests/MatchSessionFactoryTests.cs",
+        "Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "Assets/Tests/EditMode/Flow/RoomFlow/",
+        "Assets/Tests/EditMode/Battle/Session/",
+        "Assets/Tests/EditMode/Battle/Net/MatchLoopLeakEditModeTests.cs"
+      ],
+      "deps": [
+        "T2"
+      ],
+      "status": "done",
+      "evidence": "L1 1961 PASS；类名/文件改名 MatchSessionFactoryTests；Unity 0 错",
+      "status_reason": "",
+      "created_at": "2026-11-09T02:46:08+08:00",
+      "started_at": "2026-11-09T03:22:31+08:00",
+      "completed_at": "2026-11-09T03:22:31+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-11-09T04:41:01+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "ec581bda9aefa5001b9b24de60ea5b618576ff7ee982c6f3fb92f9234cc3af5a",
+    "summary": {
+      "total": 19,
+      "passed": 19
+    }
+  },
+  "red_verification": {
+    "at": "2026-11-09T03:57:25+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "f4d549acf33ab3410e2231bdd50d1212002fff1ddd81d185dc840479764c53b5",
+    "summary": {
+      "total": 5,
+      "passed": 3
+    }
+  },
+  "archived_at": "2026-11-09T04:42:58+08:00"
+}

@@ -6,7 +6,7 @@ using System.Text;
 namespace LiteFramework
 {
     /// <summary>
-    /// 主线程显式单例装配器：构造注入、声明图预检、注册冻结、服务所有权与显式帧驱动序。
+    /// 主线程服务装配器：构造注入、声明图预检、注册冻结与服务所有权。
     /// </summary>
     public sealed class ServiceContainer : IServiceContainer, IModuleStats, IDisposable
     {
@@ -28,8 +28,6 @@ namespace LiteFramework
 
         private readonly List<Entry> _order = new();
 
-        private IReadOnlyList<ITickable> _tickables = Array.Empty<ITickable>();
-
         private IReadOnlyList<IModuleStats> _stats = Array.Empty<IModuleStats>();
 
         private readonly HashSet<Type> _building = new();
@@ -44,8 +42,6 @@ namespace LiteFramework
 
         private readonly string _scopeName;
 
-        private Type[] _tickOrder;
-
         private bool _sealed;
 
         private bool _disposed;
@@ -54,9 +50,23 @@ namespace LiteFramework
 
         public bool IsDisposed => _disposed;
 
-        public IReadOnlyList<ITickable> Tickables => _tickables;
-
         public IReadOnlyList<IModuleStats> Stats => _stats;
+
+        internal event Action<ServiceRegistration> ValidatingRegistration;
+        internal event Action RegistrationsChanged;
+        internal event Action Validating;
+
+        internal ServiceRegistration[] SnapshotRegistrations()
+        {
+            ThrowIfDisposed();
+            var registrations = new ServiceRegistration[_order.Count];
+            for (int i = 0; i < _order.Count; i++)
+            {
+                Entry entry = _order[i];
+                registrations[i] = new ServiceRegistration(entry.Interface, entry.Impl, entry.Lifetime, entry.Instance, entry.Constructed);
+            }
+            return registrations;
+        }
 
         public IReadOnlyList<Exception> DisposeFailures => _ownershipScope.DisposeFailures;
 
@@ -97,10 +107,9 @@ namespace LiteFramework
             if (ownership != ServiceOwnership.Borrowed && ownership != ServiceOwnership.ContainerOwned)
                 throw new ArgumentOutOfRangeException(nameof(ownership));
             var entry = new Entry { Interface = typeof(TInterface), Instance = instance, Constructed = true, Lifetime = lifetime };
-            EnsureTickPlanned(entry, instance);
             Add(entry);
             if (ownership == ServiceOwnership.ContainerOwned) Own(instance);
-            RebuildDiscovery();
+            RebuildStats();
         }
 
         public void RegisterFactory<TInterface>(Func<IServiceContainer, TInterface> factory, params Type[] dependencies)
@@ -153,17 +162,7 @@ namespace LiteFramework
             return false;
         }
 
-        // ---- 装配收口：帧驱动 / 密封 / 释放 / 统计 ----。
-
-        public void SetTickOrder(params Type[] serviceTypes)
-        {
-            ThrowIfRegistrationClosed();
-            if (serviceTypes == null) throw new ArgumentNullException(nameof(serviceTypes));
-            var copy = (Type[])serviceTypes.Clone();
-            ValidateTickOrder(copy);
-            _tickOrder = copy;
-            RebuildDiscovery();
-        }
+        // ---- 装配收口：密封 / 释放 / 统计 ----。
 
         public void Seal()
         {
@@ -178,11 +177,14 @@ namespace LiteFramework
             _disposed = true;
             _ownershipScope.Dispose();
             _owned.Clear();
-            _tickables = Array.Empty<ITickable>();
             _stats = Array.Empty<IModuleStats>();
             _entries.Clear();
             _order.Clear();
-            _tickOrder = null;
+            Action changed = RegistrationsChanged;
+            ValidatingRegistration = null;
+            Validating = null;
+            RegistrationsChanged = null;
+            changed?.Invoke();
         }
 
         public string StatsName => "DI";
@@ -194,7 +196,6 @@ namespace LiteFramework
             foreach (var entry in _order) if (entry.Constructed) built++;
             into["注册数"] = _entries.Count.ToString();
             into["已构造"] = built.ToString();
-            into["Tickable"] = _tickables.Count.ToString();
             into["已密封"] = _sealed ? "是" : "否";
             into["已释放"] = _disposed ? "是" : "否";
             into["释放异常"] = DisposeFailures.Count.ToString();
@@ -210,7 +211,7 @@ namespace LiteFramework
             var active = new HashSet<Type>();
             var path = new List<Type>();
             foreach (var entry in _order) ValidateEntry(entry.Interface, complete, active, path);
-            if (_tickOrder != null) ValidateTickOrder(_tickOrder);
+            Validating?.Invoke();
         }
 
         private void ValidateEntry(Type type, HashSet<Type> complete, HashSet<Type> active, List<Type> path)
@@ -228,9 +229,6 @@ namespace LiteFramework
             if (!active.Add(type)) throw new InvalidOperationException($"循环依赖: {FormatChain(path, type)}");
             path.Add(type);
             if (entry.Impl != null) PrepareConstructor(entry);
-            if (entry.Lifetime == ServiceLifetime.Transient &&
-                (entry.Impl != null ? typeof(ITickable).IsAssignableFrom(entry.Impl) : typeof(ITickable).IsAssignableFrom(entry.Interface)))
-                throw new InvalidOperationException($"Transient 服务不能进入帧驱动:{entry.Interface.Name}");
             if (entry.Dependencies != null)
                 foreach (Type dependency in entry.Dependencies)
                 {
@@ -250,51 +248,6 @@ namespace LiteFramework
                 throw new ArgumentOutOfRangeException(nameof(lifetime));
             if (_parent == null && lifetime == ServiceLifetime.Scoped)
                 throw new InvalidOperationException("Root 容器不能注册 Scoped 服务——请先 CreateScope(Account/Match)");
-        }
-
-        private void ValidateTickOrder(Type[] plan)
-        {
-            var types = new HashSet<Type>();
-            foreach (Type type in plan)
-            {
-                if (type == null) throw new ArgumentException("驱动类型不得为空");
-                if (!types.Add(type)) throw new InvalidOperationException($"驱动类型重复:{type.Name}");
-                if (!_entries.TryGetValue(type, out var entry))
-                    throw new InvalidOperationException($"驱动服务未注册:{type.Name}");
-                if (entry.Lifetime == ServiceLifetime.Transient)
-                    throw new InvalidOperationException($"Transient 服务不能进入帧驱动:{type.Name}");
-                if (entry.Constructed ? !(entry.Instance is ITickable) :
-                    entry.Impl != null ? !typeof(ITickable).IsAssignableFrom(entry.Impl) :
-                    !typeof(ITickable).IsAssignableFrom(type))
-                    throw new InvalidOperationException($"驱动服务未实现 ITickable:{type.Name}");
-            }
-            foreach (var entry in _order)
-            {
-                bool tickable = entry.Constructed ? entry.Instance is ITickable :
-                    entry.Impl != null ? typeof(ITickable).IsAssignableFrom(entry.Impl) :
-                    typeof(ITickable).IsAssignableFrom(entry.Interface);
-                if (tickable && !IsTickPlanned(entry, entry.Instance, plan))
-                    throw new InvalidOperationException($"驱动服务未编排:{entry.Interface.Name}");
-            }
-        }
-
-        private bool IsTickPlanned(Entry entry, object instance, Type[] plan)
-        {
-            foreach (Type type in plan)
-            {
-                if (type == entry.Interface) return true;
-                if (instance != null && _entries.TryGetValue(type, out var alias) &&
-                    alias.Constructed && ReferenceEquals(alias.Instance, instance)) return true;
-            }
-            return false;
-        }
-
-        private void EnsureTickPlanned(Entry entry, object instance)
-        {
-            if (entry.Lifetime == ServiceLifetime.Transient && instance is ITickable)
-                throw new InvalidOperationException($"Transient 服务不能进入帧驱动:{entry.Interface.Name}——Tickable 必须是 Singleton 或 Scoped");
-            if (_tickOrder != null && instance is ITickable && !IsTickPlanned(entry, instance, _tickOrder))
-                throw new InvalidOperationException($"驱动服务未编排:{entry.Interface.Name}");
         }
 
         private void EnsureFactoryDependency(Type type)
@@ -364,13 +317,14 @@ namespace LiteFramework
                 // 先登记所有权：驱动契约拒绝新对象时，失败回滚仍能释放它。
                 Own(instance);
                 ThrowIfDisposed();
-                EnsureTickPlanned(entry, instance);
+                ValidatingRegistration?.Invoke(new ServiceRegistration(entry.Interface, entry.Impl, entry.Lifetime, instance, true));
                 if (entry.Lifetime != ServiceLifetime.Transient)
                 {
                     entry.Instance = instance;
                     entry.Constructed = true;
                 }
-                RebuildDiscovery();
+                RebuildStats();
+                RegistrationsChanged?.Invoke();
                 return instance;
             }
             finally
@@ -429,23 +383,17 @@ namespace LiteFramework
                 throw new InvalidOperationException($"重复注册:{entry.Interface.Name}——同类型只能有一个装配来源");
             if (_parent != null && _parent.CanResolve(entry.Interface))
                 throw new InvalidOperationException($"父域已注册:{entry.Interface.Name}——子域不得覆盖 Root 服务");
+            ValidatingRegistration?.Invoke(new ServiceRegistration(entry.Interface, entry.Impl, entry.Lifetime, entry.Instance, entry.Constructed));
             _entries.Add(entry.Interface, entry);
             _order.Add(entry);
+            RegistrationsChanged?.Invoke();
         }
 
-        private void RebuildDiscovery()
+        private void RebuildStats()
         {
-            var tickables = new List<ITickable>();
             var stats = new List<IModuleStats>();
             foreach (var entry in _order)
-            {
-                if (_tickOrder == null && entry.Instance is ITickable tickable) AddReference(tickables, tickable);
                 if (entry.Instance is IModuleStats item) AddReference(stats, item);
-            }
-            if (_tickOrder != null)
-                foreach (Type type in _tickOrder)
-                    if (_entries[type].Instance is ITickable tickable) AddReference(tickables, tickable);
-            _tickables = tickables.AsReadOnly();
             _stats = stats.AsReadOnly();
         }
 

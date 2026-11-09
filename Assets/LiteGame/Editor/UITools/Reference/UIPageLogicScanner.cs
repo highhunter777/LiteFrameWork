@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using LiteGame.Editor.UITools.Validation;
 
@@ -11,7 +10,7 @@ namespace LiteGame.Editor.UITools.Reference
     /// <summary>一次页面逻辑调用点（名字型第一参；字面量提取——动态构造名不识别，如实登记）。</summary>
     public sealed class UIPageApiCall
     {
-        /// <summary>API 名（受控名单内，如 `SetTextKey`/`OnButton`）。</summary>
+        /// <summary>API 名（受控名单内，如 `SetTextKey`/`OnButtonClick`）。</summary>
         public string Api;
 
         /// <summary>名字型第一参字面量（控件名/节点名）；非字面量调用不产出。</summary>
@@ -30,7 +29,7 @@ namespace LiteGame.Editor.UITools.Reference
     /// <summary>一次事件接线（On* 族）：契约 events[] 的对账数据。</summary>
     public sealed class UIPageEventWiring
     {
-        /// <summary>接线 API 名（如 `OnButton`）。</summary>
+        /// <summary>接线 API 名（如 `OnButtonClick`）。</summary>
         public string Api;
 
         /// <summary>契约事件名（与受控 API 同文，如 `onClick`；映射单源＝UIRuleThresholds.PageEventApis）。</summary>
@@ -47,8 +46,7 @@ namespace LiteGame.Editor.UITools.Reference
     }
 
     /// <summary>
-    /// 页面逻辑源解析与扫描（《Lua 退出专项设计》§4.7）：C# 页源优先，未迁移页回落 Lua。
-    /// P2a 删掉 Lua 分支后本类只剩 C# 一路。
+    /// 页面逻辑源解析与扫描（《Lua 退出专项设计》§4.7）：页面逻辑＝prefab 自带 C# 组件（`Page_<Name>Logic.cs`）。
     /// </summary>
     public static class UIPageLogicScanner
     {
@@ -86,19 +84,13 @@ namespace LiteGame.Editor.UITools.Reference
         public static string TryResolveCSharpFile(string pageName)
             => ListCSharpFiles(pageName).FirstOrDefault();
 
-        /// <summary>页面逻辑源路径（C# 优先 → Lua 回落；都缺＝null）。</summary>
-        public static string ResolveFile(string pageName, string luaPath)
-            => TryResolveCSharpFile(pageName) ?? UILuaReferenceScanner.TryResolveLuaFile(luaPath);
+        /// <summary>页面逻辑源路径（未找到＝null）。</summary>
+        public static string ResolveFile(string pageName) => TryResolveCSharpFile(pageName);
 
-        /// <summary>枚举页面逻辑源（工程根相对）：Lua 目录顶层 `.lua` ＋ C# 逻辑根递归 `*Logic.cs`（排序稳定）。</summary>
-        public static IReadOnlyList<string> EnumerateSources(string luaRootDir, string logicRootDir)
+        /// <summary>枚举页面逻辑源（工程根相对）：C# 逻辑根递归 `*Logic.cs`（排序稳定）。</summary>
+        public static IReadOnlyList<string> EnumerateSources(string logicRootDir)
         {
             var result = new List<string>();
-            string luaRoot = FullPath(luaRootDir);
-            if (Directory.Exists(luaRoot))
-                foreach (string file in Directory.GetFiles(luaRoot, "*.lua"))
-                    result.Add(ToProjectRelative(file));
-
             string logicRoot = FullPath(logicRootDir);
             if (Directory.Exists(logicRoot))
                 foreach (string file in Directory.GetFiles(logicRoot, "*Logic.cs", SearchOption.AllDirectories))
@@ -110,32 +102,18 @@ namespace LiteGame.Editor.UITools.Reference
 
         /// <summary>读源文件（工程根相对路径；不存在返回 null——调用方显式处理缺件）。</summary>
         public static string ReadSource(string projectRelativePath)
-            => UILuaReferenceScanner.ReadSource(projectRelativePath);
-
-        /// <summary>按扩展名分派：C# 页源走本类，其余走 Lua 扫描器（产出同一形状）。</summary>
-        public static List<UIPageApiCall> ScanApiCalls(string projectRelativePath, string source)
-            => IsCSharp(projectRelativePath) ? ScanCSharpApiCalls(source) : UILuaReferenceScanner.ScanApiCalls(source);
-
-        /// <summary>按扩展名分派的事件接线扫描。</summary>
-        public static List<UIPageEventWiring> ScanEventWiring(string projectRelativePath, string source)
-            => IsCSharp(projectRelativePath) ? ScanCSharpEventWiring(source) : UILuaReferenceScanner.ScanEventWiring(source);
-
-        /// <summary>名字字面量全文匹配（两种语法的引号字面量一致）。</summary>
-        public static bool ContainsLiteral(string source, string name)
-            => UILuaReferenceScanner.ContainsLiteral(source, name);
-
-        /// <summary>路径是否 C# 页源。</summary>
-        public static bool IsCSharp(string path)
-            => !string.IsNullOrEmpty(path) && path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
-
-        // ---------------- C# 扫描实现 ----------------
+        {
+            if (string.IsNullOrEmpty(projectRelativePath)) return null;
+            string full = FullPath(projectRelativePath);
+            return File.Exists(full) ? File.ReadAllText(full) : null;
+        }
 
         /// <summary>提取受控名单内 API 的调用点（名字型首参必须是字符串字面量）。</summary>
-        public static List<UIPageApiCall> ScanCSharpApiCalls(string source)
+        public static List<UIPageApiCall> ScanApiCalls(string source)
             => ScanCSharp(source).Select(item => item.Call).ToList();
 
         /// <summary>提取事件接线点（On* 族 + handler 尽力解析）。</summary>
-        public static List<UIPageEventWiring> ScanCSharpEventWiring(string source)
+        public static List<UIPageEventWiring> ScanEventWiring(string source)
         {
             var map = UIRuleThresholds.PageEventApis.ToDictionary(p => p.Api, p => p.Event, StringComparer.Ordinal);
             var wiring = new List<UIPageEventWiring>();
@@ -153,6 +131,11 @@ namespace LiteGame.Editor.UITools.Reference
             }
             return wiring;
         }
+
+        /// <summary>名字字面量全文匹配。</summary>
+        public static bool ContainsLiteral(string source, string name)
+            => !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(name)
+               && (source.Contains("\"" + name + "\"") || source.Contains("'" + name + "'"));
 
         private static List<CSharpCall> ScanCSharp(string source)
         {

@@ -1,0 +1,10 @@
+你是本批独立dsh测试作者，唯一任务T1：先写当前生产API/阶段上可编译的完整入场/离房行为测试。必须先读最新tasks.md与reviews/task-review.md（尤其T1/T6分工），不能只写一个取消晚到测试就结束。仓库E:/unityProject/Test，HEAD d4f284c79adb3852b3eb68f7303d439cb4def969，当前工作树有大量既有未提交移动改动；禁止reset/clean/stash或恢复HEAD。必须先读AGENTS.md、规范02/03相关项、audit-debt-check、unity-asset-pipeline、unity-pipeline skills，再读.workflow/active/lobby-room-flow/plan.md、tasks.md、test-plan.md与reviews/task-review.md。不要改.workflow任何文件，主代理负责所有记录和任务状态。
+只允许新建测试源码到 Assets/Tests/EditMode/Flow/RoomFlow/（≤5直接代码文件，必要按职责分子目录）。不改生产代码、不改旧测试、不改门禁/配置/asmdef，不手写meta。Unity新C#正常导入产生meta；资源操作只经unity-pipeline，别手写meta。测试不是源码字符串守卫，需实际调用当前API复现当前风险。
+建议从当前MetaEntrySession + 可控延迟IMetaClient + FakeAppFlow或真实StageMachine组合入手：先登录，开始QuickEnterAsync(ct)，取消，再让忽略取消的票据响应成功，断言绝不发生RequestMatch/创建连接。当前实现先Meta请求后检查ct，预期此断言失败。不要复制生产逻辑、不要通过反射私有方法伪造业务调用、不要因新接口缺失/编译错误当red。
+要求至少覆盖取票前已取消零网络请求与在途取消晚到零流程推进的真实断言；测试覆盖还必须包括重复请求/旧A新B、Main→Match排队后离房失效、JoinAck后Battle排队被Main覆盖未接管会话恰好回收、必要卸载未结束不能再次入场、账号重入后旧完成不能覆盖登录页。使用现有MetaEntrySession/MetaEntryService和真实ProcedureMatch/Battle/PageFlow与可控依赖测试相同外部行为；可添加测试适配器只转调生产API，不能在测试适配器实现待验证的互斥/取消/所有权算法。将场景和断言固定，之后T6仅机械映射新API。若确实无法以当前签名观测某项，明确报告缺的最小可编译契约，不自行延期到T4或假造用例。必须有当前实现的真实assertion red，不标Skip，不留空断言占位测试。测试必须能在现有API正常编译，使用UniTask/NUnit Unity测试约定，不依赖真实HTTP或10秒真实等待。不要用墙钟sleep做竞态，使用CompletionSource等可控同步点。
+执行Unity前用 unity pipeline list确认只有目标E:/unityProject/Test，显式 --project-path 指向工程；先set_autotick --enable true，批量新增完一次recompile，读取recompile_status至完成后跑定向。使用项目入口 python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 600；此测试预期失败，但所有选中的失败都必须是本次有意义断言，不能是编译/环境。不要运行大范围测试或同时改Unity资源。CLI按自身默认写入Artifacts测试结果是允许的生成证据，不代表允许修改工具源码或.workflow；通过返回文本告诉主代理产物路径。
+即使测试红也按任务完成报告退出，不改实现。返回：dsh会话ID、修改文件清单、测试名/断言、实际运行命令/结果（编译是否0错，selected/passed/failed）、预期失败原因、尚缺覆盖与风险。不得自行宣告整个任务/项目完成，不可弱化断言。主代理会再次运行workflow verify --red留证。
+
+效率：先批量读取必要文件，再一次写完测试；不要反复重读完整规范或做全仓审计。遇到CLI参数错误用--help纠正，不要长时间猜测。编辑器recompile/测试只串行跑，返回stdout中的明确断言。
+
+测试夹具请区分RoomFlowEntryTests（入场/取消/重复/queued）与RoomFlowLifecycleTests（离房/卸载/恢复），统一包含RoomFlow便于全量过滤。借鉴现有测试的可控服务与真实StageMachine，不增加真实网络/硬等待。返回每个场景red或当前已满足green的列表。尽量批量读必要文件，在约20次工具调查后进入写测试，避免漫游全仓；上限不是省略规则读取的许可。

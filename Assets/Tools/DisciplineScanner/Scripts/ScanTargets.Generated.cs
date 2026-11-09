@@ -31,7 +31,6 @@ namespace Tools.DisciplineScan
             new Entry("Packages/com.litegame.framework/Runtime/Services", "GameRules", null, false),
             new Entry("Packages/com.litegame.framework/Runtime/Hosting", "GameRules", null, false),
             new Entry("Packages/com.litegame.framework/Runtime/Adapters/YooAsset", "GameRules", null, false),
-            new Entry("Packages/com.litegame.framework/Runtime/Adapters/XLua", "GameRules", null, false),
             new Entry("Packages/com.litegame.framework/Runtime/Adapters/InputSystem", "GameRules", null, false),
             new Entry("Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft", "GameRules", null, false),
             new Entry("Assets/LiteGame", "GameRules", null, false),
@@ -52,7 +51,6 @@ namespace Tools.DisciplineScan
             "Bootstrap",
             "Core",
             "Editor",
-            "Lua",
             "Modules",
         };
 

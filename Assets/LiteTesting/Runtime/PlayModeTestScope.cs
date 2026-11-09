@@ -7,7 +7,7 @@ using Object = UnityEngine.Object;
 namespace LiteTesting.Unity
 {
     /// <summary>
-    /// PlayMode 版测试所有权（《UI测试开发专项设计》§2.2 目标目录 `LiteTesting/Runtime`）： 覆盖真 Lua/Prefab/动画资源组合运行，取消、暂停、复用、卸载可验证。
+    /// PlayMode 版测试所有权（《UI测试开发专项设计》§2.2 目标目录 `LiteTesting/Runtime`）： 覆盖真页面逻辑/Prefab/动画资源组合运行，取消、暂停、复用、卸载可验证。
     /// </summary>
     public sealed class PlayModeTestScope : IDisposable
     {

@@ -91,7 +91,7 @@
 
 | Lane | 可用 | 禁止 |
 | --- | --- | --- |
-| **美术** | 起页（仅 prefab）、控件库、布局、令牌、静态 key、暴露标记、契约生成、增量校验、预览/截图 | 页面登记、Lua/表写入、绑定生成、逻辑接线 |
+| **美术** | 起页（仅 prefab）、控件库、布局、令牌、静态 key、暴露标记、契约生成、增量校验、预览/截图 | 页面登记、表写入、绑定生成、逻辑接线 |
 | **TA** | 令牌/字体/图集/材质/控件模板、控件规范、性能预算、全量校验 | 业务逻辑、页面导航 |
 | **工程** | 页面登记、绑定生成、契约评审/消费、逻辑接线、全量校验、运行时调试 | 未经美术评审改视觉/字号/间距/切图 |
 
@@ -109,7 +109,7 @@
 
 1. 从视觉基线**复制**为自包含 prefab（不生成 Variant，避免跨 owner 继承）。
 2. 改根名与文件名一致；`EnsureRootContract` 幂等补齐根组件：`Canvas`、`CanvasScaler`（`ScaleWithScreenSize`，1920×1080，`match=0.5`）、`GraphicRaycaster`、`CanvasGroup`；安全区优先挂**现有拉伸 `Cot_*` 内容容器**（`Tmp_BaselineA/B` → `Cot_Baseline`），已有 `SafeAreaReceiver` 则保留（`Tmp_ListScreen` 内容节点已带），都没有才新建 `Cot_SafeArea` 并把原内容按序搬入。
-3. 不写 `tbuiform`、不生成 Lua、不生成绑定类。
+3. 不写 `tbuiform`、不建页面逻辑件、不生成绑定类。
 4. 生成页面草稿元数据（`UIPageManifest` 条目：Owner=美术、状态=草案）。
 5. 草稿契约：美术跑 `ui.contract` 时，批量把草稿页纳入（`formId=0`，见 §5.2），作为交接前可评审产物。
 
@@ -130,7 +130,7 @@
 - 需要工程接线的节点挂 `BindNode`，填 `BindName`；`BindName` 默认等于节点名，也可为 API 稳定性独立命名；页面内唯一。
 - 仅暴露“逻辑需要操作”的控件；装饰节点、模板内部件不挂 `BindName`。
 - 静态文案节点挂 `LTextKeyRef`（目标组件）或填 key；`LTextKeyRef` 只存 `Key`，不带参数/复数/富文本替换；节点必须自带 TMP/UGUI 文本。动态数值不挂静态 key。
-- 批量改名：默认同步节点名与 `BindName`；若 `BindName` 为 API 稳定性独立命名，则只改节点名并重生成契约；同时列出 Lua/C# 引用点。
+- 批量改名：默认同步节点名与 `BindName`；若 `BindName` 为 API 稳定性独立命名，则只改节点名并重生成契约；同时列出页面逻辑引用点（`UIPageLogicScanner` 扫描）。
 
 ### 3.4 样式与文案（美术/TA）
 
@@ -142,27 +142,26 @@
 ### 3.5 生成契约（美术触发，双方消费）
 
 - 从 prefab 生成 `UIPageContract`（见 §5）；无契约不进入工程交接。
-- **草稿契约**：`ui.contract` 批量在按表行生成之后，纳入清单中 `forms` 为空、状态 `Draft` 的页面（`formId=0`、`luaPath=null`、草稿层/全屏默认，维护字段取清单）；同一 prefab 已在表行集合中则不重复。缺清单时显式告警“草稿契约未纳入”，不伪造。
+- **草稿契约**：`ui.contract` 批量在按表行生成之后，纳入清单中 `forms` 为空、状态 `Draft` 的页面（`formId=0`、草稿层/全屏默认，维护字段取清单）；同一 prefab 已在表行集合中则不重复。缺清单时显式告警“草稿契约未纳入”，不伪造。
 - 漂移对账：草稿走 `Regenerate(allowDraft:true)`，仍逐字节比较判 Error（布局改动后必须重生成）。
 - 契约生成是确定性动作：深度优先、无时间戳、字段排序稳定；重复生成无 diff。
-- 契约 diff 视为 UI API 变更；破坏性变更需双方评审。页面段破坏性口径：`formId 0→真实`、`layer`/`fullScreen`/`cacheStrategy` 变化、`luaPath null→路径` 非破坏；真实 `formId` 变更、路径→null/换路径仍破坏（草稿晋升不应被误判）。
+- 契约 diff 视为 UI API 变更；破坏性变更需双方评审。页面段破坏性口径：`formId 0→真实`、`layer`/`fullScreen`/`cacheStrategy` 变化非破坏；真实 `formId` 变更仍破坏（草稿晋升不应被误判）。
 - 契约生成后，美术跑增量校验并出截图矩阵。
 
 ### 3.6 页面登记（工程）
 
-输入：草稿契约（`formId=0`，见 §3.5）、页面名、id、layer（0–3）、full_screen、缓存策略（维护字段，默认 `Lru`）。逻辑语言本版固定 Lua（C# 骨架依赖 `BindRoot`/命名空间配置，归 §3.7 接线前置；窗口显式显示该边界，不静默降级）。
+输入：草稿契约（`formId=0`，见 §3.5）、页面名、id、layer（0–3）、full_screen、缓存策略（维护字段，默认 `Lru`）。逻辑语言固定 C#：登记只写表与清单，页面逻辑件（`Page_<Name>Logic.cs`）由工程按 §3.7 接线落地（窗口显式显示该边界，不静默降级）。
 
 动作：
 
 1. 预检：契约存在/可读、`page.name` 匹配、`formId=0`、`prefabGuid` 与当前 prefab 一致（防同名旧契约）；页面清单条目为 `Draft` 且无登记行；id 不冲突/不在保留区；layer 0–3；prefab 存在。全部在写面之前。
-2. 生成 Lua 最小骨架（已存在则保留，不覆盖作者逻辑）。
-3. 写 `Luban/Data/#uiform.xlsx` 一行（id/lua_path/prefab/layer/full_screen；**备份先于写**，失败也回传备份句柄），随后跑 `codegen.luban` → `codegen.build-hash`（红线 1）。
-4. 更新 `UIPageManifest`：对账 → 状态 `Draft → Registered`、写入缓存策略、刷新 `contractPresent`。
-5. 重生成契约填真实 `formId`/layer/fullScreen/luaPath（`ui.contract` 判据同源）；失败显式报红，不回滚已登记的清单，提示重跑 `ui.contract`。
-6. 绑定 hash 清单条目：仅页面挂 `BindRoot`（C# 生成类）时记录；无 `BindRoot` 不伪造条目。
+2. 写 `Luban/Data/#uiform.xlsx` 一行（id/prefab/layer/full_screen；**备份先于写**，失败也回传备份句柄），随后跑 `codegen.luban` → `codegen.build-hash`（红线 1）。
+3. 更新 `UIPageManifest`：对账 → 状态 `Draft → Registered`、写入缓存策略、刷新 `contractPresent`。
+4. 重生成契约填真实 `formId`/layer/fullScreen（`ui.contract` 判据同源）；失败显式报红，不回滚已登记的清单，提示重跑 `ui.contract`。
+5. 绑定 hash 清单条目：仅页面挂 `BindRoot`（C# 生成类）时记录；无 `BindRoot` 不伪造条目。
 
 安全：
-- 契约/清单/表任一预检失败都零产物（不建 Lua、不写表）。
+- 契约/清单/表任一预检失败都零产物（不建逻辑件、不写表）。
 - 表写失败：按备份回滚并**复核行不存在**；进程在保存后被杀/超时也走同一核验（假端口可注入该场景）。
 - Luban/BuildHash 失败：回滚表 → 复核 → 重跑 Luban 复原生成读码面；清单仍 `Draft`。
 - 清单保存失败（表已写）：显式错误 + 重跑 `ui.page-manifest`，不回滚表（避免生成物与表再次错位）。
@@ -172,7 +171,7 @@
 
 - 消费契约 `controls[]`：只允许使用契约内 `bindName`；新增暴露需回美术补标记并重生成契约。
 - 数据流按[UI 系统总设计 §数据流](UI系统总设计.md#ch-data-flow)：UseCase/ViewModel → 页面逻辑 → 绑定索引 → 控件。
-- 页面关闭清理订阅/异步；列表整表替换；高频数据不跨 Lua。
+- 页面关闭清理订阅/异步；列表整表替换；高频数据不进页面逻辑。
 - 全量校验 + PlayMode/Player 验证；视觉由美术签收，行为由工程签收。
 
 ## 4. 绑定工具
@@ -193,22 +192,22 @@
 
 - BindNode 树：按页面展示 BindRoot/BindNode、类型、驱动方式、是否有契约。
 - 命名预设：词表下拉 + 语义输入 → 组合 `前缀_语义`，默认同步节点名与 BindName；可锁定 BindName（API 稳定性）。
-- 批量改名：选中多个节点 → 预览 → 应用（Unity Undo）；列出 Lua/C# 字符串字面量引用点。
+- 批量改名：选中多个节点 → 预览 → 应用（Unity Undo）；列出页面逻辑字符串字面量引用点。
 - 类型候选：根据节点组件自动推荐；类型不符/缺组件/重复标记/失效引用报错。
 - SceneView 叠加：显示绑定节点与名字；可开关。
 - 未暴露交互节点提示：Button/Toggle/Slider 等可交互件未挂 BindNode 时给 Warning（不强制，静态装饰按钮可能有其他入口）。
 
 ### 4.3 生成
 
-- **运行时索引**：`BindNode.BindName` → `BindIndexBuilder`；不需要生成类。Lua 通过 `self.ui:SetText("Button_Ok", ...)` 等调用。
+- **运行时索引**：`BindNode.BindName` → `BindIndexBuilder`；不需要生成类。页面逻辑经 `UIBindBase`/`UIBindIndex` 的受控 API 调用（如 `SetText("Button_Ok", ...)`、`Index.OnButtonClick("Btn_Ok", handler)`）。
 - **C# 生成类**：`BindRoot` → `BindGenerator` 生成 `Xxx.cs`（可手写 partial 主类）与 `Xxx.Designer.cs`（字段）；字段是强类型引用，**不参与运行期索引登记**（`UIBindBase` 仍经 `BindIndexBuilder` 取控件）。
 - **选择规则**：
-  - 高频/复杂/需要强类型/需要 C# 服务调用 → C# 页面（`UIBindBase` + 生成类）。
-  - 低频/纯展示/由 Lua 业务编排 → Lua 页面。
-  - 同一页面只选一种主逻辑语言，不混用两套生成。
+  - 高频/复杂/需要强类型/需要服务调用 → 页面逻辑件（`Page_<Name>Logic`）+ 生成类。
+  - 纯展示/只消费静态文案 → 无逻辑件（`ui.page-logic` 只在逻辑件存在时要求 prefab 根挂载体，模板页豁免）。
+  - 页面逻辑只有 C# 一套：不再有第二语言、第二套生成与所有权。
 - **生成物纪律**：生成文件禁手改；主类可手写；生成器确定性、重复执行无 diff。
 - **hash/清单**：记录源 prefab 绑定面 hash + 生成物路径；CI 复算；改了 prefab 未重生成/未记录 → 红。
-- **引用扫描**：扫描 Lua/C# 字符串字面量中对 BindName 的引用，输出 `file:line`；用于改名同步与“未消费/越界引用”检查。
+- **引用扫描**：扫描页面逻辑（C#）字符串字面量中对 BindName 的引用，输出 `file:line`；用于改名同步与“未消费/越界引用”检查。
 
 ### 4.4 运行时索引与契约
 
@@ -242,7 +241,6 @@
     "name": "Page_Lobby",
     "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
     "prefabGuid": "…",
-    "luaPath": "UI.Page_Lobby",
     "layer": 1,
     "fullScreen": true,
     "cacheStrategy": "Lru",
@@ -285,13 +283,13 @@
   - `style`：`nodePath/role/token`
   - `template`：`nodePath/template/bindingHash`
   - `event`：`bindName/event/handler`
-  - **不含**页面元数据（formId/luaPath/layer/fullScreen/cacheStrategy/owner/designRef）、生成器版本、时间戳。
+  - **不含**页面元数据（formId/layer/fullScreen/cacheStrategy/owner/designRef）、生成器版本、时间戳。
 - **模板边界**：嵌套 prefab 实例根只记一条 `templates[]`；其内部件不进 `controls[]`/`text[]`/`styles[]`。只有 `Tmp_*` 模板进入 `templates[]`；其他嵌套 prefab 作为不透明节点跳过并给 Warning。模板无 `BindRoot`/`BindNode` 时 `bindingHash` 省略（不写所有空模板相同的常量 hash）。
 - **过滤**：`Clone_` 子树、嵌套 `BindRoot` 子树不进页面接口面；根节点上的 `BindName` 仍可暴露（`nodePath` 为空串）。
 - **`kind` 初始推断**：交互/列表/进度类组件（Selectable、ScrollRect、VirtualList、SimpleListView、UIWidget、ProgressBar、Stepper、UIDropdownWrap）记 `Command`；其余记 `None`。`Bound` 需静态绑定标记出现后再产生，当前生成器不臆造。
 - **`required` 初始推断**：`Command` 记 `true`，`None` 记 `false`；后续引用对账可细化。
 - **`cacheStrategy`**：`tbuiform` 尚无缓存策略列；它是**页面清单维护字段**（默认 `Lru`，可在工作台/登记窗口选 `Resident`/`Lru`/`DestroyOnClose`），对账保留、契约投影同值，运行时暂不消费。
-- **草稿契约**：未登记页（起页后、`tbuiform` 无行）可生成契约，`page.formId=0`、`luaPath=null`、`layer/fullScreen` 取单源默认（`UIContractGenerator.DraftLayer=0`/`DraftFullScreen=true`）；登记后重生成填真实身份。`UIPageContract.schema.json` 的 `formId` 最小值为 0 即此义。
+- **草稿契约**：未登记页（起页后、`tbuiform` 无行）可生成契约，`page.formId=0`、`layer/fullScreen` 取单源默认（`UIContractGenerator.DraftLayer=0`/`DraftFullScreen=true`）；登记后重生成填真实身份。`UIPageContract.schema.json` 的 `formId` 最小值为 0 即此义。
 - **批量与多行**：`ui.contract` 按 `tbuiform` 全量生成——表只读一次、按 prefab 去重、输出确定性。根名不在 `Page_/Hud_/Tmp_` 契约面的非常驻壳（若出现）显式跳过并告警，不计失败；同一 prefab 多行登记取**首行**，其余行由页面清单 `forms[]` 承担并告警。
 - **`LTextKeyRef`**：只存 `Key`；`text[]` 的 `args` 固定 0。参数/复数/富文本替换属于工程动态文案，不进静态契约。
 - **确定性**：深度优先、按 `nodePath`（事件按 `bindName|event`）稳定排序；JSON 固定字段序、LF 换行、UTF-8 无 BOM；负例只返回错误，不写盘。
@@ -301,7 +299,7 @@
 1. 只收非空 `BindName`；页面内唯一；类型可解析。
 2. 深度优先、稳定排序；无时间戳/随机值；重复生成无 diff。
 3. `Clone_` 条目模板不暴露；嵌套 `BindRoot` 独立生成；模板内部件只进 `templates`。
-4. 文本 key 必须存在；静态文案节点不得同时被 Lua 动态写。
+4. 文本 key 必须存在；静态文案节点不得同时被页面逻辑动态写。
 5. 纯视觉属性（颜色/尺寸/锚点）不进契约。
 6. 契约 `sourceHash` 与 prefab 绑定面/文本/模板引用一致；漂移即红。
 
@@ -309,7 +307,7 @@
 
 - 契约已生成且 `sourceHash` 与 prefab 一致。
 - 美术增量校验全绿；截图矩阵齐全（中/英/长文本/安全区）。
-- 静态文案全部走 key，无 Lua 双写。
+- 静态文案全部走 key，无页面逻辑动态双写。
 - `controls[]` 与工程接线一致；无越界引用。
 - 根 Canvas/CanvasGroup/GraphicRaycaster/SafeArea、图集/模板依赖通过。
 - PlayMode/Player 可开、可点、可返回；视觉/行为双签。
@@ -321,7 +319,7 @@
 ### 6.1 形态
 
 - 同一校验核心供工作台、菜单、CLI、EditMode 测试调用。
-- 输入：资产集合 + 源码面（Lua/C# 引用）+ 规则配置。
+- 输入：资产集合 + 源码面（页面逻辑 C# 引用）+ 规则配置。
 - 输出：`UIIssue { ruleId, severity, asset, node, message, fixHint }` + 汇总。
 - 报告不依赖打开窗口；CI 可非零退出；正例与违规负例同库。
 
@@ -372,7 +370,7 @@
 
 | 档 | 做什么 | 不做什么 |
 | --- | --- | --- |
-| **布局档** | 实例化目标 prefab；保存即热重载；看布局/边界/安全区/语言 | 不跑 Boot/Lua/真实数据 |
+| **布局档** | 实例化目标 prefab；保存即热重载；看布局/边界/安全区/语言 | 不跑 Boot/页面逻辑/真实数据 |
 | **数据档** | 通过运行时调试注入 `UiDebugState`（空/大/长文本/错误/加载/伪本地化） | 不在预览工具里复制第二套运行内面板 |
 | **真链路** | Boot → 登录 → 目标页 / PlayMode；真实数据与行为 | 不用布局档冒充运行时验收 |
 
@@ -503,7 +501,6 @@
       "name": "Page_Lobby",
       "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
       "forms": [{ "formId": 12, "layer": 0, "fullScreen": true }],
-      "luaPath": "UI.Page_Lobby",
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
@@ -520,7 +517,6 @@
         { "formId": 201, "layer": 3, "fullScreen": false },
         { "formId": 206, "layer": 1, "fullScreen": false }
       ],
-      "luaPath": null,
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
@@ -534,16 +530,16 @@
 }
 ```
 
-- **条目按页面（prefab）唯一**：一个 prefab 可在 `tbuiform` 登记多行（如 `Tmp_Dialog` 的 201 系统错误面 / 206 确认面），登记行进 `forms[]`（按 `formId` 升序）；`luaPath` 多行不一致时置 null 并告警。
+- **条目按页面（prefab）唯一**：一个 prefab 可在 `tbuiform` 登记多行（如 `Tmp_Dialog` 的 201 系统错误面 / 206 确认面），登记行进 `forms[]`（按 `formId` 升序）；条目身份只有表行 id 与 prefab，不含逻辑路径字段。
 - **状态词表（五态，单源）**：`Draft`（草案）/`InReview`（评审）/`Registered`（已登记）/`Wired`（已接线）/`Frozen`（冻结）。
   迁移表：`Draft→InReview|Registered`；`InReview→Draft|Registered|Frozen`；`Registered→Wired|InReview|Frozen`；
   `Wired→Frozen|Registered`；`Frozen→InReview`（解冻须评审）；同值＝无操作。
 - **对账口径**（表 + 已有清单 + 契约存在性 → 清单）：
-  - 身份字段以表为准刷新：`forms[]`/`luaPath`/`prefabPath`/契约路径与存在性；
+  - 身份字段以表为准刷新：`forms[]`/`prefabPath`/契约路径与存在性；
   - 维护字段保留：`owner`/`status`/`designRef`/`deviceProfiles`/`notes`；
   - 表行新增 → 新条目（`status=Registered`、`owner=默认美术`）；清单有而表无：`Draft` 保留、其余告警（条目仍保留供清理）；
   - 错误（不写盘）：重复 `formId`、非法状态、清单不可读、`tbuiform` 读取失败（不伪造空表）、输出路径不在 `Assets/`；
-  - 告警（可写盘）：非草稿条目表行缺失、prefab 不存在、多行 `luaPath` 不一致；
+  - 告警（可写盘）：非草稿条目表行缺失、prefab 不存在；
   - 确定性：按页面名排序、无时间戳、LF、UTF-8 无 BOM；`sourceHash` 覆盖身份+维护字段（不含告警/生成器版本/时间戳）。
 - **编辑 API（纯内存 + 显式保存）**：`EnsureDraft`（起页草稿，幂等）、`SetStatus`（迁移校验）、`SetEditorial`（维护字段）；每次编辑后重算 `sourceHash`。
 - **工具入口**：`ui.page-manifest`（Hub/CLI）对账并落盘；起页成功后由脚手架自动对账一次（失败只记结果日志、不回滚页面，可重跑工具补救）。
@@ -560,8 +556,8 @@
 | ID | 标题 | 形态 | 写面 | 说明 |
 | --- | --- | --- | --- | --- |
 | `ui.workbench` | UI 工作台 | window | asset/source | 唯一制作入口；页面/控件/绑定/样式/契约/校验/预览透视 |
-| `ui.page-scaffold` | 起页（美术） | window | asset | 复制视觉基线为自包含 prefab；不写 Lua/表 |
-| `ui.page-register` | 页面登记（工程） | window | asset/source/generated | 写 tbuiform、Lua/C# 骨架、Luban、hash |
+| `ui.page-scaffold` | 起页（美术） | window | asset | 复制视觉基线为自包含 prefab；不写表、不建逻辑件 |
+| `ui.page-register` | 页面登记（工程） | window | asset(data)/generated | 写 tbuiform 与清单、Luban、hash（不写逻辑件） |
 | `ui.bind-generate` | 绑定生成 | action | generated | C# 生成类 + hash 记录 |
 | `ui.binding-hash` | 绑定 hash 对账 | action | data | 记录/校验生成物 |
 | `ui.contract` | 契约生成/刷新 | action | asset(data) | 生成 `UIPageContract` |

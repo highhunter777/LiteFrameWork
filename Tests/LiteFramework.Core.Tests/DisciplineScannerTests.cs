@@ -117,9 +117,9 @@ namespace LiteFramework.Tests
         public void 纪律_默认排除_编辑器目录与生成物与引擎自身()
         {
             Assert.True(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Editor/Foo.cs"));
-            Assert.True(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs"));
+            Assert.True(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Map/Trig/SimTrigTables.cs"));
             Assert.True(DisciplineScanner.IsExcluded("Assets/Tools/DisciplineScanner/Scripts/DisciplineScanner.cs"));
-            Assert.False(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Map/SimTrig.cs"));
+            Assert.False(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Map/Trig/SimTrig.cs"));
         }
 
         [Fact]
@@ -523,10 +523,6 @@ namespace LiteFramework.Tests
             // **每个边界只放行它对应的那一个适配器**——不是"边界目录里什么都能 import"。
             Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Adapters/YooAsset/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Adapters/XLua/Lua/C.cs",
-                "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteGame/Adapters/LuaBridge/C.cs",
-                "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Anim/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
             // JSON 序列化器：只有适配层可引（消费方走 IJsonSerializer / IJsonCodec 端口）
@@ -535,11 +531,7 @@ namespace LiteFramework.Tests
 
             // 反向：边界目录**不**放行别人的适配器
             Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Adapters/YooAsset/C.cs",
-                "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Adapters/XLua/Lua/C.cs",
-                "using YooAsset;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteGame/Adapters/LuaBridge/C.cs",
-                "using YooAsset;", LintRule.R12AdapterBoundary));
+                "using DG.Tweening;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Anim/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
         }
@@ -552,9 +544,9 @@ namespace LiteFramework.Tests
             Assert.Equal(1, CountAt("Assets/LiteGame/App/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Adapter.cs",
-                "using XLua;", LintRule.R12AdapterBoundary));
+                "using UnityEngine.InputSystem;", LintRule.R12AdapterBoundary));
             // JSON 序列化器同守：业务/框架代码只认 IJsonSerializer / IJsonCodec 端口
-            Assert.Equal(1, CountAt("Assets/LiteGame/Modules/Meta/MetaJson.cs",
+            Assert.Equal(1, CountAt("Assets/LiteGame/Modules/Meta/Wire/MetaJson.cs",
                 "using Newtonsoft.Json.Linq;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/C.cs",
                 "using Newtonsoft.Json;", LintRule.R12AdapterBoundary));
@@ -563,9 +555,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_R12_前缀相近的目录不误放行()
         {
-            // 边界表的路径比较两端补斜杠：`Scripting.XLua` 不得放行 `Scripting.XLuaExtras`
-            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Adapters/XLuaExtras/C.cs",
-                "using XLua;", LintRule.R12AdapterBoundary));
+            // 边界表的路径比较两端补斜杠：`UI/Anim` 不得放行 `UI/Animation`
             Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Animation/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
         }

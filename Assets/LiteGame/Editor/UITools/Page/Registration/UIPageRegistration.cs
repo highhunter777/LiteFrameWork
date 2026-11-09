@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -16,7 +16,6 @@ namespace LiteGame.Editor.UITools.Page
         None = 0,
         Validate,
         Contract,
-        Lua,
         WriteTable,
         Codegen,
         Manifest,
@@ -48,7 +47,7 @@ namespace LiteGame.Editor.UITools.Page
         UIPageCodegenRun RefreshBuildHash();
     }
 
-    /// <summary>登记后刷新页面契约（真实 formId/layer/fullScreen/luaPath/cacheStrategy）。</summary>
+    /// <summary>登记后刷新页面契约（真实 formId/layer/fullScreen/cacheStrategy）。</summary>
     public interface IUIPageContractRefresher
     {
         bool TryRefresh(UIPageManifestEntry entry, out string error);
@@ -64,7 +63,6 @@ namespace LiteGame.Editor.UITools.Page
         public string CacheStrategy = UIPageContract.DefaultCacheStrategy;
 
         public string ManifestPath = UIPageManifestPaths.DefaultPath;
-        public string LuaDirectory = UIPageScaffold.LuaDir;
         public string ContractPath;
         public string TablePath;
         public string BindManifestPath = Binding.UIBindGenerationHash.DefaultManifestPath;
@@ -86,7 +84,6 @@ namespace LiteGame.Editor.UITools.Page
         public UIPageRegisterFailure FailedAt = UIPageRegisterFailure.None;
         public string Error;
         public string BackupPath;
-        public string LuaPath;
         public int FormId;
         public string Status;
         public string CacheStrategy;
@@ -180,39 +177,12 @@ namespace LiteGame.Editor.UITools.Page
             if (!table.Check(pageName, request.Id, request.Layer, request.FullScreen, out string tableError))
                 return Fail(result, UIPageRegisterFailure.Validate, tableError);
 
-            // 5) Lua 骨架（已存在则保留，不覆盖作者逻辑）
-            string luaPath = string.IsNullOrEmpty(request.LuaDirectory) ? UIPageScaffold.LuaDir : request.LuaDirectory;
-            string luaAssetPath = luaPath.TrimEnd('/') + "/" + pageName + ".lua";
-            bool createdLua = false;
-            try
-            {
-                if (!File.Exists(FullPath(luaAssetPath)))
-                {
-                    UIPageScaffold.EnsureFolder(luaPath.TrimEnd('/'));
-                    File.WriteAllText(FullPath(luaAssetPath), UIPageScaffold.BuildLuaSkeleton(pageName),
-                        new UTF8Encoding(false));
-                    AssetDatabase.ImportAsset(luaAssetPath);
-                    createdLua = true;
-                    result.Log.Add("Lua：" + luaAssetPath);
-                }
-                else
-                {
-                    result.Log.Add("Lua 已存在（保留）：" + luaAssetPath);
-                }
-            }
-            catch (Exception exception)
-            {
-                return Fail(result, UIPageRegisterFailure.Lua, "Lua 骨架写盘失败：" + exception.Message);
-            }
-            result.LuaPath = luaAssetPath;
-
             // 6) 写表（备份先于写；失败/超时也回传备份句柄）
             UIPageTableWriteResult written = table.Write(pageName, request.Id, request.Layer, request.FullScreen);
             result.BackupPath = written.BackupPath;
             if (!written.Ok)
             {
                 string recovery = RecoverRow(table, pageName, request.Id, written.BackupPath);
-                if (createdLua) DeleteAsset(luaAssetPath);
                 return Fail(result, UIPageRegisterFailure.WriteTable,
                     "写表失败：" + written.Error + recovery);
             }
@@ -356,19 +326,6 @@ namespace LiteGame.Editor.UITools.Page
             result.Error = error;
             result.Log.Add("失败：" + error);
             return result;
-        }
-
-        private static void DeleteAsset(string assetPath)
-        {
-            try
-            {
-                if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath) != null)
-                    AssetDatabase.DeleteAsset(assetPath);
-            }
-            catch (Exception exception)
-            {
-                UnityEngine.Debug.LogWarning("[UI 登记] 清理 Lua 失败（可手工删除）：" + assetPath + "：" + exception.Message);
-            }
         }
 
         private static string FullPath(string assetPath)

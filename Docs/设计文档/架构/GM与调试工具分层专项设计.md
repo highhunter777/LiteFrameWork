@@ -32,7 +32,7 @@
 
 **四条硬规则**：
 
-1. **DevCheat 与 MatchSandbox 只能住开发面**：产品程序集（`LiteFramework.{Services,Adapters,Hosting}`、`LiteGame.App`、`LiteGame.Presentation`、`LiteGame.Adapters.LuaBridge`）不得直读 `TestModeRuntime`/`DebugKernel`/`TestModeOptions` 等实现；只能经 `IDevSession`/`ILocalTestHooks` 端口。
+1. **DevCheat 与 MatchSandbox 只能住开发面**：产品程序集（`LiteFramework.{Services,Adapters,Hosting}`、`LiteGame.App`、`LiteGame.Presentation`）不得直读 `TestModeRuntime`/`DebugKernel`/`TestModeOptions` 等实现；只能经 `IDevSession`/`ILocalTestHooks` 端口。
 2. **OpsGm 不得下放到客户端**：GM 动作只在服务端端点或编辑器页出现；客户端运行时不得编译 GM 端点/密钥。
 3. **AntiCheat 不是模块**：不新建“反作弊服务”或客户端反作弊组件；判定/夹取/校验分别归 `InputGate`、`LagCompensator`、checksum/identity 链。
 4. **新增“作弊类”能力先选类别**：跨类别复用（如把 DevCheat 开关接进正式匹配、把 OpsGm 动作暴露给玩家）一律拒绝；选不出类别则不实现。

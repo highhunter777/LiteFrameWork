@@ -1,0 +1,188 @@
+﻿using System;
+using Cysharp.Threading.Tasks;
+using LiteFramework;
+using LiteFramework.UI;
+using LiteGame.Modules.Shared;
+using LiteGame.Modules.UI;
+using LiteTesting.Unity;
+using NUnit.Framework;
+using UnityEngine;
+
+namespace LiteGame.Tests.EditMode
+{
+    /// <summary>
+    /// HUD 批C 退场链：PageFlow 对局菜单接缝——对局中"ESC＝菜单"Back 策略（swap/restore/幂等）与 <see cref="PageFlow.OpenBattleSettings"/> 导航数。
+    /// </summary>
+    public sealed class PageFlowBattleMenuEditModeTests : UnityTestBase
+    {
+        private const int SettingsFormId = 15;
+
+        private UIService _ui;
+        private UINavigationController _nav;
+        private PageFlow _flow;
+        private ProbeLogic _probe;
+        private Func<UniTask<bool>> _baselineBack;
+
+        /// <summary>探针逻辑：记录 OnShow 收到的导航数据（无 resolver 时回退 NullUIFormLogic，故测试注入 resolver）。</summary>
+        private sealed class ProbeLogic : IUIFormLogic
+        {
+            public IUIData LastData;
+            public int Shows;
+
+            public void OnInit(UIForm form, IUIData data) { }
+            public void OnShow(IUIData data) { Shows++; LastData = data; }
+            public void OnUpdate(float deltaTime) { }
+            public void OnPause() { }
+            public void OnCover() { }
+            public void OnReveal() { }
+            public void OnHide() { }
+            public void Release() { }
+        }
+
+        private sealed class StaticCatalog : IPageCatalog
+        {
+            private readonly PageDefinition[] _rows;
+            public StaticCatalog(PageDefinition[] rows) => _rows = rows;
+            public PageDefinition Get(int id)
+            {
+                foreach (var row in _rows) if (row.Id == id) return row;
+                return null;
+            }
+        }
+
+        [SetUp]
+        public void SetUp()
+        {
+            _probe = new ProbeLogic();
+            PageDefinition lobbyPage = LiteGame.Modules.UI.UIPageCatalog.Instance.Get(LiteGame.Modules.UI.PageIds.Page_Lobby);
+            Assert.IsNotNull(lobbyPage, "生成页面目录缺大厅页（页面流回大厅用例前置）");
+            _ui = new UIService(new StaticCatalog(new[]
+                {
+                    new PageDefinition { Id = SettingsFormId, Layer = 1, FullScreen = true,  Location = "probe" },
+                    lobbyPage,
+                }),
+                logicResolver: info => _probe,
+                loadPrefab: (loc, ct) => UniTask.FromResult<IUIPrefabLease>(UIPrefabLeases.Unowned(FakePrefab())),
+                transitionStrategy: new InstantTransition());
+            _nav = new UINavigationController(_ui);
+            _baselineBack = () => _nav.BackAsync();               // UISegment 同款基线装订
+            _ui.Focus.PlatformBack = _baselineBack;
+
+            // PageFlow 只吃导航/UI/结算三个端口（页面数据已是强类型记录）
+            _flow = new PageFlow(_nav, _ui, new SettlementSummary());
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_ui != null)
+            {
+                var shutdown = _ui.ShutdownAsync();
+                for (int i = 0; i < 200 && shutdown.Status == UniTaskStatus.Pending; i++) _ui.Tick(0.05f);
+            }
+            _ui = null;
+            _nav = null;
+            _flow = null;
+        }
+
+        private GameObject FakePrefab()
+            => Scope.CreateGameObject("probe_settings", typeof(RectTransform), typeof(Canvas), typeof(CanvasGroup));
+
+        private T Await<T>(UniTask<T> task, int maxTicks = 200)
+        {
+            for (int i = 0; i < maxTicks && task.Status == UniTaskStatus.Pending; i++) _ui.Tick(0.05f);
+            Assert.AreNotEqual(UniTaskStatus.Pending, task.Status, "任务未完成——用例时序有误");
+            return task.GetAwaiter().GetResult();
+        }
+
+        private void Pump(int maxTicks = 200)
+        {
+            for (int i = 0; i < maxTicks; i++) _ui.Tick(0.05f);
+        }
+
+        [Test]
+        public void 对局Back_空栈_开菜单页并带battleExit数据()
+        {
+            _flow.EnableBattleMenuBack();
+            Assert.AreNotEqual(_baselineBack, _ui.Focus.PlatformBack, "对局中平台返回换成菜单策略");
+
+            bool consumed = Await(_ui.Focus.PlatformBack());
+            Assert.IsTrue(consumed, "空栈 Back 也被消费（开菜单）");
+            Assert.IsTrue(_ui.IsOpen(SettingsFormId), "空栈 Back → 设置页（对局菜单）");
+
+            var settingsData = _probe.LastData as SettingsPageData;
+            Assert.IsNotNull(settingsData, "导航数据为强类型 SettingsPageData（页面不按键名猜）");
+            Assert.IsTrue(settingsData.BattleExit,
+                "对局中入口带 battleExit——设置页退场钮门控依据");
+        }
+
+        [Test]
+        public void 对局Back_菜单开着_先关菜单不重开()
+        {
+            _flow.EnableBattleMenuBack();
+            _flow.OpenBattleSettings();
+            Pump();
+            Assert.IsTrue(_ui.IsOpen(SettingsFormId), "菜单页已开（前置）");
+
+            bool consumed = Await(_ui.Focus.PlatformBack());
+            Assert.IsTrue(consumed, "有可返回目标时走原 Back 链（同样消费）");
+            Assert.IsFalse(_ui.IsOpen(SettingsFormId), "Back 先关菜单页——原 Back 链语义保持，不重开");
+        }
+
+        [Test]
+        public void 菜单Back策略_启用幂等_停用还原基线()
+        {
+            _flow.EnableBattleMenuBack();
+            var wrapped = _ui.Focus.PlatformBack;
+            _flow.EnableBattleMenuBack();
+            Assert.AreEqual(wrapped, _ui.Focus.PlatformBack, "重复启用幂等（不叠加包装）");
+
+            _flow.DisableBattleMenuBack();
+            Assert.AreEqual(_baselineBack, _ui.Focus.PlatformBack, "停用还原基线装订（对局外 ESC 恢复原 Back）");
+
+            // 停用后空栈 Back 不得再开菜单页
+            Await(_baselineBack());
+            Assert.IsFalse(_ui.IsOpen(SettingsFormId), "停用后空栈 Back 不开设置页");
+        }
+
+        [Test]
+        public void 会话失败_房间页不在也回大厅()
+        {
+            int lobbyId = LiteGame.Modules.UI.PageIds.Page_Lobby;
+            _flow.OpenLanding(PageFlow.Landing.Lobby);
+            Pump();
+            Assert.IsTrue(_ui.IsOpen(lobbyId), "前置：大厅已开");
+
+            _ui.CloseAsync(lobbyId).ForgetLogged("test");
+            Pump();
+            Assert.IsFalse(_ui.IsOpen(lobbyId), "前置：大厅已关（模拟对局中房间页/大厅均已收口）");
+
+            _flow.OnMatchEnded(completed: false, result: null, localPlayerId: 1);
+            Pump();
+            Assert.IsTrue(_ui.IsOpen(lobbyId), "会话失败后回大厅——不依赖房间页是否还开着");
+        }
+
+        [Test]
+        public void dev直入_会话失败不强行开大厅()
+        {
+            int lobbyId = LiteGame.Modules.UI.PageIds.Page_Lobby;
+            _flow.OpenLanding(PageFlow.Landing.None);      // dev 直入：无大厅语境
+
+            _flow.OnMatchEnded(completed: false, result: null, localPlayerId: 1);
+            Pump();
+            Assert.IsFalse(_ui.IsOpen(lobbyId), "dev 直入形态不为失败强行弹大厅");
+        }
+
+        [Test]
+        public void OnMatchEnded_菜单开着_随对局结束收口()
+        {
+            _flow.OpenBattleSettings();
+            Pump();
+            Assert.IsTrue(_ui.IsOpen(SettingsFormId), "菜单页已开（前置）");
+
+            _flow.OnMatchEnded(completed: false, result: null, localPlayerId: 1);
+            Pump();
+            Assert.IsFalse(_ui.IsOpen(SettingsFormId), "对局结束关菜单页——结算/大厅不被设置页压着");
+        }
+    }
+}

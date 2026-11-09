@@ -1,0 +1,105 @@
+{
+tests: 13/13 passed
+  "status": "completed",
+  "duration": 0.33,
+  "summary": {
+    "total": 13,
+    "passed": 13,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.传输工厂_envelope注入优先_非法键fail_fast抛",
+      "Status": "Passed",
+      "Duration": 0.0277151,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.创建房间_带地图行键_原样透传给客户端",
+      "Status": "Passed",
+      "Duration": 0.0020508,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.创建房间_带期望人数_原样透传给客户端",
+      "Status": "Passed",
+      "Duration": 0.0007729,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.创建房间_服务端出号_透传版本与默认参数",
+      "Status": "Passed",
+      "Duration": 0.0009134,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.取票与建房取票_传递caller的token给IMetaClient",
+      "Status": "Passed",
+      "Duration": 0.0029725,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.换票成功_返回票据事实_版本与房号原样",
+      "Status": "Passed",
+      "Duration": 0.0008852,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.显式模板建房_不依赖部署注入_携带地图与口令",
+      "Status": "Passed",
+      "Duration": 0.0014485,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.未登录_创建房间被拒_零create调用",
+      "Status": "Passed",
+      "Duration": 0.0008053,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.未登录_取票与建房取票被拒_零票据调用",
+      "Status": "Passed",
+      "Duration": 0.0007163,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.未配置_登录取票查询全显性失败_零客户端调用",
+      "Status": "Passed",
+      "Duration": 0.0040322,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.登录成功_缓存账号_设备标识直达客户端",
+      "Status": "Passed",
+      "Duration": 0.0007229,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.配置测试房_建房带模板与口令_未配置则请求体不变",
+      "Status": "Passed",
+      "Duration": 0.0015928,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.预取消_取票与建房取票均零HTTP",
+      "Status": "Passed",
+      "Duration": 0.0021013,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}

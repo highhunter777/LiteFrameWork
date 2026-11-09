@@ -7,7 +7,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 统计与诊断面直测（《状态机专项设计》§4/§6 验收）：审计环（容量/Kind = Manual/Auto/Resume/Forced/Restore、 旧→新序、last-wins 覆盖不记录）。
+    /// 统计与诊断面直测（《状态机专项设计》§4/§6 验收）：审计环（容量/Kind = Manual/Auto/Forced/Restore、 旧→新序、last-wins 覆盖不记录）。
     /// </summary>
     public sealed class FsmAuditStatsTests
     {
@@ -99,7 +99,6 @@ namespace LiteFramework.Tests
             Assert.Equal("2", dict["阶段数"]);
             Assert.Equal("0", dict["自动边命中"]);               // 增量键就位
             Assert.Equal("0", dict["看门狗触发"]);
-            Assert.Equal("0", dict["恢复成功"]);
         }
 
         [Fact]

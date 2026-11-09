@@ -3,7 +3,7 @@
 """Generate the runtime page catalog (PageDefinition single artifact).
 
 Inputs:
-  - Luban/Data/#uiform.xlsx        (runtime directory source: id/lua_path/prefab/layer/full_screen)
+  - Luban/Data/#uiform.xlsx        (runtime directory source: id/prefab/layer/full_screen)
   - Assets/LiteGame/Editor/UITools/UIPageManifest.json
   - Assets/LiteGame/Editor/UITools/Contracts/*.contract.json
 
@@ -163,15 +163,12 @@ def build_definitions(args):
         if form_id <= 0:
             continue
         prefab = str(values[_uiform_row.COL_PREFAB - 1] or "").strip()
-        lua_path = str(values[_uiform_row.COL_LUA - 1] or "").strip()
         layer = int(values[_uiform_row.COL_LAYER - 1] or 0)
         full_screen = parse_bool(values[_uiform_row.COL_FULL - 1])
         prefab_path = "Assets/" + prefab
         page = by_form.get(form_id) or by_prefab.get(prefab_path)
         if page is None:
             raise ValueError(f"tbuiform id={form_id} 未在 UIPageManifest 登记（prefab={prefab_path}）")
-        if page.get("luaPath") is not None and str(page.get("luaPath")) != lua_path:
-            warnings.append(f"id={form_id} lua_path 表/清单不一致：{lua_path!r} vs {page.get('luaPath')!r}")
         contract = load_contract(contracts_dir, page)
         if page.get("contractPath") and not contract:
             warnings.append(f"id={form_id} 契约缺失：{page.get('contractPath')}（按空绑定表生成）")
@@ -181,7 +178,6 @@ def build_definitions(args):
             "id": form_id,
             "name": name,
             "location": prefab_path,
-            "lua": lua_path,
             "layer": layer,
             "full": full_screen,
             "cache": cache,
@@ -246,7 +242,7 @@ def render(definitions, head):
         lines.append(f"                Id = {item['id']},")
         lines.append(f"                Name = {cs_string(item['name'])},")
         lines.append(f"                Location = {cs_string(item['location'])},")
-        lines.append(f"                LuaPath = {cs_string(item['lua'])},")
+        # 页面逻辑＝prefab 自带 C# 组件（无逻辑路径字段）
         lines.append(f"                Layer = {item['layer']},")
         lines.append(f"                FullScreen = {'true' if item['full'] else 'false'},")
         lines.append(f"                CacheStrategy = UICacheStrategy.{item['cache']},")

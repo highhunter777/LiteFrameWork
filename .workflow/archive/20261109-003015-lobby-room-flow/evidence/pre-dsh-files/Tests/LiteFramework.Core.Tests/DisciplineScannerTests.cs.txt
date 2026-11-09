@@ -1,0 +1,722 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Tools.DisciplineScan;
+using Xunit;
+namespace LiteFramework.Tests
+{
+    /// <summary>
+    /// 纪律扫描（《测试开发方案》§7.3 ②）：规则集自测 + 真实源码扫描。
+    /// 引擎在 <c>Assets/Tools/DisciplineScanner</c>（零依赖），Editor 菜单与这里**共用同一份规则**。
+    /// </summary>
+    public sealed class DisciplineScannerTests
+    {
+        [Fact]
+        public void 纪律_R1_超越函数被命中()
+        {
+            Assert.Equal(1, Count("var v = Math.Sin(x);", LintRule.R1Transcendental));
+            Assert.Equal(1, Count("var v = MathF.Cos(x);", LintRule.R1Transcendental));
+            Assert.Equal(1, Count("var v = Math.Atan2(y, x);", LintRule.R1Transcendental));
+            Assert.Equal(1, Count("var v = Math.Pow(a, 2.0);", LintRule.R1Transcendental));
+        }
+
+        [Fact]
+        public void 纪律_R1_允许的基础运算不误报()
+        {
+            Assert.Equal(0, Count("var v = Math.Sqrt(x);", LintRule.R1Transcendental));
+            Assert.Equal(0, Count("var v = Math.Abs(x);", LintRule.R1Transcendental));
+            Assert.Equal(0, Count("var v = Math.Floor(x);", LintRule.R1Transcendental));
+        }
+
+        [Fact]
+        public void 纪律_R2_FMA写法被命中()
+        {
+            Assert.Equal(1, Count("var v = MathF.FusedMultiplyAdd(a, b, c);", LintRule.R2Fma));
+            Assert.Equal(1, Count("var v = System.Math.FusedMultiplyAdd(a, b, c);", LintRule.R2Fma));
+        }
+
+        [Fact]
+        public void 纪律_R3_浮点等值比较被命中()
+        {
+            Assert.Equal(1, Count("if (a == b) { }", LintRule.R3FloatEquality));
+            Assert.Equal(1, Count("if (a != b) { }", LintRule.R3FloatEquality));
+        }
+
+        [Fact]
+        public void 纪律_R3_零常量与关系运算豁免()
+        {
+            Assert.Equal(0, Count("if (a == 0f) { }", LintRule.R3FloatEquality));
+            Assert.Equal(0, Count("if (a != 0) { }", LintRule.R3FloatEquality));
+            Assert.Equal(0, Count("if (a <= b) { }", LintRule.R3FloatEquality));
+            Assert.Equal(0, Count("if (a >= b) { }", LintRule.R3FloatEquality));
+        }
+
+        [Fact]
+        public void 纪律_R4_按规则集门控()
+        {
+            // 未启用 R4 时不报
+            Assert.Equal(0, Count("using System.Linq;", LintRule.R1Transcendental));
+            Assert.Equal(1, Count("using System.Linq;", LintRule.R4DeterminismContainer));
+            Assert.Equal(1, Count("var q = xs.OrderBy(x => x);", LintRule.R4DeterminismContainer));
+        }
+
+        [Fact]
+        public void 纪律_R5_裸UNITY_EDITOR被命中_三宏并集豁免()
+        {
+            Assert.Equal(1, Count("#if UNITY_EDITOR\n", LintRule.R5BareUnityEditor));
+            Assert.Equal(1, Count("#if UNITY_EDITOR || DEVELOPMENT_BUILD\n", LintRule.R5BareUnityEditor));
+            Assert.Equal(1, Count("#elif UNITY_EDITOR\n", LintRule.R5BareUnityEditor));
+            Assert.Equal(0, Count("#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG\n", LintRule.R5BareUnityEditor));
+            Assert.Equal(0, Count("#if LITEFRAMEWORK_DEBUG\n", LintRule.R5BareUnityEditor));
+            Assert.Equal(0, Count("// #if UNITY_EDITOR\n", LintRule.R5BareUnityEditor));
+        }
+
+        [Fact]
+        public void 纪律_R6_原生协程被命中()
+        {
+            Assert.Equal(1, Count("private IEnumerator Co() { }", LintRule.R6NativeCoroutine));
+            Assert.Equal(1, Count("StartCoroutine(Co());", LintRule.R6NativeCoroutine));
+            Assert.Equal(1, Count("StopAllCoroutines();", LintRule.R6NativeCoroutine));
+            Assert.Equal(1, Count("yield return null;", LintRule.R6NativeCoroutine));
+        }
+
+        [Fact]
+        public void 纪律_注释内容不参与匹配()
+        {
+            // 注释里提到禁用 API 不算违规
+            Assert.Equal(0, Count("// 原 StopAllCoroutines 语义，用 CTS 显式表达", LintRule.R6NativeCoroutine));
+            Assert.Equal(0, Count("/// 禁 FusedMultiplyAdd 注释", LintRule.R2Fma));
+            Assert.Equal(0, Count("// if (a == b) 注释里的比较", LintRule.R3FloatEquality));
+            Assert.Equal(0, Count("/* Math.Sin(x) */ var y = 1;", LintRule.R1Transcendental));
+            Assert.Equal(0, Count("/* FusedMultiplyAdd\n*/ var x = 1;", LintRule.R2Fma));
+            // 代码上的真违规 + 行尾注释：仍应命中
+            Assert.Equal(1, Count("var v = Math.Sin(x); // 注释", LintRule.R1Transcendental));
+        }
+
+        [Fact]
+        public void 纪律_豁免注释生效()
+        {
+            Assert.Equal(0, Count("if (a == b) { } // lint-allow R3", LintRule.R3FloatEquality));
+            // 只豁免 R3，R1 仍应命中
+            Assert.Equal(1, Count("var v = Math.Sin(x); if (a == b) { } // lint-allow R3", LintRule.R1Transcendental));
+            // 无规则号 → 整行豁免
+            Assert.Equal(0, Count("var v = Math.Sin(x); // lint-allow", LintRule.R1Transcendental));
+        }
+
+        [Fact]
+        public void 纪律_违规输出格式为文件行列规则代码()
+        {
+            List<LintViolation> v = DisciplineScanner.ScanText(
+                "Foo.cs", "var x = Math.Sin(1f);", new[] { LintRule.R1Transcendental });
+            Assert.Single(v);
+            Assert.Equal(1, v[0].Line);
+            Assert.Equal("Foo.cs:1:R1:var x = Math.Sin(1f);", v[0].ToString());
+        }
+
+        [Fact]
+        public void 纪律_默认排除_编辑器目录与生成物与引擎自身()
+        {
+            Assert.True(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Editor/Foo.cs"));
+            Assert.True(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Map/Trig/SimTrigTables.cs"));
+            Assert.True(DisciplineScanner.IsExcluded("Assets/Tools/DisciplineScanner/Scripts/DisciplineScanner.cs"));
+            Assert.False(DisciplineScanner.IsExcluded("Packages/com.litegame.sim/Scripts/Map/Trig/SimTrig.cs"));
+        }
+
+        [Fact]
+        public void 真实源码_全部目标_零违规()
+        {
+            string projectRoot = ProjectLocator.FindProjectRoot();
+            List<KeyValuePair<string, LintViolation>> hits = DisciplineScanner.ScanDefault(projectRoot);
+
+            var sb = new StringBuilder();
+            for (int i = 0; i < hits.Count; i++)
+            {
+                sb.Append('[').Append(hits[i].Key).Append("] ").Append(hits[i].Value).Append('\n');
+            }
+            Assert.True(hits.Count == 0, "纪律扫描发现违规：\n" + sb);
+        }
+
+        /// <summary>
+        /// MetaServer 的 R11 边界登记（《Meta 服务专项设计》§3.2/§4.2）： 模块/契约层受纯化把守，宿主装配层（Kestrel/IO/Console）按 §12 合法豁免。
+        /// </summary>
+        [Fact]
+        public void 纪律_MetaServer_登记为受守根_仅宿主层豁免()
+        {
+            bool found = false;
+            ScanTarget meta = default;
+            for (int i = 0; i < ScanTargets.Default.Length; i++)
+            {
+                if (ScanTargets.Default[i].Root == "Server/MetaServer")
+                {
+                    meta = ScanTargets.Default[i];
+                    found = true;
+                    break;
+                }
+            }
+
+            Assert.True(found, "ScanTargets.Default 缺少 MetaServer 目标——模块层将不受纪律扫描把守");
+            Assert.Contains(LintRule.R11RuntimePurity, meta.Rules);
+            Assert.NotNull(meta.ExcludeRoots);
+            Assert.Contains("Server/MetaServer/Host", meta.ExcludeRoots);
+            // 只排宿主层的 Host/ 子目录；模块与契约层必须留在扫描内
+            Assert.DoesNotContain("Server/MetaServer/Modules", meta.ExcludeRoots);
+            Assert.DoesNotContain("Server/MetaServer/Contracts", meta.ExcludeRoots);
+        }
+
+        [Fact]
+        public void 纪律_R13_数值读口被命中()
+        {
+            Assert.Equal(1, Count("var v = CombatConfig.MoveSpeed;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("var v = CombatConfig.AimMoveSpeed;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("var f = CombatConfig.FireStanceFrames;", LintRule.R13StaticConfigPort));   // 表化后由常量面转入可变读口
+            Assert.Equal(1, Count("var v = CombatConfig.Loaded;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("CombatConfig.Publish(values);", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("var v = MovementConfig.WalkSpeed;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("MovementConfig.Publish(mv);", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("var d = WeaponConfig.Default;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("WeaponConfig.TryGet(0, out var d);", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("WeaponConfig.Publish(t);", LintRule.R13StaticConfigPort));
+        }
+
+        [Fact]
+        public void 纪律_R13_常量面与实例不误报()
+        {
+            // 常量面豁免（两端编译期同值——机制可读）
+            Assert.Equal(0, Count("var f = CombatConfig.FaceTurnRadPerSec;", LintRule.R13StaticConfigPort));
+            Assert.Equal(0, Count("var x = CombatConfig.AimMoveSpeedFactor;", LintRule.R13StaticConfigPort));   // 词边界：AimMoveSpeed 不吞更长后缀名（历史成员名示例）
+            Assert.Equal(0, Count("var r = CombatConfig.HitscanRadius;", LintRule.R13StaticConfigPort));
+            Assert.Equal(0, Count("var id = WeaponConfig.DefaultRifleId;", LintRule.R13StaticConfigPort));      // Default 词边界不吞 DefaultRifleId
+            // 实例参数面不误报
+            Assert.Equal(0, Count("var v = values.MoveSpeed;", LintRule.R13StaticConfigPort));
+            Assert.Equal(0, Count("var c = CombatValues.Default;", LintRule.R13StaticConfigPort));
+            Assert.Equal(0, Count("var t = WeaponTable.Default;", LintRule.R13StaticConfigPort));
+            // 注释剔除
+            Assert.Equal(0, Count("// CombatConfig.MoveSpeed 机制禁读（注释不算）", LintRule.R13StaticConfigPort));
+        }
+
+        [Fact]
+        public void 纪律_R13_受守根已登记()
+        {
+            bool sim = false, runtime = false, app = false, host = false;
+            for (int i = 0; i < ScanTargets.Default.Length; i++)
+            {
+                ScanTarget t = ScanTargets.Default[i];
+                if (Array.IndexOf(t.Rules, LintRule.R13StaticConfigPort) < 0) continue;
+                if (t.Root == "Packages/com.litegame.sim") sim = true;
+                if (t.Root == "Assets/RoomServer/Core") runtime = true;
+                if (t.Root == "Assets/RoomServer/Modules") app = true;
+                if (t.Root == "Server/RoomServer") host = true;
+            }
+            Assert.True(sim, "R13 缺 Packages/com.litegame.sim 受守根——Sim 机制面将不受纪律扫描把守");
+            Assert.True(runtime, "R13 缺 Assets/RoomServer/Core 受守根");
+            Assert.True(app, "R13 缺 Assets/RoomServer/Modules 受守根");
+            Assert.True(host, "R13 缺 Server/RoomServer 受守根");
+        }
+
+        [Fact]
+        public void 纪律_R7_非法metaGUID被命中()
+        {
+            // 事故形态：64 位 base64 guid（Unity 拒收 → 资源静默消失）
+            var v = DisciplineScanner.ScanMetaText(
+                "A.cs.meta",
+                "fileFormatVersion: 2\nguid: CnpNtin4W3zo6TQqjvzFRl7jkSDkR2TEnPSUX6izpYrJlgIFe7QCcvs=\n");
+            Assert.Single(v);
+            Assert.Equal(LintRule.R7InvalidMetaGuid, v[0].Rule);
+            Assert.Equal(2, v[0].Line);
+            Assert.Contains("CnpNtin4", v[0].Code);
+        }
+
+        [Fact]
+        public void 纪律_R7_合法GUID不误报_大小写均接受()
+        {
+            Assert.Empty(DisciplineScanner.ScanMetaText(
+                "A.cs.meta",
+                "fileFormatVersion: 2\nguid: 6c159f085a3f6d0408542447296ba288\n"));
+            Assert.Empty(DisciplineScanner.ScanMetaText(
+                "A.cs.meta",
+                "fileFormatVersion: 2\nguid: 6C159F085A3F6D0408542447296BA288\n"));
+        }
+
+        [Fact]
+        public void 纪律_R7_缺guid行被命中()
+        {
+            var v = DisciplineScanner.ScanMetaText("A.cs.meta", "fileFormatVersion: 2\n");
+            Assert.Single(v);
+            Assert.Equal(1, v[0].Line);
+            Assert.Equal("(缺少 guid 行)", v[0].Code);
+        }
+
+        [Fact]
+        public void 纪律_R7_真实仓库meta全部合法()
+        {
+            // 守卫本次事故形态：任何非法 guid 的 .meta 都会在 Unity 里静默失效
+            string projectRoot = ProjectLocator.FindProjectRoot();
+            var hits = DisciplineScanner.ScanMetas(projectRoot, "Assets");
+            var sb = new StringBuilder();
+            for (int i = 0; i < hits.Count; i++) sb.Append(hits[i]).Append('\n');
+            Assert.True(hits.Count == 0, "发现非法 .meta GUID：\n" + sb);
+        }
+
+        [Fact]
+        public void 纪律_R8_ResourcesLoad被命中()
+        {
+            Assert.Equal(1, Count("var go = Resources.Load<GameObject>(\"x\");", LintRule.R8ResourcesLoad));
+            Assert.Equal(1, Count("var op = Resources.LoadAsync(\"x\");", LintRule.R8ResourcesLoad));
+            Assert.Equal(1, Count("var go = Resources . Load (\"x\");", LintRule.R8ResourcesLoad));   // 空白容忍
+            Assert.Equal(0, Count("// 曾用 Resources.Load 取配置，已改资源服务", LintRule.R8ResourcesLoad));
+            Assert.Equal(0, Count("_assets.Load<GameObject>(\"x\");", LintRule.R8ResourcesLoad));    // 正确入口不报
+        }
+
+        [Fact]
+        public void 纪律_R9_Mod类型被命中_驼峰与独立词与接口前缀()
+        {
+            Assert.Equal(1, Count("var m = new ModLoader();", LintRule.R9ModInSim));
+            Assert.Equal(1, Count("ModManager.Init();", LintRule.R9ModInSim));
+            Assert.Equal(1, Count("private IModContext _ctx;", LintRule.R9ModInSim));
+            Assert.Equal(1, Count("var mod = Mod;", LintRule.R9ModInSim));
+        }
+
+        [Fact]
+        public void 纪律_R9_Mod加小写不误报()
+        {
+            // Mod 后接小写 = Mode/Model/Modify/Modules/Modulo —— 都不是模组
+            Assert.Equal(0, Count("var mode = SimMode.Duel;", LintRule.R9ModInSim));
+            Assert.Equal(0, Count("var m = _model;", LintRule.R9ModInSim));
+            Assert.Equal(0, Count("ModifyValue(x);", LintRule.R9ModInSim));
+            Assert.Equal(0, Count("var mods = modules;", LintRule.R9ModInSim));
+        }
+
+        [Fact]
+        public void 纪律_R10_壳UI直发INetworkService被命中()
+        {
+            Assert.Equal(1, Count("private readonly INetworkService _net;", LintRule.R10UiSendsBusinessPacket));
+            Assert.Equal(1, Count("var n = container.Resolve<INetworkService>();", LintRule.R10UiSendsBusinessPacket));
+            Assert.Equal(0, Count("var s = new DockSlotService();", LintRule.R10UiSendsBusinessPacket));
+        }
+
+        [Fact]
+        public void 纪律_R8R9R10_按规则集门控_不污染其他根()
+        {
+            // R8 只在 GameRules 生效：Sim 的 SimRules 里没有 R8 → 同文本不报（规则集门控语义）
+            Assert.Equal(0, Count("Resources.Load(\"x\");", LintRule.R1Transcendental));
+            // 规则号命名与 lint-allow 解析
+            Assert.Equal("R8", DisciplineScanner.RuleId(LintRule.R8ResourcesLoad));
+            Assert.Equal("R9", DisciplineScanner.RuleId(LintRule.R9ModInSim));
+            Assert.Equal("R10", DisciplineScanner.RuleId(LintRule.R10UiSendsBusinessPacket));
+            // 行内豁免仍适用（含规则号的豁免只免该条）
+            Assert.Equal(0, Count("Resources.Load(\"x\"); // lint-allow R8", LintRule.R8ResourcesLoad));
+        }
+
+        // ---- R11：RoomServer/Core 纯化（《商业级通用服务端框架总设计》§8.1 禁止项）----
+
+        [Fact]
+        public void 纪律_R11_运行时纯化违例被逐类命中()
+        {
+            // 传输/Socket/协议
+            Assert.Equal(1, Count("var t = new KcpTransportServer();", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("private readonly IRoomTransport _transport;", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var s = new Socket(...);", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var ep = new System.Net.IPEndPoint(...);", LintRule.R11RuntimePurity));
+            // proto / LiteNet 引用
+            Assert.Equal(1, Count("using LiteNet.Protocol;", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var x = LiteNet.Protocol.PacketType.Join;", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var b = Google.Protobuf.IMessage.Extensions;", LintRule.R11RuntimePurity));
+            // 墙钟/等待/Console/文件/随机
+            Assert.Equal(1, Count("var t = DateTime.Now;", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var t = Environment.TickCount64;", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var sw = Stopwatch.StartNew();", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("Thread.Sleep(16);", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("Console.WriteLine(\"tick\");", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("File.ReadAllText(path);", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var r = new Random();", LintRule.R11RuntimePurity));
+        }
+
+        [Fact]
+        public void 纪律_R11_运行时合法面不误报()
+        {
+            // Sim 域引用与确定性工具是 Runtime 的合法面
+            Assert.Equal(0, Count("using LiteSim;", LintRule.R11RuntimePurity));
+            Assert.Equal(0, Count("var v = SimMath.MulAdd2(a, b, c, d);", LintRule.R11RuntimePurity));
+            Assert.Equal(0, Count("AuthSim.RngState = (ulong)Seed;", LintRule.R11RuntimePurity));
+            Assert.Equal(0, Count("var ring = new PendingInputRing(32);", LintRule.R11RuntimePurity));
+            // 常量复述不引用 LiteNet（ClientInputBatch.MaxFrames 的既定形态）
+            Assert.Equal(0, Count("public const int MaxFrames = 16;", LintRule.R11RuntimePurity));
+            // 注释里的禁用 API 名不算违规
+            Assert.Equal(0, Count("// 不打印 Console、不读 DateTime.Now（§8.1 禁止项）", LintRule.R11RuntimePurity));
+            // 规则号命名 + 门控（R11 只对 RoomServer/Core 目标启用，其他根的文本不经过本规则）
+            Assert.Equal("R11", DisciplineScanner.RuleId(LintRule.R11RuntimePurity));
+            Assert.Equal(0, Count("Console.WriteLine(\"ok\"); // lint-allow R11", LintRule.R11RuntimePurity));
+        }
+
+        private static int Count(string text, LintRule rule)
+        {
+            return DisciplineScanner.ScanText("test.cs", text, new[] { rule }).Count;
+        }
+
+        [Fact]
+        public void 纪律_R12_已接入真实扫描目标_且目标路径存在()
+        {
+            // **防"静默失效"**：本文件里 R6/R10 的两个 LiteGame 扫描目标可能因路径写错 （如 `Assets/LiteGame/Scripts/Runtime/...`，实际无 `Scripts/`）**空扫**—— 规则写了但从未生效，且没有任何东西会红。
+            var gameTarget = System.Array.Find(
+                Tools.DisciplineScan.ScanTargets.Default,
+                t => t.Root == "Assets/LiteGame");
+            Assert.Equal("Assets/LiteGame", gameTarget.Root);
+            Assert.Contains(LintRule.R12AdapterBoundary, gameTarget.Rules);
+
+            string repoRoot = RepoRoot();
+            foreach (var target in Tools.DisciplineScan.ScanTargets.Default)
+            {
+                Assert.True(System.IO.Directory.Exists(System.IO.Path.Combine(repoRoot, target.Root)),
+                    $"扫描目标根不存在，该规则集正在**空扫**：{target.Root}");
+            }
+        }
+
+        /// <summary>R12 **边界表**的存在性守卫：边界路径一旦因目录搬迁而陈旧，判定会静默失效
+        /// （纯前缀比较，不匹配任何真实文件）。与上面的"扫描目标必须存在"防同一类失效——
+        /// 此守卫让规则表过期当场可见。</summary>
+        [Fact]
+        public void 纪律_R12_边界表路径必须真实存在()
+        {
+            var violations = DisciplineScanner.ValidateAdapterBoundaries(RepoRoot());
+            Assert.True(violations.Count == 0,
+                "R12 边界表存在陈旧路径（该边界正在静默失效）：" +
+                string.Join(" | ", System.Linq.Enumerable.Select(violations, v => v.Code)));
+        }
+
+        /// <summary>§5 顶层分层守卫：`Assets/LiteGame/` 下不允许出现未登记的顶层目录。
+        /// 顶层目录必须落在设计的层里（四个适配器不可平铺在根上）。</summary>
+        [Fact]
+        public void 纪律_LiteGame顶层目录必须已登记()
+        {
+            var unregistered = Tools.DisciplineScan.ScanTargets.ValidateLiteGameTopLevel(RepoRoot());
+            Assert.True(unregistered.Count == 0,
+                "Assets/LiteGame 下存在未登记的顶层目录（逃出 §5 分层，或需在 LiteGameTopLevelDirs 登记并说明归属）："
+                + string.Join(", ", unregistered));
+        }
+
+        /// <summary>组织级守卫：`Assets/` 下不允许出现未登记的顶层目录。
+        /// 登记表 = <c>ScanTargets.AssetsTopLevelDirs</c>（L1 原始资源 / 自研根 / 收集定位 /
+        /// 第三方归拢根 / 例外）；非版本化瞬时面在 <c>AssetsTopLevelIgnored</c>。</summary>
+        [Fact]
+        public void 纪律_Assets顶层目录必须已登记()
+        {
+            var unregistered = Tools.DisciplineScan.ScanTargets.ValidateAssetsTopLevel(RepoRoot());
+            Assert.True(unregistered.Count == 0,
+                "Assets 下存在未登记的顶层目录（逃出组织分层，或需在 AssetsTopLevelDirs 登记并说明归属）："
+                + string.Join(", ", unregistered));
+        }
+
+        /// <summary>
+        /// D2 守卫（《客户端与服务端共享代码范围专项设计》§3）：客户端 asmdef 引服务端程序集， 必须落在 <c>DevHostMayReferenceServerAssemblies</c> 登记目录里。
+        /// </summary>
+        [Fact]
+        public void 纪律_D2_客户端引服务端程序集必须在调试宿主档位内()
+        {
+            string root = RepoRoot();
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateDevHostReferences(root);
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+
+            string clientRoot = System.IO.Path.Combine(root, "Assets", "LiteGame");
+            var allowed = new System.Collections.Generic.List<string>();
+            foreach (string d in Tools.DisciplineScan.ScanTargets.DevHostMayReferenceServerAssemblies)
+                allowed.Add(System.IO.Path.Combine(root, d.Replace('/', System.IO.Path.DirectorySeparatorChar))
+                    + System.IO.Path.DirectorySeparatorChar);
+
+            var offenders = new System.Collections.Generic.List<string>();
+            foreach (string asmdef in System.IO.Directory.GetFiles(clientRoot, "*.asmdef",
+                         System.IO.SearchOption.AllDirectories))
+            {
+                bool isAllowed = false;
+                foreach (string a in allowed)
+                    if (asmdef.StartsWith(a, System.StringComparison.Ordinal)) { isAllowed = true; break; }
+                if (isAllowed) continue;
+
+                string text = System.IO.File.ReadAllText(asmdef);
+                foreach (string asm in Tools.DisciplineScan.ScanTargets.ServerAssemblyNames)
+                    if (text.Contains("\"" + asm + "\""))
+                        offenders.Add(System.IO.Path.GetFileName(asmdef) + " 引用了 " + asm);
+            }
+
+            Assert.True(offenders.Count == 0,
+                "客户端业务程序集不得依赖服务端程序集（D2：只许落在调试宿主档位 "
+                + string.Join("/", Tools.DisciplineScan.ScanTargets.DevHostMayReferenceServerAssemblies)
+                + "）：" + string.Join(" | ", offenders));
+        }
+
+        /// <summary>客户端框架侧纯度（《客户端总设计》§5.1）：`LiteFramework.*`（通用核心 + 适配器）整体
+        /// 不得引用 `LiteGame.*`——产品面（含 `LuaBridge`）依赖框架，反向一律禁止。
+        /// 没有本用例，"框架侧可提取"只是文字约定。</summary>
+        [Fact]
+        public void 纪律_客户端框架侧不得引用LiteGame程序集()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateClientFrameworkPurity(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
+        /// <summary>注释卫生（AGENTS 代码规范 6）：第一方代码注释不得出现日期戳/批次号等施工痕迹（历史进 Docs/施工进度）。</summary>
+        [Fact]
+        public void 纪律_代码注释不含施工痕迹()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateCommentHygiene(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
+        /// <summary>
+        /// D1 守卫（《客户端与服务端共享代码范围专项设计》§3）：服务端宿主工程的 `ProjectReference` **不得**指向客户端面（`LiteFramework`/`LiteGame`/`LiteFramewor。）。
+        /// </summary>
+        [Fact]
+        public void 纪律_D1_服务端宿主不得依赖客户端面()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateServerHostDirection(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
+        /// <summary>G5 守卫（§8.1）：共享档位（S1/S2）成员的 asmdef 必须满足义务 ①
+        /// （`noEngineReferences: true`）。给共享件加一个 Unity 引用，它就**再也编不进 dotnet 侧**，
+        /// 而没有任何东西会红——本用例就是那个"东西"。</summary>
+        [Fact]
+        public void 纪律_G5_共享档位成员的asmdef必须零引擎()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateSharedAssemblyFlags(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
+        /// <summary>G5 守卫（§2.2 义务②）：S2 契约层必须**零第三方实现依赖**。
+        /// 再往 Core 加第三方引用当场红（否则"服务端可直接消费的契约层"就名存实亡）。</summary>
+        [Fact]
+        public void 纪律_G5_S2契约层必须零第三方实现依赖()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateContractLayerDependencies(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
+        /// <summary>G2 守卫（§8.1）：`Assets/` 下不得出现 `bin`/`obj`（Unity 会当插件导入 → CS1704/CS0579）。
+        /// 各双轨目录靠同目录 `Directory.Build.props` 重定向到 `.dotnet/`——**漏配就出这事，而漏配不报错**。</summary>
+        [Fact]
+        public void 纪律_G2_Assets下不得有构建产物目录()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateNoBuildOutputsUnderAssets(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
+        /// <summary>向上找含 Tests/Tests.slnx 的仓库根（与内容夹具同款定位）。</summary>
+        private static string RepoRoot()
+        {
+            var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+            while (dir != null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "Tests", "Tests.slnx")))
+                dir = dir.Parent;
+            Assert.NotNull(dir);
+            return dir.FullName;
+        }
+
+        /// <summary>带路径的计数——R12 的判定依赖文件路径（边界目录内放行），故必须能传路径。</summary>
+        private static int CountAt(string relativePath, string text, LintRule rule)
+        {
+            return DisciplineScanner.ScanText(relativePath, text, new[] { rule }).Count;
+        }
+
+        // ---- R12 适配器边界（《客户端总设计》§5.1"形成逻辑边界和依赖测试"）----
+
+        [Fact]
+        public void 纪律_R12_边界目录内_对应适配器import放行()
+        {
+            // **每个边界只放行它对应的那一个适配器**——不是"边界目录里什么都能 import"。
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Adapters/YooAsset/C.cs",
+                "using YooAsset;", LintRule.R12AdapterBoundary));
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Anim/C.cs",
+                "using DG.Tweening;", LintRule.R12AdapterBoundary));
+            // JSON 序列化器：只有适配层可引（消费方走 IJsonSerializer / IJsonCodec 端口）
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft/NewtonsoftJsonCodec.cs",
+                "using Newtonsoft.Json;", LintRule.R12AdapterBoundary));
+
+            // 反向：边界目录**不**放行别人的适配器
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Adapters/YooAsset/C.cs",
+                "using DG.Tweening;", LintRule.R12AdapterBoundary));
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Anim/C.cs",
+                "using YooAsset;", LintRule.R12AdapterBoundary));
+        }
+
+        [Fact]
+        public void 纪律_R12_边界外_适配器import被命中()
+        {
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/C.cs",
+                "using YooAsset;", LintRule.R12AdapterBoundary));
+            Assert.Equal(1, CountAt("Assets/LiteGame/App/C.cs",
+                "using DG.Tweening;", LintRule.R12AdapterBoundary));
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Adapter.cs",
+                "using UnityEngine.InputSystem;", LintRule.R12AdapterBoundary));
+            // JSON 序列化器同守：业务/框架代码只认 IJsonSerializer / IJsonCodec 端口
+            Assert.Equal(1, CountAt("Assets/LiteGame/Modules/Meta/Wire/MetaJson.cs",
+                "using Newtonsoft.Json.Linq;", LintRule.R12AdapterBoundary));
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/C.cs",
+                "using Newtonsoft.Json;", LintRule.R12AdapterBoundary));
+        }
+
+        [Fact]
+        public void 纪律_R12_前缀相近的目录不误放行()
+        {
+            // 边界表的路径比较两端补斜杠：`UI/Anim` 不得放行 `UI/Animation`
+            Assert.Equal(1, CountAt("Packages/com.litegame.framework/Runtime/Services/UI/Animation/C.cs",
+                "using DG.Tweening;", LintRule.R12AdapterBoundary));
+        }
+
+        [Fact]
+        public void 纪律_R12_非适配器import与限定名不受影响()
+        {
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Services/C.cs",
+                "using System.Collections;", LintRule.R12AdapterBoundary));
+
+            // 边界表只列已登记的适配器（见 DisciplineScanner.R12Boundaries）——其它第三方不受 R12 管
+            Assert.Equal(0, CountAt("Assets/LiteGame/App/C.cs",
+                "using UniTask;", LintRule.R12AdapterBoundary));
+        }
+
+        [Fact]
+        public void 纪律_R12_注释里的using不算违规()
+        {
+            // 与其它规则同口径：注释先剔除再匹配
+            Assert.Equal(0, CountAt("Packages/com.litegame.framework/Runtime/Services/C.cs",
+                "// 该文件不用 using YooAsset; 了", LintRule.R12AdapterBoundary));
+        }
+
+        // ---- R14 投影禁直调调试源（《GM 与调试工具分层专项设计》§7 统一内核与三投影）----
+
+        [Fact]
+        public void 纪律_R14_投影直调调试源被命中()
+        {
+            // 读口（读数另拼）
+            Assert.Equal(1, Count("var c = BattleDiagnostics.Current;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var s = BattleDiagnostics.Take(ctx);", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var r = Log.Recent;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var n = Log.ErrorCount;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var m = Log.CurrentMatchId;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var d = DiagTrace.Recent;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var t = DiagTrace.Total;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var st = GameEntry.Stats;", LintRule.R14ProjectionDebugPort));
+            // 写口/发现面（另写动作/自建清单）
+            Assert.Equal(1, Count("TestModeRuntime.RequestEnter();", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var a = TestModeRuntime.Active;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var b = TestModeOptions.Get(id);", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("TestModeOptions.Set(id, true);", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("foreach (var o in TestModeOptions.All) { }", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("TestModeRuntime.Current.BotResetRequested = true;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var f = FeatureDebugTunables.CurrentHeadLine();", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var cc = ResolveFromContainer<CommandCenter>();", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var w = new WeakNetRuntime();", LintRule.R14ProjectionDebugPort));
+        }
+
+        [Fact]
+        public void 纪律_R14_契约类型与格式化助手不误报()
+        {
+            // 契约类型位置（枚举/描述结构/快照结构）放行
+            Assert.Equal(0, Count("var id = TestModeOptions.Id.NoDeath;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("foreach (TestModeOptions.Info option in kernel.Options) { }", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("var g = TestModeOptions.Group.Live;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("kernel.TryTakeBattleSnapshot(out BattleDiagnostics.Snapshot s);", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("var cr = result.Reason;", LintRule.R14ProjectionDebugPort));   // CommandResult 不误伤
+            Assert.Equal(0, Count("var ic = ResolveFromContainer<ICommandCenter>();", LintRule.R14ProjectionDebugPort));
+            // 纯格式化助手与门面写口放行
+            Assert.Equal(0, Count("Append(DiagTrace.Line(e));", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("Append('[' + Log.TagName(entry.Tag) + ']');", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("Log.Warning(\"HUD 初始化失败\", LogTag.UI);", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("var k = entry.DebugKernel;", LintRule.R14ProjectionDebugPort));
+            // 注释剔除同口径
+            Assert.Equal(0, Count("// var a = TestModeRuntime.Active;（注释不算）", LintRule.R14ProjectionDebugPort));
+        }
+
+        [Fact]
+        public void 纪律_R14_字符串字面量不误报()
+        {
+            // 页面文案/Tooltip 常含类型名——先剥字符串再匹配
+            Assert.Equal(0, Count("Append(\"命令与审计（CommandCenter）\");", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("[Tooltip(\"最近日志尾巴（Log.Recent 环缓冲渲染）\")]", LintRule.R14ProjectionDebugPort));
+            // 字符串外的真调用仍命中
+            Assert.Equal(1, Count("Append(\"x\"); var a = TestModeRuntime.Active;", LintRule.R14ProjectionDebugPort));
+        }
+
+        [Fact]
+        public void 纪律_R14_受守根已登记()
+        {
+            bool devTool = false, editorGm = false;
+            for (int i = 0; i < ScanTargets.Default.Length; i++)
+            {
+                ScanTarget t = ScanTargets.Default[i];
+                if (Array.IndexOf(t.Rules, LintRule.R14ProjectionDebugPort) < 0) continue;
+                if (t.Root == "Assets/LiteGame/Adapters/Dev/Projection") devTool = true;
+                if (t.Root == "Assets/LiteGame/Editor/Gm")
+                {
+                    editorGm = true;
+                    Assert.True(t.IncludeEditorDirs, "Editor/Gm 受守根必须 IncludeEditorDirs——默认排除面会静默吞掉整个根");
+                }
+            }
+            Assert.True(devTool, "R14 缺 Assets/LiteGame/Adapters/Dev/Projection 受守根——运行期投影将不受把守");
+            Assert.True(editorGm, "R14 缺 Assets/LiteGame/Editor/Gm 受守根——编辑器 GM 页将不受把守");
+        }
+
+        // ---- R15 平台特判收敛（平台差异只走 profile 与收敛点，不堆 #if）----
+
+        [Fact]
+        public void 纪律_R15_平台特判被命中()
+        {
+            Assert.Equal(1, Count("#if UNITY_ANDROID\n", LintRule.R15PlatformFork));
+            Assert.Equal(1, Count("#if UNITY_ANDROID && !UNITY_EDITOR\n", LintRule.R15PlatformFork));
+            Assert.Equal(1, Count("#elif UNITY_ANDROID\n", LintRule.R15PlatformFork));
+            Assert.Equal(1, Count("#ifdef UNITY_ANDROID\n", LintRule.R15PlatformFork));
+            // 其它平台符号不归本规则管（iOS/主机另批裁决，避免守卫比裁决更宽）
+            Assert.Equal(0, Count("#if UNITY_EDITOR\n", LintRule.R15PlatformFork));
+            Assert.Equal(0, Count("#if UNITY_IOS\n", LintRule.R15PlatformFork));
+        }
+
+        [Fact]
+        public void 纪律_R15_收敛点放行_同名目录不放行()
+        {
+            foreach (string allowed in DisciplineScanner.PlatformForkAllowedFiles)
+            {
+                Assert.Equal(0, CountAt(allowed, "#if UNITY_ANDROID\n", LintRule.R15PlatformFork));
+            }
+
+            // 允许面是精确文件匹配（不是目录前缀）——名字相近的邻文件照样报红
+            Assert.Equal(1, CountAt("Assets/LiteGame/Modules/Meta/DeployBakeExtra.cs",
+                "#if UNITY_ANDROID\n", LintRule.R15PlatformFork));
+        }
+
+        [Fact]
+        public void 纪律_R15_注释与字符串不误报()
+        {
+            Assert.Equal(0, Count("// #if UNITY_ANDROID（示例）\n", LintRule.R15PlatformFork));
+            Assert.Equal(0, Count("Append(\"#if UNITY_ANDROID\");", LintRule.R15PlatformFork));
+        }
+
+        [Fact]
+        public void 纪律_R15_受守根与允许面已登记()
+        {
+            bool game = false, unity = false;
+            for (int i = 0; i < ScanTargets.Default.Length; i++)
+            {
+                ScanTarget t = ScanTargets.Default[i];
+                if (Array.IndexOf(t.Rules, LintRule.R15PlatformFork) < 0) continue;
+                if (t.Root == "Assets/LiteGame") game = true;
+                if (t.Root == "Packages/com.litegame.framework/Runtime/Adapters/Unity") unity = true;
+            }
+            Assert.True(game, "R15 缺 Assets/LiteGame 受守根——产品侧平台分叉将不受把守");
+            Assert.True(unity, "R15 缺 Packages/com.litegame.framework/Runtime/Adapters/Unity 受守根——设备适配层将不受把守");
+
+            // 允许面陈旧 = 静默失效（登记的收敛点搬迁后，规则会放行一条不存在的路径）
+            string repoRoot = RepoRoot();
+            foreach (string rel in DisciplineScanner.PlatformForkAllowedFiles)
+            {
+                string full = System.IO.Path.Combine(repoRoot, rel.Replace('/', System.IO.Path.DirectorySeparatorChar));
+                Assert.True(System.IO.File.Exists(full), "R15 允许面登记的收敛点不存在：" + rel);
+            }
+        }
+
+        [Fact]
+        public void 纪律_R14_Editor子树覆盖只放行显式受守根()
+        {
+            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteGame/Editor/Gm/GMScenePage.cs"));
+            Assert.False(DisciplineScanner.IsExcluded("Assets/LiteGame/Editor/Gm/GMScenePage.cs", true));
+            // 自引排除不随 includeEditorDirs 放行
+            Assert.True(DisciplineScanner.IsExcluded("Assets/Tools/DisciplineScanner/Scripts/DisciplineScanner.cs", true));
+        }
+    }
+}

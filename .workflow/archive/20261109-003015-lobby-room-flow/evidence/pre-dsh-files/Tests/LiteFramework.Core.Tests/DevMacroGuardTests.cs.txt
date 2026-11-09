@@ -1,0 +1,58 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using Xunit;
+
+namespace LiteFramework.Core.Tests
+{
+    /// <summary>
+    /// 开发宏边界（《客户端架构重构演进路线图》§4.8/§4.11 7）： <c>DEVELOPMENT_BUILD</c> / <c>LITEFRAMEWORK_DEBUG</c> 只允许出现在 `LiteGame.Dev`。
+    /// </summary>
+    public sealed class DevMacroGuardTests
+    {
+        [Fact]
+        public void 开发宏只允许出现在Dev装配层_零容忍()
+        {
+            string root = RepoRoot();
+            var offenders = new List<string>();
+            string[] roots = { "Packages/com.litegame.framework/Runtime/Services", "Packages/com.litegame.framework/Runtime/Hosting", "Assets/LiteGame", "Packages/com.litegame.framework" };
+
+            foreach (string relativeRoot in roots)
+            {
+                string directory = Path.Combine(root, relativeRoot.Replace('/', Path.DirectorySeparatorChar));
+                if (!Directory.Exists(directory)) continue;
+                foreach (string file in Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories))
+                {
+                    string rel = Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/');
+                    if (rel.StartsWith("Assets/LiteGame/Adapters/Dev/", StringComparison.Ordinal)) continue;
+                    int count = CountConditionLines(file);
+                    if (count > 0) offenders.Add(rel + " :: " + count);
+                }
+            }
+
+            Assert.True(offenders.Count == 0,
+                "开发宏只能出现在 LiteGame.Dev（M3-6b 已清零——新增即失败）:" + string.Join(" | ", offenders));
+        }
+
+        private static int CountConditionLines(string file)
+        {
+            int count = 0;
+            foreach (string line in File.ReadAllLines(file))
+            {
+                string trimmed = line.TrimStart('\uFEFF').TrimStart();
+                if (!trimmed.StartsWith("#if", StringComparison.Ordinal) && !trimmed.StartsWith("#elif", StringComparison.Ordinal)) continue;
+                if (line.Contains("DEVELOPMENT_BUILD") || line.Contains("LITEFRAMEWORK_DEBUG")) count++;
+            }
+            return count;
+        }
+
+        private static string RepoRoot()
+        {
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Tests", "Tests.slnx")))
+                dir = dir.Parent;
+            Assert.NotNull(dir);
+            return dir.FullName;
+        }
+    }
+}

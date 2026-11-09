@@ -1392,6 +1392,7 @@ GameObject:
   - component: {fileID: 338790730038704251}
   - component: {fileID: 8129147653204619437}
   - component: {fileID: 7664800925125517252}
+  - component: {fileID: 3210858241611033483}
   m_Layer: 0
   m_Name: Page_Room
   m_TagString: Untagged
@@ -1532,3 +1533,15 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &3210858241611033483
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9201517295813210013}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83d24374581461046870acfe74a7c905, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

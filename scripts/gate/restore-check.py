@@ -141,14 +141,14 @@ def main(argv=None):
         if openpyxl:
             good(f"Python {sys.version.split()[0]} + openpyxl {openpyxl} (Luban chain)")
         else:
-            miss("python missing openpyxl (pip install openpyxl - required by Luban/gen_lua_keys.py step 3)")
+            miss("python missing openpyxl (pip install openpyxl)")
         cryptography = package_version("cryptography")
         if cryptography:
             good(f"cryptography {cryptography} (content signing)")
         else:
             miss("python missing cryptography (pip install cryptography - required by content signing)")
     else:
-        warn(f"Python {sys.version.split()[0]} (gen_lua_keys.py needs >= 3.10)")
+        warn(f"Python {sys.version.split()[0]} (Luban/gen.* needs >= 3.10)")
 
     if shutil.which("git"):
         good("git present")
@@ -180,10 +180,6 @@ def main(argv=None):
         good("UniTask present")
     else:
         miss("UniTask missing: Assets/ThirdParty/Plugins/UniTask (runtime required; should ship with repo)")
-    if (project / "Assets" / "ThirdParty" / "Plugins" / "xlua.bundle").is_dir():
-        good("xLua native plugin present")
-    else:
-        miss("xlua.bundle missing: Assets/ThirdParty/Plugins/xlua.bundle (runtime required; should ship with repo)")
 
     # 5. Tracked UI/render assets
     if (project / "Assets" / "LiteGame" / "Modules" / "UI" / "Content" / "Fonts" / "NotoSansSC-Regular SDF.asset").is_file():

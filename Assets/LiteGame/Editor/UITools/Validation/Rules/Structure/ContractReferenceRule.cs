@@ -15,8 +15,8 @@ namespace LiteGame.Editor.UITools.Validation.Rules
     {
         private readonly Func<UIPageManifestEntry, string> _sourceResolver;
 
-        /// <summary>生产形态：C# 页源优先、未迁移页回落 Lua（解析单源＝UIPageLogicScanner）。</summary>
-        public ContractReferenceRule() => _sourceResolver = entry => UIPageLogicScanner.ResolveFile(entry.Name, entry.LuaPath);
+        /// <summary>生产形态：解析单源＝UIPageLogicScanner（C# 页源）。</summary>
+        public ContractReferenceRule() => _sourceResolver = entry => UIPageLogicScanner.ResolveFile(entry.Name);
 
         /// <summary>测试形态：注入替代解析（合成页源落临时路径；按扩展名分派语法）。</summary>
         public ContractReferenceRule(Func<UIPageManifestEntry, string> sourceResolver) => _sourceResolver = sourceResolver;
@@ -78,7 +78,7 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                         Severity = UISeverity.Warning,
                         Asset = string.IsNullOrEmpty(file) ? entry.Name : file,
                         Message = "页面逻辑源缺失——引用对账跳过（" + entry.Name + "）",
-                        FixHint = "确认 C# 页源（Logic/**/Page_<Name>Logic.cs）或 Lua 文件存在；未消费/越界无法核对该页",
+                        FixHint = "确认 C# 页源（Pages/**/Page_<Name>Logic.cs）存在；未消费/越界无法核对该页",
                     });
                     continue;
                 }
@@ -92,7 +92,7 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                     if (!string.IsNullOrEmpty(nodeName)) face.Add(nodeName);
                 }
 
-                foreach (UIPageApiCall call in UIPageLogicScanner.ScanApiCalls(file, source))
+                foreach (UIPageApiCall call in UIPageLogicScanner.ScanApiCalls(source))
                 {
                     if (string.IsNullOrEmpty(call.Name)) continue;
                     if (face.Contains(call.Name)) continue;

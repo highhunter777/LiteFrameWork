@@ -1,0 +1,4 @@
+继续同一T1测试作者会话。主代理观察到你已做51次必要规则/源码调查，当前测试目录尚无文件。现在结束广泛调查，接下来必须写入可编译的测试源码并执行一次编译/定向RoomFlow，不再读全仓/旧规范/其他无关测试。工具只允许为具体编译错误定点读必要签名，不允许继续漫游寻找完美先例。
+遵守原任务T1的所有权限：只新建Assets/Tests/EditMode/Flow/RoomFlow内测试，不改生产/旧测试/门禁/.workflow，不手写meta。利用已经读取的真实MetaEntrySession/MetaEntryService/ProcedureMatch/Battle/PageFlow与可控依赖固定断言。下一批工具应优先是write/edit和Unity recompile/run_tests。
+T1必须先落能真实复现的取消晚到/预取消/重复旧新竞态断言（RoomFlowEntryTests），再尽力在现有API写两个排队窗口、卸载未完成阻断/登录优先级的RoomFlowLifecycleTests。真正缺最小观测面时精确指出所缺契约与无法表达的外部断言，不伪造测试、不用替身实现待验算法、不把缺覆盖写成通过。主代理会决定必要接口/阶段调整，不让你无限调查。
+执行python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 600，编译必须0错，允许真实assertion失败。返回所有已写文件、确切测试名/预期断言失败、实际输出/证据路径、尚未能表达的场景及最小契约原因；不宣告T1或项目完成。未执行项如实标明。请在本次调用内交付文件与结果。

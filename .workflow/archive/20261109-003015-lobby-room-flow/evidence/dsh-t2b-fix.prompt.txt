@@ -1,0 +1,5 @@
+T2-B主代理已实读源码，需你修3个明确问题，然后直接交付，不改测试/装配/阶段、不运行Unity。仍仅B片写集。
+1. RoomFlowOperation的root-linked CTS、页面注册没有在正常Release、Requesting取消/失败、invalid queued消费后Dispose。Root会累积每次操作的注册。请建立明确的终结释放：缓存不可变CancellationToken供晚到await safely读取（已Dispose CTS不能再取.Token）；Requesting取消立即释放busy，但旧await仍需安全观测取消。一个操作Dispose恰一次，清理完/放行后释放，页面回调注册解除，root注册解除；不要在Release取消一个已经成功移交的在用连接。可以区分“让旧请求失效/释放占用”和“晚到任务终结释放句柄”，但每条终态都有owner，不得遗失取消后从不返回请求的root注册。当前Token getter直接取_cancellation.Token，释放后晚到会抛ObjectDisposedException而非取消，应修正。
+2. EnterCoreAsync在call.Ok之后直接call.Value.Address。成功但Value=null、空票据/空房间必须稳定InvalidResponse或明确failure，零Request/零连接，不以NRE作为程序员错误泄漏，票据本身不写日志。不要把访问令牌移出来。
+3. TryConsumeMatch invalid currently把_current=null，违反“无效排队消费后回Main/恢复完成才放行”的共同完成路径。不要过早清占用；标Cleaned后由flow观察实际Main再Release。同时正常结束/失败也需要同一个完成观察入口：现在ObserveRelease只在Leave调用，若没有Leave事件正常结束会永久busy。请在提交成功时即注册唯一观察者（最多一次），给T3扩展“清理完成→恢复/错误确认→release”的一个内部钩子或可重用观察点，不允许Leave观察直接抢先Release、T3另一个观察者还在导航。此片暂不做UI恢复，但要说明T3只扩同一观察路径，不再叠一条。
+修复要局部、避免新公共扩展点；Flow仍单一owner。返回实际文件、每条终态释放表、call.Value验证、正常/Leave同一观察点。不要声称编译/测试通过。

@@ -1,0 +1,28 @@
+{
+  "test_author": "session-1ae08d74-641c-4dab-beae-c439e3030248",
+  "production_authors": {
+    "dsh-t2a-meta": "session-72bdafc0-fd6b-4dfe-ae8a-76c1cacc5d99",
+    "dsh-t2b-flow": "session-72bdafc0-fd6b-4dfe-ae8a-76c1cacc5d99",
+    "dsh-t2b-fix": "session-72bdafc0-fd6b-4dfe-ae8a-76c1cacc5d99",
+    "dsh-t2b-local-observer": "session-72bdafc0-fd6b-4dfe-ae8a-76c1cacc5d99",
+    "dsh-t2c1-adapters": "session-a393f27e-1c49-4596-b48e-9700e9e6e6d9"
+  },
+  "status": "First API migration reviewed and verified for T2; T6 remains doing for T3 second round",
+  "test_changes_vs_t1": [
+    "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowEntryTests.cs",
+    "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowRig.cs"
+  ],
+  "permitted_assertion_preservation": "Entry test only mechanical AccountReentry(rig.Meta→rig.Flow); Rig rewired shared lifetime; Lifecycle/Doubles unchanged; Meta prior assertions mapped in dsh-t6-meta-tests.report.md",
+  "verification": {
+    "RoomFlowEntry": "6/6 green",
+    "RoomFlowTicket": "6/6 green",
+    "RoomFlowQueuedBattleOwnership": "1/1 green",
+    "T3_known_red": [
+      "卸载未完成放行",
+      "登录页被旧完成覆盖"
+    ],
+    "MetaEntry": "13/13 green",
+    "CoreAccountReentryBoundaryWiring": "8/8 green",
+    "UnityCompile": "completed failed:false errors:[]"
+  }
+}

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Regenerate the Luban table chain (C#/binary/LuaKeys) and publish only
+# Regenerate the Luban table chain (C#/binary) and publish only
 # changed files. Luban clears its output directory, so generation runs OUTSIDE
 # Assets (TestResults staging) and publish copies only declared file types,
 # preserving existing asmdef/meta files under Assets.
@@ -8,8 +8,7 @@
 # Direct entry:   python scripts/codegen/gen_luban.py [--check] [--python <python>]
 # Shim alias:     Luban/gen.bat (delegates here)
 # Outputs:        Assets/GameData/Generated/*.cs, Assets/GameData/Config/*.bytes,
-#                 Assets/LiteGame/Modules/Shared/Generated/LuaKeys.g.cs
-#                 (generated Lua tables retired with the Lua exit - see Lua退出专项设计)
+#                 (generated script-table outputs retired; see Lua退出专项设计 for migration facts)
 # Rerun when:     table source (Luban/Data/*.xlsx) or schema changed - then rerun
 #                 build-hash (the generated read-side code is in its source set; the
 #                 table .bytes values are out of it since 2026-10-14); Unity import is separate.
@@ -32,12 +31,11 @@ TOOL = 'luban'
 PUBLISH_TARGETS = [
     ('code',      os.path.join('Assets', 'GameData', 'Generated'),          '.cs'),
     ('bin',       os.path.join('Assets', 'GameData', 'Config'),             '.bytes'),
-    ('lua-keys',  os.path.join('Assets', 'LiteGame', 'Modules', 'Shared', 'Generated'), '.cs'),
 ]
 
 # TableLayout 是表清单/域归属的单源；生成器只读它，不维护第二份清单。
 TABLE_LAYOUT_REL = os.path.join(
-    'Assets', 'LiteGame', 'Modules', 'Config', 'TableLayout.cs')
+    'Assets', 'LiteGame', 'Modules', 'Config', 'Table', 'TableLayout.cs')
 LUBAN_EXE_REL = os.path.join('Luban', 'LubanGenerater', 'Luban', 'Luban.exe')
 LUBAN_CONF_REL = os.path.join('Luban', 'luban.conf')
 TABLE_SOURCE_REL = os.path.join('Luban', 'Data')
@@ -200,8 +198,6 @@ def generate_stage(root, stage_root, python_exe):
     run_checked([luban_exe, '-t', 'client', '-c', 'cs-bin', '-d', 'bin', '--conf', config_path,
                  '-x', f'outputCodeDir={os.path.join(stage_root, "code")}',
                  '-x', f'outputDataDir={os.path.join(stage_root, "bin")}'])
-    run_checked([python_exe, os.path.join(luban_root, 'gen_lua_keys.py'),
-                 '--output', os.path.join(stage_root, 'lua-keys', 'LuaKeys.g.cs')])
 
     domain_by_table = parse_table_layout(os.path.join(root, TABLE_LAYOUT_REL))
     reorganize_bin_stage(os.path.join(stage_root, 'bin'), domain_by_table)
@@ -236,7 +232,7 @@ def check(root, python_exe=None):
 def main():
     parser = argparse.ArgumentParser(prog='gen_luban.py', description='Regenerate the Luban table chain and publish changed files')
     parser.add_argument('--python', default=sys.executable if getattr(sys, 'frozen', False) is False else 'python',
-                        help='python used for gen_lua_keys.py (default: this interpreter)')
+                        help='兼容保留（默认本解释器）')
     parser.add_argument('--check', action='store_true',
                         help='verify published outputs are up to date (stages outside Assets; never publishes/prunes)')
     args = parser.parse_args()

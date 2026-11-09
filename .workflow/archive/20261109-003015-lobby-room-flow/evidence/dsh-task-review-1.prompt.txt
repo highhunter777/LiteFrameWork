@@ -1,0 +1,4 @@
+你是独立只读任务评审代理，项目 E:/unityProject/Test。任务：评审 .workflow/active/lobby-room-flow/plan.md、acceptance.md、tasks.md 是否可施工，按 .agents/skills/staged-delivery/assets/templates/reviews/task-review.md 返回结构化结果，不写文件。用户已明确授权主代理分配任务和验收，实施交给真实dsh；你只评审，不写生产代码/测试/文档、不操作Unity、不执行测试、不修改.workflow或门禁。先读AGENTS.md、staged-delivery skill及必要规范，按需定点读代码。基线HEAD d4f284c79adb3852b3eb68f7303d439cb4def969，工作区数千项既有改动，17个关键文件前快照与状态在evidence/baseline.json、baseline-files，不能把HEAD当工作树基线。独立方案复评已在reviews/plan-review.md，核查任务与方案，而不是复做全仓方案审计。
+重点：AC1~9映射、依赖顺序、T1真实断言red且编译可用、测试与实现由不同dsh会话撰写、T2与T3串行重叠范围、旧测试/接线断言迁移不降低强度、阶段排队两窗口所有权、await必要卸载/登录优先级、GM/账号重入兼容、真实UI输入验证、不扩展Scope重构。任务包含测试适配时，必须由独立测试会话执行，不能让生产作者改断言迎合实现。
+验证配置已隔离：evidence/workflow-context.json指向主代理本机独立root，junction指向同一state，原项目67commands/19red_commands和另一个active运行未修改；此时仅运行主代理，不需要你访问root配置或改state。任务T1~T5都应由主代理在核验后标done。
+请最多120行返回：评审输入、覆盖与追溯、检查项、发现的问题与处理、评审结论。结论必须明确：评审方式: 独立子代理；结论: PASS或FAIL；阻塞问题: 数字。真正blocker/major阻塞；minor写具体修法。不要自行批准实施或声称运行过命令。

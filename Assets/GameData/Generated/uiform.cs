@@ -17,7 +17,6 @@ public sealed partial class uiform : Luban.BeanBase
     public uiform(ByteBuf _buf) 
     {
         Id = _buf.ReadInt();
-        LuaPath = _buf.ReadString();
         Prefab = _buf.ReadString();
         Layer = _buf.ReadInt();
         FullScreen = _buf.ReadBool();
@@ -32,10 +31,6 @@ public sealed partial class uiform : Luban.BeanBase
     /// id
     /// </summary>
     public readonly int Id;
-    /// <summary>
-    /// Lua逻辑表路径(UI.界面名),必填
-    /// </summary>
-    public readonly string LuaPath;
     /// <summary>
     /// prefab资源路径,必填
     /// </summary>
@@ -60,7 +55,6 @@ public sealed partial class uiform : Luban.BeanBase
     {
         return "{ "
         + "id:" + Id + ","
-        + "luaPath:" + LuaPath + ","
         + "prefab:" + Prefab + ","
         + "layer:" + Layer + ","
         + "fullScreen:" + FullScreen + ","

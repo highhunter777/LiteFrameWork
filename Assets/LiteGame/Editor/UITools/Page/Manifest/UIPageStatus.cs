@@ -12,7 +12,7 @@ namespace LiteGame.Editor.UITools.Page
         Draft = 0,
         /// <summary>评审：Owner 提交评审，等待工程/TA 过目。</summary>
         InReview = 1,
-        /// <summary>已登记：tbuiform 有行、Lua/C# 骨架已建。</summary>
+        /// <summary>已登记：tbuiform 有行、C# 逻辑件已建。</summary>
         Registered = 2,
         /// <summary>已接线：工程已按契约接线（导航/数据/反馈）。</summary>
         Wired = 3,

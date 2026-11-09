@@ -37,7 +37,6 @@ namespace LiteGame
             new StatToggle { statsName = "Clock.UI" },
             new StatToggle { statsName = "EventBus" },
             new StatToggle { statsName = "Game" },
-            new StatToggle { statsName = "Lua" },
         };
         [Tooltip("最近日志尾巴（Log.Recent 环缓冲渲染）")]
         public bool showLogRecent = true;

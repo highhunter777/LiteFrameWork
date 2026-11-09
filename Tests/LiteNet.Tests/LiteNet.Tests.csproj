@@ -21,10 +21,8 @@
     <ProjectReference Include="..\..\Server\RoomServer\RoomServer.csproj" />
     <ProjectReference Include="..\..\Server\ReplayTool\ReplayTool.csproj" />
     <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
-    <!-- 全链诊断样例（§8「可诊断」）：内容激活事务面（Core 的 ActivationTransactionStore +
-         IDiagRecordSink 端口）与本组的会话/房间面在**一次失败**里对齐——测试项目专用引用，
-         不改变生产依赖边界（Core 无引擎引用；服务端/客户端程序集不新增依赖）。 -->
     <ProjectReference Include="..\..\Packages\com.litegame.framework\LiteFramework.Core.csproj" />
+    <!-- 会话工厂的 HandshakeIdentity 契约由 LiteFramework.Async 提供。 -->
     <ProjectReference Include="..\..\Packages\com.litegame.framework\Runtime\LiteFramework.Async.csproj" />
   </ItemGroup>
 
@@ -32,23 +30,26 @@
        测**真工厂**非复制品（与 LiteSim.Core.Tests 链接 Input 件同款纪律）。
        Match 半边依赖 BattleContext（SimView → UnityEngine），Unity 面，验收归 DI-4。 -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Debug\WeakNet\*.cs" Link="WeakNet\%(Filename)%(Extension)" />
+    <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Debug\WeakNet\Commands\*.cs" Link="WeakNet\Commands\%(Filename)%(Extension)" />
+    <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Debug\WeakNet\Profile\*.cs" Link="WeakNet\Profile\%(Filename)%(Extension)" />
+    <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Debug\WeakNet\Stats\*.cs" Link="WeakNet\Stats\%(Filename)%(Extension)" />
+    <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Debug\WeakNet\Transport\*.cs" Link="WeakNet\Transport\%(Filename)%(Extension)" />
     <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Debug\Tunables\DebugTunable.cs" Link="WeakNet\DebugTunable.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteGame\Modules\Session\Abstractions\IMatchJoin.cs" Link="Session\IMatchJoin.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Session\Abstractions\IAccountSessionFactory.cs" Link="Session\IAccountSessionFactory.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Session\Abstractions\IAccountSession.cs" Link="Session\IAccountSession.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Session\AccountSessionFactory.cs" Link="Session\AccountSessionFactory.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Session\MatchTransport.cs" Link="Session\MatchTransport.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Session\Abstractions\IMatchSessionFactory.cs" Link="Session\IMatchSessionFactory.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Session\Abstractions\IMatchSession.cs" Link="Session\IMatchSession.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Session\MatchSessionFactory.cs" Link="Session\MatchSessionFactory.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Session\Transport\MatchTransport.cs" Link="Session\MatchTransport.cs" />
     <!-- 端口与客户端工厂（A1 解耦）：Account 会话工厂只经端口建客户端，工厂本体在 Battle 域——
          同一份源码按惯例源链接进本工程（测真实现非复制品；AC1「唯一 new BattleClient 处」在此件）。 -->
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Abstractions\IBattleClient.cs" Link="Session\IBattleClient.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Abstractions\IBattleClientFactory.cs" Link="Session\IBattleClientFactory.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Abstractions\IAccountRuntime.cs" Link="Session\IAccountRuntime.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\BattleClientFactory.cs" Link="Session\BattleClientFactory.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\BattleClient.cs" Link="Session\BattleClient.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Abstractions\Run\IBattleClient.cs" Link="Session\IBattleClient.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Abstractions\Run\IBattleClientFactory.cs" Link="Session\IBattleClientFactory.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Abstractions\Session\IMatchRuntime.cs" Link="Session\IMatchRuntime.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Hosting\Client\BattleClientFactory.cs" Link="Session\BattleClientFactory.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\Hosting\Client\BattleClient.cs" Link="Session\BattleClient.cs" />
     <!-- 测试地图夹具源链接：与 LiteSim.Core.Tests 共编同一份 TestMaps（单源）——StandardBattleMap 退役后测试侧地图单源 -->
     <Compile Include="..\LiteSim.Core.Tests\TestMaps.cs" Link="Test\TestMaps.cs" />
     <Compile Include="..\LiteSim.Core.Tests\TestWeapons.cs" Link="Test\TestWeapons.cs" />

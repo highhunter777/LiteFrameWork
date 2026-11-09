@@ -9,7 +9,6 @@
     "name": "Page_Room",
     "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Room.prefab",
     "prefabGuid": "b7e33cddf11466c488b75e831f812071",
-    "luaPath": "UI.Page_Room",
     "layer": 0,
     "fullScreen": true,
     "cacheStrategy": "Lru",
@@ -73,13 +72,13 @@
     {
       "bindName": "Btn_Leave",
       "event": "onClick",
-      "handler": "_Leave"
+      "handler": "Leave"
     },
     {
       "bindName": "Btn_StartMatch",
       "event": "onClick",
-      "handler": "_StartMatch"
+      "handler": "StartMatch"
     }
   ],
-  "sourceHash": "sha256:6728515daa910d52ee36db8cefbc486a23401d23c88bcad9cb3a6266dd06d170"
+  "sourceHash": "sha256:2888cb3c640ed087dd307ea21a30392b3b60164035ccdf68b90108783533e54b"
 }

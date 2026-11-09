@@ -1,0 +1,49 @@
+{
+  "arch": {
+    "cmd": [
+      "python",
+      "scripts/gate/arch-check.py",
+      "--check"
+    ],
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "[quality/arch] FAILED: Assets 顶层目录未登记：Artifacts\n"
+  },
+  "l0": {
+    "cmd": [
+      "python",
+      "scripts/gate/l0-dep-scan.py"
+    ],
+    "exit_code": 0,
+    "stdout": "[toolchain] WARN: unregistered executable script: scripts/gate/sync-and-sim-e2e.py\n[toolchain] WARN: unregistered executable script: scripts/gate/unity-tests.py\n[toolchain] check OK (2 warning(s))\n[quality/l0] L0 dependency & secret scan | project: E:\\unityProject\\Test\n[quality/l0] PASS: deps reproducible, zero floating deps, vendored licenses kept, no secret hits\n",
+    "stderr": ""
+  },
+  "comment": {
+    "cmd": [
+      "python",
+      "scripts/gate/comment-lint.py"
+    ],
+    "exit_code": 0,
+    "stdout": "[quality/comment-lint] OK: 0 violation(s), 771 file(s) scanned (changed(vs HEAD))\n",
+    "stderr": ""
+  },
+  "directory": {
+    "cmd": [
+      "python",
+      "scripts/gate/dir-flat-lint.py"
+    ],
+    "exit_code": 0,
+    "stdout": "[quality/dir-flat-lint] OK: 412 dir(s) scanned, 20 baselined, no growth\n",
+    "stderr": ""
+  },
+  "toolchain": {
+    "cmd": [
+      "python",
+      "scripts/toolchain.py",
+      "check"
+    ],
+    "exit_code": 0,
+    "stdout": "[toolchain] WARN: unregistered executable script: scripts/gate/sync-and-sim-e2e.py\n[toolchain] WARN: unregistered executable script: scripts/gate/unity-tests.py\n[toolchain] check OK (2 warning(s))\n",
+    "stderr": ""
+  }
+}

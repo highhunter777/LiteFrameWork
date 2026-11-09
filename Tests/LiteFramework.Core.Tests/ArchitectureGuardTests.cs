@@ -102,8 +102,7 @@ namespace LiteFramework.Core.Tests
             string root = RepoRoot();
             var allowed = new HashSet<string>(StringComparer.Ordinal)
             {
-                "Assets/LiteGame/Adapters/LuaBridge/Bridge.Data.cs",
-                "Assets/LiteGame/Modules/Meta/MetaBridge.cs",
+                // 存量已清零：Lua 静态门面随 P2a 退出；新门面一律走组合注入。
             };
             var pattern = new Regex(@"public\s+static\s+class\s+\w*(Bridge|Facade)\b", RegexOptions.Compiled);
             var offenders = new List<string>();

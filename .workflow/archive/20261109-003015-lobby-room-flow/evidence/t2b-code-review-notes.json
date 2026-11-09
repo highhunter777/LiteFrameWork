@@ -1,0 +1,37 @@
+[
+  {
+    "id": "T2B-1",
+    "severity": "major",
+    "area": "RoomFlowLifetime.Release/OnPageCanceled/InvalidateCurrent(Requesting)/TryConsumeMatch invalid",
+    "issue": "Operation root-linked CTS and page registration are never disposed on normal release, cancellation, failed ticket or consumed invalid queue. Superseded late request may still need to read token; cache immutable token and define safe terminal disposal. Root retains per-operation registrations indefinitely otherwise.",
+    "required": "Production dsh author defines exact once operation disposal; cancelled Requesting may release busy immediately but Dispose must be safe for late completions and remove page/root registration."
+  },
+  {
+    "id": "T2B-2",
+    "severity": "major",
+    "area": "ProcedureFlow.EnterCoreAsync",
+    "issue": "call.Value.Address assumes successful response has nonnull Value and nonempty ticket/room. Invalid/null payload must yield stable failure and no queued transition.",
+    "required": "Validate ticket presence/required identity at flow boundary and keep token opaque, no diagnostic leak."
+  },
+  {
+    "id": "T2B-3",
+    "severity": "major",
+    "area": "ProcedureFlow operation completion observer",
+    "issue": "Only LeaveMatch starts ObserveRelease; normal end/early abort/failure needs same recovery-completion observer before releasing. T3 will add UI restoration, so release cannot run ahead of that observer.",
+    "required": "Use one completion observer per submitted operation, not separate leave-only and normal restore paths; communicate contract to T3."
+  },
+  {
+    "id": "T2B-4",
+    "severity": "medium",
+    "area": "RoomFlowLifetime.TryConsumeMatch invalid",
+    "issue": "Clears _current before invalid queued Match returns Main. New operation can theoretically begin during remaining stage callback; must preserve busy until consumed-and-returned Main/recovery is done.",
+    "required": "Keep cleaned invalid queue owned until completion observer sees correct stage and releases, avoid UI enable/current checks as sole owner."
+  },
+  {
+    "id": "T2B-5",
+    "severity": "major",
+    "area": "Local test direct entry normal completion",
+    "issue": "ProcedureFlow only starts completion observer in EnterCoreAsync; local dev direct entry uses lifetime Begin in Match, so normal local match completion without Leave will have no observer/release.",
+    "required": "Register exactly one observer when a lifetime operation begins (via small internal existing-owner callback) or expose a clearly owned local operation entry from flow; no duplicate observer, and cancelled pre-submit operation must skip UI recovery. Ensure normal local completion releases after same recovery contract."
+  }
+]

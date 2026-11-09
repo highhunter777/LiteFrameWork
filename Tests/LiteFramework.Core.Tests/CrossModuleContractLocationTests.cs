@@ -17,12 +17,12 @@ namespace LiteFramework.Core.Tests
         {
             ["AnimationProfileConfig"] = "Config 表层配置单源（Battle 读行；随 Config 域收口再评估）",
             ["BattleScenes"] = "Map 场景事实件（Procedure/Session 消费；LiteSync 依赖，不能进 Core）",
-            ["BridgeCapabilitySet"] = "Config 部署能力声明（Composition 消费；构建期事实）",
             ["DeployBake"] = "Config 部署烙入（Composition/Meta 消费；UnityEngine 依赖）",
             ["DevHooks"] = "Dev 开发装配钩子（Composition/Session 消费；开发面例外）",
             ["IBattleDevDiagnostics"] = "Battle 开发诊断端口（Dev 消费；住 Battle 根，开发面例外）",
             ["LTextCatalog"] = "Config 文案目录（UI 消费；表装载件）",
             ["MapTableProjection"] = "Config 地图表投影（Map 消费；表装载件）",
+            ["ProductSettings"] = "设置门面单源（UI 设置页直接读口；设计 §4.4 明确保留，P2 后评估注入化）",
             ["MetaEntryConfig"] = "Meta 部署配置（Session 消费；联机部署件）",
             ["NullDevSession"] = "Dev 空实现回退件（Composition/Procedure 消费；发布形态占位）",
             ["NullLocalTestHooks"] = "Dev 空实现回退件（Session 消费；发布形态占位）",

@@ -1,0 +1,5 @@
+T4/T5 施工证据（2026-11-09）
+MetaEntryEditModeTests 22/22；RoomFlow 39/39；MatchLoopLeak 1/1；BattleRunPort 7/7
+AccountDomain(L1) 6/6；AccountReentry 5/5
+Unity recompile 0 错；Core.Tests 编译 0 错
+关键修复：401 四调用点调度、门面切换、Revoke/Close、ForceReleaseRoot、LeaveMatchAsync 四终态、Match 父域=Account、Battle 子域

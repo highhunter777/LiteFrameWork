@@ -56,6 +56,14 @@ namespace LiteFramework
 
             public JsonValueKind Kind => Map(_token.Type);
 
+            public string ToCompactJson() => _token.ToString(Formatting.None);
+
+            public bool TryConvertTo<T>(out T value) where T : class
+            {
+                try { value = _token.ToObject<T>(); return value != null; }
+                catch (Exception) { value = null; return false; }
+            }
+
             public bool TryGetString(out string value)
             {
                 value = null;

@@ -18,7 +18,6 @@ namespace LiteFramework.Core.Tests
             { "UISegment.cs", "主题资产租约/红点登记" },
             { "BattleSegment.cs", "租约缓存/实体/音频/VFX" },
             { "CameraSegment.cs", "主相机/相机服务" },
-            { "LuaHostSegment.cs", "Lua 宿主 env" },
         };
 
         [Fact]

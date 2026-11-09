@@ -11,11 +11,11 @@ namespace LiteFramework.Core.Tests
     public sealed class OperationScopeGuardTests
     {
         [Theory]
-        [InlineData("Packages/com.litegame.framework/Runtime/Services/UI/UIService.cs")]
-        [InlineData("Packages/com.litegame.framework/Runtime/Services/UI/UINavigationController.cs")]
+        [InlineData("Packages/com.litegame.framework/Runtime/Services/UI/Service/UIService.cs")]
+        [InlineData("Packages/com.litegame.framework/Runtime/Services/UI/Navigation/UINavigationController.cs")]
         [InlineData("Packages/com.litegame.framework/Runtime/Services/UI/Transition/UITransitionRunner.cs")]
-        [InlineData("Packages/com.litegame.framework/Runtime/Services/Content/PatchRunner.cs")]
-        [InlineData("Packages/com.litegame.framework/Runtime/Services/Content/HttpCandidateFetcher.cs")]
+        [InlineData("Packages/com.litegame.framework/Runtime/Services/Content/Activation/PatchRunner.cs")]
+        [InlineData("Packages/com.litegame.framework/Runtime/Services/Content/Candidate/Http/HttpCandidateFetcher.cs")]
         public void 已迁移文件_只经OperationScope持有取消(string relativePath)
         {
             string root = RepoRoot();

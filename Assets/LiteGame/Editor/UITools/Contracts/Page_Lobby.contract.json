@@ -9,7 +9,6 @@
     "name": "Page_Lobby",
     "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Lobby.prefab",
     "prefabGuid": "bb72b834805ea1e4c97a5c3c87a2d10d",
-    "luaPath": "UI.Page_Lobby",
     "layer": 0,
     "fullScreen": true,
     "cacheStrategy": "Lru",
@@ -234,27 +233,27 @@
     {
       "bindName": "Btn_CancelCreate",
       "event": "onClick",
-      "handler": "_ShowCreate"
+      "handler": "anonymous"
     },
     {
       "bindName": "Btn_Character",
       "event": "onClick",
-      "handler": "_Tap"
+      "handler": "Tap"
     },
     {
       "bindName": "Btn_ConfirmCreate",
       "event": "onClick",
-      "handler": "_CreateRoom"
+      "handler": "CreateRoom"
     },
     {
       "bindName": "Btn_CreateRoom",
       "event": "onClick",
-      "handler": "_ShowCreate"
+      "handler": "anonymous"
     },
     {
       "bindName": "Btn_QuickEnter",
       "event": "onClick",
-      "handler": "_Enter"
+      "handler": "anonymous"
     },
     {
       "bindName": "Btn_Records",
@@ -264,12 +263,12 @@
     {
       "bindName": "Btn_RoomsClose",
       "event": "onClick",
-      "handler": "_ShowRooms"
+      "handler": "anonymous"
     },
     {
       "bindName": "Btn_Rooms",
       "event": "onClick",
-      "handler": "_ShowRooms"
+      "handler": "anonymous"
     },
     {
       "bindName": "Btn_Settings",
@@ -279,8 +278,8 @@
     {
       "bindName": "VList_Rooms",
       "event": "onListClick",
-      "handler": "_Enter"
+      "handler": "action"
     }
   ],
-  "sourceHash": "sha256:7db821e056ec542d68653b14cecd81d9db5274dfe4037e808bf44c5ba597a7b7"
+  "sourceHash": "sha256:6277e67d98598ca0e853a0c69c2186f0a82bb4ca4478e15497d76e7110aba8c4"
 }

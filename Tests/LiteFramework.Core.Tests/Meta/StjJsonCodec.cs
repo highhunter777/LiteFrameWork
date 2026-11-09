@@ -52,6 +52,7 @@ namespace LiteFramework.Core.Tests.Meta
         /// <summary>物化后的只读节点（类别 + 单值 + 子节点）。</summary>
         private sealed class Node : IJsonNode
         {
+            private string _compact;
             private string _string;
             private long _integer;
             private bool _boolean;
@@ -60,9 +61,21 @@ namespace LiteFramework.Core.Tests.Meta
 
             public JsonValueKind Kind { get; private set; }
 
+            public string ToCompactJson() => _compact;
+
+            public bool TryConvertTo<T>(out T value) where T : class
+            {
+                try
+                {
+                    value = JsonSerializer.Deserialize<T>(_compact, new JsonSerializerOptions { IncludeFields = true });
+                    return value != null;
+                }
+                catch (JsonException) { value = null; return false; }
+            }
+
             internal static Node From(JsonElement element)
             {
-                var node = new Node();
+                var node = new Node { _compact = JsonSerializer.Serialize(element) };
                 switch (element.ValueKind)
                 {
                     case StjKind.Object:

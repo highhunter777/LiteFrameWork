@@ -1,0 +1,99 @@
+# 归档：Account/Match 名称与生命周期纠偏（第二批）
+
+- 运行: account-match-lifecycle
+- 创建时间: 2026-11-09T00:36:35+08:00
+- 完成时间: 2026-11-09T04:42:46+08:00
+- 归档时间: 2026-11-09T04:42:58+08:00
+- 阶段: 10/10
+- 任务: 完成 9/9，取消 0
+- 验证: PASS（2026-11-09T04:41:01+08:00）
+
+## 交付摘要
+
+- Account 域成为真实登录域（Root→Account→Match→Battle），Meta 会话/票据源迁入账户域；401 四调用点接入重入；Match/Battle 两级域与 `LeaveMatchAsync` 落地；7 文件 + 2 类名改名完成。
+- 验证：`wf verify` 19/19 exit=0；L1 1967；EditMode MetaEntry 22、RoomFlow 39、MatchLoopLeak 1、BattleRunPort 7；`domain-matrix --check` 绿。
+- 未提交：工作区未提交；本批改动与并行 WIP 共存，提交需按 C1/C2 切分。
+
+## 产物
+
+- acceptance.md
+- build-log.md
+- evidence/pre-implementation/Assets/LiteGame/App/AppComposition.cs
+- evidence/pre-implementation/Assets/LiteGame/App/PageServices/ConfigMapCatalog.cs
+- evidence/pre-implementation/Assets/LiteGame/App/PageServices/MetaEntrySession.cs
+- evidence/pre-implementation/Assets/LiteGame/App/PageServices/RoomBridge.cs
+- evidence/pre-implementation/Assets/LiteGame/Editor/Gm/GMTestModePage.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/Abstractions/Run/IBattleClient.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/Abstractions/Run/IBattleClientFactory.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/Abstractions/Run/IBattleCommands.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/Abstractions/Run/IBattleRun.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/Abstractions/Run/IBattleRunFactory.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/Abstractions/Session/IAccountRuntime.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/Abstractions/Session/IMatchIdentity.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/Abstractions/Session/IRoomSessionFace.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/BattleSegment.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/Shared/BattleContext.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/BattleRunFactory.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/BattleSession.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/IMatchSessionFactory.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/MatchSessionFactory.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/RoomSessionFace.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Meta/Abstractions/IAccountSessionControl.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Meta/Abstractions/IMetaClient.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Meta/Abstractions/IMetaConfigFacts.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Meta/Abstractions/IRoomFlow.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Meta/Abstractions/IRoomTicketSource.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Meta/Client/MetaEntryService.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Meta/Client/UnityMetaClient.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Meta/MetaSegment.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/Flow/AccountReentry.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/Flow/PageFlow.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/Flow/ProcedureFlow.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/Flow/RoomFlowLifetime.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/Flow/RoomFlowOperation.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/ProcedureSegment.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/Shared/ProcedureArgs.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/Shared/ProcedureId.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/Shared/StageSignal.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureBattle.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Session/Abstractions/IAccountSession.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Session/Abstractions/IAccountSessionFactory.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Session/Abstractions/IMatchJoin.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Session/Abstractions/IRoomSessionBridge.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Session/Abstractions/ITransportFactory.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Session/AccountSessionFactory.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Session/AssemblyInfo.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/Session/SessionSegment.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/UI/Abstractions/Ports/IMetaSession.cs
+- evidence/pre-implementation/Assets/LiteGame/Modules/UI/Pages/PageContext.cs
+- evidence/pre-implementation/Assets/Tests/EditMode/Battle/Net/MatchLoopLeakEditModeTests.cs
+- evidence/pre-implementation/Assets/Tests/EditMode/Battle/Session/BattleDiagnosticsEditModeTests.cs
+- evidence/pre-implementation/Assets/Tests/EditMode/Battle/Session/BattleRunPortEditModeTests.cs
+- evidence/pre-implementation/Assets/Tests/EditMode/Battle/Session/BattleSessionEditModeTests.cs
+- evidence/pre-implementation/Assets/Tests/EditMode/Meta/MetaEntryEditModeTests.cs
+- evidence/pre-implementation/manifest.json
+- evidence/pre-implementation/Tests/LiteFramework.Core.Tests/CrossModuleContractLocationTests.cs
+- evidence/pre-implementation/Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj
+- evidence/pre-implementation/Tests/LiteFramework.Core.Tests/M3WiringGuardTests.cs
+- evidence/pre-implementation/Tests/LiteFramework.Core.Tests/Meta/AccountReentryTests.cs
+- evidence/pre-implementation/Tests/LiteFramework.Core.Tests/ModuleInterfaceOwnershipTests.cs
+- evidence/pre-implementation/Tests/LiteFramework.Core.Tests/ProcedureBoundaryTests.cs
+- evidence/pre-implementation/Tests/LiteFramework.Core.Tests/SessionBoundaryTests.cs
+- evidence/pre-implementation/Tests/LiteNet.Tests/AccountSessionFactoryTests.cs
+- evidence/pre-implementation/Tests/LiteNet.Tests/LiteNet.Tests.csproj
+- evidence/red-manifest.json
+- evidence/red.json
+- evidence/t1-contracts.txt
+- evidence/t2-rename.txt
+- evidence/t3-cases.md
+- evidence/t3-compile.txt
+- evidence/t4-t5-production.txt
+- evidence/verify.json
+- plan.md
+- reviews/code-review.md
+- reviews/plan-review.md
+- reviews/task-review.md
+- state.json
+- tasks.md
+- test-plan.md

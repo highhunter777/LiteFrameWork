@@ -162,10 +162,10 @@ HUD 属对局表现域，由 `BattleHudAssembler` 随对局视图创建/销毁�
 
 | 位置 | 改动 |
 | --- | --- |
-| `BattleHudView` | 新增 `[SerializeField] RectTransform _matchTimerRoot; [SerializeField] TextMeshProUGUI _matchTimerText;`；暴露只读属性 + `bool HasMatchTimer`（两件齐备判据，与 `HasRankboard`/`HasKillFeed` 同款——**接线自检**，防制作期漏接） |
-| `BattleHudAssembler.AttachHud` | 面板驱动建好后创建计时器驱动，复用同一 `_predictedModel`（同一读源、少一份缓冲）；`!HasMatchTimer` → `Log.Warning` 一次后跳过（HUD 通用降级口径：缺件不当作对局失败） |
-| `BattleHudAssembler.Tick` | 顺序：`_hud` → `_timer` → 排行榜 → 击杀提示 → 网络 → 阵亡（同帧 UI 值，先本人面板后公共读数） |
-| `BattleHudAssembler.DisposePanel` | 先 `_timer?.Dispose()` 再 `_hud?.Dispose()`（消费者逆序，与现有逐件 Dispose 风格一致） |
+| `BattleHudView` | 新增 `[SerializeField] RectTransform _matchTimerRoot; [SerializeField] TextMeshProUGUI _matchTimerText;`；暴露只读属性 + `bool HasMatchTimer`（两件齐备判据，与 `HasRankboard`/`HasKillFeed` 同款——**接线自检**，防制作期漏接）；同时加入 `IHudView` 契约 |
+| `BattleHudAssembler.AttachHud` | 面板驱动建好后创建计时器驱动，复用同一 `_model.Predicted`（同一读源、少一份缓冲）；`!HasMatchTimer` → `Log.Warning` 一次后跳过（HUD 通用降级口径：缺件不当作对局失败）；驱动建好后 `_drivers.Add(_timer)` |
+| `BattleHudAssembler.Tick` | 按 `_drivers` 列表顺序推进：面板 → 计时器 → 排行榜 → 击杀提示 → 网络 → 阵亡（同帧 UI 值，先本人面板后公共读数） |
+| `BattleHudAssembler.DisposePanel` | 先 `_timer?.Dispose()` 并从 `_drivers` 移除，再 `_hud?.Dispose()`（消费者逆序，与现有逐件 Dispose 风格一致） |
 
 **不新增**：不新建装配器、不改 `BattleViewRig` 相位、不改 `ProcedureBattle`、不改收集组（`Assets/LiteGame/Modules/Battle/Content/Hud` 已在 `UIHud` 组内，件级热更自动覆盖）。
 

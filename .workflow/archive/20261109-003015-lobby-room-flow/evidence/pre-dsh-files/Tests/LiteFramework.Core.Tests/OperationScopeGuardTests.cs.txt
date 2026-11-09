@@ -1,0 +1,76 @@
+using System;
+using System.IO;
+using Xunit;
+
+namespace LiteFramework.Core.Tests
+{
+    /// <summary>
+    /// M3-5 守卫：已迁移的操作面不得回退到裸 <c>CancellationTokenSource</c>。
+    /// 迁移清单随批次推进（M3-5a：UI 打开/导航；后续内容/场景/会话）。
+    /// </summary>
+    public sealed class OperationScopeGuardTests
+    {
+        [Theory]
+        [InlineData("Packages/com.litegame.framework/Runtime/Services/UI/Service/UIService.cs")]
+        [InlineData("Packages/com.litegame.framework/Runtime/Services/UI/Navigation/UINavigationController.cs")]
+        [InlineData("Packages/com.litegame.framework/Runtime/Services/UI/Transition/UITransitionRunner.cs")]
+        [InlineData("Packages/com.litegame.framework/Runtime/Services/Content/Activation/PatchRunner.cs")]
+        [InlineData("Packages/com.litegame.framework/Runtime/Services/Content/Candidate/Http/HttpCandidateFetcher.cs")]
+        public void 已迁移文件_只经OperationScope持有取消(string relativePath)
+        {
+            string root = RepoRoot();
+            string path = Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            Assert.True(File.Exists(path), "文件不存在：" + path);
+            string text = File.ReadAllText(path);
+
+            Assert.DoesNotContain("new CancellationTokenSource", text);
+            Assert.DoesNotContain("WorkCts", text);
+            Assert.Contains("OperationScope.Start(", text);
+        }
+
+        [Fact]
+        public void 转场_取消源归作用域_播放容器只读令牌()
+        {
+            string root = RepoRoot();
+            string motion = File.ReadAllText(Path.Combine(root, "Packages/com.litegame.framework/Runtime/Services/UI/Anim/MotionOutcome.cs"));
+            Assert.DoesNotContain("new CancellationTokenSource", motion);
+
+            string context = File.ReadAllText(Path.Combine(root, "Packages/com.litegame.framework/Runtime/Services/UI/Transition/TransitionReq.cs"));
+            Assert.Contains("OperationScope Scope", context);
+            Assert.DoesNotContain("CancellationTokenSource", context);
+        }
+
+        [Fact]
+        public void 场景服务_操作经作用域_生命周期CTS仅一处()
+        {
+            string path = Path.Combine(RepoRoot(), "Packages/com.litegame.framework/Runtime/Adapters/YooAsset/Scene/SceneService.cs");
+            string text = File.ReadAllText(path);
+
+            Assert.Contains("OperationScope.StartLinked(", text);
+            Assert.Contains("scene.load", text);
+            Assert.Contains("scene.unload", text);
+            // 仅服务生命周期一枚（_lifetime）；操作面不得再各持 CTS。
+            Assert.Equal(1, CountOccurrences(text, "new CancellationTokenSource"));
+        }
+
+        private static int CountOccurrences(string text, string token)
+        {
+            int count = 0, index = 0;
+            while ((index = text.IndexOf(token, index, StringComparison.Ordinal)) >= 0)
+            {
+                count++;
+                index += token.Length;
+            }
+            return count;
+        }
+
+        private static string RepoRoot()
+        {
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Tests", "Tests.slnx")))
+                dir = dir.Parent;
+            Assert.NotNull(dir);
+            return dir.FullName;
+        }
+    }
+}

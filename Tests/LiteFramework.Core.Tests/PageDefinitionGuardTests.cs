@@ -13,7 +13,7 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "Assets/LiteGame/Modules/Config/TableLayout.cs",
+            "Assets/LiteGame/Modules/Config/Table/TableLayout.cs",
             "Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs",
         };
 
@@ -22,7 +22,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             var offenders = new List<string>();
-            string[] roots = { "Packages/com.litegame.framework/Runtime/Services", "Packages/com.litegame.framework/Runtime/Hosting", "Assets/LiteGame/App", "Assets/LiteGame/Modules", "Assets/LiteGame/Adapters/LuaBridge" };
+            string[] roots = { "Packages/com.litegame.framework/Runtime/Services", "Packages/com.litegame.framework/Runtime/Hosting", "Assets/LiteGame/App", "Assets/LiteGame/Modules" };
 
             foreach (string relativeRoot in roots)
             {

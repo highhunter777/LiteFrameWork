@@ -53,19 +53,6 @@ MonoBehaviour:
         FilterRuleName: CollectAll
         AssetTags: 
         UserData: 
-    - GroupName: Lua
-      GroupDesc: "lua \u6587\u4EF6"
-      AssetTags: 
-      ActiveRuleName: EnableGroup
-      Collectors:
-      - CollectPath: Assets/LiteGame/Lua
-        CollectorGUID: 
-        CollectorType: 0
-        AddressRuleName: AddressByFileName
-        PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: lua
-        UserData: 
     - GroupName: UIScreens
       GroupDesc: "UI \u754C\u9762 prefab\uFF08PackSeparately \u5355\u754C\u9762\u5355\u5305\uFF0C\u652F\u6491\u70ED\u66F4\u7C92\u5EA6\uFF09"
       AssetTags: 

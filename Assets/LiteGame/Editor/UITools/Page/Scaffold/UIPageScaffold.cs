@@ -22,10 +22,6 @@ namespace LiteGame.Editor.UITools.Page
     {
         public const string TemplateDir = "Assets/LiteGame/Editor/UITools/Templates";
         public const string TemplatePath = TemplateDir + "/Tmp_Page.prefab";
-        /// <summary>页面 Lua 目录（根单源＝<c>LiteGame.Modules.Shared.LuaLayout.LuaDir</c>＋`UI`；
-        /// 本程序集不引用 LiteGame.Shared，故此处只能拼常量——随页面 Lua 面在 P2 一并删除。</summary>
-        public const string LuaDir = "Assets/LiteGame/Lua/UI";
-
         /// <summary>页根契约参数（模板与起页共用单源）。</summary>
         public const float ReferenceWidth = 1920f;
 
@@ -73,7 +69,7 @@ namespace LiteGame.Editor.UITools.Page
         };
 
         /// <summary>
-        /// 起页内核（§3.1）：视觉基线复制为自包含 prefab + 补根契约 + 页面清单草稿；不写 Lua、不写表。
+        /// 起页内核（§3.1）：视觉基线复制为自包含 prefab + 补根契约 + 页面清单草稿；不写表。
         /// 任一步失败都删除新建 prefab，并把清单恢复为操作前状态（原子失败）。
         /// </summary>
         public static ScaffoldResult Scaffold(string pageName, string baselinePath = null,
@@ -346,22 +342,6 @@ namespace LiteGame.Editor.UITools.Page
             }
 
             return null;
-        }
-
-        internal static string BuildLuaSkeleton(string pageName)
-        {
-            return
-                $"-- UI/{pageName}.lua：页面骨架（登记生成）\n" +
-                "local class = require(\"Core.class\")\n\n" +
-                $"local M = class(\"{pageName}\")\n\n" +
-                "function M:ctor()\n" +
-                $"    self._viewName = \"{pageName}\"\n" +
-                "end\n\n" +
-                "function M:OnShow(data)\n" +
-                "end\n\n" +
-                "function M:OnHide()\n" +
-                "end\n\n" +
-                "return M\n";
         }
 
         internal static void EnsureFolder(string path)

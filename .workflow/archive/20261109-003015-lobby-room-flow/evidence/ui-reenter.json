@@ -1,0 +1,29 @@
+{
+  "success": true,
+  "command": "command run_script",
+  "data": {
+    "command": "run_script",
+    "parameters": {
+      "file": "AgentScripts/LobbyRoomFlow/RunRoomFlowUi.cs",
+      "entry": "RunRoomFlowUi.Run",
+      "args": "[\"QuickEnter\"]",
+      "timeout_ms": 45000
+    },
+    "result": {
+      "diagnostics": [],
+      "compileMs": 526,
+      "executeMs": 491,
+      "assemblyName": "PipelineRunScript_RunRoomFlowUi_8fabbef2eb024783a6c3e1ea8682b9b9",
+      "success": true,
+      "result": "action=QuickEnter\r\nroom=source=IRoomView(RoomBridge);view=true;seats=1;expected=2;owner=true;ui_rows=1\r\njoin_log_hint=Unity Console: [Battle] joined (JoinAck)（排队/入场日志由流程侧打印）\r\nok=true\r\nbefore_pages=Page_Lobby\r\nafter_pages=Page_Room\r\nclick_target=Lobby.Btn_QuickEnter(Btn_QuickEnter)\r\nclick_center=(1692.0,696.0)\r\nclick_first_hit=[UIRoot]/Bottom/Page_Lobby(Clone)/Cot_SafeArea/Cot_ActionBar/Btn_QuickEnter\r\nclick_handler=Btn_QuickEnter\r\nstep1=expect=Btn_QuickEnter 真实指针可点\r\nstep2=click=target=Lobby.Btn_QuickEnter(Btn_QuickEnter);page=Page_Lobby;center=(1692.0,696.0);hit=[UIRoot]/Bottom/Page_Lobby(Clone)/Cot_SafeArea/Cot_ActionBar/Btn_QuickEnter\r\nstep3=assert=Page_Room IsOpen\r\nstep4=assert=房间页可操作（Btn_Leave 命中）\r\nstep5=assert=房间投影席位非空\r\n"
+    },
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7801,
+      "projectPath": "E:\\unityProject\\Test"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}

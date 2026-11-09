@@ -1,0 +1,7 @@
+T2/T9 C1 改名证据（2026-11-09）
+7 文件 rename_asset（GUID 不变）+ Battle/Session 类名互换 + 39 文件 168 处替换
+Unity recompile: completed, failed=false
+L1: 1961 tests PASS
+RoomFlow 26/26, MatchLoopLeak 1/1, BattleSession 12/12
+rg 词边界旧名生产=0；Battle 侧旧名=0；Tests/EditMode 旧名=0
+遗留：arch/units.json、Docs 旧名（T6）；M3 的 MetaEntryService/ MetaEntrySession（T4）；IAccountLoginControl.LeaveMatch（T5）

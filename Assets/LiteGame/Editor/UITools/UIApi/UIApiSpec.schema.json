@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "UIApiSpec.schema.json",
   "title": "UIApiSpec",
-  "description": "UI 受控 API 唯一源（《UI 系统总设计》§5.14）。一条 method = 一个 C# 方法；lua 数组 = 该方法对 Lua 暴露的门面名。",
+  "description": "UI 受控 API 唯一源（《UI 系统总设计》§5.14）。一条 method = 一个 C# 方法；api 数组 = 该方法暴露的受控 API 名。",
   "type": "object",
   "required": [
     "version",
@@ -83,7 +83,7 @@
           },
           "index": {
             "type": "boolean",
-            "description": "false = 不在 UIBindIndex 上生成声明（Lua 专属）"
+            "description": "false = 不在 UIBindIndex 上生成声明（仅基类转发/手工面）"
           },
           "summary": {
             "type": "string"
@@ -113,7 +113,7 @@
               }
             }
           },
-          "lua": {
+          "api": {
             "type": "array",
             "items": {
               "type": "object",
@@ -252,7 +252,7 @@
           },
           "shape": {
             "enum": [
-              "bindButton"
+              "bindButtonClick"
             ]
           },
           "summary": {

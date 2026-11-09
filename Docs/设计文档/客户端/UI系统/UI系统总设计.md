@@ -27,9 +27,9 @@
 | UI 服务与页面实例 | `Packages/com.litegame.framework/Runtime/Services/UI/UIService.cs`、`UIForm.cs`、`UIFormStore.cs`、`UIStack.cs`、`UILayerGroup.cs`、`UIFormLogicBinder.cs`、`UIFormCacheEvictor.cs`、`UIFormStats.cs`、`UILayerGroupFactory.cs`、`NullUIFormLogic.cs` | 已具备打开合流、取消、缓存、租约、遮盖、状态机与失败回滚；服务只留开关管线与缓存记账，逻辑解析/换表、预算淘汰、统计、根装配各成协作件 |
 | 导航/模态/焦点/输入 | `UINavigationController.cs`、`UIModalStack.cs`、`UIFocusCoordinator.cs`、`Input/UIInput.cs` | 单写者、Back 优先级、模态射线与焦点已收口 |
 | 转场与动效原语 | `Transition/UITransitionRunner.cs`、`Anim/UIAnimationClock.cs`、`Anim/UIFx.cs` | 状态机 + 超时 + 时钟 + 唯一 DOTween 入口 |
-| 绑定与生成 | `Assets/LiteCodeGen/**`、`Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Bind/BindIndexBuilder.cs` | 名字绑定、运行时索引、C# 生成类、受控 API、所有权互斥 |
+| 绑定与生成 | `Assets/LiteCodeGen/**`、`Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Bind/BindIndexBuilder.cs` | 名字绑定、运行时索引、C# 生成类、受控 API |
 | 控件与列表 | `Widgets/**`、`VirtualList.cs`、`SimpleListView.cs` | 既有控件模板与窗口复用内核 |
-| Lua 桥接 | `Assets/LiteGame/Adapters/LuaBridge/LuaBehaviourAdapter.cs` | 页面逻辑、白名单、环境重建 |
+| 页面逻辑 | `Assets/LiteGame/Modules/UI/Pages/PageLogicBase.cs`、`Pages/Screens/**/Page_<Name>Logic.cs`、`Assets/LiteGame/Editor/UITools/Reference/UIPageLogicScanner.cs` | 页面逻辑承载（prefab 根组件）、生命周期基类、解析/扫描单源 |
 | 本地化 | `ILocaleBound`、`LTextLabel`、`LText` 服务 | 文案 key、语言切换刷新 |
 
 **重构面（可以彻底重设）**：
@@ -53,7 +53,7 @@
 | 5 | 页面与 HUD **共用**组件模板、令牌、绑定工具与调试工具 | 大型项目的复用单位是组件与规则，不是整页复制 |
 | 6 | 一套 prefab 覆盖 PC 与移动横屏；差异用**设备档/令牌/变体**表达 | 禁止为每个平台复制一套页面资产 |
 | 7 | 数据流单向：UseCase/ViewModel → 页面逻辑 → 绑定索引 → 控件 | 不引入跨语言双向 MVVM；同一属性只有一个写者 |
-| 8 | 高频数据在 C# 聚合并按脏位刷新；Lua 只做低频编排 | 避免每帧跨语言与逐条事件过 Lua |
+| 8 | 高频数据在 C# 聚合并按脏位刷新；页面逻辑只做低频编排 | 避免每帧跨层转发与逐条事件穿透 |
 | 9 | 视觉样式以**令牌引用**为主；裸颜色/裸字号必须登记例外 | 多端、主题与美术协作都要求单源 |
 | 10 | 工具只做**约束、生成、校验、预览**；运行时播放不以打开工具为条件 | 工具是质量杠杆，不是运行期依赖 |
 | 11 | 运行时调试默认**只读**；写回是编辑器显式模式，Player 只采集 patch | 防止调试态写成资产默认值 |
@@ -83,7 +83,7 @@
 2. **可扩展**：新增页面/控件/主题/端，优先通过模板、令牌、契约与工具扩展，而不是复制与特判。
 3. **可验证**：每个页面有结构校验、契约对账、布局/本地化预览、运行时诊断与性能预算。
 4. **多端一致**：PC 与移动横屏共用 prefab；安全区、DPI、超宽屏、输入方式由统一适配层处理。
-5. **可运维**：内容热更、Lua 环境重建、缓存与租约、发布门禁有明确契约。
+5. **可运维**：内容热更（含 `code/` 段逻辑热更与回滚）、缓存与租约、发布门禁有明确契约。
 6. **可诊断**：真包内能回答“页面为什么长这样、为什么点不到、这个名字被谁消费、性能花在哪”。
 
 ### 2.2 非目标
@@ -147,7 +147,7 @@ Assets/ShareResource/UI/
   Patches/        仅编辑器/dev 的 UIPatch 输出（不进包）
 Packages/com.litegame.framework/Runtime/Services/UI/        运行时基座（不改结构）
 Assets/LiteGame/Modules/UI/      页面流程适配（PageFlow/ResultRanking 等）
-Assets/LiteGame/Lua/UI/      Lua 页面逻辑
+Assets/LiteGame/Modules/UI/Pages/   页面逻辑（Page_<Name>Logic.cs + PageLogicBase）
 Assets/LiteGame/Editor/UITools/  编辑器工具链（可重构）
 Assets/LiteGame/Adapters/Dev/Projection/  运行内只读 HUD/控制台/面板（dev-only）
 Docs/设计文档/客户端/UI/      本套设计文档
@@ -201,9 +201,10 @@ Docs/设计文档/客户端/UI/      本套设计文档
 
 <a id="ch-binding-base"></a>
 
-- **唯一索引来源（运行时标记）**：`BindNode.BindName` → `BindIndexBuilder.Build` → `UIBindIndex`，按名字取控件；Lua 页面与 C# 页面（`UIBindBase` 派生）共用同一条索引。
+- **唯一索引来源（运行时标记）**：`BindNode.BindName` → `BindIndexBuilder.Build` → `UIBindIndex`，按名字取控件；页面逻辑（`PageLogicBase` 派生，prefab 根挂 `IUIFormLogic` 载体）与 HUD/工具共用一个索引实现。
 - **C# 生成类**：`BindRoot` + `BindNode` → `BindGenerator` 生成 `Xxx.cs` / `Xxx.Designer.cs`，只提供强类型字段引用（不参与索引登记）。
-- **所有权互斥**：同一控件只能被数据绑定或命令式之一驱动；Debug 三宏下违例当场抛。
+- **单一驱动路径**：页面逻辑只走命令式受控 API（`SetText`/`SetTextKey`/`BindButtonClick`/`SetList` 等）；不存在运行时“数据绑定驱动”，值变化由页面逻辑显式写。
+- **文本单写者**：同一节点不得同时有静态 `LTextKeyRef` 与动态 `SetTextKey`（`ui.contract.text-double-write`）。
 - **生命周期**：按钮、输入控件、列表行、本地化 key 的订阅随 `UnbindAll`/展示作用域清理；池化复用不得留旧回调。
 - **受控 API**：`SetText/SetTextKey/SetVisible/SetInteractable/SetProgress/SetHp/StartCountdown/SetSlider/SetToggle/SetDropdown/SetList/OnListClick/UIFx` 等；详见[UI 逻辑 API 参考](UI逻辑API参考.md)。
 - **绑定面遍历单源**：编辑器侧 `UIBindSurfaceWalker` 一次深度优先给出「本页/本模板」归属（绑定根、`Clone_` 子树、嵌套模板实例、模板内部件）；绑定 hash、页面契约生成与校验共用同一遍历，禁止各写一份。
@@ -223,8 +224,8 @@ Docs/设计文档/客户端/UI/      本套设计文档
 
 <a id="ch-page-catalog"></a>
 
-- **运行时目录**：`PageDefinition`（生成物 `UIPageCatalog.g.cs`，运行时经 `IPageCatalog` 取件）。运行时只认 `Id`/`Name`/`Location`/`LuaPath`/`Layer`/`FullScreen`/`CacheStrategy` 七项；`#uiform`、contract、manifest、hash 均为生成器输入或编辑器域，不进运行时。
-- **页面单制品**：一个页面 = 一条 `PageDefinition` + 一个 prefab；Lua 是页面逻辑代码，不计入制品数。
+- **运行时目录**：`PageDefinition`（生成物 `UIPageCatalog.g.cs`，运行时经 `IPageCatalog` 取件）。运行时只认 `Id`/`Name`/`Location`/`Layer`/`FullScreen`/`CacheStrategy` 六项（`Controls`/`TextKeys`/`StyleRefs` 是契约投影，只给工具与校验）；`#uiform`、contract、manifest、hash 均为生成器输入或编辑器域，不进运行时。
+- **页面单制品**：一个页面 = 一条 `PageDefinition` + 一个 prefab；页面逻辑件（`Page_<Name>Logic.cs`）是代码，不计入制品数。
 - **页面 ID 段**（推荐）：
 
 | 段 | 用途 |
@@ -243,10 +244,10 @@ Docs/设计文档/客户端/UI/      本套设计文档
 
 <a id="ch-page-definition"></a>
 
-- **唯一源**：`#uiform`（id/prefab/lua/layer/fullscreen）+ `UIPageManifest`（Owner/状态/设备档/缓存策略）+ `UIPageContract`（绑定表/文案；控件表已由 prefab BindNode 生成），由 `codegen.ui-page` 生成器合并为 `PageDefinition`。
-- **生成物**：`Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteFramework` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，`LiteGame.Adapters.LuaBridge` 也要消费；生成物只依赖壳类型，不依赖产品程序集。
+- **唯一源**：`#uiform`（id/prefab/layer/full_screen，五列）+ `UIPageManifest`（Owner/状态/设备档/缓存策略）+ `UIPageContract`（绑定表/文案；控件表已由 prefab BindNode 生成），由 `codegen.ui-page` 生成器合并为 `PageDefinition`。
+- **生成物**：`Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteFramework` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，页面目录端口 `IPageDirectory`（`LiteGame.Modules.UI`）与调试/探针面都要消费；生成物只依赖壳类型，不依赖产品程序集。
 - **缺失处理**：缺失 contract 的 Tmp 页告警并以空绑定表生成；缺失 prefab/table 行 fail-fast；同一 prefab 多行（如 201/206）各生成一条，id 独立。
-- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Packages/com.litegame.framework/Runtime/Services`、`Assets/LiteGame/Modules`、`Assets/LiteGame/Adapters/LuaBridge` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
+- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Packages/com.litegame.framework/Runtime/Services`、`Assets/LiteGame/Modules` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
 - **迁移结果**：旧 `UIFormInfo`/`UIFormCatalog` 已删除；运行时只认 `PageDefinition`/`IPageCatalog`。
 
 ### 5.2 生命周期与状态机
@@ -333,7 +334,7 @@ UseCase / Service / Sim Snapshot
 ViewModel / HudModel (C#)  ──高频脏位──►  绑定索引 / 控件
         │  (低频命令)
         ▼
-Page Logic (C# UIBindBase 或 Lua)
+Page Logic (C#：PageLogicBase 派生 Page_<Name>Logic)
         │
         └──►  UIBindIndex (SetText/SetList/SetHp/...)
 ```
@@ -341,20 +342,20 @@ Page Logic (C# UIBindBase 或 Lua)
 | 数据类 | Owner | 刷新时机 |
 | --- | --- | --- |
 | 静态 | 页面初始化数据 | `OnInit`/内容版本变化 |
-| 离散事件 | C# 页面模型或 Lua | 值变化后刷新；重复值跳过 |
+| 离散事件 | C# 页面模型 | 值变化后刷新；重复值跳过 |
 | 高频 HUD | C# `HudModel` 聚合 | 逻辑输入/快照提交后记脏位，渲染帧 flush 一次 |
 | 视觉连续 | C# ticker + `UIClock` | 渲染帧；血条插值/倒计时/飘字 |
-| Lua 低频编排 | Lua 页面 | 默认 `OnUpdate` 关闭；需要时 10Hz 上限 |
+| 页面低频编排 | 页面逻辑（C# `Page_<Name>Logic`） | 默认 `OnUpdate` 关闭；需要时 10Hz 上限 |
 
 - 同一属性只有一个写者；绑定与命令式互斥。
-- 列表用 `SetList` 整表替换 + 稳定 key；禁止每个滚动帧跨 Lua `Bind`。
+- 列表用 `SetList` 整表替换 + 稳定 key；禁止每个滚动帧重跑行绑定。
 - 页面关闭时取消展示期异步；迟到结果用 `DisplayGeneration` 丢弃。
 
 ### 5.9 绑定与控件驱动
 
 - `BindNode` 只挂在**暴露给逻辑**的节点；模板内部件不暴露（`Clone_` 条目不进索引）。
 - `BindName` 页面内唯一；默认与节点名同文（前缀_语义），作为契约 `controls[]` 的 API 名。允许为 API 稳定性显式指定独立名，但契约/引用必须使用 `BindName`，不得随视觉改名漂移。
-- Lua 页面与 C# 页面（`UIBindBase` 派生）共用同一条运行时索引；C# 生成类只提供强类型字段，不另建索引。选择规则见[UI 编辑器工具链专项设计 §绑定](UI编辑器工具链专项设计.md#ch-binding)。
+- 页面逻辑（`PageLogicBase` 派生）共用同一条运行时索引；C# 生成类只提供强类型字段，不另建索引。选择规则见[UI 编辑器工具链专项设计 §绑定](UI编辑器工具链专项设计.md#ch-binding)。
 - 生成类只由生成器写；手写逻辑在 partial 主文件；生成物 hash 与清单由工具维护。
 - 控件内部状态（Slider/Toggle/Dropdown）用 `Set*WithoutNotify` 程序写入；用户操作才触发回调。
 
@@ -371,6 +372,7 @@ Page Logic (C# UIBindBase 或 Lua)
 
 - **错误契约**：已关闭服务再调用抛 `ObjectDisposedException`；程序员错误 fail-fast；内容缺失 `Log.Warning` + 默认值。
 - **反馈面统一**：Dialog/Loading/Toast/Error 全部归 System 层，由 `FeedbackService` 驱动；不得在服务内自建 Canvas/Toast，与模板并存。
+- **Toast 单入口**：`UIBindIndex.ShowToast` 经所属 `UIForm` 转发到装配注入的 `FeedbackService.ShowToast`；`UIService` 的回调在页面初始化前绑定，首条提示按需打开承载。禁止场景搜索/静态 Toast 实例；缺少装配按程序员错误显性失败，已释放服务不得消费迟到开面结果。
 - **Toast 多条并存**：按序堆叠、各自计时、上限淘汰；承载控件负责排布，服务不逐条摆位。
 - **Loading**：可由启动预载/场景加载/进房等待复用；必须支持不定态、阶段文案、取消与失败重试。
 - **错误页**：引导期资源不可用时允许代码构建兜底页；常规流程可达的界面必须走模板（§6.6）。
@@ -379,8 +381,8 @@ Page Logic (C# UIBindBase 或 Lua)
 ### 5.12 热更与环境重建
 
 - 正式热更遵循[热更与内容发布专项设计](../内容/热更与内容发布专项设计.md)；UI 只消费内容服务的结果。
-- Lua 环境重建前必须 `UIService.DropAllLogic()`（释放旧 Lua 引用），再重建 env；池中页面复用前重新解析并补跑 `OnInit`。
-- 内容版本切换时清缓存实例或按版本键隔离；不得复用旧 env 的对象。
+- 逻辑热更由 HybridCLR 承接：hot 程序集清单含 `LiteGame.Modules.UI`（页面逻辑），`HotUpdateLoader` 是唯一装载点；`code/` 段切换后按"旧房排空 + 双槽 + 内置兜底"回滚，不复用旧程序集的页面实例。
+- 内容版本切换时清缓存实例或按版本键隔离；不得复用旧内容版本的对象。
 - 调试补丁只走 `UiPatch`，不形成第二套资产真相。
 
 ### 5.13 UI 操作串行化（IUIOperationQueue）
@@ -407,18 +409,16 @@ Page Logic (C# UIBindBase 或 Lua)
 
 <a id="ch-ui-api-spec"></a>
 
-- **唯一源**：`Assets/LiteGame/Editor/UITools/UIApi/UIApiSpec.json`（schema `UIApiSpec.schema.json`）逐条声明 C# 名、Lua 名、参数/返回、文档、暴露面与手工处理器。
+- **唯一源**：`Assets/LiteGame/Editor/UITools/UIApi/UIApiSpec.json`（schema `UIApiSpec.schema.json`）逐条声明 C# 名、参数/返回、`api[]` 暴露面（名/分类/调用映射/文档）与手工处理器。
 - **生成物**（`scripts/codegen/toolbox.py ui-api`，`--check` 逐字节确定性）：
   - `Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindIndex.Api.g.cs`——受控 API 的 **partial 方法声明**；实现体留在 `UIBindIndex.cs`，签名漂移即编译失败（不靠测试兜）；
   - `Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindBase.Api.g.cs`——`UIBindBase` 的转发体（手写文件只留生命周期与索引装配）；
-  - `Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIApiManifest.g.cs`——`ApiVersion` 与三张清单（Lua 名 / shim 名 / 手工处理器名），供能力声明与守卫对账；
-  - `Assets/LiteGame/Adapters/LuaBridge/Generated/UIApiShim.g.cs`——Lua `self.ui` 门面模板；
-  - `Assets/LiteGame/Adapters/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs`——payload 表派发 switch；
-  - `Docs/设计文档/客户端/UI系统/UI逻辑API参考.md` §3 的生成区（`<!-- BEGIN/END:ui-api:lua -->` 之间）。
-- **手工例外**：`showConfirm`（异步确认）、`setList`/`onListClick`（LuaTable 行转换）、`onButton`（Lua 闭包）在 spec 标 `manual`；生成的 dispatch `default` 转 `TryDispatchManual`，其余 API 不得手写派发。
-- **默认值单源**：动效/气泡缺省仍只认 `UIFxDefaults`——shim 生成 `%Fx*%` 占位符，适配器启动期用常量替换；spec 不复制数值。
-- **版本**：`BridgeCapabilitySet.ApiVersion` 读生成的 `UIApiManifest.ApiVersion`（spec `apiVersion`）；新增 API = 改 spec + 重生成。
-- **守卫**：`UIApiSpecGuardTests` 对账清单/版本/shim/dispatch；`gen-ui-api.py --check` 挂工具链（`codegen.ui-api`）。
+  - `Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIApiManifest.g.cs`——`ApiVersion` 与方法名清单（`SpecMethods`/`GeneratedMethods`/`ManualMethods`/`IndexMethods`），供能力声明与守卫对账。
+  - `Docs/设计文档/客户端/UI系统/UI逻辑API参考.md` 为手写导读，**不再由生成器覆盖**（方法签名以 `UIBindIndex.Api.g.cs` 为准）。
+- **手工例外**：`showConfirm`（异步确认——C# 侧不经受控 API，走 `IPageContext.Confirm`/`IConfirmDialog`）、`setList`/`onListClick`（`IUIListRows` 行转换）、`onButtonClick`（委托绑定）在 spec 标 `manual`；生成面只为其余 API 产出声明与转发，手工面不回写生成文件。
+- **默认值单源**：动效/气泡缺省只认 `UIFxDefaults`——受控 API 的参数默认值直接取该常量；spec 不复制数值。
+- **版本**：构建身份 `BuildIdentity.BridgeApiVersion` 取生成的 `UIApiManifest.ApiVersion`（spec `apiVersion`），发布清单 `ReleaseManifest.BridgeApiVersion` 在准入时与本机比对；新增 API = 改 spec + 重生成 + 守卫下限同批抬升。
+- **守卫**：`UIApiSpecGuardTests` 对账清单/版本/声明与转发一致性；`toolbox.py ui-api --check` 挂工具链（`codegen.ui-api`）。
 
 ## 6. 视觉与样式体系
 
@@ -574,14 +574,15 @@ Page Logic (C# UIBindBase 或 Lua)
 
 - HUD prefab 住 `Assets/LiteGame/Modules/Battle/Content/Hud/Hud_*.prefab`，根名 `Hud_<Semantic>`。
 - 对局视图装配时实例化并解析序列化引用；禁止字符串路径 `Find`。
+- 装配器依赖 `IBattleHudView`（序列化引用契约，`BattleHudView` 实现）与框架 `IHudDriver`（统一 `Tick(float)`）；`BattleHudAssembler` 继承 `HudAssemblerBase<IBattleHudView>`，驱动按装配顺序注册进列表，`Dispose` 时逐项移除。
 - 对局结束/退出时停止 ticker、解绑事件、释放租约；不得留到下一局。
 - HUD 的 Canvas 与排序带独立定义（目标 1000–1999），不参与 `UIService` 层组。
 
 ### 8.3 数据流与刷新
 
-- 高频数据由 C# `HudModel` 聚合：血量/弹药/冷却/击杀/网络状态；按脏位在渲染帧 flush。
+- `BattleHudModel` 聚合读源：`Predicted`（本地预测态）/`Public`（权威镜像）/`Respawn`（阵亡锁存）、`LocalEntityId`、`Quality`（网络质量）、`Feed`（公共击杀面）；驱动每帧拉取事实，不缓存可变世界状态。
 - 每帧只更新变化项；稳定帧零分配、零字符串拼接。
-- Lua 不参与高频 HUD；需要脚本化时只做低频编排（击杀播报、提示）。
+- 页面逻辑不参与高频 HUD；击杀播报、提示这类低频编排也留在 C#（不引入第二套脚本面）。
 - 数据来源是快照/逻辑帧，不读 UI 文本决定玩法。
 
 ### 8.4 层级与排序
@@ -634,7 +635,7 @@ Page Logic (C# UIBindBase 或 Lua)
 
 ### 9.3 定义与预算
 
-- 时长/曲线来自 Motion 令牌；默认值集中在 `UIFxDefaults`，Lua shim 与 C# 同源。
+- 时长/曲线来自 Motion 令牌；默认值集中在 `UIFxDefaults`，受控 API 与 C# 实现同源。
 - 效果定义声明：目标、通道、时长、优先级、上限、降级策略。
 - 同时可见粒子系统数、UI 音效并发数有预算；低端档降级为静态/无粒子。
 - 减少动效模式：转场立即完成，控件动效跳过或缩短。
@@ -671,9 +672,9 @@ Page Logic (C# UIBindBase 或 Lua)
 
 ### 10.4 热更与版本
 
-- UI prefab/图集/字体作为内容包发布；脚本/Lua 按热更专项的窗口激活。
+- UI prefab/图集/字体作为内容包发布；逻辑程序集（`code/` 段，HybridCLR hot 程序集）按热更专项的窗口激活。
 - 页面契约 `sourceHash` 与绑定生成物 hash 进入 CI；内容包与代码版本不匹配时拒绝进入。
-- 热更失败保留已发布版本；环境重建清旧实例引用。
+- 热更失败保留已发布版本；逻辑热更/回滚清旧实例引用。
 
 ### 10.5 发布门禁
 
@@ -704,7 +705,7 @@ Page Logic (C# UIBindBase 或 Lua)
 | --- | --- | --- |
 | L1 纯逻辑 | 请求合并、队列拒绝、导航历史、深度分配、缓存淘汰、代次/取消、契约 diff、patch 模型 | 一请求一终态；排序不重叠；所有权对称 |
 | L2 EditMode | prefab 根契约、命名、绑定、资源引用、本地化 key、令牌、契约、hash | 正例绿 + 违规负例红；报告可定位资产/节点 |
-| L2 PlayMode | 真 `UIService` + 真 Lua/C# 页面开关复用、取消、三层遮盖、模态输入、列表滚动、语言切换、DevReload、HUD 刷新 | 可见可点且数据正确；无迟到写入；清理后订阅/对象归零 |
+| L2 PlayMode | 真 `UIService` + 真页面逻辑件开关复用、取消、三层遮盖、模态输入、列表滚动、语言切换、DevReload、HUD 刷新 | 可见可点且数据正确；无迟到写入；清理后订阅/对象归零 |
 | L4 Player/真机 | 真实 AB/内容模式、低内存、前后台、热更失败恢复、长文本/安全区、长时操作、性能 | 达到预算并有构建/日志/Profiler 证据 |
 
 ### 11.3 设备矩阵
@@ -716,7 +717,7 @@ Page Logic (C# UIBindBase 或 Lua)
 
 ### 11.4 观测点
 
-- ProfilerMarker：Show/Init/Commit/Close/Dispose、Lua 回调、转场、列表 Bind/滚动、HUD flush。
+- ProfilerMarker：Show/Init/Commit/Close/Dispose、页面逻辑回调、转场、列表 Bind/滚动、HUD flush。
 - 计数：打开/加载/缓存数、租约/订阅/动画数、队列长度/拒绝/超时、列表节点数、内容版本、最近失败。
 - UI 调试读模型按需采样（≤4Hz），隐藏即停；不做每帧全树扫描。
 - 真机证据：截图/dump/现场包/patch，带构建身份与页面上下文。
@@ -746,7 +747,7 @@ Page Logic (C# UIBindBase 或 Lua)
 | P2 工作台与起页 | 单工作台 + 美术/工程 Lane；起页/登记拆分；绑定编辑；样式令牌；布局预览 | 美术独立起页并交接；工程登记/接线；工具入口全部走 Hub/CLI |
 | P3 运行时调试 | 读模型 + 页面命令 + 状态注入 + 可点性 + 编辑器深检 + F8 | 真包内可回答页面/绑定/布局/输入/性能问题；release 零残留 |
 | P4 迁移与多端 | 现有 7 页 + HUD 迁移；安全区/设备档；性能预算；视觉基线 | PC + 移动横屏验收；关键页面无首开失败；预算有证据 |
-| P5 生产闭环 | 热更/环境重建/回滚；CI 全量；度量与复盘 | 内容更新可回滚；门禁稳定；交接度量达标 |
+| P5 生产闭环 | 热更/逻辑热更回滚；CI 全量；度量与复盘 | 内容更新可回滚；门禁稳定；交接度量达标 |
 
 **风险与对策**：
 
@@ -765,6 +766,6 @@ Page Logic (C# UIBindBase 或 Lua)
 | 角色、所有权、契约交接、评审门、度量 | [UI 美术协作与交接规范](../../../规范/06-UI美术协作与交接.md) |
 | 目录、Prefab 根、命名、布局、渲染、文本、动效、提交硬规则 | [UI 制作规范](../../../规范/05-UI制作.md) |
 | 命名词表、控件清单、选段指引 | [UI 命名与控件词表参考](UI命名与控件词表参考.md) |
-| Lua/C# 受控 API、调用约定、错误语义 | [UI 逻辑 API 参考](UI逻辑API参考.md) |
+| C# 受控 API（`UIBindBase`/`UIBindIndex`）、页面逻辑基类与端口、调用约定、错误语义 | [UI 逻辑 API 参考](UI逻辑API参考.md) |
 
 > 变更先判断职责再落笔；跨文档只引用唯一权威，不复制第二份。设计文档只描述现行形态与目标契约，不记录施工状态。

@@ -31,7 +31,6 @@ namespace LiteGame.Editor.Toolchain
             "LiteGame.Modules.Settings",
             "LiteGame.Modules.UI",
             "LiteGame.Adapters.Dev",
-            "LiteGame.Adapters.LuaBridge",
             "LiteGame.Adapters.Luban",
             "LiteGame.Adapters.Unity",
             "LiteGame.App",

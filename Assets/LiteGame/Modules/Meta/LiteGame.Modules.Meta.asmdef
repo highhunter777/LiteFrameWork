@@ -13,8 +13,7 @@
         "LiteSim",
         "Luban.Runtime",
         "Luban.Tables",
-        "UniTask",
-        "xLuaMain"
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

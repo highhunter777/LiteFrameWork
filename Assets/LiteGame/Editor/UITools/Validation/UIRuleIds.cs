@@ -18,7 +18,7 @@ namespace LiteGame.Editor.UITools.Validation
         /// <summary>契约：页面清单与 `tbuiform`/磁盘一致（漂移与对账检查）。</summary>
         public const string PageManifest = "ui.page-manifest";
 
-        /// <summary>文本：静态文案 key 必须在 tbltext（`LTextKeyRef` 与 Lua `SetTextKey*` 两路）。</summary>
+        /// <summary>文本：静态文案 key 必须在 tbltext（`LTextKeyRef` 与 C# `SetTextKey*` 两路）。</summary>
         public const string TextStaticKey = "ui.text.static-key";
 
         /// <summary>文本：占位符使用不符（无参静态键挂带参条目/`SetTextKeyArgs` 参数数与条目不符）。</summary>
@@ -60,7 +60,7 @@ namespace LiteGame.Editor.UITools.Validation
         /// <summary>契约：盘上契约与按 prefab 重生成结果不一致（含手改检出）。</summary>
         public const string ContractDrift = "ui.contract.drift";
 
-        /// <summary>契约：引用对账（required 控件未被 Lua 消费＝Warning；Lua 调用点名不在契约面＝Error）。</summary>
+        /// <summary>契约：引用对账（required 控件未被页面逻辑消费＝Warning；页面调用点名不在契约面＝Error）。</summary>
         public const string ContractReference = "ui.contract.reference";
 
         /// <summary>契约：页面逻辑件与 prefab 载体对账（逻辑件存在 ⇒ 根挂 IUIFormLogic；重复实现报错）。</summary>

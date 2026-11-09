@@ -17,7 +17,7 @@ namespace LiteFramework.UI
         /// <summary>Slide 入场时长（秒）。</summary>
         public const float SlideDuration = 0.25f;
 
-        /// <summary>气泡展示时长（秒；UIBubble 与 Lua showBubble 缺省共用）。</summary>
+        /// <summary>气泡展示时长（秒；UIBubble 与页面逻辑缺省共用）。</summary>
         public const float BubbleDuration = 1.5f;
     }
 }

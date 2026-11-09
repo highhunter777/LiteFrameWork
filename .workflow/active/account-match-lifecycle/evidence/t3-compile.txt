@@ -1,0 +1,25 @@
+T3 测试作者编译证据 2026-11-09（最终）
+
+unity command recompile: success (无编译错误)
+unity command recompile_status:
+{
+  "success": true,
+  "command": "command recompile_status",
+  "data": {
+    "command": "recompile_status",
+    "parameters": {},
+    "result": "{\"status\":\"completed\",\"failed\":false,\"errors\":[],\"compilationFailed\":false}",
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7801,
+      "projectPath": "E:\\unityProject\\Test"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}
+
+dotnet build Tests/LiteFramework.Core.Tests: 0 errors
+dotnet test Tests/LiteFramework.Core.Tests（全量）: 814 passed / 1 failed（预期红：重入_开面异步入队_落地前再次401不重复导航）
+dotnet test Tests/LiteFramework.Core.Tests --filter FullyQualifiedName~AccountDomain: 5 passed / 1 failed / 6 total

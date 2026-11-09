@@ -1,0 +1,29 @@
+{
+  "success": true,
+  "command": "command run_script",
+  "data": {
+    "command": "run_script",
+    "parameters": {
+      "file": "AgentScripts/LobbyRoomFlow/RunRoomFlowUi.cs",
+      "entry": "RunRoomFlowUi.Run",
+      "args": "[\"BattleMenuLeave\"]",
+      "timeout_ms": 45000
+    },
+    "result": {
+      "diagnostics": [],
+      "compileMs": 652,
+      "executeMs": 1708,
+      "assemblyName": "PipelineRunScript_RunRoomFlowUi_b00f42db22414daeba2eb588a335aab2",
+      "success": true,
+      "result": "action=BattleMenuLeave\r\nroom_after=source=IRoomView(RoomBridge);view=true;seats=0;expected=0;owner=false;ui_rows=0\r\nok=true\r\nbefore_pages=(none)\r\nafter_pages=Page_Lobby\r\nclick_target=Dialog.Confirm.OkButton(Button_Ok)\r\nclick_center=(1070.0,444.0)\r\nclick_first_hit=[UIRoot]/Window/Tmp_Dialog(Clone)/Dialog_Confirm/Button_Ok\r\nclick_handler=Button_Ok\r\nstep1=input=InputSystem QueueStateEvent Keyboard Escape 按下/释放（真实设备状态事件）\r\nstep2=assert=Esc 打开真实 Page_Settings\r\nstep3=click=target=Settings.Btn_ExitMatch(Btn_ExitMatch);page=Page_Settings;center=(1612.0,1012.0);hit=[UIRoot]/Window/Page_Settings(Clone)/Cot_SafeArea/Cot_Header/Btn_ExitMatch\r\nstep4=assert=退出确认模态可见\r\nstep5=click=target=Dialog.Confirm.OkButton(Button_Ok);page=(unknown);center=(1070.0,444.0);hit=[UIRoot]/Window/Tmp_Dialog(Clone)/Dialog_Confirm/Button_Ok\r\nstep6=assert=设置页/确认模态关闭\r\nstep7=assert=大厅可操作\r\nstep8=assert=房间投影为空\r\n"
+    },
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7801,
+      "projectPath": "E:\\unityProject\\Test"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}

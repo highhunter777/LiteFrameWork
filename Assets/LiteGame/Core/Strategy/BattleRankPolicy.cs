@@ -72,7 +72,7 @@ namespace LiteGame
             return rank;
         }
 
-        /// <summary>Lua 事实串（默认 = <c>kills_desc_entity_asc</c>，与 B3b 既有值兼容）——策略值的规范文本。</summary>
+        /// <summary>策略事实串（默认 = <c>kills_desc_entity_asc</c>，与 B3b 既有值兼容）——策略值的规范文本。</summary>
         public string ToWireValue()
             => (Order == BattleRankOrderKind.KillsDescending ? "kills_desc" : "kills_asc")
                + (TieBreak == BattleRankTieBreak.EntityIdAscending ? "_entity_asc" : "_entity_desc");

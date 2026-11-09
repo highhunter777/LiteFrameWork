@@ -124,14 +124,15 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void DI_注册即发现_ITickable自动入列_多接口不双Tick()
+        public void 帧调度_注册即发现_ITickable自动入列_多接口不双Tick()
         {
             var c = new ServiceContainer();
+            using var frames = new FrameSchedule(c);
             var tickable = new DualInterface();
             c.RegisterInstance<DualInterface>(tickable);
             c.RegisterInstance<IThing>(tickable);      // 同一实例注册在两个接口下
 
-            Assert.Single(c.Tickables);                // Contains 守卫：不双收
+            Assert.Single(frames.Tickables);                // Contains 守卫：不双收
         }
 
         private interface IThing { }

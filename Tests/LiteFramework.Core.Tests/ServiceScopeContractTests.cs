@@ -147,8 +147,8 @@ namespace LiteFramework.Tests
             root.Seal();
             var child = (ServiceContainer)root.CreateScope("Match");
             child.Register<TransientTick, TransientTick>(ServiceLifetime.Transient);
-            Assert.Contains("Transient", Assert.Throws<InvalidOperationException>(() => child.SetTickOrder(typeof(TransientTick))).Message);
-            Assert.Contains("Transient", Assert.Throws<InvalidOperationException>(() => child.Seal()).Message);
+            Assert.Contains("Transient", Assert.Throws<InvalidOperationException>(() => new FrameSchedule(child)).Message);
+            child.Seal(); // 无帧计划时，纯容器不按 ITickable 类型限制服务。
             child.Dispose();
         }
 

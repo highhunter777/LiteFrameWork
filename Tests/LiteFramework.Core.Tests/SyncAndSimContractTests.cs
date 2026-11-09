@@ -145,7 +145,7 @@ namespace LiteFramework.Core.Tests
         [Fact]
         public void UT15_WriteGeneratedRemoved()
         {
-            string text = ReadRepoText("Assets/LiteGame/Editor/Baking/BakeTargets.cs");
+            string text = ReadRepoText("Assets/LiteGame/Editor/Baking/Targets/BakeTargets.cs");
             Assert.DoesNotContain("WriteGenerated", text);
         }
 
@@ -154,7 +154,7 @@ namespace LiteFramework.Core.Tests
         [Fact]
         public void UT16_SimView_SnapshotIntervalIsInstance()
         {
-            string text = ReadRepoText("Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/SimView.cs");
+            string text = ReadRepoText("Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/View/SimView.cs");
             Match declaration = Regex.Match(text,
                 @"(?m)^[ \t]*(?<decl>(?:public|internal|private|protected)[^\r\n;=]*\bSnapshotInterval\b)",
                 RegexOptions.CultureInvariant);

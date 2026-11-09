@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace LiteGame.Editor.UITools.Page
 {
@@ -10,7 +10,6 @@ namespace LiteGame.Editor.UITools.Page
     public sealed class UIPageTableRow
     {
         public int id;
-        public string lua;
         public string prefab;
         public int layer;
         public bool fullScreen;

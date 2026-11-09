@@ -1,0 +1,20 @@
+你是本批T2生产实现dsh代理。用户委托主代理分配任务/验收，生产实现必须交dsh；你只写T2允许的生产源码，绝不修改测试/门禁/.workflow。测试作者是另一个独立dsh会话，生产完成后的测试调用迁移由T6处理。
+项目E:/unityProject/Test，HEAD d4f284c79adb3852b3eb68f7303d439cb4def969；当前大量既有未提交移动/修改，严禁reset/clean/stash或用HEAD覆盖。任务前快照在.workflow/active/lobby-room-flow/evidence/pre-dsh-files和manifest；不修改证据。必须读AGENTS.md、audit-debt-check/unity-asset-pipeline/unity-pipeline和相关规范，查询要改文件的审计登记；然后读取本运行plan.md、tasks.md、test-plan.md和评审记录以及T1失败测试。先在当前实现/测试上下文核对根因，不为假想需求加抽象。
+T2范围：把现有ProcedureFlow从转发件改为实质入场/取消编排。Meta只纯取票/账号事实，Procedure只消费IRoomTicketSource窄端口（不可持MetaEntryService具体类型），IRoomFlow是页面/GM的实质动作口，不新增asmdef边。CancellationToken送入IMetaClient，await返回再次验有效性；重复请求只一次。RoomFlowLifetime每实例持有操作/排队/接管/清理句柄；Main→Match排队尚未实际进入仍占用，离房/重入使句柄失效，Match创建连接前校验，旧queued先零建连接消费再放行。源DisplayToken在Request接受后解除，不能隐藏页面误取消已接受操作。新增类型保持单一职责，目录直接代码≤5，必要生命周期类型放职责子目录，不机械增加Wrapper。
+同批接线：MetaSegment登记IRoomTicketSource/事实，ProcedureSegment在同窗构建寿命/阶段机/flow并登记IRoomFlow和IAccountSessionControl同实例；AccountReentry保持登出→离场→登录，AppComposition无需BindMetaEntry反向绑定。MetaEntrySession入/建/离用IRoomFlow；列表战绩登录仍用原Meta转换。GMCreateTestRoom改同入口且保留显式sandbox模板/地图/密钥/房号/busy，凭据不落日志。正常/本地测试直入也采用共享生命周期，暂不改AccountSession/Scope定义，不动协议/Sim/Net/表。
+Match→Battle接管、await卸载、页面清理/错误恢复主要属于T3；T2允许为整体可编译放入必要生命周期契约/接线，但不要借此重写Battle算法。必须明确给T3剩余工作和接口说明。不要写任何测试，即使编译报旧测试签名，也只报告给主代理，由T6独立作者迁移。退役旧IAppFlow通过pipeline AssetDatabase保留meta规则；若删除会阻断独立测试迁移，可暂留无生产消费者的旧契约并报告T6迁移后由生产会话再删除，不保留生产旧流程副作用。不要手改meta或Unity自动生成csproj；Tests的源链接csproj交T6。
+只允许文件：['Assets/LiteGame/Core/Flow/IAppFlow.cs', 'Assets/LiteGame/Modules/Meta/Abstractions/', 'Assets/LiteGame/Modules/Meta/Client/MetaEntryService.cs', 'Assets/LiteGame/Modules/Meta/MetaSegment.cs', 'Assets/LiteGame/Modules/Procedure/Flow/ProcedureFlow.cs', 'Assets/LiteGame/Modules/Procedure/Flow/RoomFlowLifetime.cs', 'Assets/LiteGame/Modules/Procedure/Flow/AccountReentry.cs', 'Assets/LiteGame/Modules/Procedure/ProcedureSegment.cs', 'Assets/LiteGame/Modules/Procedure/Shared/ProcedureArgs.cs', 'Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Boot/ProcedureMain.cs', 'Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs', 'Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureBattle.cs', 'Assets/LiteGame/App/AppComposition.cs', 'Assets/LiteGame/App/PageServices/MetaEntrySession.cs', 'Assets/LiteGame/Editor/Gm/GMTestModePage.cs']
+若必需新增源码子目录/文件仅在这些域内、先报告理由，禁止扩到框架/网络/服务端。任何序列化资源/移动删除只经unity-pipeline；纯.cs可直接编辑，保编码/行尾。请尽量批量完成源码再一次Unity编译；若旧测试API未迁移引起错误，如实返回并等待T6，不伪称编译通过；所有生产源码本身应可编译。不要改工作流或自行标任务done。
+返回结构：会话ID、实际修改文件、新API签名/迁移说明、关键所有权/取消规则、执行命令和结果、T3剩余工作、需要T6迁移的明确调用、风险/未验项。生产作者不能通过修改测试让实现绿。避免超过20次纯调查工具调用后仍未编辑；已经提供了权威路径，不漫游全仓。
+
+阶段验收补充：T2只要求RoomFlowEntry入场用例green；仍需跑全量RoomFlow列出T3待实现的预期red。所有MetaEntry/Core接线与边界回归需green；生产作者不触测试签名。T6第一轮会接手旧测试机械调用迁移，你要先给清晰API清单和退役时机，不用增加生产兼容副作用来迎合旧测试。
+
+补充验收边界：MetaEntrySession现有入/建房await后ct.ThrowIfCancellationRequested不能机械保留为第二个取消裁决点。IRoomFlow在排队提交点接管后，页面令牌脱离；页面适配器必须遵循flow的提交/完成语义，不能在已提交后独立把成功转为取消。未提交阶段仍要传递ct，取消前零副作用。请按真实契约处理并向独立测试作者说明。
+
+T2额外已登记写集：Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_LobbyLogic.cs。对应原AC3的同根因：EnterAsync/CreateRoomAsync目前在generation检查之前及OCE catch直接写_entering=false；旧展示A迟到会清掉新展示B的busy状态。必须在任何页面状态写入前验证本次展示/操作仍有效，不能仅由域层拒绝重复进房而让旧回调改新页状态。只改入/建房同类回调，不顺手改无关UI逻辑。由独立测试作者保留旧A/新B的页面状态断言。
+
+异步移交验收注意：ProcedureStageBase.OnLeave同步Cancel阶段令牌，UniTask取消续体/完成观察可能同步执行。StageMachine在OnLeave期间禁止Request；你的生命周期完成观察与回Main机制不能在此窗口反向Request或重入同阶段，也不能先清busy后再排Main使新请求插入。请基于真实阶段机契约验证两个窗口，不修改框架来放开红线。
+
+主代理已经完成T1：独立dsh测试会话session-1ae08d74-641c-4dab-beae-c439e3030248交付4文件9测试；刺激修正后，宿主Unity编译0错，workflow verify --red真实9/9 NUnit断言red；evidence/red.json与t1-assertion-manifest.json冻结断言。当前任务T2已start，处implement阶段。
+你所在dsh工具执行环境看不到宿主Unity Pipeline（先前worker尝试启动自己的Editor仍不可达），但主代理能连接同一工程7801。不要再启动/查找/安装Unity或在此沙箱重试CLI；你专注写源代码与给出迁移交接，所有Unity编译/测试由主代理在宿主执行。涉及资产删除/移动时，不用文件系统直删IAppFlow或meta；先保留旧契约零生产消费者，给主代理一个你撰写的AssetDatabase清理脚本/精确pipeline调用供宿主执行，等独立测试迁移完成再退役。不要改任何测试或Tests.csproj，即使出现旧签名错误也交T6处理。
+T1已固定外部行为，所有实现不得通过改变测试断言满足。可读当前Tests文件理解预期，不能修改。T3尚未开始，T2结束时返回足以让T6适配新API的完整签名/注册/所有权说明。一次专注T2，不重写整个项目；必要类型可在允许域内按职责新增小文件，记录新增路径和理由。当前Source前快照见pre-dsh-manifest.json。

@@ -30,7 +30,7 @@ GOOD_MARKER = "[Asset] ready"
 # 安卓主 Activity（自定义主清单里声明的那一个）。
 ANDROID_ACTIVITY = "com.unity3d.player.UnityPlayerActivity"
 
-# 本仓库的 Android .so（xLua）只有 arm64-v8a/armeabi-v7a/x86 三份 ABI；
+# 发布 ABI 判据：本仓库 Android 构建产物以 arm64-v8a 为必备 ABI；
 # x86_64 模拟器必须开 ARM 翻译才能跑（abilist 里会带出 arm64-v8a）。
 ANDROID_REQUIRED_ABI = "arm64-v8a"
 
@@ -219,7 +219,7 @@ def run_android_smoke(args, project, log_path):
         if not abilist_supports_arm64(abilist):
             return fail(
                 "build/smoke",
-                f"device abi list has no {ANDROID_REQUIRED_ABI} (got '{abilist}') - xLua ships arm64/x86 only; "
+                f"device abi list has no {ANDROID_REQUIRED_ABI} (got '{abilist}') - release builds require arm64; "
                 "enable ARM translation in the emulator image or use another device",
             )
         info("build/smoke", f"arm preflight OK (abilist: {abilist})")

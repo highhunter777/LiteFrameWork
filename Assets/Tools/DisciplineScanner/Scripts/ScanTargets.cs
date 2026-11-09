@@ -74,7 +74,8 @@ namespace Tools.DisciplineScan
         public static readonly LintRule[] GameRules =
         {
             LintRule.R8ResourcesLoad,
-            // R12 适配器边界（《客户端总设计》§5.1"形成逻辑边界和依赖测试"）： YooAsset/xLua/DOTween 的实现只许在各自边界目录内 import—— 阻止新耦合扩散：在一体 asmdef 里，没有它，任何人都能再 import 一次而无人察觉。
+            // R12 适配器边界（《客户端总设计》§5.1"形成逻辑边界和依赖测试"）： YooAsset/DOTween 的实现只许在各自边界目录内 import—— 阻止新耦合扩散：在一体 asmdef 里，没有它，
+            // 任何人都能再 import 一次而无人察觉。
             LintRule.R12AdapterBoundary,
             // R15 平台特判收敛：Android 适配的平台差异只走 profile/四个装配收敛点，
             // 别处出现 `#if UNITY_ANDROID` 即报红（否则平台分叉会按文件数蔓延）。
@@ -117,9 +118,9 @@ namespace Tools.DisciplineScan
         /// + 三个读口定义文件（定义面自含 Publish/Loaded 声明，非消费）。</summary>
         public static readonly string[] ConfigPortExcludes =
         {
-            "Packages/com.litegame.sim/Scripts/Config/CombatConfig.cs",
-            "Packages/com.litegame.sim/Scripts/Config/MovementConfig.cs",
-            "Packages/com.litegame.sim/Scripts/Config/WeaponConfig.cs",
+            "Packages/com.litegame.sim/Scripts/Config/Combat/CombatConfig.cs",
+            "Packages/com.litegame.sim/Scripts/Config/Movement/MovementConfig.cs",
+            "Packages/com.litegame.sim/Scripts/Config/Weapon/WeaponConfig.cs",
         };
 
         /// <summary>MetaServer：R11 同类把守（《Meta 服务专项设计》§3.2/§4.2）——
@@ -451,7 +452,7 @@ namespace Tools.DisciplineScan
         }
 
         /// <summary>
-        /// **客户端框架侧纯度**（《客户端总设计》§5.1）：`LiteFramework.*`（通用核心 + 适配器）整体不得引用 任何 `LiteGame.*` 程序集——产品面（含 `LuaBridge`）依赖框架。
+        /// **客户端框架侧纯度**（《客户端总设计》§5.1）：`LiteFramework.*`（通用核心 + 适配器）整体不得引用 任何 `LiteGame.*` 程序集——产品面依赖框架。
         /// </summary>
         public static readonly string[] ClientFrameworkPurityAsmdefs =
         {
@@ -490,7 +491,7 @@ namespace Tools.DisciplineScan
                 {
                     string norm = file.Replace('\\', '/');
                     if (norm.Contains("/obj/") || norm.Contains("/bin/") || norm.Contains("/.dotnet/")
-                        || norm.Contains("/Vendor/") || norm.Contains("/XLua/") || norm.Contains("/Plugins/")
+                        || norm.Contains("/Vendor/") || norm.Contains("/Plugins/")
                         || norm.Contains("/Generated/") || norm.EndsWith(".g.cs")) continue;
                     string[] lines = File.ReadAllLines(file);
                     for (int i = 0; i < lines.Length; i++)

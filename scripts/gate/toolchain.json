@@ -144,7 +144,7 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "ui.page-scaffold",
-      "summary": "从视觉基线复制自包含 prefab、补页根契约并写页面清单草稿；不写 Lua/表。",
+      "summary": "从视觉基线复制自包含 prefab、补页根契约并写页面清单草稿；不写表。",
       "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/制作/起页（仅 prefab）",
       "writes": ["asset"],
@@ -163,13 +163,12 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "ui.page-register",
-      "summary": "草稿页登记：契约门槛校验、tbuiform 行、Lua 骨架、Luban+BuildHash、清单状态/缓存与契约刷新。",
+      "summary": "草稿页登记：契约门槛校验、tbuiform 行、Luban+BuildHash、清单状态/缓存与契约刷新。",
       "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/制作/页面登记",
       "writes": ["asset", "source", "generated"],
       "outputs": [
         { "path": "Luban/Data/#uiform.xlsx", "kind": "data" },
-        { "path": "Assets/LiteGame/Lua/UI/", "kind": "source" },
         { "path": "Assets/GameData/Generated/", "kind": "generated" },
         { "path": "Assets/LiteGame/Editor/UITools/UIPageManifest.json", "kind": "data" },
         { "path": "Assets/LiteGame/Editor/UITools/Contracts/", "kind": "data" }
@@ -595,7 +594,7 @@
       "kind": "cli",
       "plane": "external",
       "purpose": "dev",
-      "summary": "UIApiSpec.json → UIBindIndex 声明 / UIBindBase 转发 / Lua shim / dispatch / 清单 / 参考表（UI API 单源）。",
+      "summary": "UIApiSpec.json → UIBindIndex 声明 / UIBindBase 转发 / 清单 / 参考表（UI API 单源）。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
       "command": ["python", "scripts/codegen/toolbox.py", "ui-api"],
       "args": [
@@ -605,9 +604,7 @@
       "outputs": [
         { "path": "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindIndex.Api.g.cs", "kind": "generated" },
         { "path": "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindBase.Api.g.cs", "kind": "generated" },
-        { "path": "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIApiManifest.g.cs", "kind": "generated" },
-        { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/UIApiShim.g.cs", "kind": "generated" },
-        { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs", "kind": "generated" }
+        { "path": "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIApiManifest.g.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 26
@@ -619,14 +616,13 @@
       "kind": "cli",
       "plane": "external",
       "purpose": "dev",
-      "summary": "Luban 表源 → C#/二进制/LuaKeys。",
+      "summary": "Luban 表源 → C#/二进制。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
       "command": ["python", "scripts/codegen/toolbox.py", "luban"],
       "writes": ["generated"],
       "outputs": [
         { "path": "Assets/GameData/Generated/", "kind": "generated" },
-        { "path": "Assets/GameData/Config/", "kind": "data" },
-        { "path": "Assets/LiteGame/Modules/Shared/Generated/LuaKeys.g.cs", "kind": "generated" }
+        { "path": "Assets/GameData/Config/", "kind": "data" }
       ],
       "destructive": false,
       "order": 30
@@ -687,41 +683,9 @@
       "destructive": false,
       "order": 60,
       "outputs": [
-        { "path": "Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs", "kind": "generated" }
+        { "path": "Packages/com.litegame.sim/Scripts/Map/Trig/SimTrigTables.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
-    },
-    {
-      "id": "codegen.lua-reload",
-      "title": "Lua Reload Env",
-      "category": "codegen",
-      "kind": "action",
-      "plane": "runtime",
-      "purpose": "debug",
-      "requires": ["play"],
-      "handler": "codegen.lua-reload",
-      "summary": "Play 模式下重建 Lua env 并重填注册表。",
-      "docs": "Docs/说明/11-构建与本地联测.md",
-      "menu": "LiteGame/快捷/Lua Reload Env %&r",
-      "writes": ["none"],
-      "destructive": false,
-      "order": 70
-    },
-    {
-      "id": "codegen.lua-refill",
-      "title": "Lua Refill Registries",
-      "category": "codegen",
-      "kind": "action",
-      "plane": "runtime",
-      "purpose": "debug",
-      "requires": ["play"],
-      "handler": "codegen.lua-refill",
-      "summary": "Play 模式下增量重填 Lua 注册表（不重建 env）。",
-      "docs": "Docs/说明/11-构建与本地联测.md",
-      "menu": "LiteGame/快捷/Lua Refill Registries %&f",
-      "writes": ["none"],
-      "destructive": false,
-      "order": 80
     },
     {
       "id": "codegen.bind",
@@ -735,19 +699,6 @@
       "writes": ["none"],
       "destructive": false,
       "order": 90
-    },
-    {
-      "id": "codegen.xlua",
-      "title": "xLua 适配代码生成",
-      "category": "codegen",
-      "kind": "docs",
-      "plane": "none",
-      "purpose": "dev",
-      "summary": "vendored Tools/XLuaGenerate.exe；重生成 xLua 适配代码时手动使用。",
-      "docs": "Docs/说明/14-代码地图与根目录.md",
-      "writes": ["none"],
-      "destructive": false,
-      "order": 100
     },
     {
       "id": "quality.l0",
@@ -1389,7 +1340,7 @@
   "python": {
     "minVersion": "3.10",
     "packages": ["openpyxl"],
-    "purpose": "scripts/toolchain.py 统一 CLI、scripts/codegen/ 生成器工具箱、Luban/gen_lua_keys.py"
+    "purpose": "scripts/toolchain.py 统一 CLI、scripts/codegen/ 生成器工具箱"
   },
   "packages": {
     "vendored": [

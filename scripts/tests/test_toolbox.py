@@ -14,7 +14,7 @@ Pinned by this file (tests-first, implementation tasks T4/T5/T6/T8):
   the conditional test is skipped (residual risk recorded in the build log);
 - direct invocation of the 7 toolbox generators prints ``[deprecated]`` and
   points at the toolbox; invocation through the toolbox (and the
-  ``Luban/gen_lua_keys.py`` helper) does not;
+  ``Luban/gen.bat`` helper) does not;
 - every literal ``(scripts/)codegen/<script>.py`` under the scanned surface is
   classified in ``fixtures/codegen-call-sites.json``; an ``invocation`` may only
   reference ``codegen/toolbox.py`` (0 unclassified / 0 illegal invocations);
@@ -278,11 +278,6 @@ class DeprecatedContractTests(unittest.TestCase):
                 result = run_toolbox(tool, "--help", timeout=60)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertNotIn("deprecated", (result.stdout + result.stderr).lower())
-
-    def test_lua_keys_helper_is_out_of_the_deprecated_scope(self):
-        result = run_script("Luban/gen_lua_keys.py", "--help", timeout=60)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertNotIn("deprecated", (result.stdout + result.stderr).lower())
 
     def test_failure_hints_point_at_the_toolbox(self):
         for filename, pattern in (

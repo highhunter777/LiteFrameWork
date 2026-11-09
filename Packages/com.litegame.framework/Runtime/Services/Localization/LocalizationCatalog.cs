@@ -50,10 +50,6 @@ namespace LiteFramework
         /// <summary>该 key 是否存在（任意 locale）。</summary>
         public bool HasKey(string key) => !string.IsNullOrEmpty(key) && _byKey.ContainsKey(key);
 
-        /// <summary>该 key 在指定 locale（或源语言回退）下是否有可用文本。</summary>
-        public bool HasText(string key, string locale)
-            => TryGet(key, locale, out _, out _);
-
         /// <summary>
         /// 查询（**带回退信息**）。
         /// </summary>
@@ -82,15 +78,6 @@ namespace LiteFramework
         /// <summary>已知 locale 列表（诊断）。</summary>
         public IReadOnlyCollection<string> Locales => _locales;
 
-        /// <summary>某 locale 已覆盖的 key 数（覆盖率诊断——翻译进度可见）。</summary>
-        public int CountFor(string locale)
-        {
-            if (string.IsNullOrEmpty(locale)) return 0;
-            int n = 0;
-            foreach (Dictionary<string, string> byLocale in _byKey.Values)
-                if (byLocale.ContainsKey(locale)) n++;
-            return n;
-        }
     }
 
     /// <summary>

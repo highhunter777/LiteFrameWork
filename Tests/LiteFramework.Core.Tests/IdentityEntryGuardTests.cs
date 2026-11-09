@@ -13,9 +13,9 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "Assets/LiteGame/Modules/Composition/IdentitySegment.cs",
-            "Assets/LiteGame/Modules/Battle/GameplayMatchIdentity.cs",
-            "Assets/LiteGame/Modules/Config/TableLayout.cs",
+            "Assets/LiteGame/Modules/Composition/Segments/Session/IdentitySegment.cs",
+            "Assets/LiteGame/Modules/Battle/Shared/GameplayMatchIdentity.cs",
+            "Assets/LiteGame/Modules/Config/Table/TableLayout.cs",
         };
 
         [Fact]

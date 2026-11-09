@@ -1,0 +1,23 @@
+dsh: startup failed: 1 required plugin did not activate
+
+Failed plugins (1):
+  agent-default-model
+    Package: @deepseek-ai/dsh-agent-default-model
+    ValidationError: invalid config:
+      - $.provider missing required value (at provider)
+        at resolveConfig (file:///E:/DeepSeekHarness/resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:248:27)
+        at file:///E:/DeepSeekHarness/resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:826:27
+        at Object.apply (file:///E:/DeepSeekHarness/resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:1508:20)
+        at dispatch (file:///E:/DeepSeekHarness/resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:915:19)
+        at Proxy.waterfall (file:///E:/DeepSeekHarness/resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:917:10)
+        at Fiber.resolveConfig (file:///E:/DeepSeekHarness/resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:666:24)
+        at Fiber.execute (file:///E:/DeepSeekHarness/resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:359:26)
+        at file:///E:/DeepSeekHarness/resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:436:34
+        at file:///C:/Users/hunter/.dsh/profiles/headless/#agent-default-model
+        at file:///C:/Users/hunter/.dsh/profiles/headless/#include
+
+Plugins waiting for services (1):
+  Plugin                      Missing services
+  headless-runner (required)  agentDefaultModel
+
+Full diagnostics: C:\Users\hunter\.dsh\logs\startup-2026-11-08T12-39-08.042Z-d3c666d5-070d-4796-900a-04f90db10411.log

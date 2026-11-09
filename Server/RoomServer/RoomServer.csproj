@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">  <!--
+﻿<Project Sdk="Microsoft.NET.Sdk">  <!--
     RoomServer（《状态同步实施方案》§4.5：.NET 8 控制台，单进程多房间，权威 Sim——MVP 不拆 Gate/Sim）。
     协议单源红线（§4.6）：直接引用 LiteNet 工程（其中 Protocol/ 纯函数与 Transport/ 分层），
     服务器侧另写消息结构在物理上不可能。
@@ -34,10 +34,10 @@
   <ItemGroup>
     <Compile Include="..\..\Packages\com.code-philosophy.luban\Runtime\*.cs" Link="LubanRuntime\%(Filename)%(Extension)" />
     <Compile Include="..\..\Assets\GameData\Generated\**\*.cs" Link="LubanGenerated\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Config\SimConfigMapper.cs" Link="LubanMappings\SimConfigMapper.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Config\BattleStrategyTableReader.cs" Link="LubanMappings\BattleStrategyTableReader.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Config\TableLayout.cs" Link="LubanMappings\TableLayout.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Config\MapTableProjection.cs" Link="LubanMappings\MapTableProjection.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\Table\SimConfigMapper.cs" Link="LubanMappings\SimConfigMapper.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\Table\BattleStrategyTableReader.cs" Link="LubanMappings\BattleStrategyTableReader.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\Table\TableLayout.cs" Link="LubanMappings\TableLayout.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\Table\MapTableProjection.cs" Link="LubanMappings\MapTableProjection.cs" />
   </ItemGroup>
 
   <!-- 服务端 NuGet 登记处（依赖治理在服务端侧的承载）：l0-dep-scan 管 Unity manifest/lock 与密钥，
@@ -54,22 +54,22 @@
       Meta HTTP 契约的线形状单源（与客户端 LiteGame.App、MetaServer 编译同一份）：
       注册心跳载荷与房间明细不再在本工程手写镜像 DTO。
     -->
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaError.cs" Link="Shared\MetaWire\MetaError.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\GuestLoginRequest.cs" Link="Shared\MetaWire\GuestLoginRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\GuestLoginInfo.cs" Link="Shared\MetaWire\GuestLoginInfo.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\JoinTicketRequest.cs" Link="Shared\MetaWire\JoinTicketRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\CreateRoomRequest.cs" Link="Shared\MetaWire\CreateRoomRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\JoinTicketInfo.cs" Link="Shared\MetaWire\JoinTicketInfo.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\RoomsResponse.cs" Link="Shared\MetaWire\RoomsResponse.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\LobbyInstanceView.cs" Link="Shared\MetaWire\LobbyInstanceView.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\LobbyRoomEntry.cs" Link="Shared\MetaWire\LobbyRoomEntry.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchesResponse.cs" Link="Shared\MetaWire\MatchesResponse.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchRecordInfo.cs" Link="Shared\MetaWire\MatchRecordInfo.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\InstanceRegisterRequest.cs" Link="Shared\MetaWire\InstanceRegisterRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\InstanceRegisterResponse.cs" Link="Shared\MetaWire\InstanceRegisterResponse.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchResultSubmission.cs" Link="Shared\MetaWire\MatchResultSubmission.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\PlayerResultEntry.cs" Link="Shared\MetaWire\PlayerResultEntry.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Core\MetaError.cs" Link="Shared\MetaWire\MetaError.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Login\GuestLoginRequest.cs" Link="Shared\MetaWire\GuestLoginRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Login\GuestLoginInfo.cs" Link="Shared\MetaWire\GuestLoginInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Join\JoinTicketRequest.cs" Link="Shared\MetaWire\JoinTicketRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\CreateRoomRequest.cs" Link="Shared\MetaWire\CreateRoomRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Abstractions\Room\JoinTicketInfo.cs" Link="Shared\MetaWire\JoinTicketInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\RoomsResponse.cs" Link="Shared\MetaWire\RoomsResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\LobbyInstanceView.cs" Link="Shared\MetaWire\LobbyInstanceView.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\LobbyRoomEntry.cs" Link="Shared\MetaWire\LobbyRoomEntry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\MatchesResponse.cs" Link="Shared\MetaWire\MatchesResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\MatchRecordInfo.cs" Link="Shared\MetaWire\MatchRecordInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Instance\InstanceRegisterRequest.cs" Link="Shared\MetaWire\InstanceRegisterRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Instance\InstanceRegisterResponse.cs" Link="Shared\MetaWire\InstanceRegisterResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\MatchResultSubmission.cs" Link="Shared\MetaWire\MatchResultSubmission.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\PlayerResultEntry.cs" Link="Shared\MetaWire\PlayerResultEntry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Core\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
   </ItemGroup>
 
   <ItemGroup>

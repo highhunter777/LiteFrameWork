@@ -1,0 +1,27 @@
+{
+ "rule": "同一目录直接存放的代码文件 <= 5",
+ "guard": "python scripts/gate/dir-flat-lint.py",
+ "threshold": 5,
+ "dirs": {
+  "Assets/LiteGame/Adapters/Dev/Debug/NetDebug": 7,
+  "Assets/LiteGame/Adapters/Dev/Debug/Tunables": 6,
+  "Assets/LiteGame/Adapters/Dev/Projection": 7,
+  "Assets/LiteGame/Adapters/Dev/Projection/Hud": 7,
+  "Assets/LiteGame/Adapters/Dev/Projection/Preview": 6,
+  "Assets/LiteGame/Adapters/Luban": 7,
+  "Assets/LiteGame/Bootstrap": 6,
+  "Assets/LiteGame/Editor/Gm": 9,
+  "Assets/LiteGame/Editor/Toolchain/Pages": 8,
+  "Assets/LiteGame/Editor/UITools/Binding": 6,
+  "Assets/LiteGame/Editor/UITools/Compose": 9,
+  "Assets/LiteGame/Editor/UITools/Contract": 7,
+  "Assets/LiteGame/Editor/UITools/Page/Manifest": 6,
+  "Assets/LiteGame/Editor/UITools/Page/Table": 6,
+  "Assets/LiteGame/Editor/UITools/Preview": 10,
+  "Assets/LiteGame/Editor/UITools/Validation": 8,
+  "Assets/LiteGame/Editor/UITools/Validation/Rules/Structure": 10,
+  "Assets/LiteGame/Editor/UITools/Validation/Rules/Visual": 7,
+  "Assets/LiteGame/Editor/UITools/Workbench/State": 6,
+  "Assets/LiteTesting/Core": 6
+ }
+}

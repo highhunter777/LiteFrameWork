@@ -27,7 +27,7 @@ namespace LiteCodeGen
 
         /// <summary>
         /// 运行期受控索引名(M4 §2.4):BindIndexBuilder 按 BindName 构建"名字→控件"索引,
-        /// 受控 API(GetControl/OnButton/SetText...)按此名取控件。留空 = 不进运行期索引(仅参与代码生成)。
+        /// 受控 API(GetControl/OnButtonClick/SetText...)按此名取控件。留空 = 不进运行期索引(仅参与代码生成)。
         /// </summary>
         [Tooltip("运行期索引名(受控 API 按此名取控件);留空 = 不进运行期索引(仅代码生成用)")]
         public string BindName = string.Empty;

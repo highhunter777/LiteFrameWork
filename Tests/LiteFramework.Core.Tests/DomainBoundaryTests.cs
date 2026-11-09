@@ -64,7 +64,7 @@ namespace LiteFramework.Core.Tests
             string abstractions = Path.Combine(root, "Assets", "LiteGame", "Modules", "Battle", "Abstractions");
 
             var missing = BattleAbstractions
-                .Where(name => !File.Exists(Path.Combine(abstractions, name)))
+                .Where(name => !Directory.EnumerateFiles(abstractions, name, SearchOption.AllDirectories).Any())
                 .ToArray();
 
             Assert.True(missing.Length == 0,

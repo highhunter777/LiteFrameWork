@@ -1,0 +1,7 @@
+继续同一C生产会话。前面11次调查后尚无源码写入；现在只交付4文件的C1适配接线，不思考/实现阶段机、lifetime、PageFlow清理或装配根循环。最多4次目标读取后直接edit/write，不再读.workflow或全仓扫描。
+仅可写以下4个文件：
+1 Assets/LiteGame/App/PageServices/MetaEntrySession.cs：新增private readonly IRoomFlow _rooms，构造签名确定为public MetaEntrySession(MetaEntryService meta, IRoomFlow rooms, Func<cfg.Tables> tables, IAccountReentry reentry=null)，必须ArgumentNullException校验rooms。QuickEnterAsync→_rooms.EnterRoomAsync("",ct)，EnterRoomAsync→_rooms.EnterRoomAsync(roomId??string.Empty,ct)，CreateRoomAsync→_rooms.CreateRoomAsync(mapId,expectedPlayers,ct)，LeaveMatch→_rooms.LeaveMatch()。这3个入/建房方法删除await后ct.ThrowIfCancellationRequested（提交/取消由flow掌握），保留原MetaResult映射。登录/查询/战绩别改，也不重构错误映射。新增using System已经在文件。不要旧构造兼容层。
+2 Assets/LiteGame/App/AppComposition.cs：BindPageServices构造MetaEntrySession时传context.Require<IRoomFlow>()；ComposeAfter移除BindMetaEntry调用；删除BindMetaEntry方法（meta.BindFlow旧实现已删除）。其他跨域装订保持当前文件。
+3 Assets/LiteGame/Editor/Gm/GMTestModePage.cs：CreateTestRoomAsync在保留meta配置/登录/地图/密钥判定基础上额外resolve IRoomFlow rooms并缺失显性提示；await rooms.CreateRoomAsync(mapId,0,MetaEntryService.TestRoomTemplate,deploy.RoomGmKey)。维持房号回填/busy finally/错误，不回显任何密钥。别动其他GM业务。
+4 Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_LobbyLogic.cs：保留用户并发OnButtonClick等当前代码；EnterAsync/CreateRoomAsync里catch OCE只有Form.IsDisplayCurrent(generation)时才_entering=false；一般完成先if(!Form.IsDisplayCurrent(generation))return再_entering=false/按钮，不让旧A清新B忙态。只改这两个方法，不修无关泡泡。
+不要写任何其他文件、测试、.workflow、meta、门禁或生成工程。不要跑Unity。完成4文件立即返回精确构造和变更清单、旧调用方仍待其他片/独立测试迁移的未验项，不能称green。源文件局部编辑保编码/行尾，禁止HEAD覆盖。

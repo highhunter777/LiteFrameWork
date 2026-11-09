@@ -24,7 +24,7 @@ namespace LiteGame.Editor.UITools.Workbench
             Row(UIWorkbenchAction.Scaffold, new[] { UIWorkbenchLane.Art },
                 "起页是美术职责（设计 §2.3）"),
             Row(UIWorkbenchAction.Register, new[] { UIWorkbenchLane.Engineering },
-                "登记是工程职责（表/Lua/绑定生成）"),
+                "登记是工程职责（表/绑定生成）"),
             Row(UIWorkbenchAction.InsertWidget,
                 new[] { UIWorkbenchLane.Art, UIWorkbenchLane.Technical },
                 "控件插入属视觉组装；工程改结构须走美术评审"),

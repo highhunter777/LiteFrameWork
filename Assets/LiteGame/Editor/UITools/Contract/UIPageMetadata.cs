@@ -1,4 +1,4 @@
-namespace LiteGame.Editor.UITools.Contracts
+﻿namespace LiteGame.Editor.UITools.Contracts
 {
     /// <summary>
     /// 页面契约的页面元数据输入（来自 `tbuiform` 行；P1-3 的 `UIPageManifest` 可补 Owner/DesignRef）。
@@ -7,14 +7,13 @@ namespace LiteGame.Editor.UITools.Contracts
     public sealed class UIPageMetadata
     {
         public int FormId { get; set; }
-        public string LuaPath { get; set; }
         public int Layer { get; set; }
         public bool FullScreen { get; set; }
         public string CacheStrategy { get; set; } = UIPageContract.DefaultCacheStrategy;
         public string Owner { get; set; }
         public string DesignRef { get; set; }
 
-        /// <summary>草稿契约（未登记 `tbuiform`）：`formId=0`、`luaPath=null`、使用草稿默认层/全屏。</summary>
+        /// <summary>草稿契约（未登记 tbuiform）：formId=0、使用草稿默认层/全屏。</summary>
         public bool IsDraft { get; set; }
     }
 }

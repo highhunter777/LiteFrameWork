@@ -1,0 +1,6 @@
+T1 契约编译证据 2026-11-09T02:51:39.2452191+08:00
+Command	Success	Result	Parameters
+recompile_status	true	{"status":"completed","failed":false,"errors":[],"compilationFailed":false}	
+已用时间 00:00:01.69
+
+有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。

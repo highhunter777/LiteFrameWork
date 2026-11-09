@@ -1,0 +1,50 @@
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+namespace LiteFramework.UI
+{
+    /// <summary>控件基类：可交互性 + 按压微动效 hook（走 UIFx 原语——全项目唯一 tween 出口）。
+    /// 派生类覆写 Awake 时必须调 base.Awake()；OnClick/OnInteractableChanged 为多态挂点。</summary>
+    public class UIWidget : MonoBehaviour, IPointerClickHandler
+    {
+        [SerializeField] private bool interactable = true;
+        [SerializeField] private bool pressFx = true;
+
+        /// <summary>可交互（false = 视觉走禁用态且吞点击；具体视觉由派生类实现 OnInteractableChanged）。</summary>
+        public bool Interactable
+        {
+            get => interactable;
+            set
+            {
+                if (interactable == value) return;
+                interactable = value;
+                OnInteractableChanged(value);
+            }
+        }
+
+        protected virtual void Awake() { }
+
+        public virtual void OnPointerClick(PointerEventData eventData)
+        {
+            if (!interactable) return;
+            PlayPressFx();
+            OnClick();
+        }
+
+        /// <summary>按压微动效（默认 UIFx.Pulse——缺省参走 <see cref="UIFxDefaults"/> 单源；
+        /// 子类可覆写，禁引第二套 tween 路径）。</summary>
+        public virtual void PlayPressFx()
+        {
+            if (!pressFx) return;
+            var graphic = GetComponent<Graphic>();
+            if (graphic != null) UIFx.Pulse(graphic);
+        }
+
+        /// <summary>点击语义（派生类覆写；如 StateButton 覆写为空——按压动效已并入其连点保护路径）。</summary>
+        protected virtual void OnClick() { }
+
+        /// <summary>可交互性变更挂点（派生类刷新视觉）。</summary>
+        protected virtual void OnInteractableChanged(bool value) { }
+    }
+}

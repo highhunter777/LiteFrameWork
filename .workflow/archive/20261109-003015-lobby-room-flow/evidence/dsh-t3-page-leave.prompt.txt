@@ -1,0 +1,3 @@
+你是dsh生产单点修复代理，本次只改两个页面离房动作：Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_RoomLogic.cs和Assets/LiteGame/Modules/UI/Pages/Screens/Settings/Page_SettingsLogic.cs。只读当前两文件，保用户并发OnButtonClick/其他逻辑；不全仓调查、不改测试/其他生产/.workflow/门禁，不运行Unity。
+T3已实现统一RecoveryStep在清理/必要卸载完成后由PageFlow回大厅；当前这两个页面仍有 `Replace(PageIds.Page_Lobby); //先回大厅...` 然后Meta?.LeaveMatch，违反AC“清理后回可操作大厅”。仅删除主动离房路径里的这个提前Replace，让Meta?.LeaveMatch作为唯一意图，页面保留到统一恢复完成。房间页可点离房按钮时必要禁用防重复，但不能无Meta配置时永久禁；最小删除Replace足够，flow幂等处理重复。设置页确认弹窗/保存/取消/DisplayGeneration逻辑保留，不改其他导航按钮。Settings的_leaving=false先generation检查是同型旧回调问题，可将状态写移到generation校验后（只本方法），不做全页重构。
+两个方法注释更新为现行结论≤预算。完成后直接返回精确改动，不称编译/验收通过。

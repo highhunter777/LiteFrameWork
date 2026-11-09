@@ -1,0 +1,4 @@
+继续B片生产作者。本批T2当前Unity编译0错，RoomFlow15项13green，仅卸载与登录2项属于T3预期red。主代理全仓rg确认IAppFlow已无生产调用者，仅ProcedureFlow的并发兼容块实现它以及旧Core契约文件；所有新测试已改IRoomFlow，Core.Tests.csproj旧IAppFlow源链接已移除。
+只改Assets/LiteGame/Modules/Procedure/Flow/ProcedureFlow.cs：移除类声明IAppFlow和兼容IsAtMain/RequestMatch/RequestMain块，保留IRoomFlow/IAccountSessionControl原生产路径，不动其他Flow/Lifetime代码。当前兼容块由另一批并发补入，主代理已存证，按本批目标在零消费者后退役，不恢复HEAD/其他改动。
+另允许新建一个一次性脚本AgentScripts/LobbyRoomFlow/RetireOldFlow.cs（不入库工具脚本），内容须走UnityEditor.AssetDatabase.DeleteAsset("Assets/LiteGame/Core/Flow/IAppFlow.cs")，由你撰写并给出与项目unity-pipeline run_script/eval_file兼容的入口签名和执行命令；主代理在宿主执行，不能在你的沙箱试跑或直接文件系统删Assets/meta。先读当前Packages/com.unity.pipeline里run_script对应命令实现确定脚本入口，不猜测（只定点read，不漫游）。脚本对目标存在/AssetDatabase删除结果明确输出，幂等可读结果，不删目录其他文件。
+不改测试/.workflow/门禁/文档，必要引用七面主代理核对后T5文档回写。完成后立即返回改动和宿主精确pipeline命令，未执行项如实，不声称验收完成。

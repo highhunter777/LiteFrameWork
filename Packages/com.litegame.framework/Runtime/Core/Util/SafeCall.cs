@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 
 namespace LiteFramework
 {
     /// <summary>
-    /// 调用即防护（引擎无关）：包住"外部回调"—— 单个回调抛异常不得中断派发链（xLua 侧薄封装见 LiteFramework.EventBridge）。
+    /// 调用即防护（引擎无关）：包住"外部回调"—— 单个回调抛异常不得中断派发链。
     /// </summary>
     public static class SafeCall
     {

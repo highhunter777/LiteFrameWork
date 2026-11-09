@@ -1,0 +1,14 @@
+{
+  "local_meta_tcp_5000_listening": false,
+  "unity_editor_port": 7801,
+  "unity_state": "ready, play stopped",
+  "local_chain_entry": "scripts/local/local-chain.py",
+  "env_file_exists": true,
+  "deploy_args_exists": false,
+  "secret_contents_read": false,
+  "t4_notes": [
+    "Do not init over existing deploy/.env or deploy.args; preserve current endpoint/credentials byte-for-byte if temporary local changes are necessary.",
+    "Start only local services for the authorized test; no cloud deployment.",
+    "Read-only availability is not UI acceptance; actual page input and side effects still required."
+  ]
+}

@@ -9,7 +9,6 @@
     "name": "Page_ButtonDemo",
     "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_ButtonDemo.prefab",
     "prefabGuid": "aebcbbab22fed0d488914b2fd0edb341",
-    "luaPath": "UI.Page_ButtonDemo",
     "layer": 1,
     "fullScreen": true,
     "cacheStrategy": "Lru",
@@ -52,8 +51,8 @@
     {
       "bindName": "Button_Ping",
       "event": "onClick",
-      "handler": "_Ping"
+      "handler": "Ping"
     }
   ],
-  "sourceHash": "sha256:af49870dcb450465277bf9d4205554365f2a1ebbc92ba49e679d87522386e492"
+  "sourceHash": "sha256:28c47e11612577804970d7142b7bd2ba67dc7d508cacd29371c36c9596d5aa72"
 }

@@ -35,3 +35,5 @@
 | 2026-11-01T03:37:55+08:00 | sync-and-sim-params | 同步层拆分与判定参数化（LiteSync 去耦 + LiteSim 参数装载） | 17/84 | PASS | [20261101-033755-sync-and-sim-params](20261101-033755-sync-and-sim-params/) |
 | 2026-11-01T17:38:14+08:00 | codegen-consolidation | 生成器收口（toolbox 单入口 + 腐烂路径修复 + 门禁） | 10/10 | PASS | [20261101-173814-codegen-consolidation](20261101-173814-codegen-consolidation/) |
 | 2026-11-01T21:20:57+08:00 | session-battle-decoupling | Session/Battle 解耦：对局运行归 Battle（A1 端口化 → A2 归位） | 10/10 | PASS | [20261101-212057-session-battle-decoupling](20261101-212057-session-battle-decoupling/) |
+| 2026-11-09T00:30:15+08:00 | lobby-room-flow | 大厅进房离房链路样板简化 | 6/6 | PASS | [20261109-003015-lobby-room-flow](20261109-003015-lobby-room-flow/) |
+| 2026-11-09T04:42:58+08:00 | account-match-lifecycle | Account/Match 名称与生命周期纠偏（账户域/Meta 会话/401/Match/Battle） | 10/10 | PASS | [20261109-044258-account-match-lifecycle](20261109-044258-account-match-lifecycle/) |

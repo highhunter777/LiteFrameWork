@@ -11,27 +11,21 @@ namespace LiteFramework.Core.Tests
     public sealed class TaskObservationGuardTests
     {
         /// <summary>
-        /// SafeCall 的合法边界（§4.10：只允许外部回调边界——Lua 回调、Unity/框架消息、UI 逻辑回调、 调度器回调、表现降级）。
+        /// SafeCall 的合法边界（§4.10：只允许外部回调边界——Unity/框架消息、UI 逻辑回调、 调度器回调、表现降级）。
         /// </summary>
         private static readonly Dictionary<string, int> SafeCallBoundaries = new Dictionary<string, int>(StringComparer.Ordinal)
         {
-            // Lua 回调边界（页面/桥脚本回调不得炸派发链）
-            ["Packages/com.litegame.framework/Runtime/Adapters/XLua/Lua/EventBridge.cs"] = 2,
-            ["Assets/LiteGame/Modules/Meta/MetaBridge.cs"] = 1,
-            ["Assets/LiteGame/Adapters/LuaBridge/RoomBridge.cs"] = 3,
             // UI 逻辑/控件回调边界（页面生命周期、控件事件、主题/静态文案绑定、红点规则）
-            ["Packages/com.litegame.framework/Runtime/Services/UI/UIForm.cs"] = 13,
-            ["Packages/com.litegame.framework/Runtime/Services/UI/Bind/UIBindEvents.cs"] = 4,
-            ["Packages/com.litegame.framework/Runtime/Services/UI/Bind/UIBindIndex.cs"] = 1,
-            ["Packages/com.litegame.framework/Runtime/Services/UI/Bind/UIBindListSource.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Form/UIForm.cs"] = 13,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Bind/Runtime/UIBindEvents.cs"] = 4,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Bind/Index/UIBindIndex.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Bind/Runtime/UIBindListSource.cs"] = 1,
             ["Packages/com.litegame.framework/Runtime/Services/UI/Localization/UIStaticTextBinder.cs"] = 1,
-            ["Packages/com.litegame.framework/Runtime/Services/UI/Style/UIThemeBinder.cs"] = 1,
-            ["Packages/com.litegame.framework/Runtime/Services/UI/Widgets/RedDotRegistry.cs"] = 1,
-            // 调度器/Timeline 用户回调边界（单个回调抛异常不得中断派发）
-            ["Packages/com.litegame.framework/Runtime/Core/Clock/GameScheduler.cs"] = 1,
+            ["Packages/com.litegame.framework/Runtime/Services/UI/Style/Theme/UIThemeBinder.cs"] = 1,
+            // Timeline 用户回调边界（单个回调抛异常不得中断派发）
             ["Packages/com.litegame.framework/Runtime/Core/Clock/GameTimelineRunner.cs"] = 1,
             // 表现降级边界（HUD 主题注入失败保持烘焙值，不阻断对局）
-            ["Assets/LiteGame/Modules/Battle/BattleViewAssets.cs"] = 1,
+            ["Assets/LiteGame/Modules/Battle/Shared/BattleViewAssets.cs"] = 1,
         };
 
         private static readonly string[] ProductRoots =

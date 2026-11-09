@@ -1,0 +1,87 @@
+using System.Collections;
+using LiteFramework;
+using LiteTesting;
+using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
+
+namespace LiteGame.Tests.EditMode
+{
+    /// <summary>发布布局约定（《热更与内容发布专项设计》§7/§8 的探针装配输入——
+    /// config/ 前缀 = 配置、bundle/ 前缀 = 资产包、code/ 前缀 = 热更程序集）。
+    /// 这些约定是 ContainerModule 装配与发布流水线的**共同契约**，派生错了探针就查错文件。</summary>
+    public sealed class ReleaseLayoutEditModeTests
+    {
+        private static ReleaseManifest ManifestWith(params string[] paths)
+        {
+            var m = new ReleaseManifest { ReleaseId = "rel", Revision = 1 };
+            foreach (var p in paths) m.Files.Add(new ReleaseFileEntry { Path = p });
+            return m;
+        }
+
+        [Test]
+        public void 布局_config前缀_挑出配置文件()
+        {
+            var m = ManifestWith("config/tbuiform.bytes", "code/LiteSim.dll", "other/x.bin");
+            var paths = ReleaseLayout.ConfigPaths(m);
+
+            Assert.AreEqual(1, paths.Count);
+            Assert.AreEqual("config/tbuiform.bytes", paths[0]);
+        }
+
+        [Test]
+        public void 布局_bundle前缀_挑出资产包文件()
+        {
+            var m = ManifestWith("bundle/DefaultPackage.version", "bundle/ab12.bundle", "config/a.bytes", "code/x.dll");
+            var files = ReleaseLayout.BundleFiles(m);
+
+            Assert.AreEqual(2, files.Count, "只取 bundle/ 前缀（资产包根镜像）");
+            Assert.AreEqual("bundle/DefaultPackage.version", files[0]);
+            Assert.AreEqual("bundle/ab12.bundle", files[1]);
+            StringAssert.StartsWith("bundle/", ReleaseLayout.BundlePrefix);
+            Assert.AreEqual("content/candidate/bundle", ReleaseLayout.CandidateBundleRootRelative);
+        }
+
+        [Test]
+        public void 布局_空清单_返回空集合不抛()
+        {
+            var m = ManifestWith();
+            Assert.AreEqual(0, ReleaseLayout.ConfigPaths(m).Count);
+            Assert.AreEqual(0, ReleaseLayout.CodeAssemblies(m).Count);
+            Assert.AreEqual(0, ReleaseLayout.BundleFiles(m).Count);
+        }
+
+        [Test]
+        public void 信任锚_内置锚点Apply_登记数与内置条目一致且可解析()
+        {
+            var store = new TrustedKeyStore();
+
+            int applied = ContentTrustAnchors.ApplyTo(store);
+
+            // 内置锚点表非空：Apply 登记数与条目数一致，且每个内置 keyId 都可解析出验签器
+            //（发布侧需配对私钥签名）。
+            int builtinCount = 0;
+            foreach (var _ in ContentTrustAnchors.BuiltIn) builtinCount++;
+            Assert.GreaterOrEqual(builtinCount, 1, "内置锚点表不应为空");
+            Assert.AreEqual(builtinCount, applied, "Apply 登记数与内置条目数一致");
+            Assert.AreEqual(builtinCount, store.ProbeCount);
+            foreach (var anchor in ContentTrustAnchors.BuiltIn)
+            {
+                Assert.IsNotNull(store.Resolve(anchor.KeyId),
+                    $"内置 keyId[{anchor.KeyId}] 应可解析验签器（未登记/已撤销 = null → 候选拒）");
+            }
+        }
+
+        [Test]
+        public void 信任锚_登记后Resolve_未登记keyId返回null()
+        {
+            var store = new TrustedKeyStore();
+            store.Add("k1", new byte[128], new byte[] { 1, 0, 1 });   // 128 字节模数（RSA 导入合法）
+
+            Assert.IsNotNull(store.Resolve("k1"), "已登记 → 验签器");
+            Assert.IsNull(store.Resolve("nope"), "未登记 → null（校验器按 UnknownOrRevokedKey 拒）");
+            store.Revoke("k1");
+            Assert.IsNull(store.Resolve("k1"), "已撤销 → null");
+        }
+    }
+}

@@ -1,0 +1,13 @@
+继续独立测试作者会话，T6第一轮接线迁移小片。只写RoomFlowRig.cs（当前场景/断言所在Entry/Lifecycle不改）、Tests/LiteFramework.Core.Tests/M3WiringGuardTests.cs、LiteFramework.Core.Tests.csproj（仅源链接旧IAppFlow及新必要契约，避免把Unity实现拉进纯dotnet项目）。不动生产/.workflow/门禁。不要跑Unity。
+当前生产接线C片正在另一个dsh写，接口规则固定：ProcedureMatch原public ctor保留，新增internal ctor注入RoomFlowLifetime；ProcedureBattle同理，具体新签名请等读取当前对应文件后按真实签名适配（如果还没落，Rig仅先建Lifetime/Flow/MetaEntrySession，阶段参数稍后主代理提供，不猜测）。RoomFlowRig要先建共享Lifetime，然后Match/Battle使用同一实例，创建Machine→new ProcedureFlow(Machine,Meta,Lifetime)→new MetaEntrySession(Meta,flow,...当前签名)，AccountReentry的测试控制从rig.Meta改rig.Flow但这行在EntryTests，按额外授权只机械改这一行类型调用，不改任何刺激/断言。
+新增测试Rig只转调真实服务/阶段，不写自己的互斥/所有权算法来通过断言。原9用例场景冻结；T1 Entry/Lifecycle断言必须逐条保留，后续主代理hash/diff核验。
+M3源码守卫当前要求Meta: IAccountSessionControl，需转为验证ProcedureFlow实现控制与IRoomFlow、ProcedureSegment构造并注册同一flow给两端口/AccountReentry；AppComposition读取IRoomFlow没有BindMetaEntry。你可用现有风格强接线字符串/lexical断言，但不能删除原“单点重入”的约束。C片还没落时先按明确最终契约写测试，让未接线真实失败，主代理之后验证。不要为减少报错删关键断言。
+Core.Tests.csproj原链IAppFlow/MetaJoin，旧IAppFlow后续退役可移除对应Compile；新IAccountSessionControl仍要保留。新Flow行为由Unity测试覆盖，不把IRoomFlow/MetaWire/MonoBehaviour实现源全部拉入Core.Tests；如果Core守卫仅读源码，无需引新接口。保持当前文件编码/行尾，增量编辑。
+完成后返回修改清单/构造准确参数/9断言保持情况与新装配守卫，不能称T6 done。若C新签名未就绪请明确需要的参数，不无限等待调查。
+主代理已固定将落地的新构造（生产代理正在各自写单文件，不改测试）：
+internal ProcedureMatch(IAccountSessionFactory accounts,RoomFlowLifetime lifetime,FeedbackService feedback=null,CancellationToken rootToken=default)
+internal ProcedureBattle(IInputService input,ICameraService camera,IBattleCommands commands,IBattleViewGroupFactory views,IRoomSessionBridge roomSession,RoomFlowLifetime lifetime,CancellationToken rootToken=default,bool requireCamera=false,IBattleRunFactory runs=null,PageFlow pages=null,ISceneService scenes=null,IMapProvider maps=null,FeedbackService feedback=null,IDevSession devSession=null)
+public MetaEntrySession(MetaEntryService meta,IRoomFlow rooms,Func<cfg.Tables> tables,IAccountReentry reentry=null)
+Rig先new Lifetime(default)，传给两个Stage，machine建立后new Flow(machine,Meta,Lifetime)与new MetaEntrySession(Meta,Flow,()=>null)。上述明确签名可直接映射无需等待/猜测。只机械改EntryTests中new AccountReentry(rig.Meta,surface)为rig.Flow，其他刺激断言不变。
+当前Meta测试纯职责迁移已完成（你的上一轮），新RoomFlowTicketTests第五文件不改；根目录达到5源码上限。M3源守卫生产Segment最终会有context.Put<IRoomFlow>(flow)、context.Put<IAccountSessionControl>(flow)、AccountReentry(flow,pageFlow)相同变量，使用捕获变量的正则可避免硬绑定某个变量名；不要简单删原约束。此后所有Unity验证由主代理完成。
+请本次只交付Rig/Entry一行/M3/必要csproj，最多8次读取后实际编辑。

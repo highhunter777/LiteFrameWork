@@ -1,0 +1,56 @@
+{
+  "status": "completed",
+  "duration": 0.4,
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.dev直入_会话失败不强行开大厅",
+      "Status": "Passed",
+      "Duration": 0.0164255,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.OnMatchEnded_菜单开着_随对局结束收口",
+      "Status": "Passed",
+      "Duration": 0.0026887,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.会话失败_房间页不在也回大厅",
+      "Status": "Passed",
+      "Duration": 0.0047941,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.对局Back_空栈_开菜单页并带battleExit数据",
+      "Status": "Passed",
+      "Duration": 0.0295144,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.对局Back_菜单开着_先关菜单不重开",
+      "Status": "Passed",
+      "Duration": 0.0239238,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.菜单Back策略_启用幂等_停用还原基线",
+      "Status": "Passed",
+      "Duration": 0.0019668,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}
+tests: 6/6 passed

@@ -1,18 +1,14 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEditor;
 using YooAsset.Editor;
-using LiteGame.Modules.Shared;
 
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// 工程忽略规则：**复刻 NormalIgnoreRule 全部行为**，唯一差异＝`/LiteGame/Lua/` 下的 DefaultAsset（.lua）**放行收集**（否则 Lua 文件被 "Default as。）。
+    /// 工程忽略规则：复刻 NormalIgnoreRule 全部行为（脚本资源收集面已随脚本宿主退出，无特殊放行）。
     /// </summary>
     public class LiteGameIgnoreRule : IAssetIgnoreRule
     {
-        // 单源：引用运行时常量（LuaPreloader.LuaDir），目录改动只改一处
-        private static readonly string LuaDir = LuaLayout.LuaDir;
-
         private static readonly HashSet<string> s_ignoreFileExtensions = new HashSet<string>()
             { "", ".so", ".cs", ".js", ".boo", ".meta", ".cginc", ".hlsl" };
 
@@ -42,11 +38,9 @@ namespace LiteGame.Editor
             if (assetInfo.AssetType == typeof(LightmapParameters))
                 return true;
 
-            // 忽略 Unity 引擎无法识别的文件——★唯一差异：Lua 目录放行（.lua 即 DefaultAsset）
+            // 忽略 Unity 引擎无法识别的文件
             if (assetInfo.AssetType == typeof(UnityEditor.DefaultAsset))
             {
-                if (assetInfo.AssetPath.StartsWith(LuaDir))
-                    return false;
                 UnityEngine.Debug.LogWarning($"Default asset cannot be packed: '{assetInfo.AssetPath}'.");
                 return true;
             }

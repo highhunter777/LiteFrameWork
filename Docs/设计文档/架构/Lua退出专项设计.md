@@ -5,7 +5,7 @@
 > **定位**：裁决"Lua 从客户端运行时、内容热更、表链与工具链中整体退出"的目标形态、替代载体、迁移顺序与验收判据。回答"删哪些、按什么顺序删、每步凭什么判定可交"。
 > **不做的事**：不裁决 bundle/config 内容热更与 HybridCLR 的形态（归[热更与内容发布专项设计](../客户端/内容/热更与内容发布专项设计.md)）；不裁决 UI 运行时、绑定、导航与生命周期契约（归[UI 系统总设计](../客户端/UI系统/UI系统总设计.md)）；不重划构建哈希闭包的源集（只承受表结构派生出的常量变化，归[规范 02](../../规范/02-代码与修改规范.md) 红线 1）；不记施工状态（归[Docs/施工进度](../../施工进度/README.md)）。
 > **冲突裁决**：本文只就"Lua 是否存在于产品面"裁决，其余一律让位。与[施工进度·客户端重构线](../../施工进度/客户端重构线.md)"维持 `Assets/LiteGame/Lua`……从待办改记为终态"的旧裁定**冲突**——以本文为准，旧裁定由后批进度章按"后批修正前批"纪律撤销，不回改前章。与[热更与内容线 §档位表](../../施工进度/热更与内容线.md) 中"Lua 脚本整套激活 / `xLua hotfix` 预埋面"冲突——该行已被 2026-11-08 HybridCLR 改判取代，随 P5 一并修。
-> **关联**：[说明 08 UI 与 Lua 脚本层](../../说明/08-UI与Lua脚本层.md) · [说明 02 架构总览与程序集分层](../../说明/02-架构总览与程序集分层.md) · [说明 09 内容热更与资源管线](../../说明/09-内容热更与资源管线.md) · [说明 14 代码地图](../../说明/14-代码地图与根目录.md) · [UI 编辑器工具链专项设计](../客户端/UI系统/UI编辑器工具链专项设计.md) · [UI 逻辑 API 参考](../客户端/UI系统/UI逻辑API参考.md) · [资源收集目录专项设计](../客户端/内容/资源收集目录专项设计.md) · [规范 05 UI 制作](../../规范/05-UI制作.md)
+> **关联**：[说明 08 UI 与页面逻辑层](../../说明/08-UI与页面逻辑层.md) · [说明 02 架构总览与程序集分层](../../说明/02-架构总览与程序集分层.md) · [说明 09 内容热更与资源管线](../../说明/09-内容热更与资源管线.md) · [说明 14 代码地图](../../说明/14-代码地图与根目录.md) · [UI 编辑器工具链专项设计](../客户端/UI系统/UI编辑器工具链专项设计.md) · [UI 逻辑 API 参考](../客户端/UI系统/UI逻辑API参考.md) · [资源收集目录专项设计](../客户端/内容/资源收集目录专项设计.md) · [规范 05 UI 制作](../../规范/05-UI制作.md)
 
 ## 1. 结论
 
@@ -67,10 +67,10 @@
 
 ### 4.1 页面逻辑与解析（D1）
 
-- **载体**：`Assets/LiteGame/Modules/UI/Pages/<Page>/Page_<Name>Logic.cs`，类型 `public sealed class Page_<Name>Logic : PageLogicBase`；组件挂在对应 prefab 根（与 `Canvas` 同层）。`PageLogicBase` 继承框架 `UIBindBase`，只做两件事：把 `PageContext` 转成强类型端口、提供行表构造件的便捷入口。
+- **载体**：`Assets/LiteGame/Modules/UI/Pages/Screens/<域>/Page_<Name>Logic.cs`（域分组，单目录 ≤5 文件），类型 `public sealed class Page_<Name>Logic : PageLogicBase`；组件挂在对应 prefab 根（与 `Canvas` 同层）。`PageLogicBase` 继承框架 `UIBindBase`，只做两件事：把 `PageContext` 转成强类型端口、提供行表构造件的便捷入口。
 - **目录名受守卫约束**：业务域子目录不得取 `Logic`/`View`/`Presentation`/`Domain`（`DomainBoundaryTests.业务域子目录必须按职责命名` 拦），且单目录直接代码文件 ≤5（红线 15）——所以按页进子目录，不要平铺。
 - **解析**：`UIFormLogicBinder.Resolve` 收敛为"prefab 自带 → 可选的 `resolver`（仅测试用）→ `NullUIFormLogic`"，删除 `LuaPath` 分支；`UISegment` 给 `UIService` 传 `logicResolver: null`。
-- **API 面**：页面用的仍是`UIBindBase`/`UIBindIndex` 的受控 API（`GetControl`/`OnButton`/`SetTextKey`/`SetVisible`/`SetList`/`SetDropdownValue`/`OnTabChanged`/`Pulse`…），与 33 个 `self.ui` 门面一一对应，**语义不降级**；区别只是编译期可查、可重构、可断点。
+- **API 面**：页面用的仍是`UIBindBase`/`UIBindIndex` 的受控 API（`GetControl`/`OnButtonClick`/`SetTextKey`/`SetVisible`/`SetList`/`SetDropdownValue`/`OnTabChanged`/`Pulse`…），与 33 个 `self.ui` 门面一一对应，**语义不降级**；区别只是编译期可查、可重构、可断点。
 - **模板页**（`Tmp_*`）与测试载具不挂逻辑组件，落 `NullUIFormLogic`——维持现行"无逻辑页可独立打开"的行为。
 
 ### 4.2 寻址与目录（D2）
@@ -100,7 +100,7 @@
 | 产品缝 | 联机门面、房会话、地图目录、导航 | `UIForm.PageContext`（`object`，框架不解释类型）由 `UIFormLogicBinder` 从 `Func<PageDefinition, object>` 取 | `PageLogicBase.Ctx`（`IPageContext`）上的 `Meta`/`Room`/`Maps`/`Nav` |
 
 - `IPageContext`（`Modules/UI/Abstractions/`）的成员**全部是端口或延迟工厂**，避免装配段顺序耦合（UI 段早于 Meta/Battle 段）：`Meta`、`Room` 允许为 null（未配置部署/未进房），页面按"能力缺失显性拒绝"处理，与现行 `Bridge.meta.IsConfigured()` 判据同口径。
-- `Bridge`、`MetaBridge`、`RoomBridge` 的 Lua 装订方法全部删除；`MetaBridge` 里的业务逻辑（异步收口、失败原因映射、地图名解析、时间格式化）**不删**，迁进 `IMetaSession` 的实现（`MetaEntryService` 侧的适配件），由页面直接 `await`——Lua 时代的"回调 + 恰一次"由 `UniTask` + `CancellationToken` 承接，页面 `OnHide` 取消在途请求。
+- `Bridge`、`MetaBridge`、`RoomBridge` 的 Lua 装订方法全部删除；`MetaBridge` 里的业务逻辑（异步收口、失败原因映射、地图名解析、时间格式化）**不删**，迁进 `IMetaSession` 的实现（`MetaLoginService` 侧的适配件），由页面直接 `await`——Lua 时代的"回调 + 恰一次"由 `UniTask` + `CancellationToken` 承接，页面 `OnHide` 取消在途请求。
 - `ProductSettings.Current` 是既有单例读口，设置页直接用，不新增静态状态（红线 6：**不新增** `public static` 可变状态；`Bridge` 这类静态门面随本方案消失，不是新增）。
 
 ### 4.5 热更与内容面（D5）
@@ -131,7 +131,7 @@
 |---|---|---|
 | `ui.page-register` | 步骤④"写 Lua 骨架" | **不生成逻辑文件**（见 §5.3）；步骤收敛为"表 → codegen → 清单 → 契约"，失败面 `UIPageRegisterFailure` 去掉 `Lua` 项 |
 | `ui.page-scaffold` | 不写 Lua，但持有 `LuaDir` 常量供扫描器解析 | 删 `LuaDir` |
-| `UILuaReferenceScanner` | 从 `.lua` 源提取 `self.ui:Api("名字")` | 改为 `UIPageLogicScanner`：从 C# 页源提取 `OnButton("Btn_X"…)`/`SetTextKey("Txt_X"…)`/`GetControl<T>("X")` 等受控 API 的名字字面量，输出结构不变（`Api/Name/Args/Line`） |
+| `UILuaReferenceScanner` | 从 `.lua` 源提取 `self.ui:Api("名字")` | 改为 `UIPageLogicScanner`：从 C# 页源提取 `OnButtonClick("Btn_X"…)`/`SetTextKey("Txt_X"…)`/`GetControl<T>("X")` 等受控 API 的名字字面量，输出结构不变（`Api/Name/Args/Line`） |
 | `ContractReferenceRule` / `ContractTextDoubleWriteRule` / 文本两条规则 | 以 Lua 源为扫描对象 | 同上换扫描对象；判定口径（越界 Error、required 未消费 Warning、静态文案双写 Error）**不变** |
 | `codegen.lua-reload` / `codegen.lua-refill` / `codegen.xlua` | 三个工具 id + 菜单项 + handler | 删除（`toolchain.json` 与 `EditorToolHandlers` 同批） |
 | 新增守卫 | — | `PageLogicRule`：逻辑件存在 ⇒ prefab 根必须挂实现 `IUIFormLogic` 的组件（否则页面静默落 NullLogic）；重复实现报错；迁移期不要求每页都有件（P2a 收紧）。替代 `LuaKeys` 自检 |

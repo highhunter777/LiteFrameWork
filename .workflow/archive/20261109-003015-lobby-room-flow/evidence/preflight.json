@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-08",
+  "scope": "Pre-implementation baseline only; not red/green or final acceptance",
+  "checks": [
+    {
+      "command": "dotnet test Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj --filter \"FullyQualifiedName~AccountReentryTests|FullyQualifiedName~ProcedureBoundaryTests|FullyQualifiedName~账号重入_401到回登录页单点接线\" --nologo --verbosity quiet",
+      "exit_code": 0,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "warnings": "Existing compiler/analyzer warnings observed; zero errors."
+    },
+    {
+      "command": "dotnet test Tests/LiteNet.Tests/LiteNet.Tests.csproj --filter \"FullyQualifiedName~AccountSessionFactoryTests|FullyQualifiedName~RoomClientLeaveTests\" --nologo --verbosity quiet",
+      "exit_code": 0,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "warnings": "Existing generated-type, obsolete API and analyzer warnings observed; zero errors."
+    },
+    {
+      "command": "python scripts/gate/doc-lint.py",
+      "exit_code": 0,
+      "violations": 0,
+      "warnings": 0
+    },
+    {
+      "command": "unity pipeline list",
+      "exit_code": 0,
+      "project": "E:/unityProject/Test",
+      "port": 7801,
+      "running": true,
+      "reachable": true,
+      "effects": "Read-only discovery; no recompile, tests or Play state changes."
+    }
+  ]
+}

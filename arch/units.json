@@ -106,10 +106,6 @@
       "reason": "TextMeshPro 文本"
     },
     {
-      "name": "xLuaMain",
-      "reason": "xLua 运行时"
-    },
-    {
       "name": "YooAsset",
       "reason": "YooAsset 内容系统"
     },
@@ -364,8 +360,7 @@
         "LiteFramework.Services",
         "UniTask",
         "Unity.InputSystem",
-        "YooAsset",
-        "xLuaMain"
+        "YooAsset"
       ],
       "notes": "框架第三方/平台适配"
     },
@@ -651,6 +646,7 @@
         "LiteFramework.Hosting",
         "LiteGame.Core",
         "LiteGame.Modules.Config",
+        "LiteGame.Modules.Settings",
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask"
@@ -828,8 +824,7 @@
         "LiteSim",
         "Luban.Runtime",
         "Luban.Tables",
-        "UniTask",
-        "xLuaMain"
+        "UniTask"
       ],
       "notes": "联机入口/大厅域"
     },
@@ -867,7 +862,7 @@
         "LiteGame.Shared",
         "LiteGame.Modules.Config"
       ],
-      "notes": "组装件：平台/身份/内容/时钟/时序/Lua 宿主装配"
+      "notes": "组装件：平台/身份/内容/时钟/时序装配"
     },
     {
       "id": "LiteGame.Modules.Session",
@@ -918,9 +913,7 @@
         "base",
         "script"
       ],
-      "collectGroups": [
-        "Lua"
-      ],
+      "collectGroups": [],
       "tests": [
         "editmode",
         "playmode"
@@ -953,49 +946,6 @@
       "notes": "应用壳：流程/页面流/恢复"
     },
     {
-      "id": "LiteGame.Adapters.LuaBridge",
-      "assembly": "LiteGame.Adapters.LuaBridge",
-      "path": "Assets/LiteGame/Adapters/LuaBridge",
-      "asmdef": "Assets/LiteGame/Adapters/LuaBridge/LiteGame.Adapters.LuaBridge.asmdef",
-      "layer": "product",
-      "rank": 60,
-      "owner": "product",
-      "tier": [
-        "base"
-      ],
-      "collectGroups": [],
-      "tests": [
-        "editmode",
-        "playmode"
-      ],
-      "noEngine": false,
-      "defineConstraints": [],
-      "references": [
-        "LiteGame.Shared",
-        "LiteGame.Modules.Procedure",
-        "LiteGame.Modules.Session",
-        "LiteGame.Modules.UI",
-        "LiteGame.Modules.Config",
-        "LiteGame.Modules.Settings",
-        "LiteGame.Core",
-        "LiteFramework.Core",
-        "LiteFramework.Services",
-        "LiteFramework.Adapters",
-        "LiteFramework.Hosting",
-        "LiteNet",
-        "LiteSync",
-        "Luban.Runtime",
-        "Luban.Tables",
-        "UniTask",
-        "xLuaMain",
-        "LiteGame.Modules.Meta",
-        "LiteGame.Modules.Map",
-        "LiteGame.Modules.Dev",
-        "LiteGame.Battle.Abstractions"
-      ],
-      "notes": "Lua 产品桥接适配"
-    },
-    {
       "id": "LiteGame.App",
       "assembly": "LiteGame.App",
       "path": "Assets/LiteGame/App",
@@ -1026,7 +976,6 @@
         "LiteFramework.Services",
         "LiteFramework.Adapters",
         "LiteFramework.Hosting",
-        "LiteGame.Adapters.LuaBridge",
         "LiteNet",
         "LiteSync",
         "LiteSim",
@@ -1081,7 +1030,6 @@
         "LiteFramework.Hosting",
         "LiteGame.App",
         "LiteGame.Bootstrap",
-        "LiteGame.Adapters.LuaBridge",
         "LiteNet",
         "LiteSync",
         "LiteSim",
@@ -1090,7 +1038,6 @@
         "RoomServer.Runtime",
         "UniTask",
         "Unity.TextMeshPro",
-        "xLuaMain",
         "LiteGame.Shared",
         "LiteGame.Modules.UI",
         "LiteGame.Modules.Procedure",
@@ -1174,7 +1121,6 @@
         "LiteGame.Adapters.Dev",
         "LiteGame.Editor.Core",
         "LiteGame.Editor.UITools",
-        "LiteGame.Adapters.LuaBridge",
         "LiteNet",
         "LiteSync",
         "LiteSim",
@@ -1185,7 +1131,6 @@
         "Luban.Runtime",
         "UniTask",
         "Unity.TextMeshPro",
-        "xLuaMain",
         "YooAsset",
         "YooAsset.Editor",
         "LiteGame.Shared",
@@ -1207,10 +1152,6 @@
     "Config": {
       "owner": "LiteGame.Modules.Config",
       "reason": "2026-10-11 裁决：表产物维持 Assets/GameData/Config 顶层"
-    },
-    "Lua": {
-      "owner": "LiteGame.Modules.Procedure",
-      "reason": "资源收集目录专项设计 §5：L2 样板（代码即热更资源，目录即收集组）"
     }
   },
   "changeMatrix": [
@@ -1223,16 +1164,6 @@
         "base"
       ],
       "notes": "改 AOT 代码 = 应用发布；不走内容包"
-    },
-    {
-      "change": "Lua 脚本",
-      "paths": [
-        "Assets/LiteGame/Lua/**"
-      ],
-      "ship": [
-        "script"
-      ],
-      "notes": "Lua 收集组，热更脚本候选"
     },
     {
       "change": "配置表/表源",
@@ -1402,7 +1333,7 @@
     {
       "from": "Procedure",
       "to": "Session",
-      "reason": "流程经会话端口取账号会话（IAccountSessionFactory/IMatchJoin）"
+      "reason": "流程经会话端口取账号会话（IMatchSessionFactory/IMatchJoin）"
     },
     {
       "from": "Procedure",
@@ -1412,7 +1343,7 @@
     {
       "from": "Session",
       "to": "Battle",
-      "reason": "会话实现 Battle 端口/经客户端工厂注入（IAccountRuntime/IBattleClientFactory）"
+      "reason": "会话实现 Battle 端口/经客户端工厂注入（IMatchRuntime/IBattleClientFactory）"
     },
     {
       "from": "Session",
@@ -1433,6 +1364,16 @@
       "from": "Session",
       "to": "Meta",
       "reason": "会话用 MetaEntryConfig 部署快照"
+    },
+    {
+      "from": "Dev",
+      "to": "Map",
+      "reason": "开发直入/本地服的地图提供者（IMapProvider）"
+    },
+    {
+      "from": "Ui",
+      "to": "Settings",
+      "reason": "设置页读写设置端口（ProductSettings/LookPreferences）"
     },
     {
       "from": "Ui",
@@ -1479,12 +1420,6 @@
     },
     {
       "root": "Packages/com.litegame.framework/Runtime/Adapters/YooAsset",
-      "rules": "GameRules",
-      "exclude": null,
-      "includeEditor": false
-    },
-    {
-      "root": "Packages/com.litegame.framework/Runtime/Adapters/XLua",
       "rules": "GameRules",
       "exclude": null,
       "includeEditor": false
@@ -1592,7 +1527,6 @@
       "Bootstrap",
       "Core",
       "Editor",
-      "Lua",
       "Modules"
     ]
   }

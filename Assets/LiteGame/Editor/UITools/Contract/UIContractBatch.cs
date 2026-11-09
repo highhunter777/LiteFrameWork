@@ -13,7 +13,7 @@ namespace LiteGame.Editor.UITools.Contracts
     public static class UIContractBatch
     {
         /// <summary>
-        /// 单页「生成 + 清单维护字段投影 + Lua 事件接线」全链（批量入口的组成步）： 表行提供身份（formId/lua/layer/fullScreen），页面清单提供维护字段（owner/designRef）。
+        /// 单页「生成 + 清单维护字段投影 + 事件接线」全链（批量入口的组成步）： 表行提供身份（formId/layer/fullScreen），页面清单提供维护字段（owner/designRef）。
         /// </summary>
         public static UIContractGenerationResult GenerateRegistered(string prefabPath,
             IReadOnlyList<UIPageTableRow> rows, UIPageManifest manifest)
@@ -50,7 +50,6 @@ namespace LiteGame.Editor.UITools.Contracts
             UIContractGenerationResult result = UIContractGenerator.Generate(entry.PrefabPath, new UIPageMetadata
             {
                 FormId = primary.FormId,
-                LuaPath = string.IsNullOrEmpty(entry.LuaPath) ? null : entry.LuaPath,
                 Layer = primary.Layer,
                 FullScreen = primary.FullScreen,
                 CacheStrategy = string.IsNullOrEmpty(entry.CacheStrategy)
@@ -79,7 +78,6 @@ namespace LiteGame.Editor.UITools.Contracts
             {
                 IsDraft = true,
                 FormId = 0,
-                LuaPath = null,
                 Layer = UIContractGenerator.DraftLayer,
                 FullScreen = UIContractGenerator.DraftFullScreen,
                 CacheStrategy = UIPageContract.IsValidCacheStrategy(entry.CacheStrategy)
@@ -123,15 +121,15 @@ namespace LiteGame.Editor.UITools.Contracts
                 UIContractGenerator.ApplyManifestEditorial(result.Contract, entry);
             }
 
-            // 事件接线：C# 页源优先、未迁移页回落 Lua（解析单源＝UIPageLogicScanner）。
-            string sourceFile = UIPageLogicScanner.ResolveFile(result.Contract.Page.Name, result.Contract.Page.LuaPath);
+            // 事件接线：C# 页源（解析单源＝UIPageLogicScanner）。
+            string sourceFile = UIPageLogicScanner.ResolveFile(result.Contract.Page.Name);
             string source = UIPageLogicScanner.ReadSource(sourceFile);
             if (source == null)
             {
                 result.Warnings.Add("页面逻辑源缺失——events[] 留空：" + (sourceFile ?? result.Contract.Page.Name));
                 return;
             }
-            UIContractGenerator.ApplyEvents(result.Contract, UIPageLogicScanner.ScanEventWiring(sourceFile, source));
+            UIContractGenerator.ApplyEvents(result.Contract, UIPageLogicScanner.ScanEventWiring(source));
         }
 
         private static UIPageManifestEntry FindEntry(UIPageManifest manifest, string prefabPath)

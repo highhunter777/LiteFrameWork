@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-11-08T20:59:25+08:00",
+  "ok": true,
+  "command_fingerprint": "5f476b164bfa0162d8591e25b540556eac1f920b5fc7216c1fed745858360033",
+  "commands": [
+    {
+      "name": "room-flow-late-cancel-red",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "RoomFlow",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 39343,
+      "ok": true,
+      "output_tail": "\n  But was:  True\n\n\nFAILED: LiteGame.Tests.EditMode.RoomFlowEntryTests.账号重入_在途取票晚到不得RequestMatch:   账号重入后旧票据晚到不得 RequestMatch\n\n  Expected: False\n\n  But was:  True\n\n\nFAILED: LiteGame.Tests.EditMode.RoomFlowEntryTests.重复请求_只发一次取票只建一次连接:   重复请求不得发第二次取票网络请求\n\n  Expected: 1\n\n  But was:  2\n\n\nFAILED: LiteGame.Tests.EditMode.RoomFlowLifecycleTests.JoinAck后Battle排队被Main覆盖_未接管会话恰好回收一次:   未接管的账号会话必须恰好回收一次\n\n  Expected: 1\n\n  But was:  0\n\n\nFAILED: LiteGame.Tests.EditMode.RoomFlowLifecycleTests.必要卸载未结束_再次入场零取票_完成后放行:   必要卸载未完成前不得再次取票/入场\n\n  Expected: 1\n\n  But was:  2\n\n\nFAILED: LiteGame.Tests.EditMode.RoomFlowLifecycleTests.账号重入后旧房间清理完成_不覆盖登录页:   账号重入后旧房间清理完成不得覆盖登录页\n\n  Expected: True\n\n  But was:  False\n\n\ntests: 9/9 failed"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,7 +11,6 @@ namespace LiteGame.Editor.UITools.Workbench
     {
         public string Name;
         public string PrefabPath;
-        public string LuaPath;
         public string Owner;
         public string Status;
         public string DesignRef;
@@ -69,8 +68,7 @@ namespace LiteGame.Editor.UITools.Workbench
                 {
                     Name = entry.Name,
                     PrefabPath = entry.PrefabPath,
-                    LuaPath = entry.LuaPath,
-                    Owner = entry.Owner,
+                            Owner = entry.Owner,
                     Status = entry.Status,
                     DesignRef = entry.DesignRef,
                     Notes = entry.Notes,

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework.UI;
 using Newtonsoft.Json;
@@ -74,9 +74,6 @@ namespace LiteGame.Editor.UITools.Contracts
 
         [JsonProperty("prefabGuid", Order = 3)]
         public string PrefabGuid { get; set; }
-
-        [JsonProperty("luaPath", Order = 4)]
-        public string LuaPath { get; set; }
 
         [JsonProperty("layer", Order = 5)]
         public int Layer { get; set; }

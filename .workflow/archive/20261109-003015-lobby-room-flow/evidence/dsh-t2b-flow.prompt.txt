@@ -1,0 +1,15 @@
+继续同一T2生产作者会话。T2-A的4个文件已由主代理实读检查，保持当前新API。现在只交付T2-B：操作寿命+实质ProcedureFlow及必要payload，不改生产装配/页面/GM/StageMatch/Battle，不改测试或.workflow，不运行Unity。最多先定点读4个当前目标/必要签名，然后写入，不重读规范或扫描全仓。
+允许写集：Modules/Procedure/Flow/RoomFlowLifetime.cs（新）、同目录RoomFlowOperation.cs（新，若需要）；Flow/ProcedureFlow.cs；Shared/ProcedureArgs.cs；Meta/Abstractions/IRoomFlow.cs（只修Leave注释）；若新增稳定busy错误码确需常量，可修改Meta/Call/MetaErrorCodes.cs。当前Flow原有3文件+2新文件=5，不再增加直接源码；类型各≤400行、职责清楚、无public可变字段/新public static状态。
+接口固定沿用T2-A：ProcedureFlow实现IRoomFlow与IAccountSessionControl，消费IRoomTicketSource窄口和现有IStageHost/StageMachine，绝不依赖MetaEntryService具体类。构造必须给必要依赖，可带rootToken和共享Lifetime；后续ProcedureSegment同窗注入，不再BindFlow。服务封闭/Dispose后调用遵守ObjectDisposedException，资源由单一owner关闭。
+本片必须实质实现取票/建房→有效性检查→地址解析→排队Match，而不是空骨架。不要复制Meta登录/未配置错误逻辑和字符串：让Source返回原错误；flow只负责ct/当前Main/忙状态/操作有效性以及票据端点校验。空/非法地址须零排队，成功的票据请求不等于JoinAck。busy使用单一常量稳定错误结果，不发第二票，不让重复请求无限等。
+操作语义：每实例只有一个当前操作；Requesting、QueuedMatch、Joining、QueuedBattle、Battle/Cleaning、Cleaned/恢复放行可用少数明确阶段表达，不新增框架FSM。句柄保存独立取消token、提交/失效标记、可等待清理完成信号、必要的待接管IAccountSession。以下是必须满足的外部行为，不要求照某份实现写：
+- Requesting期间页面ct取消立即释放入场占用，允许B开始，即使底层A忽略取消仍未返回；A晚到的finally不能清B。用操作对象身份判当前，不用哈希当身份。
+- 成功排队前仍验ct/账号事实/当前操作；入队成功后解除页面取消注册，保留root/操作独立取消。不能用无法解除的linked page CTS把已接受操作随页面隐藏取消。
+- 排队并非接管。QueuedMatch取消后仍占用直到Match消费并零建连接完成；不要在Current==Main就认为无操作。给C片的StageMatch提供原子验活/一次接管接口。
+- Joining阶段会话由Match持有；JoinAck之后排队Battle时，会话由操作句柄托管至Battle实际接管。QueuedBattle取消/被Main覆盖须回收未接管会话一次；Battle已接管后仅取消其工作，等Battle清理，不能提前Dispose在用会话。
+- 给后续阶段明确方法：取得/验活当前操作、进入Match/排队Battle/实际取走会话、通知清理完成；清理完成信号与最终恢复放行分开，防止T3 await必要卸载/错误确认之前放行。
+- LeaveMatch先使当前操作失效；Main且仅有取票/QueuedMatch时不能Request(Main)（会触发重入禁止），QueuedMatch留给Match先消费。当前不是Main可请求Main。Logout在取消回调前同步抑制旧恢复，再委托Source.Logout；后续Leave不能重新打开旧恢复许可。宿主关闭同样抑制恢复。
+- 完成观察回调不能在OnLeave同步取消窗口里Request阶段。只由原离房请求/阶段执行体推进Main；本片若观察清理结果，只在Main条件已成立后释放，必要时可await根生命周期的帧等待。T3将在同一路径加入PageFlow恢复/错误确认，但本片别加无消费者公共扩展点。
+ProcedureArgs为public struct，新增内部操作句柄不要造成C#可访问性错误：可以internal字段/内部构造或内部With操作方法，保持原public纯参数构造可用；不为一个payload字段把所有实现状态公开。
+修IRoomFlow.LeaveMatch文档：仅当“无在途入场且无房间”返回false，不能只写“Main=false”。
+本片不接线Stage/页面，因此返回精确新构造签名/句柄方法/阶段交接步骤；编译和测试未跑不得声称green。若任务确有依赖，返回已落文件与具体缺口，不停留调查。完成后立即返回，不施工C片。

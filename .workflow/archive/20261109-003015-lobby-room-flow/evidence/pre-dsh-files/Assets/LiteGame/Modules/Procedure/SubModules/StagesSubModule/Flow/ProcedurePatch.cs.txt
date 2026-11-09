@@ -1,0 +1,151 @@
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using LiteFramework;
+using LiteFramework;
+using LiteFramework.UI;
+
+namespace LiteGame
+{
+    /// <summary>
+    /// Patch 流程（《商业级通用客户端框架总设计》§7.1 标准流程 Launch → Bootstrap → **Patch** → Preload）。
+    /// </summary>
+    public sealed class ProcedurePatch : ProcedureStageBase<ProcedureId, ProcedureArgs>
+    {
+        private readonly IContentService _content;
+        private readonly ActivationTransactionStore _activations;
+        private readonly PatchRunner _patchRunner;
+        private readonly AssetsHealthProbe _entryAssetsProbe;
+        private readonly ErrorRecoveryService _recovery;
+
+        /// <param name="patchRunner">内容事务编排（可空——为空时退化为"仅启动恢复 + 初始化"，
+        /// 用于无候选来源的装配形态；**不得**据此宣称具备热更能力）。</param>
+        /// <param name="entryAssetsProbe">入口资源可加载性探针（可空——为空时不检查；时序说明见类注释）。
+        /// 不属于当前代次清单的入口会被探针跳过（内置启动不因候选专属入口而失败）。</param>
+        public ProcedurePatch(IContentService content, ActivationTransactionStore activations,
+            PatchRunner patchRunner = null, CancellationToken rootToken = default,
+            AssetsHealthProbe entryAssetsProbe = null, ErrorRecoveryService recovery = null)
+            : base(rootToken)
+        {
+            _content = content ?? throw new ArgumentNullException(nameof(content));
+            _activations = activations ?? throw new ArgumentNullException(nameof(activations));
+            _patchRunner = patchRunner;
+            _entryAssetsProbe = entryAssetsProbe;
+            _recovery = recovery;
+        }
+
+        protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
+            => RunAsyncCore(m, ct).ForgetLogged("ProcedurePatch");          // 一行转发，仅此而已——禁止 async void
+
+        /// <summary>下载/校验失败 → 统一错误分类（暂态可重试；摘要不符按安全；其余可恢复）。</summary>
+        private static ErrorKind ClassifyFailure(DownloadFailureInfo failure)
+        {
+            if (failure.IsTransient) return ErrorKind.Transient;
+            switch (failure.Kind)
+            {
+                case DownloadFailureKind.DigestMismatch:
+                    return ErrorKind.Security;
+                case DownloadFailureKind.Canceled:
+                    return ErrorKind.Transient;
+                default:
+                    return ErrorKind.Recoverable;
+            }
+        }
+
+        /// <summary>
+        /// 内容失败恢复：分类后对暂态/可恢复错误做有界重试；返回 null = 已恢复，
+        /// 非 null = 需进错误态的分类异常（error page 消费 ErrorKind）。
+        /// </summary>
+        private async UniTask<ClientErrorException> RecoverPatchAsync(PatchRunResult result, CancellationToken ct)
+        {
+            ErrorKind kind = ClassifyFailure(result.Failure);
+            var patchError = new ClientErrorException(kind,
+                $"内容更新失败（{result.FinalPhase}）：{result.Failure}");
+            if (_recovery == null || kind is not (ErrorKind.Transient or ErrorKind.Recoverable))
+                return patchError;
+
+            RecoveryOutcome outcome = await _recovery.HandleAsync(patchError, "content.patch", RetryPatchAsync, ct);
+            Log.Info($"内容失败恢复：kind={kind} result={outcome.Result} attempts={outcome.Attempts}", LogTag.Patch);
+            return outcome.Recovered ? null : patchError;
+        }
+
+        /// <summary>重试委托：重跑一次完整编排（编排自带启动恢复与回退；成功或无需更新即算恢复）。</summary>
+        private async UniTask<bool> RetryPatchAsync(CancellationToken ct)
+        {
+            PatchRunResult retry = await _patchRunner.RunAsync(ct);
+            Log.Info($"内容重试：phase={retry.FinalPhase} succeeded={retry.Succeeded} noWork={retry.NoWork}", LogTag.Patch);
+            return retry.Succeeded || retry.NoWork;
+        }
+
+        private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct)
+        {
+            try
+            {
+                if (_patchRunner != null)
+                {
+                    // ① 完整内容事务编排（含启动恢复；失败已在编排内留档并回退）。
+                    PatchRunResult result = await _patchRunner.RunAsync(ct);
+                    Log.Info($"内容事务：phase={result.FinalPhase} {result}", LogTag.Patch);
+
+                    if (!result.Succeeded && !result.NoWork)
+                    {
+                        // 编排已 RecordFailure + 重建已确认版本；暂态/可恢复先有界重试，否则进错误态。
+                        ClientErrorException patchError = await RecoverPatchAsync(result, ct);
+                        if (patchError != null)
+                        {
+                            Fail(m, patchError, nameof(RunAsyncCore));
+                            m.Request(ProcedureId.Error, new ProcedureArgs(patchError));
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    // 退化形态：仅启动恢复（无候选来源时的最小路径）。
+                    var record = _activations.RecoverOnStartup();
+                    Log.Info(
+                        $"内容事务状态（无候选来源）：confirmed={record.ConfirmedReleaseId}#{record.ConfirmedVersion}" +
+                        (record.LastFailure != null ? $" lastFailure={record.LastFailure}" : ""), LogTag.Patch);
+                }
+
+                // ② 资源包初始化（当前 Confirmed 代——ActiveGeneration；失败含根因上抛）。
+                await _content.InitializeAsync(ct);
+
+                // ③ 入口资源检查（须在②之后——见类注释）。候选资产包根是否真正可用（能加载出入口资源）
+                //    在此给出确定证据；失败进确定错误态（与②同轨）。
+                if (_entryAssetsProbe != null)
+                {
+                    string problem = await _entryAssetsProbe.CheckAsync(null, ct);
+                    if (problem != null)
+                    {
+                        var probeError = new InvalidOperationException(
+                            $"入口资源检查失败（{_entryAssetsProbe.Name}）：{problem}");
+                        Fail(m, probeError, nameof(RunAsyncCore));
+                        m.Request(ProcedureId.Error, new ProcedureArgs(probeError));
+                        return;
+                    }
+                    Log.Info($"[Content] entry-assets ok probe={_entryAssetsProbe.Name} checked={_entryAssetsProbe.LastChecked} skipped={_entryAssetsProbe.LastSkipped}", LogTag.Content);   // 证据行（冒烟核对）
+                    Log.Info($"入口资源可加载（{_entryAssetsProbe.Name}）：checked={_entryAssetsProbe.LastChecked} skipped={_entryAssetsProbe.LastSkipped}", LogTag.Content);
+                }
+
+                m.Request(ProcedureId.Preload);
+            }
+            catch (OperationCanceledException) { /* 正常取消，静默 */ }
+            catch (Exception ex)
+            {
+                try
+                {
+                    _activations.RecordFailure($"Patch 阶段失败：{ex.Message}");   // 留档（Confirmed 不动——不影响下次以已确认版本启动）
+                }
+                catch (Exception persistEx)
+                {
+                    // 留档自身写盘失败（确认点写盘被拒/磁盘满等）不得吞掉原始失败并阻断错误流程——
+                    // 确定错误态仍须可达（§8：失败 = 留档 + Error 流程；写盘失败时"留档"只剩日志这一条腿）。
+                    Log.Error($"内容失败留档未落盘：{persistEx.GetType().Name}: {persistEx.Message}", LogTag.Patch);
+                }
+                Fail(m, ex, nameof(RunAsyncCore));
+                m.Request(ProcedureId.Error, new ProcedureArgs(ex));
+            }
+        }
+    }
+}

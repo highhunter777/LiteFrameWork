@@ -5,11 +5,11 @@ namespace LiteGame
     /// <summary>默认对局运行工厂：Battle 域持有 Match 域工厂与开发会话端口，流程只拿端口。</summary>
     public sealed class BattleRunFactory : IBattleRunFactory
     {
-        private readonly IMatchSessionFactory _matchSessions;
+        private readonly IBattleDomainFactory _matchSessions;
         private readonly IDevSession _dev;
         private readonly IBattleDevDiagnostics _diagnostics;
 
-        public BattleRunFactory(IMatchSessionFactory matchSessions, IDevSession dev = null,
+        public BattleRunFactory(IBattleDomainFactory matchSessions, IDevSession dev = null,
             IBattleDevDiagnostics diagnostics = null)
         {
             _matchSessions = matchSessions ?? throw new ArgumentNullException(nameof(matchSessions));
@@ -17,10 +17,10 @@ namespace LiteGame
             _diagnostics = diagnostics;
         }
 
-        public IBattleRun Create(IAccountRuntime account)
+        public IBattleRun Create(IMatchRuntime account)
         {
             if (account == null) throw new ArgumentNullException(nameof(account));
-            MatchSession match = null;
+            BattleDomain match = null;
             try
             {
                 match = _matchSessions.Create(account, account.Rules);

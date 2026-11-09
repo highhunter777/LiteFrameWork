@@ -65,7 +65,7 @@ namespace LiteGame
 
         /// <summary>
         /// 玩法数据身份基摘要（判定面表字节全量，算法单源 CombatConfigDigest.ComputeBase）：与本次装载同批字节算出。
-        /// 消费面为 MatchSessionFactory → StartGame.ConfigHash；未装载前返回 0。
+        /// 消费面为 BattleDomainFactory → StartGame.ConfigHash；未装载前返回 0。
         /// </summary>
         public uint GameplayDigestBase { get; private set; }
 

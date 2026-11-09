@@ -6,8 +6,7 @@
         "LiteFramework.Services",
         "UniTask",
         "Unity.InputSystem",
-        "YooAsset",
-        "xLuaMain"
+        "YooAsset"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

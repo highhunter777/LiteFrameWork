@@ -1,0 +1,10 @@
+你是独立测试dsh代理，为T3实现前补房间失败恢复和额外边界的失败测试。项目E:/unityProject/Test；用户授权主代理负责验收/实施dsh。先读AGENTS/audit-debt-check必要红线，当前RoomFlow测试/真实ProcedureMatch/Flow签名足够，最多10次定点读后进入测试编辑。不能改生产/.workflow/门禁，不运行Unity，主代理负责宿主验证。
+允许测试写集：新Assets/Tests/EditMode/Flow/RoomFlow/Failure/RoomFlowFailureTests.cs（根已有5个文件，必须子目录）；RoomFlowTestDoubles.cs（只新增可控故障/拒绝载荷能力，不改原断言语义）；RoomFlowRig.cs（只增可选参数注入故障工厂，默认原用例不变）。不要改Entry/Lifecycle既有9个场景断言。
+需要本次先写且可编译的行为测试：
+1 取票拒绝/网络失败→零Match排队、零连接、占用释放后可再次取票（现有API可测）。
+2 成功响应Value=null/空ticket/非法Address→稳定failure零排队，而不是NRE；使用真实Flow，不复制校验（应当前已green）。
+3 已排队Main→Match但未消费时重复进入不发第二票；Leave后无效queue尚未消费前仍拒新票，消费返回Main后放行（当前应green，但要冻结验证）。
+4 连接工厂在Create抛模拟连接失败后，真实ProcedureMatch必须清本次资源并最终回Main允许新票重进，不能进只支持重启的ProcedureError。当前实现预期red：进Error。可为ControlledAccountSessionFactory新增一次抛异常属性，通过Rig.Flow入口+Machine.Advance驱动，断言阶段落点/连接次数/占用恢复；不要用FakeMatch代替真实阶段。当前没有错误确认UI接线，先断言外部“资源清理→回Main→新票重试”目标失败，记录后续T3要追加真实Feedback的确认单按钮链验证。不得为了新接口不存在留下编译错或Skip，不能在测试替身内实现恢复算法。
+5 RoomBridge旧会话解绑后事件不回到新投影/重复Bind先摘旧（现有真实RoomBridge + IRoomSessionFace最小替身），可单独同Failure目录下RoomFlowBridgeTests.cs。只需要当前实际接口，不跑场景/真实网络。
+Tests若需要捕获当前预期Fatal/Error日志，用明确LogAssert.Expect相应已知日志，不能全局ignoreFailingMessages掩盖其他错误。测试单次无墙钟等待。同步RunAsync的finally/观察者有Yield，可使用[UnityTest]协程明确泵少量帧/UiTick，而不是随意sleep或直接调用私有恢复API。
+返回具体测试名/预计red-green、修改文件、仍缺真实反馈确认的最小生产契约，不称T3/T6完成；主代理将先实际运行取得断言red，再派T3生产。

@@ -18,7 +18,6 @@ public sealed partial class contententry : Luban.BeanBase
     {
         Id = _buf.ReadInt();
         Name = _buf.ReadString();
-        Entry = _buf.ReadString();
     }
 
     public static contententry Deserializecontententry(ByteBuf _buf)
@@ -34,10 +33,6 @@ public sealed partial class contententry : Luban.BeanBase
     /// 内容条目名
     /// </summary>
     public readonly string Name;
-    /// <summary>
-    /// 内容处理器Lua路径(Content.处理器名)
-    /// </summary>
-    public readonly string Entry;
    
     public const int __ID__ = 837203865;
     public override int GetTypeId() => __ID__;
@@ -51,7 +46,6 @@ public sealed partial class contententry : Luban.BeanBase
         return "{ "
         + "id:" + Id + ","
         + "name:" + Name + ","
-        + "entry:" + Entry + ","
         + "}";
     }
 }

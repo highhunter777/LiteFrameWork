@@ -27,11 +27,8 @@ class GenCandidateTests(unittest.TestCase):
     def make_content(self, root):
         root = Path(root)
         (root / "config").mkdir(parents=True)
-        (root / "lua").mkdir()
         (root / "bundle").mkdir()
         (root / "config" / "a.bytes").write_bytes(b"config-bytes")
-        (root / "lua" / "x.lua").write_text("return 1\n", encoding="utf-8")
-        (root / "lua" / "skip.txt").write_text("not lua\n", encoding="utf-8")
         (root / "bundle" / "pack.dat").write_bytes(b"bundle-bytes")
         (root / "skip.txt").write_text("skipped\n", encoding="utf-8")
         return root
@@ -93,7 +90,7 @@ class GenCandidateTests(unittest.TestCase):
                     "Note",
                 ],
             )
-            self.assertEqual([entry["Path"] for entry in manifest["Files"]], ["bundle/pack.dat", "config/a.bytes", "lua/x.lua"])
+            self.assertEqual([entry["Path"] for entry in manifest["Files"]], ["bundle/pack.dat", "config/a.bytes"])
             self.assertEqual(manifest["Files"][0]["Sha256"], hashlib.sha256(b"bundle-bytes").hexdigest())
             self.assertEqual(manifest["Signature"], "")
             canonical = json.dumps(manifest, ensure_ascii=False, separators=(",", ":")).encode("utf-8")

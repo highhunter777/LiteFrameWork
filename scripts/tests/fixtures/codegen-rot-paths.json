@@ -23,7 +23,7 @@
       "kind": "path",
       "file": "Packages/com.litegame.sim/Editor/SimTrigTableGenerator.cs",
       "declared": "Packages/com.litegame.sim/Core/Scripts/SimTrigTables.cs",
-      "actual": "Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs",
+      "actual": "Packages/com.litegame.sim/Scripts/Map/Trig/SimTrigTables.cs",
       "note": "OutputPath pointed at the flattened-away LiteSim/Core/Scripts tree"
     },
     {

@@ -1,0 +1,12 @@
+你是dsh生产实现代理，只交付单文件ProcedureMatch接线。项目E:/unityProject/Test，用户授权主代理分配验收/实施交dsh。先读AGENTS必要红线和audit-debt-check简短skill，然后仅读以下目标和已落Lifetime/Operation/API（不要全仓调查），最多6次读后实际编辑。已有大量用户改动，不reset/stash/clean，保当前编码/行尾。
+唯一写文件：Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs。其他源码（尤其Flow/Lifetime/Operation、Battle、ProcedureSegment）、测试/.workflow/门禁/meta均不可写。主代理宿主编译，你不运行/查找Unity。
+当前已落：RoomFlowLifetime(rootToken),Begin(),Current,IsBusy,TryConsumeMatch(op,out MetaJoin),TryQueueBattle(op,IAccountSession),TryTakeSession(op,out IAccountSession),BeginCleanup(op),NotifyCleaned(op),InvalidateCurrent(releaseRequesting),Release(op)。RoomFlowOperation内部句柄有Token/Invalidated/Phase/Join/MarkQueuedMatch(join)，Lifetime负责托管QueuedBattle会话。ProcedureArgs有internal RoomOperation/WithRoomOperation(op)。ProcedureFlow已实现IRoomFlow，成功取票排Match携带句柄，Leave会令句柄失效、QueuedBattle时回收未接管会话，当前Main无效queue等Match消费。
+按以下固定签名实现（不需兼容旧公开构造，只有本仓ProcedureSegment和friend测试调用；它们由其他代理迁移）：internal ProcedureMatch(IAccountSessionFactory accounts, RoomFlowLifetime lifetime, FeedbackService feedback=null, CancellationToken rootToken=default)。class仍public用于常量消费，_lifetime必须非null。删除旧public构造而非再加单独生命周期兼容入口。
+RunAsync：
+- req.RoomOperation非null：在任何Create前_lifetime.TryConsumeMatch(op,out join)，false零建连接，若!RootToken取消则在非OnLeave安全点Request(Main)，清理信号由TryConsume负责，别直接Release。只合法票据路径使用join参数。
+- 本地req.TestRoom且DevBuildFacts.IsDevelopment且RoomOperation null：同一_lifetime若busy则显性拒绝不建连接；否则Begin→op.MarkQueuedMatch(TestHost/TestPort/TestRoomId/空ticket)→正常TryConsume。不能有另一套Scope/取消/收尾。正式包仍拒testRoom、无合法票据仍失败。
+RunAsyncCore新增op参数，linkedCts链接阶段ct+LoadingToken+op.Token（不能链接原页面令牌）。Create前再ThrowIfCancellationRequested；等待JoinAck逻辑仍StageSignal/Timeout常量，OnUpdate仍泵_pending。
+成功后TryQueueBattle(op,account)托管，成功则account=null不再由Match finally Dispose，Request(Battle,new ProcedureArgs().WithRoomOperation(op))；Battle尚未实际接管时由句柄持有。若请求抛出/被取消，生命周期失效回收，恰一次Dispose，不能留裸Session无主。
+正常移交后Match退出只取消自己ct，不应标Cleaned（会话仍在句柄/Battle）。未移交的取消/异常在finally清_pending、LoadingEnd、Dispose本次account一次，NotifyCleaned(op)，不要在OnLeave同步取消续体里Request；Loading Back用户取消仅ct本阶段未取消时可安全Request Main。外部Leave已经RequestMain则不再抢转。
+本片T2保留既有错误表现（捕获异常Fail+RequestError也可，但如从外部取消ct已取消不得Request）。T3随后改房间失败可恢复反馈，所以返回明确标注错误恢复待T3，不要在此加新未存在Error属性或页面Flow依赖。
+原注释超预算处尽量在本文件裁成现行结论≤预算，不写历史批次。返回精确构造签名、所有权表、本地直入路径和未验项，完成单文件立即结束。

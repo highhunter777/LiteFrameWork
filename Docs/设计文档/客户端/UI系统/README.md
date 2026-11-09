@@ -10,10 +10,10 @@
 | [UI 美术协作与交接规范](../../../规范/06-UI美术协作与交接.md) | 角色/RACI/资产所有权、契约交接、评审门、变更管理与度量 |
 | [UI 制作规范](../../../规范/05-UI制作.md) | 目录、Prefab 根、命名、布局、渲染、文本、动效、列表、交互、提交与门禁硬规则 |
 | [UI 命名与控件词表参考](UI命名与控件词表参考.md) | 名字模型、角色词表、控件模板清单、选段指引、硬约束速查 |
-| [UI 逻辑 API 参考](UI逻辑API参考.md) | Lua `self.ui`/`Bridge.ui`、C# `UIBindBase`/`UIBindIndex`、列表行协议、错误语义 |
-| [设置系统专项设计](设置系统专项设计.md) | 设置项单源（分组/存储键/值域/默认）、四组生效器（音频/图形/显示/控制）、影子管线资产与平台能力矩阵、`Bridge.settings` 门面、设置面板页签结构与文案键 |
+| [UI 逻辑 API 参考](UI逻辑API参考.md) | C# `UIBindBase`/`UIBindIndex` 受控 API、`PageLogicBase`/`IPageContext` 页面逻辑与端口、列表行协议、错误语义 |
+| [设置系统专项设计](设置系统专项设计.md) | 设置项单源（分组/存储键/值域/默认）、四组生效器（音频/图形/显示/控制）、影子管线资产与平台能力矩阵、`ProductSettings` 门面、设置面板页签结构与文案键 |
 | [战斗 HUD 对局倒计时专项设计](战斗HUD对局倒计时专项设计.md) | 局时 `mm:ss` 的语义/真值源/显示状态机/刷新纪律/prefab 落位与验收（草案） |
 
 - 机器可读 schema：[UIPageContract.schema.json](UIPageContract.schema.json) · [UIStyleTokens.schema.json](UIStyleTokens.schema.json) · [UIWidgetManifest.schema.json](UIWidgetManifest.schema.json) · [UIPageManifest.schema.json](UIPageManifest.schema.json) · [UIRuleExceptions.schema.json](UIRuleExceptions.schema.json) · [UIDeviceProfiles.schema.json](UIDeviceProfiles.schema.json)。
 - 旧体系（已退役）：全文见 2026-10-22/UI旧体系；旧路径 `客户端/UI/` 的跳转壳已退役，映射见 2026-10-29 归档说明。
-- 操作手册：[08-UI 制作与调试](../../../说明/08-UI与Lua脚本层.md)；调试：[13-调试手册](../../../说明/13-调试面与排障.md)。
+- 操作手册：[08-UI 制作与调试](../../../说明/08-UI与页面逻辑层.md)；调试：[13-调试手册](../../../说明/13-调试面与排障.md)。

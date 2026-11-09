@@ -1,0 +1,46 @@
+{
+  "scope": "T2 merged behavior checkpoint before T3 failure-test import",
+  "unity_compilation": {
+    "status": "up_to_date",
+    "failed": false,
+    "errors": []
+  },
+  "room_flow": {
+    "total": 15,
+    "passed": 13,
+    "failed": 2,
+    "skipped": 0,
+    "known_t3_red": [
+      "必要卸载未结束_再次入场零取票_完成后放行",
+      "账号重入后旧房间清理完成_不覆盖登录页"
+    ]
+  },
+  "core_regression": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "note": "M3 test parser extended to accept legitimate declaration then assignment; same-instance assertions retained"
+  },
+  "meta_before_test_setup_fix": {
+    "total": 13,
+    "passed": 12,
+    "failed": 1,
+    "reason": "New pre-cancellation test omitted successful login precondition; independent test author added login, pending rerun"
+  },
+  "interrupted_runs": "Earlier async Meta attempt during compile became stale and was discarded; later corrected Meta run completed validly, 13/13 passed. Other raw test_status calls reset during later domain reload are not test evidence.",
+  "old_contract_retirement": {
+    "pipeline_delete_returned": true,
+    "script_post_guid_check": "stale GUID cache reported presentAfter True in same callback",
+    "physical_source_exists": false,
+    "physical_meta_exists": false,
+    "compile_after_reload": "completed failed:false errors:[]"
+  },
+  "meta_after_independent_setup_fix": {
+    "total": 13,
+    "passed": 13,
+    "failed": 0,
+    "skipped": 0,
+    "command": "python scripts/gate/unity-tests.py --mode editor --filter MetaEntryEditModeTests --timeout 180",
+    "result": "wrapper completed exit 0 with current expected fixture selection, valid evidence"
+  }
+}

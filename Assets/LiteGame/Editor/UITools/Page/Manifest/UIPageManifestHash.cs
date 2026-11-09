@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -27,8 +27,7 @@ namespace LiteGame.Editor.UITools.Page
                     sb.Append("page|").Append(page.Name ?? string.Empty).Append('|')
                         .Append(page.PrefabPath ?? string.Empty).Append('|')
                         .Append(forms).Append('|')
-                        .Append(page.LuaPath ?? string.Empty).Append('|')
-                        .Append(page.CacheStrategy ?? string.Empty).Append('|')
+                                .Append(page.CacheStrategy ?? string.Empty).Append('|')
                         .Append(page.Owner ?? string.Empty).Append('|')
                         .Append(page.Status ?? string.Empty).Append('|')
                         .Append(page.ContractPath ?? string.Empty).Append('|')

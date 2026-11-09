@@ -18,6 +18,8 @@ namespace LiteFramework.Core.Tests
             "RoomSessionFace",
             "TeleportToAimCommand",
             "MetaEntryService",
+            "MetaLoginService",
+            "MetaAccountSession",
             "MetaEntryConfig",
         };
 
@@ -38,7 +40,7 @@ namespace LiteFramework.Core.Tests
             }
 
             Assert.True(offenders.Count == 0,
-                "流程段只经端口编排（IBattleRun/IMatchJoin/IAccountSessionControl/IAppFlow）；直引：" +
+                "流程段只经端口编排（IBattleRun/IMatchJoin/IAccountLoginControl/IAppFlow）；直引：" +
                 string.Join(" | ", offenders));
         }
 
@@ -47,7 +49,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             string battle = StripCommentsAndStrings(File.ReadAllText(Path.Combine(root,
-                "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/ProcedureBattle.cs")));
+                "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureBattle.cs")));
 
             Assert.Contains("IBattleRunFactory", battle);
             Assert.Contains("_run.Tick(", battle);

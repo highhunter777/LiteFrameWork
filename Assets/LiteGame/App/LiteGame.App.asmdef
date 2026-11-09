@@ -14,7 +14,6 @@
         "LiteFramework.Services",
         "LiteFramework.Adapters",
         "LiteFramework.Hosting",
-        "LiteGame.Adapters.LuaBridge",
         "LiteNet",
         "LiteSync",
         "LiteSim",

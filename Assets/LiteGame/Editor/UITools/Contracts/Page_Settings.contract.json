@@ -9,7 +9,6 @@
     "name": "Page_Settings",
     "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Settings.prefab",
     "prefabGuid": "a55b9bd4fc4f63149b8724b7650bab41",
-    "luaPath": "UI.Page_Settings",
     "layer": 1,
     "fullScreen": true,
     "cacheStrategy": "Lru",
@@ -339,33 +338,58 @@
     {
       "bindName": "Btn_Close",
       "event": "onClick",
-      "handler": "_Close"
+      "handler": "CloseWithSave"
     },
     {
       "bindName": "Btn_ExitMatch",
       "event": "onClick",
-      "handler": "_ConfirmExit"
+      "handler": "ConfirmExit"
     },
     {
       "bindName": "Btn_ResetDefaults",
       "event": "onClick",
-      "handler": "_ConfirmReset"
+      "handler": "ConfirmReset"
+    },
+    {
+      "bindName": "Ddl_FrameRate",
+      "event": "onDropdownChanged",
+      "handler": "index"
     },
     {
       "bindName": "Ddl_Quality",
       "event": "onDropdownChanged",
-      "handler": "anonymous"
+      "handler": "index"
+    },
+    {
+      "bindName": "Ddl_Resolution",
+      "event": "onDropdownChanged",
+      "handler": "index"
+    },
+    {
+      "bindName": "Ddl_VSync",
+      "event": "onDropdownChanged",
+      "handler": "index"
     },
     {
       "bindName": "Sld_Volume",
       "event": "onSliderChanged",
-      "handler": "anonymous"
+      "handler": "value"
+    },
+    {
+      "bindName": "Tabs_Settings",
+      "event": "onTabChanged",
+      "handler": "index"
+    },
+    {
+      "bindName": "Tgl_InvertLookY",
+      "event": "onToggleChanged",
+      "handler": "on"
     },
     {
       "bindName": "Tgl_Sound",
       "event": "onToggleChanged",
-      "handler": "anonymous"
+      "handler": "on"
     }
   ],
-  "sourceHash": "sha256:91e8ea2a4fccac71913bb009946fea3a93afe0fb17ca041f714e9fbaad34f95e"
+  "sourceHash": "sha256:1fb98aa76c34401e14136cbae0d6a5426e3cbd26eef5f8ec232c09aa88055a7c"
 }

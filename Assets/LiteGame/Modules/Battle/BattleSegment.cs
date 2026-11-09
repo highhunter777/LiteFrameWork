@@ -75,12 +75,12 @@ namespace LiteGame
             IdentityContext identity = context.Require<IdentityContext>();
             IConfigService config = context.Require<IConfigService>();
             Func<BattleStrategyProfile> strategy = () => config.Strategy;   // 延迟到对局/装配点（Preload 之后）
-            var matchSessions = new MatchSessionFactory(
+            var matchSessions = new BattleDomainFactory(
                 context.Require<IInputService>(),
                 () => config.GameplayDigestBase,
                 context.Require<IReferencePool>(),
                 identity.Diagnostics);
-            context.Put<IMatchSessionFactory>(matchSessions);
+            context.Put<IBattleDomainFactory>(matchSessions);
             context.Put<IBattleRunFactory>(new BattleRunFactory(
                 matchSessions, context.Require<IDevSession>(), _devDiagnostics?.Invoke()));
             // 结算摘要端口：冻结结果 → 结算页排行行表（全序/名次与局内排行榜同一实现）——流程只认端口。

@@ -13,7 +13,7 @@ namespace LiteFramework.Core.Tests
         /// <summary>存量直读基线（只减不增；新增文件必须改经 <c>IDevSession</c>）。</summary>
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "Assets/LiteGame/Editor/Baking/HeadHitLineTuner.cs",
+            "Assets/LiteGame/Editor/Baking/Body/HeadHitLineTuner.cs",
         };
 
         [Fact]

@@ -1,0 +1,323 @@
+{
+  "schema_version": 1,
+  "slug": "lobby-room-flow",
+  "title": "大厅进房离房链路样板简化",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-11-08T19:47:35+08:00",
+  "updated_at": "2026-11-09T00:30:15+08:00",
+  "completed_at": "2026-11-09T00:30:07+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-11-08T19:50:27+08:00"
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "completed_at": "2026-11-08T20:04:28+08:00"
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "completed_at": "2026-11-08T20:09:58+08:00",
+      "approved_by": "user-delegated-to-codex"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-11-08T20:11:52+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "子代理评审任务",
+      "completed_at": "2026-11-08T20:41:00+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "子代理先写测试",
+      "completed_at": "2026-11-08T21:00:59+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "子代理正式施工",
+      "completed_at": "2026-11-09T00:29:09+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-11-09T00:29:16+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "主代理评审代码",
+      "completed_at": "2026-11-09T00:29:34+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-11-09T00:30:07+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-11-08T19:47:35+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-11-08T19:50:27+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-08T20:04:28+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-08T20:09:58+08:00",
+      "event": "advance",
+      "from": "confirm-acceptance",
+      "to": "breakdown",
+      "approved_by": "user-delegated-to-codex"
+    },
+    {
+      "at": "2026-11-08T20:11:52+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-08T20:41:00+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-08T21:00:59+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T00:29:09+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T00:29:16+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T00:29:34+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T00:30:07+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T00:30:15+08:00",
+      "event": "archive",
+      "path": "20261109-003015-lobby-room-flow"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "先写完整入场与离房行为失败测试",
+      "description": "独立dsh测试作者先在现有可调用API/阶段上写全部可观察行为断言，使用只转调真实服务/阶段的测试适配器固定行为场景。必须覆盖取消晚到、重复/旧A新B、Main→Match排队失效、JoinAck→Battle排队被Main覆盖、必要卸载未完成阻断再入场/登录优先级。禁止把新API未出现作为延期理由：用当前入口/真实阶段测试相同外部行为，后续只由独立测试作者更换适配器调用，不改场景/断言；确实无法用现有接口观察的用例须主代理说明并补必要最小可编译契约后先跑断言red，不能编译错误或测试替身自测当red。T1测试/助手最多每目录5文件。",
+      "acceptance": "AC2～AC8：每类关键竞态/清理均有可编译可运行的行为用例与明确red或现有已满足green记录；至少晚到取消真实断言red；两窗口与卸载/导航不延期到T4；场景断言清单冻结并对照后续迁移。",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 600；主代理verify --red确认真实断言失败，保存按用例分类结果。",
+      "files": [
+        "Assets/Tests/EditMode/Flow/RoomFlow/"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "dsh session-1ae08d74-641c-4dab-beae-c439e3030248 authored 4 test files; supervisor compiled 0 errors; corrected stimulus then workflow verify --red PASS (9/9 NUnit assertion failures). Frozen source hashes/scenarios in evidence/t1-assertion-manifest.json; raw test_status and evidence/red.json retained. Missing recovery-contract tests explicitly assigned T6 before T3 implementation.",
+      "status_reason": "",
+      "created_at": "2026-11-08T20:11:51+08:00",
+      "started_at": "2026-11-08T20:41:00+08:00",
+      "completed_at": "2026-11-08T21:00:59+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "集中取票入场与取消所有权",
+      "description": "由dsh实现纯票据端口和实质ProcedureFlow，Meta脱离阶段切换；RoomFlowLifetime控制取票/排队/接管；同批迁移生产装配、MetaEntrySession、账号重入和GM建房。测试签名/接线迁移交给独立dsh测试会话，禁止实现作者降低断言。删除旧IAppFlow走Unity资产管线，维护源链接。",
+      "acceptance": "AC1/AC2/AC3/AC7：Procedure只消费端口；Main→Match排队失效零建连接、DisplayToken脱离和重复占用正确；三入口与GM/账号重入同实例；无程序集新边。生产dsh禁止写测试；T6第一轮映射及入场用例green后才done。全量RoomFlow仍属于T3的预期red逐项记录，不能计通过。",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter RoomFlowEntry --timeout 600；python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 600（记录所有结果，仅T3尚未实现的生命周期预期red可留给T3，其他失败返工）；python scripts/gate/unity-tests.py --mode editor --filter MetaEntryEditModeTests --timeout 600；dotnet test Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj --filter \"FullyQualifiedName~AccountReentryTests|FullyQualifiedName~ProcedureBoundaryTests|FullyQualifiedName~账号重入_401到回登录页单点接线\" --nologo",
+      "files": [
+        "Assets/LiteGame/Core/Flow/IAppFlow.cs",
+        "Assets/LiteGame/Modules/Meta/Abstractions/",
+        "Assets/LiteGame/Modules/Meta/Client/MetaEntryService.cs",
+        "Assets/LiteGame/Modules/Meta/MetaSegment.cs",
+        "Assets/LiteGame/Modules/Procedure/Flow/ProcedureFlow.cs",
+        "Assets/LiteGame/Modules/Procedure/Flow/RoomFlowLifetime.cs",
+        "Assets/LiteGame/Modules/Procedure/Flow/AccountReentry.cs",
+        "Assets/LiteGame/Modules/Procedure/ProcedureSegment.cs",
+        "Assets/LiteGame/Modules/Procedure/Shared/ProcedureArgs.cs",
+        "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Boot/ProcedureMain.cs",
+        "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs",
+        "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureBattle.cs",
+        "Assets/LiteGame/App/AppComposition.cs",
+        "Assets/LiteGame/App/PageServices/MetaEntrySession.cs",
+        "Assets/LiteGame/Editor/Gm/GMTestModePage.cs",
+        "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_LobbyLogic.cs",
+        "Assets/LiteGame/Modules/Procedure/Flow/RoomFlowOperation.cs",
+        "Assets/LiteGame/Modules/Meta/Call/MetaErrorCodes.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "Real dsh production sessions in evidence reports (A/B/C disjoint source patches), independent T6 test session session-1ae08d74-641c-4dab-beae-c439e3030248 preserved T1 assertions. Host Unity compilation 0 errors; RoomFlow 13/15 green with exactly 2 T3 known-red, all 6 entry + 6 ticket + queued-Battle ownership green; MetaEntry 13/13; Core reentry/boundary/same-instance wiring 8/8. IAppFlow removed through dsh-authored AssetDatabase script, source/meta physically absent. See t2-merged-checkpoint.json and t6-round-1.json. T3 failure tests are being added before T3 implementation, not counted as T2 green.",
+      "status_reason": "",
+      "created_at": "2026-11-08T20:11:51+08:00",
+      "started_at": "2026-11-08T21:00:59+08:00",
+      "completed_at": "2026-11-08T21:54:43+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "完成离房清理与房间失败恢复",
+      "description": "dsh实现Match/Battle一次所有权交接、连接/输入/视图/RoomBridge/Back/遮罩清理，必要场景卸载await；完成前阻断新入场。页面只发离房意图，统一PageFlow在清理完成后回大厅/结算；登录导航代次压过旧回调。房间失败复用FeedbackService retryable:false确认后回大厅。",
+      "acceptance": "AC3～AC7：Match→Battle排队未接管会话由句柄持有，Main覆盖时释放恰一次；卸载/清理完成前阻断重进，登录落点优先。生产dsh禁止写测试；T6第二轮映射完成后，完整RoomFlow（含T1/T2）及验证列所列全部MetaEntry/Core/PageFlow/Net命令必须全部green，任一失败返工不得done，不得skip/取消/过滤空集换绿；逐套留实际输出，T2 known-red清单逐项在T3关闭。测试/实现会话ID、不重叠写集和断言对照留痕。",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 600；python scripts/gate/unity-tests.py --mode editor --filter MetaEntryEditModeTests --timeout 600；dotnet test Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj --filter \"FullyQualifiedName~AccountReentryTests|FullyQualifiedName~ProcedureBoundaryTests|FullyQualifiedName~账号重入_401到回登录页单点接线\" --nologo；python scripts/gate/unity-tests.py --mode editor --filter PageFlowBattleMenuEditModeTests --timeout 600；dotnet test Tests/LiteNet.Tests/LiteNet.Tests.csproj --filter \"FullyQualifiedName~AccountSessionFactoryTests|FullyQualifiedName~RoomClientLeaveTests\" --nologo",
+      "files": [
+        "Assets/LiteGame/Modules/Procedure/Flow/RoomFlowLifetime.cs",
+        "Assets/LiteGame/Modules/Procedure/Flow/ProcedureFlow.cs",
+        "Assets/LiteGame/Modules/Procedure/Flow/PageFlow.cs",
+        "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs",
+        "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureBattle.cs",
+        "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_RoomLogic.cs",
+        "Assets/LiteGame/Modules/UI/Pages/Screens/Settings/Page_SettingsLogic.cs",
+        "Assets/LiteGame/App/PageServices/RoomBridge.cs"
+      ],
+      "deps": [
+        "T2"
+      ],
+      "status": "done",
+      "evidence": "Takeover verified T3 end-to-end: Unity compile clean; RoomFlow 24/24 (including T3 failure tests), MetaEntry 13/13, PageFlowBattleMenu 6/6, Core reentry/boundary 8/8, Net session/leave 8/8. Reviewed cleanup/recovery paths (ProcedureFlow/Match/Battle/PageFlow/Segment); fixed fatal-terminal observer spin in ProcedureFlow (Error is terminal, operation stays busy by design, no per-frame leak). Evidence: evidence/t3-takeover-*.txt, evidence/t3-red-before-implementation.json, evidence/t4-ui-acceptance-2026-11-08.md.",
+      "status_reason": "",
+      "created_at": "2026-11-08T20:11:51+08:00",
+      "started_at": "2026-11-08T21:54:43+08:00",
+      "completed_at": "2026-11-08T23:46:08+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "补齐真实页面操作与独立回归证据",
+      "description": "仅负责最终真实UI操作与全量回归，不承担首次补写关键行为断言。独立dsh测试/操作会话通过AgentScripts/LobbyRoomFlow/RunRoomFlowUi.cs经unity command run_script/eval驱动实际页面；Raycast命中后pointer/真实键盘输入，不直调入场/离场API。覆盖三入口/取消/等待与对局退出/重进，输出页面/资源副作用及capture_game_view截图到Artifacts/LobbyRoomFlow。主代理核验。",
+      "acceptance": "AC2～AC9：自动化通过，真实页面可操作；未验环境明示不能计通过，服务端/Unity正常启动退出不破坏用户内容。",
+      "verify": "unity command run_script --help确认当前签名后执行AgentScripts/LobbyRoomFlow/RunRoomFlowUi.cs；unity command capture_game_view --help确认签名后截图至Artifacts/LobbyRoomFlow；python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 600",
+      "files": [
+        "Assets/Tests/EditMode/Flow/RoomFlow/",
+        "Assets/Tests/UI/PlayMode/Flow/RoomFlow/",
+        "AgentScripts/LobbyRoomFlow/"
+      ],
+      "deps": [
+        "T3",
+        "T6"
+      ],
+      "status": "done",
+      "evidence": "Real UI (raycast hit + pointer/keyboard) on local Meta/Room/Mongo chain: login, quick enter, leave, re-enter, create room, leave created, select room from real list row (R-CJK2A6, seats 2/expected 4), owner start (Boot->Arena01), battle Esc menu -> settings -> confirm exit -> lobby, JoinAck failure -> error confirm -> lobby. Screenshots in Artifacts/LobbyRoomFlow. Full record and unverified items (loading-Back cancel during JoinAck wait; GM sandbox; account-reentry real page; some steps lack screenshots) in evidence/t4-ui-acceptance-2026-11-08.md. Automation 26/26 RoomFlow. deploy.args restored byte-for-byte; Assets/Artifacts removed via pipeline.",
+      "status_reason": "",
+      "created_at": "2026-11-08T20:11:51+08:00",
+      "started_at": "2026-11-09T00:19:28+08:00",
+      "completed_at": "2026-11-09T00:19:28+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "设计回写与样板说明",
+      "description": "dsh文档会话根据实际已验证源码回写现有设计/说明与客户端重构线，全文搜索IAppFlow/旧进房副作用引用同步；架构图只经现有生成器从图源重生成，不手改生成HTML。设计不写施工状态，证据追加既有卷索引，Docs门禁通过；主代理写.workflow并评审。",
+      "acceptance": "AC1/AC8：文档与实际实现一致，设计不含施工状态、证据进施工卷；索引/链接/Doc门禁通过，无重复权威。",
+      "verify": "python scripts/gate/test.py --suite Doc；核对设计/说明与实际调用链",
+      "files": [
+        "Docs/设计文档/架构/商业级通用客户端框架总设计.md",
+        "Docs/设计文档/架构/客户端依赖注入专项设计.md",
+        "Docs/说明/02-架构总览与程序集分层.md",
+        "Docs/说明/03-客户端框架与运行时.md",
+        "Docs/说明/04-服务端与房间内核.md",
+        "Docs/说明/08-UI与页面逻辑层.md",
+        "Docs/说明/14-代码地图与根目录.md",
+        "Docs/说明/17-全项目数据流.md",
+        "Docs/说明/架构图/图源-应用壳.json",
+        "Docs/说明/架构图/Html/应用壳.html",
+        "Docs/施工进度/客户端重构线.md"
+      ],
+      "deps": [
+        "T4"
+      ],
+      "status": "done",
+      "evidence": "Independent docs session (session-6218077b + follow-up 3c4ae638) wrote back design/instructions/progress per verified code, then amended after takeover facts. Design docs describe final design only; progress doc keeps latest only with evidence names; doc-lint 0/0 and --suite Doc PASS. Disclosed unverified: AC5 real-UI Back cancel, AC7 GM sandbox/account-reentry real page, AC9 completeness, real unload-failure injection.",
+      "status_reason": "",
+      "created_at": "2026-11-08T20:11:52+08:00",
+      "started_at": "2026-11-09T00:26:41+08:00",
+      "completed_at": "2026-11-09T00:26:41+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "独立迁移测试调用与保留全部行为断言",
+      "description": "仅测试dsh会话处理T1测试适配器与旧MetaEntry/M3/PageFlow测试签名接线迁移，禁止生产作者改测试。T2写完API后先做第一轮调用映射并验证T1入场断言；T3写完后再做生命周期映射及全量回归。该任务可与T2/T3状态同时doing但文件写入严格串行、Unity操作单占，T2/T3各自只有本轮测试映射与相应验证通过才done；T6最终done在T3映射完成且T1全部断言对照确认后。既有参数/错误/精确流程与账号重入同实例约束逐条保留，不删用例、不降强度、不skip。",
+      "acceptance": "AC1～AC8：记录测试作者/实现作者不同dsh会话ID与写集；T1场景/断言迁移前后逐条对照，只有调用适配变化；所有必需回归通过；原M3接线守卫由行为或等强装配守卫接替，不删除约束。",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 600；dotnet test Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj --filter \"FullyQualifiedName~AccountReentryTests|FullyQualifiedName~ProcedureBoundaryTests|FullyQualifiedName~账号重入_401到回登录页单点接线\" --nologo",
+      "files": [
+        "Assets/Tests/EditMode/Flow/RoomFlow/",
+        "Assets/Tests/EditMode/Meta/MetaEntryEditModeTests.cs",
+        "Assets/Tests/EditMode/UI/Page/PageFlowBattleMenuEditModeTests.cs",
+        "Tests/LiteFramework.Core.Tests/M3WiringGuardTests.cs",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "T6 second round complete after takeover: independent test author session-1ae08d74 preserved all 9 frozen T1 assertions (same names/scenarios; Lifecycle hash identical; Entry/Rig only call-adapter migration per dsh-t6-rig-wiring.report.md) and mapped 14 legacy MetaEntry assertions to pure-Meta + RoomFlowTicketTests (dsh-t6-meta-tests.report.md). Added targeted Cleanup tests: unload failure retains busy/no fake clean/feedback/no navigation/busy re-entry; loading-token cancel returns Main, releases session once, then permits re-entry. Verified 26/26 RoomFlow green (evidence/t6-roomflow-final.txt), MetaEntry 13/13, PageFlow 6/6, Core 8/8, Net 8/8. Mapping: evidence/t6-round-2-mapping.md.",
+      "status_reason": "",
+      "created_at": "2026-11-08T20:33:18+08:00",
+      "started_at": "2026-11-09T00:19:06+08:00",
+      "completed_at": "2026-11-09T00:19:06+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-11-09T00:28:56+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "cc5a8c19fbf1cef7e48cb9daf57fa833b253120fca0b0bc37c9c5168deaca211",
+    "summary": {
+      "total": 11,
+      "passed": 11
+    }
+  },
+  "red_verification": {
+    "at": "2026-11-08T20:59:25+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "5f476b164bfa0162d8591e25b540556eac1f920b5fc7216c1fed745858360033",
+    "summary": {
+      "total": 1,
+      "passed": 1
+    }
+  },
+  "archived_at": "2026-11-09T00:30:15+08:00"
+}

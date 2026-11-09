@@ -64,9 +64,10 @@ namespace LiteGame.Editor
                 _gmInit = true;
             }
 
-            MetaEntryService meta = GMEditorResolve.ResolveFromContainer<MetaEntryService>();
-            bool configured = meta != null && meta.IsConfigured;
-            bool loggedIn = configured && !string.IsNullOrEmpty(meta.AccountId);
+            IAccountDomain domain = GMEditorResolve.ResolveFromContainer<IAccountDomain>();
+            MetaLoginService login = GMEditorResolve.ResolveFromContainer<MetaLoginService>();
+            bool configured = login != null && login.IsConfigured;
+            bool loggedIn = configured && domain != null && domain.IsOpen;
             bool roomKeyReady = !string.IsNullOrEmpty(deploy.RoomGmKey);
 
             EditorGUILayout.HelpBox(
@@ -150,25 +151,29 @@ namespace LiteGame.Editor
             _testRoomMapIndex = Mathf.Clamp(_testRoomMapIndex, 0, Mathf.Max(0, _testRoomMaps.Count - 1));
         }
 
-        /// <summary>显式 sandbox 建房：模板固定 <see cref="MetaEntryService.TestRoomTemplate"/>，口令取部署注入；
+        /// <summary>显式 sandbox 建房：模板固定 <see cref="MetaLoginService.TestRoomTemplate"/>，口令取部署注入；
         /// 成功后服务端票据即达、流程机进房，房号回填到 GM 规则区。</summary>
         private async UniTask CreateTestRoomAsync()
         {
-            MetaEntryService meta = GMEditorResolve.ResolveFromContainer<MetaEntryService>();
-            if (meta == null || !meta.IsConfigured) { _testRoomStatus = "Meta 未装配/未配置"; return; }
-            if (string.IsNullOrEmpty(meta.AccountId)) { _testRoomStatus = "未登录"; return; }
+            IAccountDomain domain = GMEditorResolve.ResolveFromContainer<IAccountDomain>();
+            MetaLoginService login = GMEditorResolve.ResolveFromContainer<MetaLoginService>();
+            if (login == null || !login.IsConfigured) { _testRoomStatus = "Meta 未装配/未配置"; return; }
+            if (domain == null || !domain.IsOpen) { _testRoomStatus = "未登录"; return; }
             if (_testRoomMaps.Count == 0) { _testRoomStatus = "地图表未装载"; return; }
+
+            IRoomFlow rooms = GMEditorResolve.ResolveFromContainer<IRoomFlow>();
+            if (rooms == null) { _testRoomStatus = "IRoomFlow 未装配"; return; }
 
             MetaEntryConfig deploy = MetaDeployConfig.LoadWithBaked();
             if (string.IsNullOrEmpty(deploy.RoomGmKey)) { _testRoomStatus = "缺 room.gmkey"; return; }
 
             int mapId = _testRoomMaps[_testRoomMapIndex].Id;
             _testRoomBusy = true;
-            _testRoomStatus = $"创建中（{MetaEntryService.TestRoomTemplate}，地图 #{mapId}）……";
+            _testRoomStatus = $"创建中（{MetaLoginService.TestRoomTemplate}，地图 #{mapId}）……";
             try
             {
-                MetaCall<JoinTicketInfo> call = await meta.CreateRoomAsync(
-                    mapId, 0, MetaEntryService.TestRoomTemplate, deploy.RoomGmKey);
+                MetaCall<JoinTicketInfo> call = await rooms.CreateRoomAsync(
+                    mapId, 0, MetaLoginService.TestRoomTemplate, deploy.RoomGmKey);
                 if (call.Ok)
                 {
                     _gmRoom = call.Value.RoomId;

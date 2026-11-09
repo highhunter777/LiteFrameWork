@@ -154,7 +154,7 @@
       ],
       "collectGroups": [],
       "ship": "base",
-      "notes": "组装件：平台/身份/内容/时钟/时序/Lua 宿主装配"
+      "notes": "组装件：平台/身份/内容/时钟/时序装配"
     },
     {
       "id": "LiteGame.Modules.Session",
@@ -173,9 +173,7 @@
         "base",
         "script"
       ],
-      "collectGroups": [
-        "Lua"
-      ],
+      "collectGroups": [],
       "ship": "base",
       "notes": "应用壳：流程/页面流/恢复"
     },
@@ -200,16 +198,6 @@
         "base"
       ],
       "notes": "改 AOT 代码 = 应用发布；不走内容包"
-    },
-    {
-      "change": "Lua 脚本",
-      "paths": [
-        "Assets/LiteGame/Lua/**"
-      ],
-      "ship": [
-        "script"
-      ],
-      "notes": "Lua 收集组，热更脚本候选"
     },
     {
       "change": "配置表/表源",

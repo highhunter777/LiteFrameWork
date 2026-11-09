@@ -10,7 +10,7 @@ using LiteSync.Client;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局聚合（路线图 M0 接缝 4 / M2）：Match 域的唯一持有点——持有 MatchSession （服务域 + BattleContext）。
+    /// 对局聚合（路线图 M0 接缝 4 / M2）：Match 域的唯一持有点——持有 BattleDomain （服务域 + BattleContext）。
     /// </summary>
     internal sealed class BattleSession : IBattleRun
     {
@@ -20,7 +20,7 @@ namespace LiteGame
         private IRoomSessionFace _roomSession;
         private bool _disposed;
 
-        public MatchSession Match { get; }
+        public BattleDomain Match { get; }
 
         /// <summary>对局上下文（网络 + Sim + 表现端口）。</summary>
         public BattleContext Context => Match.Context;
@@ -52,12 +52,12 @@ namespace LiteGame
         /// <summary>解读世界是否已建立。</summary>
         public bool HasSimulation => Context.Sim != null;
 
-        /// <summary>房间会话门面（与客户端端口同生共死；页面经 Bridge.room 读房主事实）。</summary>
+        /// <summary>房间会话门面（与客户端端口同生共死；页面经 IRoomView 读房主事实）。</summary>
         public IRoomSessionFace RoomSession => _roomSession ??= new RoomSessionFace(_battle);
 
         public event Action<BattleRunOutcome> Ended;
 
-        public BattleSession(MatchSession match, IDevSession dev = null,
+        public BattleSession(BattleDomain match, IDevSession dev = null,
             IBattleDevDiagnostics diagnostics = null)
         {
             Match = match ?? throw new ArgumentNullException(nameof(match));

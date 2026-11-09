@@ -37,9 +37,9 @@
     ProjectReference 它），按源链接纳入 L1——同一份 .cs 两侧编译，字节格式与校验语义不可能漂移。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\SubModules\ArenaSubModule\RootMotionEntry.cs" Link="Battle\SubModules\ArenaSubModule\RootMotionEntry.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\SubModules\ArenaSubModule\RootMotionCatalog.cs" Link="Battle\SubModules\ArenaSubModule\RootMotionCatalog.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\SubModules\ArenaSubModule\RootMotionDigest.cs" Link="Battle\SubModules\ArenaSubModule\RootMotionDigest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\SubModules\ArenaSubModule\RootMotion\RootMotionEntry.cs" Link="Battle\SubModules\ArenaSubModule\RootMotionEntry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\SubModules\ArenaSubModule\RootMotion\RootMotionCatalog.cs" Link="Battle\SubModules\ArenaSubModule\RootMotionCatalog.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Battle\SubModules\ArenaSubModule\RootMotion\RootMotionDigest.cs" Link="Battle\SubModules\ArenaSubModule\RootMotionDigest.cs" />
     <Compile Include="..\..\Assets\LiteGame\Core\Strategy\BattleRankPolicy.cs" Link="Strategy\BattleRankPolicy.cs" />
   </ItemGroup>
 
@@ -97,9 +97,9 @@
     门是纯函数（无静态可变状态），覆写面是实例状态，因此不存在测试间串扰。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteGame\Modules\Config\SimParamsOverrides.cs" Link="Config\SimParamsOverrides.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Config\SimParamsGate.cs" Link="Config\SimParamsGate.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Config\SimParamsActivation.cs" Link="Config\SimParamsActivation.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\Activation\SimParamsOverrides.cs" Link="Config\SimParamsOverrides.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\Activation\SimParamsGate.cs" Link="Config\SimParamsGate.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\Activation\SimParamsActivation.cs" Link="Config\SimParamsActivation.cs" />
   </ItemGroup>
 
   <ItemGroup>

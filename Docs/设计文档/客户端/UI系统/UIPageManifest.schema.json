@@ -68,10 +68,6 @@
           "description": "tbuiform 登记行（同一 prefab 可多行，按 formId 升序；草稿为空）。",
           "items": { "$ref": "#/$defs/form" }
         },
-        "luaPath": {
-          "type": ["string", "null"],
-          "description": "Lua 逻辑路径；无逻辑或多样不一致时为 null。"
-        },
         "cacheStrategy": { "enum": ["Resident", "Lru", "DestroyOnClose"] },
         "owner": { "type": "string", "minLength": 1 },
         "status": { "enum": ["Draft", "InReview", "Registered", "Wired", "Frozen"] },

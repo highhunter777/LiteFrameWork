@@ -31,7 +31,7 @@ namespace LiteGame.Editor.UITools.Validation
             new UIRuleFamily("命名/绑定", true, "命名文法/前缀词表/私有件（§9.2/§9.4）+ 生成物 hash 对账（§2.1.5）——已接入；BindName 同文/同页同词/编号连续性待接入（与五族边界无依赖，另批）"),
             new UIRuleFamily("契约", true, "缺 WidgetSpec、控件/页面清单漂移、契约漂移对账（重生成逐字节——含手改检出）、引用对账（未消费/越界）、文本双写——已接入"),
             new UIRuleFamily("样式", true, "颜色 token 对账（裸颜色——复用 UIStyleTool 单源）与文字档对账（未标记/漂移/失效/实例覆盖——复用 UITextStyleTool 单源），令牌源↔SO 漂移（`ui.style.token-drift`），引用对账（`ui.style.ref`：未知令牌/值漂移/无目标/widget 三态/writer 自身或祖先双写者——P2-3 B2），Selectable 状态色（`ui.style.selectable`：缺组件/未知令牌/漂移/非 ColorTint 跳过——P2-3 B4）——已接入；令牌值收敛到 JSON→`UIThemeAsset`（P2-3a 12 色 + B2 8 枚状态色 + B4 44 精确 + 5 Selectable + 5 文字角色，其余五组空集）；uGUI 原生 Selectable.colors 已令牌化（46/33+13）"),
-            new UIRuleFamily("文本", true, "key 存在性（LTextKeyRef + Lua SetTextKey* 两路）、占位符相符、语言列完整、富文本白名单——已接入；缺字/字体 fallback 待静态化判据（SDF Dynamic 模式运行时补字，无静态口径）"),
+            new UIRuleFamily("文本", true, "key 存在性（LTextKeyRef + C# SetTextKey* 两路）、占位符相符、语言列完整、富文本白名单——已接入；缺字/字体 fallback 待静态化判据（SDF Dynamic 模式运行时补字，无静态口径）"),
             new UIRuleFamily("布局/适配", true, "CanvasScaler 基线与第二套缩放禁令（Page_*，UI-LAYOUT-01）——已接入；锚点漂移/超宽屏溢出待设备档与布局基线（P4）"),
             new UIRuleFamily("资源", true, "表内资源路径存在性（.prefab/.unity 通用反射面）已接入；缺引用其余子项/收集组/图集字体名册/生产包排除待接入（图集基建为零，另批）"),
             new UIRuleFamily("性能", true, "raycastTarget 预算、布局嵌套深度、UI 禁 Animator——静态规则已接入（总设计 §11.6「Player 性能另测」）；图集依赖待图集基建；rebuild/GC/打开耗时归 Player 证据"),

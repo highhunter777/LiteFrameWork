@@ -18,8 +18,5 @@ namespace LiteFramework
             Frame = frame;
             PlayerId = playerId;
         }
-
-        public LogScope WithFrame(int frame)
-            => new LogScope(SessionId, MatchId, frame, PlayerId);
     }
 }

@@ -1,0 +1,483 @@
+using System;
+using LiteSync.Client;
+using System.Threading;
+using LiteFramework;
+using LiteFramework.Diagnostics;
+using LiteNet;
+using LiteNet.Protocol;
+using LiteSync.Snapshot;
+using LiteSim;
+using LiteFramework;
+using LiteGame;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Input;
+
+namespace LiteGame
+{
+    /// <summary>
+    /// 对局上下文：一局对局的**运行态编排**——网络事件 → 持久镜像重建（协议单源 SnapshotReassembler）→ 预测/和解（RollbackSim）→ 表现视图（SimView/相机/动画）→ 输入上行。
+    /// </summary>
+    public sealed class BattleContext : IDisposable
+    {
+        /// <summary>对局结束原因（Ended 事件载荷；流程层据此回 Main 或报错）。</summary>
+        public enum EndReason
+        {
+            /// <summary>玩家主动离场。</summary>
+            Leave = 0,
+            /// <summary>会话失败（重连超时/被拒/版本不符——无票据的断线同归此类）。</summary>
+            SessionFailed,
+            Completed,
+            /// <summary>未开局即散场（等待期房间被服务器中止——等待超时/运维关闭/排空；
+            /// 无结果可结算，不进结算页）。</summary>
+            Aborted,
+        }
+
+        /// <summary>未标注形态的默认房间规模（2 人房；JoinAck.expected_players = 0 时回落——
+        /// 嵌入式/测试直构形态与地图的"首图口径"同款先例）。</summary>
+        public const int DefaultExpectedPlayers = 2;
+
+        /// <summary>本局房间规模（**定容依据**：预测世界席位/输入模板/本地服席位——JoinAck 定值）。
+        /// 两端 StartGame 世界重建同用此值（＝房间 `RoomConfig.ExpectedPlayers`）。</summary>
+        public int ExpectedPlayers { get; }
+
+        /// <summary>对局结束（恰好一次；Dispose 不触发——那是清理不是结束）。</summary>
+        public event Action<EndReason> Ended;
+        public EndReason? EndedReason { get; private set; }
+
+        public ClientSessionPhase SessionPhase => _battle.Phase;
+        public bool Connected => _battle.Connected;
+        public int PlayerId => _battle.Client.PlayerId;
+        /// <summary>本局标识（StartGame.MatchId；空 = 未开局）——日志关联/现场包共用。</summary>
+        public string MatchId => _matchId;
+        /// <summary>本局玩法配置摘要（ConfigHash 复算值；0 = 未校验）——现场包身份面。</summary>
+        public uint ConfigDigest => _configDigest;
+
+        /// <summary>现场包身份（BuildHash/AppVersion/Platform；装配注入，测试可为空）。</summary>
+        public DiagnosticIdentity DiagnosticsIdentity => _diagnosticsIdentity;
+        public LiteNet.Proto.MatchEnded MatchResult => _battle.Client.MatchResult;
+
+        /// <summary>本地玩家实体 Id（0 = 尚未对齐——首份快照按 Slot==PlayerId 解析）。</summary>
+        public long LocalEntityId => _localEntityId;
+
+        /// <summary>本地预测/和解 Sim（StartGame 后可用；null = 对局尚未建立）。</summary>
+        public RollbackSim Sim => _sim;
+
+        /// <summary>权威快照镜像（首份快照落地前为 null）。**公共事实 HUD 的读源**（排行榜 KDA/
+        /// 阵亡复活帧/保护期等）——预测态只服务本地手感，不得回灌公共展示（否则预测击杀会先上板、
+        /// 预测死亡会驱动阵亡面板）。</summary>
+        public SimWorldState AuthorityState => _mirror.State;
+
+        /// <summary>判定用地图（两端单源：同一份 `Map/tbmap.bytes` 经共享投影 `MapTableProjection` 产出
+        /// ——服务端 `ServerMapLoader`／客户端 `IAccountRuntime.Maps` 同代码同数据；表现消费者读它——
+        /// 瞄准激光的障碍射线等 View 侧判定共享同一份，不另建第二事实源）。</summary>
+        public SimMapData Map => _map;
+
+        /// <summary>本局规则持有件（进房装配带入的种子规则；StartGame 绑定后同实例；null = 无测试规则）。
+        /// **表现消费者经构造注入本引用**（如瞄准激光的爆头带覆写）——不读静态读口，
+        /// 常规房/正式包的静态差异不会漏进表现判定。</summary>
+        public MatchTestRules MatchRules => _matchRules ?? _seedRules;
+
+        /// <summary>最近一次收到的快照帧号（诊断/兜底——视点帧请用 <see cref="ViewRenderFrame"/>）。</summary>
+        public int LastSnapshotFrame => _battle.Client.LastSnapshotFrame;
+
+        /// <summary>视图当前渲染帧（tick 帧轴；延迟补偿的 `viewFrame` 单源）。视图未挂/尚无快照时
+        /// 回落 <see cref="LastSnapshotFrame"/>（纯会话/测试形态）。</summary>
+        public int ViewRenderFrame => View != null && View.RenderFrame >= 0
+            ? View.RenderFrame
+            : (LastSnapshotFrame >= 0 ? LastSnapshotFrame : 0);
+
+        /// <summary>和解次数（本地预测被权威覆盖的次数；诊断/DevHud）。</summary>
+        public long ReconcileCount => _reconcileCount;
+
+        /// <summary>公共战斗事件面（命中/击杀/开火的统一入口；独立事件批 <c>PacketType.CombatEvents</c>）。
+        /// 取代原 <c>KillFeed</c>/<c>FireFeed</c>/<c>HitFeed</c> 三件——一条去重分发路径，按 kind 分流。</summary>
+        public PublicCombatFeed CombatFeed => _combatFeed;
+
+        /// <summary>网络质量观测（会话面透传——HUD 展示；表现/诊断面，不参与判定）。</summary>
+        public NetworkQuality NetworkQuality => _battle.Quality;
+
+        /// <summary>调试口（开发装配消费）：会话客户端端口——断线/重连动作经 <c>DebugKernel.Network</c> 收口，
+        /// 投影不直调（《GM 与调试工具分层专项设计》§7"投影不另写动作"）。发布形态无写入者。</summary>
+        public IBattleClient DebugBattle => _battle;
+
+        /// <summary>调试开关（开发装配消费）：true = <see cref="ClientSessionPhase.SuspectedLost"/> 时**不自动重连**，
+        /// 停在断线态等待手动重连（验证失败/等待窗口/手动恢复路径）。默认 false＝产品行为（发布无写入者）。</summary>
+        public bool DebugSuppressAutoReconnect { get; set; }
+
+        private readonly IBattleClient _battle;
+        private readonly ClientScope _matchScope;
+        private readonly SimMapData _map;
+        private readonly IMatchIdentity _identity;        // 本局玩法数据身份（基摘要 + 规则位）
+        private readonly DiagnosticIdentity _diagnosticsIdentity;
+        private readonly BattleInputPipeline _inputs;      // 输入三件（顺序与上行）
+        private readonly IEventBus _events;                // 局内事件总线（Match Scope；null = 测试直构）
+        private readonly BattleSnapshotMirror _mirror = new BattleSnapshotMirror();   // 持久镜像 + 和解 + 插值源
+        private readonly PublicCombatFeed _combatFeed = new PublicCombatFeed();       // 公共战斗事件面（独立事件批 → 按 kind 分流入队）
+
+        private RollbackSim _sim;
+        private IBattleView _wiredView;                    // 已接线的视图（重复绑定先摘旧——event 叠加防重）
+        private MatchTestRules _matchRules;               // 本局规则引用（StartGame 绑定；表现面注入源）
+        private readonly MatchTestRules _seedRules;       // 进房装配带入的本局规则（与权威侧同实例；常规房 null）
+
+        /// <summary>本局规则实例绑定/更新通知（Session 据此把实例绑定到 `IDevSession`，供调试投影读）。</summary>
+        public event Action<MatchTestRules> RulesBound;
+
+        private long _localEntityId;
+        private long _reconcileCount;
+        private bool _disposed;
+        private int _ended;
+
+        // ---- 诊断现场包（mismatch/配置身份不符/托管异常时落本地；不在正常路径产生 IO）----。
+        private string _matchId = string.Empty;
+        private uint _configDigest;
+        private readonly BattleDiagnosticsRecorder _diagnostics = new BattleDiagnosticsRecorder();
+
+        /// <summary>表现视图端口（视图建后挂上；null = 无视图——纯会话/测试形态仍完整可跑）。</summary>
+        public IBattleView View { get; private set; }
+
+        /// <summary>
+        /// 采样/上下文门/帧边界门都在服务里。
+        /// </summary>
+        /// <param name="inputProvider">本地输入源（<see cref="IInputService"/>：
+        /// <param name="map">判定地图（**必填**——装配点经 `IAccountRuntime.Maps` 注入；D22：无回退地图，
+        /// <param name="gameplayDigestBase">本地装载产物的玩法数据身份**基摘要**
+        public BattleContext(IBattleClient battle, ClientScope accountScope,
+            IInputService inputProvider = null, SimMapData map = null, uint gameplayDigestBase = 0,
+            MatchTestRules rules = null, IEventBus events = null,
+            IMatchIdentity matchIdentity = null, DiagnosticIdentity? diagnosticsIdentity = null)
+        {
+            _battle = battle ?? throw new ArgumentNullException(nameof(battle));
+            if (accountScope == null) throw new ArgumentNullException(nameof(accountScope));
+            _map = map ?? throw new ArgumentException(
+                "地图必填——装配经 IAccountRuntime.Maps 注入（D22：无回退地图）", nameof(map));
+            _identity = matchIdentity ?? new GameplayMatchIdentity(gameplayDigestBase);
+            _diagnosticsIdentity = diagnosticsIdentity ?? new DiagnosticIdentity(string.Empty,
+                UnityEngine.Application.version, UnityEngine.Application.platform.ToString());
+            _seedRules = rules;      // 本局规则随会话显式带入（路线图 §4.4：无全局"当前局"登记口）
+            _events = events;         // 局内事件总线（Match Scope 持有；null = 测试直构）
+            // 定容依据＝**JoinAck 权威事实**（开房参数批：玩家开房时可选人数；0 = 未标注 → 默认 2 座回落）。
+            // 构造点晚于 JoinAck（同地图：MapId 已定值）——见 MatchSessionFactory 装配序。
+            ExpectedPlayers = battle.Client.ExpectedPlayers > 0
+                ? battle.Client.ExpectedPlayers
+                : DefaultExpectedPlayers;
+            _inputs = new BattleInputPipeline(_battle, inputProvider, ExpectedPlayers);
+            _matchScope = accountScope.CreateChild("Match");
+
+            // 订阅 + 退订登记（LIFO：晚挂先退——Dispose 即拆，不靠调用方记得退订）。
+            _battle.Client.OnStartGame += OnStartGame;
+            _battle.Client.OnSnapshot += OnSnapshot;
+            _battle.Client.OnCombatEvents += OnCombatEvents;
+            _battle.Client.OnMatchEnded += OnMatchEnded;
+            _battle.Client.OnReconnectResponse += OnReconnectResponse;
+            _battle.Client.OnPhaseChanged += OnPhaseChanged;
+            // 托管异常捕获（T0-2）：Exception/Assert 级日志 → 客户端现场包（任意线程可能触发，
+            // 写盘走 _diagnosticsGate 与 mismatch 路径互斥）
+            UnityEngine.Application.logMessageReceivedThreaded += OnUnityLogForDiagnostics;
+            _matchScope.Register(new DelegatedDisposable(() =>
+            {
+                _battle.Client.OnStartGame -= OnStartGame;
+                _battle.Client.OnSnapshot -= OnSnapshot;
+                _battle.Client.OnCombatEvents -= OnCombatEvents;
+                _battle.Client.OnMatchEnded -= OnMatchEnded;
+                _battle.Client.OnReconnectResponse -= OnReconnectResponse;
+                _battle.Client.OnPhaseChanged -= OnPhaseChanged;
+                UnityEngine.Application.logMessageReceivedThreaded -= OnUnityLogForDiagnostics;
+            }));
+
+            // **补上迟到的 StartGame**：OnStartGame 是边缘事件，可能在应用层建好订阅之前就到达 （开局广播由房主发起，与本地建对象/重连补帧存在竞态）。
+            var late = _battle.Client.StartGame;
+            if (late != null) OnStartGame(late);
+            if (_battle.Client.MatchResult != null) OnMatchEnded(_battle.Client.MatchResult);
+        }
+
+        /// <summary>
+        /// 挂上表现视图端口（须在 StartGame 之后调用：视图要本地预测态 <see cref="RollbackSim.State"/>）。
+        /// 视图生命周期由调用方（ProcedureBattle 的视图域）随 Match Scope 收尾；本方法只做接线与首帧对齐。
+        /// </summary>
+        public void AttachView(IBattleView view)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(BattleContext));
+            View = view ?? throw new ArgumentNullException(nameof(view));
+
+            // 回滚/和解 → 视图静默闸；帧事件在**逻辑帧边界**交付（事件是帧内瞬态，事后轮询读不到）。
+            if (_sim != null)
+            {
+                WireSimView(view);
+                View.AlignLocal(_localEntityId);
+            }
+        }
+
+        /// <summary>
+        /// 挂输入源（<see cref="IInputService"/> 的注入点；null = 恢复空输入）。
+        /// 与 ctor 的 inputProvider 同义，供"视图建在上下文之后"的装配序使用。
+        /// </summary>
+        public void AttachInput(IInputService provider) => _inputs.Input = provider;
+
+        /// <summary>本地玩家**预测**位置（诊断/瞄准原点族——不读视图 Transform，避免平滑误差回灌输入）。
+        /// 未对齐/未开局时返回原点。</summary>
+        public SimVector3 LocalPosition
+        {
+            get
+            {
+                if (_sim == null || _localEntityId == 0) return default;
+                return _sim.State.TryResolve(_localEntityId, out int slot) ? _sim.State.Entities[slot].Pos : default;
+            }
+        }
+
+        /// <summary>
+        /// 客户端输入提前量（帧）：本地采样后按 Frame + 本值 提前上行，服务器 InputGate 预存未来帧。
+        /// </summary>
+        public const int InputLeadFrames = 3;
+
+        /// <summary>
+        /// 每帧驱动（唯一驱动入口）：网络双泵 → 输入上行与预测推进 → 表现视图。
+        /// </summary>
+        public void Tick(float realDelta)
+        {
+            if (_disposed) return;
+            _battle.TickIncoming();
+
+            // ① 输入三件（采样入史 → 同一份上行 → 沿用帧预发）——必须**先于**本地服步进（顺序理由见管线类注释）。
+            // viewFrame = 视图当前渲染帧（jitter buffer 帧轴）：开火回溯必须以"玩家看到的过去"为锚。
+            int inputFrame = _sim != null ? _sim.State.Frame + InputLeadFrames : -1;
+            int viewFrame = ViewRenderFrame;
+            if (_sim != null) _inputs.FeedAndSendInputs(_sim, _localEntityId, inputFrame, realDelta, viewFrame);
+
+            _battle.TickOutgoing();          // ② 本地服步进（含快照同步投递）
+
+            if (_sim == null || _ended != 0) return;
+
+            _sim.Tick(realDelta);
+            Log.SetFrame(_sim.State.Frame);           // T1 日志关联：帧轴随权威+预测推进（int 赋值，零分配）
+
+            _inputs.ResendCarriedFrames(_sim, _localEntityId, inputFrame, viewFrame);
+
+            View?.Tick(realDelta);               // 表现视图（网络/Sim 之后：本帧权威已应用）
+        }
+
+        /// <summary>主动离场（幂等）——流程层据 <see cref="Ended"/> 收尾回 Main。</summary>
+        public void Leave() => End(EndReason.Leave);
+
+        private void End(EndReason reason)
+        {
+            if (Interlocked.Exchange(ref _ended, 1) != 0) return;   // 恰好一次（重复 Leave 不重复发）
+            if (reason == EndReason.Leave) _battle.Client.SendLeave();   // 先告知服务端释放席位（未入座/已断开自动 no-op）
+            EndedReason = reason;
+            Ended?.Invoke(reason);
+        }
+
+        // ---- 网络事件处理 ----。
+
+        /// <summary>StartGame：先过**玩法数据身份校验**（与服务器 `ConfigHash` 复算比对，不等即拒局——
+        /// 见方法内注释），再按服务器 seed 重建同构世界（预测的前提——两端世界构造必须逐位一致）。</summary>
+        private void OnStartGame(LiteNet.Proto.StartGame sg)
+        {
+            if (_disposed || _sim != null) return;   // 幂等（重连不重发 StartGame）
+            _matchId = sg.MatchId ?? string.Empty;
+            // T1 日志关联：开局即登记对局/席位，此后同局日志都带得上（清理在 Dispose，只清自己那局）。
+            Log.SetMatchContext(_matchId, PlayerId);
+
+            CombatValues values = CombatConfig.Loaded;   // 装载实例（技术债 #1：房间/世界构造按实例取值）
+            WeaponTable weapons = WeaponConfig.Loaded;   // 武器表实例（同链显式传递）
+
+            // 活动局规则持有件：一次性绑定（StartGame 建点）——此后热路径只读注入实例，判定不碰静态。
+            int gmFlags = sg.Match?.GmFlags ?? 0;
+            MatchTestRules rules = _seedRules;
+            if (gmFlags != 0)
+            {
+                rules ??= new MatchTestRules();
+                rules.NoDeath = (gmFlags & MatchTestRules.FlagNoDeath) != 0;
+                rules.InfiniteAmmo = (gmFlags & MatchTestRules.FlagInfiniteAmmo) != 0;
+                RulesBound?.Invoke(rules);               // 发布给 Session（唯一写者）
+            }
+            else if (rules != null)
+            {
+                // 本地服形态（无权威位）：入口初值盖进本地数值副本（与本地服房间快照同口径）。
+                values.NoDeath = rules.NoDeath;
+                values.InfiniteAmmo = rules.InfiniteAmmo;
+            }
+
+            // 表现面（瞄准激光等）注入的是**本局同一个引用**：此后规则字段更新（GM 中局开合）
+            // 驱动侧可见，且驱动不再每帧读 ILocalTestHooks 静态读口。
+            _matchRules = rules;
+
+            // **玩法数据身份校验（批 E）**：服务端 `StartGame.ConfigHash` = 房间固定快照摘要 （判定面表字节 + 本局规则位，见 `CombatConfigDigest`）。
+            uint expectedDigest = _identity.Compute(values.NoDeath, values.InfiniteAmmo);
+            if (sg.ConfigHash != expectedDigest)
+            {
+                Log.Error(
+                    $"玩法数据身份不符:StartGame.ConfigHash=0x{sg.ConfigHash:x8} 本地复算=0x{expectedDigest:x8}" +
+                    $"（本地基摘要=0x{_identity.ConfigDigestBase:x8} noDead={values.NoDeath} infiniteAmmo={values.InfiniteAmmo}）" +
+                    "——两端判定面表数据不同源（服务端换表重启与客户端内容热更未同批？）；本局拒绝建立", LogTag.Battle);
+                CaptureDiagnosticsBundle(0, "config-digest-mismatch");
+                End(EndReason.SessionFailed);
+                return;
+            }
+
+            _configDigest = expectedDigest;
+
+            SimWorldState world = MatchWorldFactory.Build(sg, _map, values, ExpectedPlayers, out var template);
+
+            // resolveCombat:false = 客户端预测模式：开火/开火窗/弹药照常预测，但命中/伤害/死亡/
+            // 击杀不落本地态（《状态同步专项设计》§6.1/§6.2——权威结果只由快照/权威反馈面驱动）。
+            _sim = new RollbackSim(world, _map, template, values, weapons, rules, resolveCombat: false);
+
+            // 视图若已挂（AttachView 早于 StartGame），补上回滚/和解/帧事件接线。
+            if (View != null)
+            {
+                WireSimView(View);
+            }
+        }
+
+        /// <summary>Sim → 视图接线（单写者：重复绑定先摘旧视图，避免 event 叠加重复投递）。</summary>
+        private void WireSimView(IBattleView view)
+        {
+            view.SetSnapshotHz(_battle.Client.SnapshotHz > 0 ? _battle.Client.SnapshotHz : LiteSync.Shared.ProtocolConstants.DefaultSnapshotHz);
+            if (_sim == null) return;
+            if (_wiredView != null)
+            {
+                _sim.OnRollback -= _wiredView.OnRollback;
+                _sim.OnReconcile -= _wiredView.OnReconcile;
+                _sim.OnFrameEvents -= _wiredView.OnFrameEvents;
+            }
+            _wiredView = view;
+            if (view == null) return;
+            _sim.OnRollback += view.OnRollback;
+            _sim.OnReconcile += view.OnReconcile;
+            _sim.OnFrameEvents += view.OnFrameEvents;
+        }
+
+        private void OnMatchEnded(LiteNet.Proto.MatchEnded result)
+        {
+            if (_disposed) return;
+            // 未开局即收到终局（Sim 未建）＝等待期房间被服务器中止：按 Aborted 收尾——流程层 回 Main、房间页替换回大厅（页面流对非 Completed 的处置），不进结算页（空结果无从展示）。
+            End(_sim == null ? EndReason.Aborted : EndReason.Completed);
+        }
+
+        /// <summary>快照：镜像重建 → 和解（比对/覆盖/重放）→ 视图插值源推进。首份快照对齐本地实体 Id。</summary>
+        private void OnSnapshot(LiteNet.Proto.StateSnapshot snapshot)
+        {
+            if (_disposed || _sim == null) return;   // Sim 未建：丢弃（Reliable StartGame 随后即到）
+
+            ResolveLocalEntity(snapshot);
+            // 联机测试房批：权威规则位随每份快照下发——同步到活动规则实例（RollbackSim 持同一引用，
+            // 改字段即生效）。联机形态下这是唯一写口：客户端面板动本地副本不会自行生效。
+            ApplyAuthoritativeGmFlags(snapshot.Match?.GmFlags ?? 0);
+
+            if (_mirror.ApplyAndReconcile(_sim, snapshot))
+            {
+                _reconcileCount++;
+                _battle.Client.SendMismatch(snapshot.Frame);
+                CaptureDiagnosticsBundle(snapshot.Frame, "checksum-mismatch");
+            }
+
+            _mirror.PushToView(View);                // 视图插值源：上一份/最新一份轮转
+        }
+
+        /// <summary>
+        /// Unity 托管异常钩子（任意线程）：Exception/Assert → 客户端现场包。
+        /// </summary>
+        private void OnUnityLogForDiagnostics(string condition, string stackTrace, UnityEngine.LogType type)
+        {
+            if (_disposed) return;
+            _diagnostics.CaptureException(condition, stackTrace, type, _matchId,
+                _sim?.State?.Frame ?? 0, _localEntityId, _reconcileCount, _configDigest, _diagnosticsIdentity);
+        }
+
+        private void CaptureDiagnosticsBundle(int frame, string reason)
+            => _diagnostics.Capture(frame, reason, _matchId, _localEntityId, _reconcileCount, _configDigest, _diagnosticsIdentity);
+
+        /// <summary>
+        /// 公共战斗事件批（独立包）：去重后按 kind 分流到表现面队列。
+        /// </summary>
+        private void OnCombatEvents(LiteNet.Proto.CombatEventBatch batch)
+        {
+            if (_disposed) return;
+            _combatFeed.Ingest(batch);
+        }
+
+        /// <summary>
+        /// 权威 GM 规则位 → 活动规则实例（联机测试房批）。常规房（flags=0）不创建规则对象——热路径零分配。
+        /// 复用同一实例改字段是**有意**的：<see cref="RollbackSim"/> 构造时持有该引用，运行期无需重建。
+        /// </summary>
+        private void ApplyAuthoritativeGmFlags(int flags)
+        {
+            MatchTestRules rules = _matchRules;
+            if (rules == null)
+            {
+                if (flags == 0) return;
+                rules = new MatchTestRules();
+                RulesBound?.Invoke(rules);               // 发布给 Session（唯一写者）
+            }
+            rules.NoDeath = (flags & MatchTestRules.FlagNoDeath) != 0;
+            rules.InfiniteAmmo = (flags & MatchTestRules.FlagInfiniteAmmo) != 0;
+            _matchRules = rules;               // 表现面注入引用同源（同实例，字段已更新）
+        }
+
+        /// <summary>
+        /// 重连恢复（§9.3 步骤 3~5）：仅 Restoring 相位可应用——权威全量重建镜像 → 和解到该帧 →
+        /// <see cref="RoomClient.CompleteRestore"/> 发恢复 ACK（服务器收到前抑制本席位增量广播）。
+        /// </summary>
+        private void OnReconnectResponse(LiteNet.Proto.ReconnectResponse response)
+        {
+            if (_disposed) return;
+            if (!response.Ok || _battle.Phase != ClientSessionPhase.Restoring) return;
+
+            // 重连：不重播断线前事件（恢复后的第一份事件批按"首份"处理——只标记已见）。
+            _combatFeed.Reset();
+
+            if (_localEntityId == 0 && _battle.Client.PlayerId >= 0)
+                ResolveLocalEntity(response.Snapshot);
+
+            _mirror.ApplyReconnect(_sim, response.Snapshot);
+
+            View?.ResetInterpolation();              // 旧时间线快照作废：重连后从恢复快照重新起锚
+            _mirror.PushToView(View);                // 恢复快照同样是插值源（重连后不跳帧）
+            View?.AlignLocal(_localEntityId);        // 重连可能换了实体/复活的命：重新落位
+
+            _battle.Client.CompleteRestore();
+        }
+
+        /// <summary>相位迁移：断线自动重连（凭票据；调试开关可抑制）；Failed → 对局终结（流程层裁决去留）。</summary>
+        private void OnPhaseChanged(ClientSessionPhase from, ClientSessionPhase to)
+        {
+            if (_disposed) return;
+            switch (to)
+            {
+                case ClientSessionPhase.SuspectedLost:
+                    if (DebugSuppressAutoReconnect) break;   // 调试：停在断线态，等待手动重连（发布无写入者 = 恒 false）
+                    _battle.BeginReconnect();            // false = 无票据（内部已转 Failed，下一事件收口）
+                    break;
+                case ClientSessionPhase.Failed:
+                    End(EndReason.SessionFailed);
+                    break;
+            }
+        }
+
+        /// <summary>首份快照按 <c>Slot == PlayerId</c> 解析本地实体 Id（视图首帧直接落位——不从上一条命的位置飞过去）。</summary>
+        private void ResolveLocalEntity(LiteNet.Proto.StateSnapshot snapshot)
+        {
+            if (_localEntityId != 0 || _battle.Client.PlayerId < 0) return;
+            foreach (LiteNet.Proto.SlotDelta slot in snapshot.Slots)
+            {
+                if (slot.Slot == _battle.Client.PlayerId)
+                {
+                    _localEntityId = slot.Id;
+                    View?.AlignLocal(_localEntityId);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>拆订阅 → Match Scope.Dispose（LIFO 释放对局资源）。不触发 <see cref="Ended"/>。</summary>
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _sim = null;
+            Log.ClearMatchContext(_matchId);          // 只清本局（旧局晚拆不清新局）
+            _mirror.Reset();
+            _matchScope.Dispose();                        // 订阅退订经 Scope 登记面执行（含 DisposeFailures 聚合）
+        }
+    }
+}

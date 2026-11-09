@@ -28,29 +28,32 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Hosting/**/*.cs" Exclude="Hosting/AppLifetime.cs;Hosting/FrameworkInfrastructure.cs;Hosting/Diagnostics/StructuredLogInstaller.cs;Hosting/Diagnostics/ClientDiagnosticsBundle.cs" />
+    <Compile Include="Hosting/**/*.cs" Exclude="Hosting/Host/AppLifetime.cs;Hosting/Host/FrameworkInfrastructure.cs;Hosting/Diagnostics/StructuredLogInstaller.cs;Hosting/Diagnostics/ClientDiagnosticsBundle.cs" />
     <Compile Include="Services/Config/**/*.cs" />
     <!-- Unity 资源/组件载体（ScriptableObject/MonoBehaviour/Animator）不入 dotnet 双轨 -->
-    <Compile Include="Services/Animation/**/*.cs" Exclude="Services/Animation/AnimationClipManifest.cs;Services/Animation/LiteAnimator.cs;Services/Animation/Abstractions/IAnimationBackendFactory.cs;Services/Animation/Abstractions/IAnimationPlaybackBackend.cs" />
+    <Compile Include="Services/Animation/**/*.cs" Exclude="Services/Animation/Loading/AnimationClipManifest.cs;Services/Animation/Playback/LiteAnimator.cs;Services/Animation/Abstractions/IAnimationBackendFactory.cs;Services/Animation/Abstractions/IAnimationPlaybackBackend.cs" />
     <Compile Include="Services/Localization/**/*.cs" />
     <Compile Include="Services/Settings/**/*.cs" />
     <Compile Include="Services/Content/Abstractions/**/*.cs" />
-    <Compile Include="Services/Content/ActivationTransactionStore.cs" />
-    <Compile Include="Services/Content/CompositeHealthCheck.cs" />
-    <Compile Include="Services/Content/PatchCoordinator.cs" />
-    <Compile Include="Services/Content/SharedLoadCoordinator.cs" />
-    <Compile Include="Services/Content/ContentCacheMaintenance.cs" />
-    <Compile Include="Services/Content/ContentDeployConfig.cs" />
-    <Compile Include="Services/Content/DriveInfoSpaceProbe.cs" />
-    <Compile Include="Services/Content/WriteProbeDiskSpaceProbe.cs" />
-    <Compile Include="Services/Content/UnavailableDiskSpaceProbe.cs" />
-    <Compile Include="Services/Content/FileActivationRecordIO.cs" />
-    <Compile Include="Services/Content/ReleaseLayout.cs" />
-    <Compile Include="Services/Content/CandidateBundleRootResolver.cs" />
-    <Compile Include="Services/Content/PlayerCapabilities.cs" />
+    <Compile Include="Services/Content/Activation/ActivationTransactionStore.cs" />
+    <Compile Include="Services/Content/Health/CompositeHealthCheck.cs" />
+    <Compile Include="Services/Content/Activation/PatchCoordinator.cs" />
+    <Compile Include="Services/Content/Loading/SharedLoadCoordinator.cs" />
+    <Compile Include="Services/Content/Activation/ContentCacheMaintenance.cs" />
+    <Compile Include="Services/Content/Config/ContentDeployConfig.cs" />
+    <Compile Include="Services/Content/Health/Space/DriveInfoSpaceProbe.cs" />
+    <Compile Include="Services/Content/Health/Space/WriteProbeDiskSpaceProbe.cs" />
+    <Compile Include="Services/Content/Activation/FileActivationRecordIO.cs" />
+    <Compile Include="Services/Content/Release/ReleaseLayout.cs" />
+    <Compile Include="Services/Content/Candidate/CandidateBundleRootResolver.cs" />
+    <Compile Include="Services/Content/Config/PlayerCapabilities.cs" />
     <Compile Include="Services/TaskObservation.cs" />
-    <!-- SignedManifestEnvelope/TrustedKeyStore 引 Newtonsoft（Unity 侧自动引用），不入 dotnet 双轨 -->
-    <Compile Include="Services/Content/PatchRunner.cs" />
+    <Compile Include="Services/Content/Health/CandidateConfigHealthProbe.cs" />
+    <Compile Include="Services/Content/Release/SignedManifestEnvelope.cs" />
+    <Compile Include="Services/Content/Release/TrustedKeyStore.cs" />
+    <Compile Include="Services/Content/Release/ContentTrustAnchors.cs" />
+    <Compile Include="Services/Content/Candidate/FileSystemCandidateProvider.cs" />
+    <Compile Include="Services/Content/Activation/PatchRunner.cs" />
   </ItemGroup>
 
   <ItemGroup>

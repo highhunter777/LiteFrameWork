@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 4499334789197926981}
   - component: {fileID: 2947906544289372362}
   - component: {fileID: 1487112612574057217}
+  - component: {fileID: 7396107907088950080}
   m_Layer: 0
   m_Name: Page_ButtonDemo
   m_TagString: Untagged
@@ -115,6 +116,18 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 55
+--- !u!114 &7396107907088950080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1297560540637063514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4691f10851a3c9941beff93886feb3e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1451203133062367123
 GameObject:
   m_ObjectHideFlags: 0

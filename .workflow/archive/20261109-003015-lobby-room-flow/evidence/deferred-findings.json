@@ -1,0 +1,11 @@
+[
+  {
+    "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_LobbyLogic.cs",
+    "line": 304,
+    "severity": "中",
+    "existing_before_this_task": true,
+    "issue": "Tap cycles _line through 1..Count then indexes _lines[_line]; Count is out of range on the Count-th tap.",
+    "out_of_scope": "Avatar bubble action is unrelated to room entry/exit; do not silently change under this refactor.",
+    "writeback": "T5 dsh documentation worker should register in client quality ledger if left unfixed."
+  }
+]

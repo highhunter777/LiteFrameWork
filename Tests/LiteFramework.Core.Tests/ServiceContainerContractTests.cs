@@ -269,13 +269,14 @@ namespace LiteFramework.Tests
         public void DisposeContinuesAfterFailureAndExposesDiagnostics()
         {
             using var container = new ServiceContainer();
+            using var frames = new FrameSchedule(container);
             var leaf = new Leaf(new Probe());
             container.RegisterInstance(leaf, ServiceOwnership.ContainerOwned);
             container.RegisterInstance(new ThrowingDisposer(), ServiceOwnership.ContainerOwned);
             container.Dispose();
             Assert.Equal(1, leaf.DisposeCount);
             Assert.Single(container.DisposeFailures);
-            Assert.Empty(container.Tickables);
+            Assert.Empty(frames.Tickables);
             Assert.Empty(container.Stats);
         }
 
@@ -308,7 +309,6 @@ namespace LiteFramework.Tests
             Assert.Throws<ObjectDisposedException>(() => container.Register<Probe, Probe>());
             Assert.Throws<ObjectDisposedException>(() => container.RegisterInstance(new Probe()));
             Assert.Throws<ObjectDisposedException>(() => container.RegisterFactory<Probe>(_ => new Probe()));
-            Assert.Throws<ObjectDisposedException>(() => container.SetTickOrder());
             Assert.Throws<ObjectDisposedException>(() => container.Validate());
             Assert.Throws<ObjectDisposedException>(() => container.Seal());
         }
@@ -329,65 +329,70 @@ namespace LiteFramework.Tests
         public void ExplicitTickPlanSurvivesReverseConstructionOrder()
         {
             using var container = new ServiceContainer();
+            using var frames = new FrameSchedule(container);
             container.Register<TickConsumer, TickConsumer>();
             container.Register<TickLeaf, TickLeaf>();
             var plan = new[] { typeof(TickConsumer), typeof(TickLeaf) };
-            container.SetTickOrder(plan);
+            frames.SetOrder(plan);
             plan[0] = typeof(Probe);
             container.Seal();
             container.Resolve<TickLeaf>();
             var consumer = container.Resolve<TickConsumer>();
-            Assert.Same(consumer, container.Tickables[0]);
-            Assert.IsType<TickLeaf>(container.Tickables[1]);
+            Assert.Same(consumer, frames.Tickables[0]);
+            Assert.IsType<TickLeaf>(frames.Tickables[1]);
         }
 
         [Fact]
         public void AutomaticTickOrderFollowsRegistrationRatherThanDependencyResolution()
         {
             using var container = new ServiceContainer();
+            using var frames = new FrameSchedule(container);
             container.Register<TickConsumer, TickConsumer>();
             container.Register<TickLeaf, TickLeaf>();
             container.Resolve<TickConsumer>();
-            Assert.IsType<TickConsumer>(container.Tickables[0]);
-            Assert.IsType<TickLeaf>(container.Tickables[1]);
+            Assert.IsType<TickConsumer>(frames.Tickables[0]);
+            Assert.IsType<TickLeaf>(frames.Tickables[1]);
         }
 
         [Fact]
         public void TickPlanAcceptsOneAliasAndDeduplicatesTwoAliases()
         {
             using var container = new ServiceContainer();
+            using var frames = new FrameSchedule(container);
             var tick = new TickLeaf();
             container.RegisterInstance(tick);
             container.RegisterInstance<ITickable>(tick);
-            container.SetTickOrder(typeof(ITickable));
-            Assert.Single(container.Tickables);
-            container.SetTickOrder(typeof(ITickable), typeof(TickLeaf));
-            Assert.Single(container.Tickables);
+            frames.SetOrder(typeof(ITickable));
+            Assert.Single(frames.Tickables);
+            frames.SetOrder(typeof(ITickable), typeof(TickLeaf));
+            Assert.Single(frames.Tickables);
         }
 
         [Fact]
         public void InvalidTickPlanDoesNotReplaceValidPlan()
         {
             using var container = new ServiceContainer();
+            using var frames = new FrameSchedule(container);
             container.RegisterInstance(new TickLeaf());
             container.RegisterInstance(new Probe());
-            container.SetTickOrder(typeof(TickLeaf));
-            Assert.Throws<InvalidOperationException>(() => container.SetTickOrder(typeof(TickLeaf), typeof(TickLeaf)));
-            Assert.Throws<InvalidOperationException>(() => container.SetTickOrder(typeof(LoopA)));
-            Assert.Throws<InvalidOperationException>(() => container.SetTickOrder(typeof(Probe)));
-            Assert.Throws<InvalidOperationException>(() => container.SetTickOrder());
-            Assert.Single(container.Tickables);
+            frames.SetOrder(typeof(TickLeaf));
+            Assert.Throws<InvalidOperationException>(() => frames.SetOrder(typeof(TickLeaf), typeof(TickLeaf)));
+            Assert.Throws<InvalidOperationException>(() => frames.SetOrder(typeof(LoopA)));
+            Assert.Throws<InvalidOperationException>(() => frames.SetOrder(typeof(Probe)));
+            Assert.Throws<InvalidOperationException>(() => frames.SetOrder());
+            Assert.Single(frames.Tickables);
             container.Seal();
-            Assert.Throws<InvalidOperationException>(() => container.SetTickOrder(typeof(TickLeaf)));
+            Assert.Throws<InvalidOperationException>(() => frames.SetOrder(typeof(TickLeaf)));
         }
 
         [Fact]
         public void UnexpectedFactoryTickableIsRejectedAndOwnedForRollback()
         {
             using var container = new ServiceContainer();
+            using var frames = new FrameSchedule(container);
             var tick = new UnknownTick();
             container.RegisterFactory<object>(_ => tick);
-            container.SetTickOrder();
+            frames.SetOrder();
             container.Seal();
             Assert.Contains("未编排", Assert.Throws<InvalidOperationException>(() => container.Resolve<object>()).Message);
             Assert.False(container.TryGetInstance<object>(out _));
@@ -399,12 +404,13 @@ namespace LiteFramework.Tests
         public void LazyResolutionDoesNotInvalidateCurrentFrameEnumeration()
         {
             using var container = new ServiceContainer();
+            using var frames = new FrameSchedule(container);
             container.RegisterInstance(new TickLeaf());
             container.Register<Probe, Probe>();
-            container.SetTickOrder(typeof(TickLeaf));
+            frames.SetOrder(typeof(TickLeaf));
             container.Seal();
             int visited = 0;
-            foreach (ITickable tick in container.Tickables)
+            foreach (ITickable tick in frames.Tickables)
             {
                 container.Resolve<Probe>();
                 tick.Tick(0);

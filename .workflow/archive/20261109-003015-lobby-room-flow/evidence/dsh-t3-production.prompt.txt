@@ -1,0 +1,20 @@
+你是T3生产实现dsh代理。用户明确实施交给dsh，主代理负责验收。项目E:/unityProject/Test，当前T2已宿主验证：Unity编译0错误；RoomFlow 24用例21green/3真实red，失败证据在 evidence/t3-red-before-implementation.json。只修这3个T3失败，不扩大到全局重构。
+必须先读AGENTS、audit-debt-check、unity-pipeline相关红线与当前plan/tasks；按目标文件定点读，不reset/clean/stash，不覆盖并发改动，不改测试/.workflow/门禁/meta，不运行/查找Unity（主代理宿主验证）。生产写集：
+- Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs
+- Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureBattle.cs
+- Assets/LiteGame/Modules/Procedure/Flow/ProcedureFlow.cs
+- Assets/LiteGame/Modules/Procedure/Flow/RoomFlowLifetime.cs
+- Assets/LiteGame/Modules/Procedure/Flow/RoomFlowOperation.cs
+- Assets/LiteGame/Modules/Procedure/Flow/PageFlow.cs
+- Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Flow/ProcedureError.cs（仅如房间失败恢复需要，优先复用已有Feedback)
+- Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_RoomLogic.cs/Settings/Page_SettingsLogic.cs 仅必要调用语义，不改UI无关并发OnButtonClick
+
+现有生产契约：ProcedureFlow有唯一OperationStarted观察者，lifetime.RecoveryStep是T3恢复扩展；operation Phase/Token/RecoverySuppressed/RecoveryDone/CleanupTask；ProcedureMatch失败目前Fail+Request(Error)，Battle finally有BeginCleanup/NotifyCleaned但场景卸载仍Forget，PageFlow OnMatchEnded会直接导航。
+
+T3-1 建连异常恢复：当ProcedureMatch在AccountSessionFactory.Create抛异常或Join/准备失败，不进入只支持重启的Error页。清理本次连接/操作恰一次，安全回Main；统一操作观察者在Main且清理完成后执行RecoveryStep。RecoveryStep在房间失败场景用FeedbackService.ShowErrorAsync(retryable:false)单按钮确认，再由PageFlow回大厅；若测试装配无Feedback/PageFlow可用，不能NRE/吞错误，保留可观测清理结果。不要自动重放旧票据。启动/装配Fatal原错误路径保留。
+T3-2 卸载完成阻断：ProcedureBattle场景卸载必须await当前本局拥有的必要卸载完成，不能UnLoadAdditiveAsync(...).Forget后立即NotifyCleaned/释放。只卸本局实际加载持有的Rig/地图；失败显性进入恢复错误并保持operation busy/不放行新票，成功才NotifyCleaned。恢复逻辑必须等CleanupTask后再Release。避免修改框架FSM；不在OnLeave同步Request。
+T3-3 登录优先/旧回调隔离：PageFlow增加实例导航/恢复代次或等价当前操作token，ShowLogin和宿主退出同步使旧恢复失效；OnMatchEnded/RecoveryStep提交大厅/结算前检查代次/RootToken/RecoverySuppressed。账号重入后的旧清理完成不得覆盖登录页；正常离房/结算仍保持现有页面语义。
+
+实现约束：T2红线不允许新public static可变状态；CancellationToken绑定异步；服务释放单一owner；日志Log.*；不要用Thread.Sleep/墙钟；注释预算≤4行XML/≤3行块。优先最小改动、复用现有Feedback/PageFlow/SceneService。需要给T3测试作者新增可观察小契约时仅用internal且有真实生产消费者，不改测试来适配。
+
+具体验收：修完生产后主代理会重新跑RoomFlow 24项；预期3项转green，原21项不退化。返回结构：改动文件、三个失败各自根因/修法、清理与恢复顺序、未验证/风险。不要自行称T3完成。

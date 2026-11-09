@@ -1,0 +1,190 @@
+[
+  {
+    "file": "dsh-t1-tests-fix.jsonl",
+    "session": "session-1ae08d74-641c-4dab-beae-c439e3030248"
+  },
+  {
+    "file": "dsh-t1-tests-write.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t1-tests.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t2-implementation.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t2-retire-flow.jsonl",
+    "session": "session-72bdafc0-fd6b-4dfe-ae8a-76c1cacc5d99"
+  },
+  {
+    "file": "dsh-t2-write.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t2a-meta.jsonl",
+    "session": "session-72bdafc0-fd6b-4dfe-ae8a-76c1cacc5d99"
+  },
+  {
+    "file": "dsh-t2b-fix.jsonl",
+    "session": "session-72bdafc0-fd6b-4dfe-ae8a-76c1cacc5d99"
+  },
+  {
+    "file": "dsh-t2b-flow.jsonl",
+    "session": "session-72bdafc0-fd6b-4dfe-ae8a-76c1cacc5d99"
+  },
+  {
+    "file": "dsh-t2b-local-observer.jsonl",
+    "session": "session-72bdafc0-fd6b-4dfe-ae8a-76c1cacc5d99"
+  },
+  {
+    "file": "dsh-t2c-wiring.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t2c1-adapters.jsonl",
+    "session": "session-a393f27e-1c49-4596-b48e-9700e9e6e6d9"
+  },
+  {
+    "file": "dsh-t2c2-match.jsonl",
+    "session": "session-985e3c76-30bc-4199-a510-1a2fcce37179"
+  },
+  {
+    "file": "dsh-t2c3-battle.jsonl",
+    "session": "session-8e5f885e-2959-4a11-af13-fc97bcdc9fe0"
+  },
+  {
+    "file": "dsh-t2c4-segment.jsonl",
+    "session": "session-bfab2724-5837-4da3-bc7f-f2f8be4b8e62"
+  },
+  {
+    "file": "dsh-t3-failure-tests.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t3-fix-compile-scope.jsonl",
+    "session": "session-536138b6-6bd5-498f-9e29-8ca45efd817d"
+  },
+  {
+    "file": "dsh-t3-page-leave.jsonl",
+    "session": "session-d82df91f-f36b-4af1-8345-982f74f2db72"
+  },
+  {
+    "file": "dsh-t3-production-retry.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t3-production-write-correct.jsonl",
+    "session": "session-536138b6-6bd5-498f-9e29-8ca45efd817d"
+  },
+  {
+    "file": "dsh-t3-production-write.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t3-production.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t3-recovery-final.jsonl",
+    "session": "session-536138b6-6bd5-498f-9e29-8ca45efd817d"
+  },
+  {
+    "file": "dsh-t3-tests-report.jsonl",
+    "session": "session-5bbb6d36-715a-46d7-b3f6-9ccc6a5da913"
+  },
+  {
+    "file": "dsh-t4-deploy-asset-new.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t4-deploy-asset.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t4-holder-fix.jsonl",
+    "session": "session-fb8a8ec1-50da-4695-aa76-4759d5910982"
+  },
+  {
+    "file": "dsh-t4-holder-write.jsonl",
+    "session": "session-fb8a8ec1-50da-4695-aa76-4759d5910982"
+  },
+  {
+    "file": "dsh-t4-holder.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t4-local-stack.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t4-local-write.jsonl",
+    "session": "session-ddf01ec9-e2be-4ba8-bd20-32a9ee3207c7"
+  },
+  {
+    "file": "dsh-t4-startmatch.jsonl",
+    "session": "session-05b57652-d8fd-400e-be75-369b76c745b9"
+  },
+  {
+    "file": "dsh-t4-ui-inputs.jsonl",
+    "session": "session-05b57652-d8fd-400e-be75-369b76c745b9"
+  },
+  {
+    "file": "dsh-t4-ui-script.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-t4-ui-write.jsonl",
+    "session": "session-05b57652-d8fd-400e-be75-369b76c745b9"
+  },
+  {
+    "file": "dsh-t5-docs.jsonl",
+    "session": "session-6218077b-8d0b-4bbc-8153-0ea1cf4fd140"
+  },
+  {
+    "file": "dsh-t6-m3-fix.jsonl",
+    "session": "session-1ae08d74-641c-4dab-beae-c439e3030248"
+  },
+  {
+    "file": "dsh-t6-meta-cancel-fix.jsonl",
+    "session": "session-1ae08d74-641c-4dab-beae-c439e3030248"
+  },
+  {
+    "file": "dsh-t6-meta-tests.jsonl",
+    "session": "session-1ae08d74-641c-4dab-beae-c439e3030248"
+  },
+  {
+    "file": "dsh-t6-rig-wiring.jsonl",
+    "session": "session-1ae08d74-641c-4dab-beae-c439e3030248"
+  },
+  {
+    "file": "dsh-task-review-1.jsonl",
+    "session": "session-e3024fc8-f9fc-4631-8130-63ee59f2e517"
+  },
+  {
+    "file": "dsh-task-review-2.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-task-review-final.jsonl",
+    "session": "session-128282f0-318f-41e2-8ea3-121f44c7026b"
+  },
+  {
+    "file": "dsh-task-review-round-2.jsonl",
+    "session": "session-39a67d41-7656-4b48-a833-ffb0557101df"
+  },
+  {
+    "file": "dsh-task-review-round-3.jsonl",
+    "session": null
+  },
+  {
+    "file": "dsh-task-review-round-3b.jsonl",
+    "session": "session-39a67d41-7656-4b48-a833-ffb0557101df"
+  },
+  {
+    "file": "dsh-task-review-round-3c.jsonl",
+    "session": "session-39a67d41-7656-4b48-a833-ffb0557101df"
+  }
+]

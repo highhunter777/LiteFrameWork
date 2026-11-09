@@ -1,0 +1,533 @@
+{
+  "run": "account-match-lifecycle",
+  "task": "T3 (独立测试作者：先写失败测试)",
+  "layer": "L1(dotnet) + Unity EditMode",
+  "workspace": "E:\\unityProject\\Test",
+  "production_state": "T1 契约骨架 + T2 C1 改名；AccountDomain/AccountTicketSource/MetaLoginService/MetaAccountSession/MetaSessionFacade 仍为空桩（IsOpen 恒 false、不建 scope、401 不调度）",
+  "commands": [
+    {
+      "name": "account-domain-red",
+      "command": "dotnet test Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj --filter FullyQualifiedName~AccountReentryTests|FullyQualifiedName~AccountDomain --nologo",
+      "total": 11,
+      "failed": 1,
+      "passed": 10,
+      "red": true,
+      "cases": [
+        {
+          "case": "重入_端口为空_拒绝构造",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "重入_完成后再次调用_登录页已在场_不二次导航",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "重入_离场返回false_仍回登录页_不硬关域",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "重入_端口为空_拒绝构造",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "重入_登录页已在场_幂等不重复导航",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "重入_顺序固定_登出_等离场_关域_回登录页",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "重入_四次并发401_只登出与离场一次",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "重入_开面异步入队_落地前再次401不重复导航",
+          "status": "failed",
+          "message": "开面在途（记忆位）期间的重复重入不得再次导航"
+        },
+        {
+          "case": "重入_取消_不动作",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "重入_顺序固定_登出_离场_回登录页",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "重入_已在Main_离场为noop_仍回登录页",
+          "status": "passed",
+          "message": ""
+        }
+      ]
+    },
+    {
+      "name": "meta-entry-red",
+      "command": "python scripts/gate/unity-tests.py --mode editor --filter MetaEntryEditModeTests --timeout 600",
+      "total": 22,
+      "failed": 19,
+      "passed": 3,
+      "red": true,
+      "cases": [
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.Open失败_不留半开域_可重登",
+          "status": "failed",
+          "message": "缺 AccountId = 程序员错误，构造即失败 Expected: <System.ArgumentNullException> But was: null"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.Revoke后仍可Close_Close幂等",
+          "status": "failed",
+          "message": "登录成功（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.令牌不进日志_公开端口无令牌成员",
+          "status": "failed",
+          "message": "登录成功（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.传输工厂_envelope注入优先_非法键fail_fast抛",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.创建房间_带地图行键_原样透传给客户端",
+          "status": "failed",
+          "message": "Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.创建房间_带期望人数_原样透传给客户端",
+          "status": "failed",
+          "message": "Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.创建房间_服务端出号_透传版本与默认参数",
+          "status": "failed",
+          "message": "Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.取票与建房取票_传递caller的token给IMetaClient",
+          "status": "failed",
+          "message": "取票 token 必须是 caller 的原 token Expected: System.Threading.CancellationToken But was: System.Threading.CancellationToken"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.四调用点401_各调度一次_不自拆",
+          "status": "failed",
+          "message": "四个令牌调用点各调度一次账号重入（不自拆、不递归） Expected: 4 But was: 0"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.换票成功_返回票据事实_版本与房号原样",
+          "status": "failed",
+          "message": "Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.显式模板建房_不依赖部署注入_携带地图与口令",
+          "status": "failed",
+          "message": "Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.未登录_创建房间被拒_零create调用",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.未登录_取票与建房取票被拒_零票据调用",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.未配置_登录取票查询全显性失败_零客户端调用",
+          "status": "failed",
+          "message": "失败优先级：NotConfigured > NotLoggedIn Expected string length 20 but was 19. Strings differ at index 10. Expected: \"entry.not-configured\" But was: \"entry.not-logged-in\" ---------------------^"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.登出关域_旧scope释放_服务域清空",
+          "status": "failed",
+          "message": "登录成功（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.登录开域_账户服务域可解析会话",
+          "status": "failed",
+          "message": "登录成功（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.登录成功_缓存账号_设备标识直达客户端",
+          "status": "failed",
+          "message": "登录成功 Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.真实MetaSegment装配_根容器登记账户域_ForceReleaseRoot释放",
+          "status": "failed",
+          "message": "MetaSegment 必须在根容器登记 IAccountDomain（AC8 消费者/释放者） Expected: not null But was: null"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.配置测试房_建房带模板与口令_未配置则请求体不变",
+          "status": "failed",
+          "message": "配置了模板 ⇒ 随建房请求带上 Expected: \"sandbox\" But was: null"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.重登_旧域释放恰一次_新scope不等",
+          "status": "failed",
+          "message": "首次登录（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.门面切换_登录读新会话_登出读NotLoggedIn_旧会话不可读",
+          "status": "failed",
+          "message": "登录成功（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.预取消_取票与建房取票均零HTTP",
+          "status": "failed",
+          "message": "Expected: <System.OperationCanceledException> But was: null"
+        }
+      ]
+    },
+    {
+      "name": "room-flow-red",
+      "command": "python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 900",
+      "total": 39,
+      "failed": 30,
+      "passed": 9,
+      "red": true,
+      "cases": [
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowBridgeTests.旧会话解绑后事件不回到新投影",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowBridgeTests.重复Bind先摘旧_开局请求只归新会话",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowCleanupFailureTests.卸载抛异常_保留占用不报清理完成_错误反馈展示_不导航_再次入场被拒",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowEntryTests.Main到Match排队后离房_零建连接",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowEntryTests.取票前已取消_零网络请求零RequestMatch",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowEntryTests.在途取消_晚到票据成功_零流程推进零建连接",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowEntryTests.旧A取消后新B成功_A晚到不得推进流程",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowEntryTests.账号重入_在途取票晚到不得RequestMatch",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowEntryTests.重复请求_只发一次取票只建一次连接",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowFailureTests.取票拒绝_零排队零连接_占用释放后可重取",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowFailureTests.取票网络失败_零排队零连接_占用释放后可重取",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowFailureTests.建连工厂抛异常_清理回Main允许新票重进",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowFailureTests.成功响应缺值或非法地址_稳定失败零排队(\"null-value\")",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowFailureTests.成功响应缺值或非法地址_稳定失败零排队(\"empty-ticket\")",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowFailureTests.成功响应缺值或非法地址_稳定失败零排队(\"bad-address\")",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowFailureTests.排队未消费重复进入_只发一票_离房消费后放行",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLeaveMatchAsyncTests.卸载失败_返回false",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLeaveMatchAsyncTests.无操作_true",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLeaveMatchAsyncTests.根取消_true",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLeaveMatchAsyncTests.清理在途_等到终态才返回true",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLeaveMatchAsyncTests.超时_可注入阈值_返回false",
+          "status": "failed",
+          "message": "T5 需给 ProcedureFlow 可注入的离场等待阈值（构造参数 int 毫秒 / TimeSpan）——否则超时分支不可测 Expected: not null But was: null"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLeaveMatchAsyncTests.重入_登出_等离场_关域_回登录页",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLeaveMatchAsyncTests.阶段机未启动_true",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLifecycleTests.JoinAck后Battle排队被Main覆盖_未接管会话恰好回收一次",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLifecycleTests.必要卸载未结束_再次入场零取票_完成后放行",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLifecycleTests.账号重入后旧房间清理完成_不覆盖登录页",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLoadingCancelTests.等待JoinAck时取消加载遮罩_回Main_会话恰释放一次_观察者放行可重进",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowMatchDomainTests.Join未完成即离场_Battle前失败直接释放恰一次",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowMatchDomainTests.取票失败_零建域",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowMatchDomainTests.开发直入_不要求登录_可进Match",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowMatchDomainTests.未登录_产品进房被拒_NotLoggedIn零取票零建域",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowMatchDomainTests.离场_Match域释放恰一次_根无残留",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowMatchDomainTests.进房_Match域创建一次_交付即Seal_作用域名Match",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowTicketTests.创建房间_服务端出号_精确移交Match",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowTicketTests.建房票据地址不可解析_确定性失败_零Match排队",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowTicketTests.换票成功_地址解析并精确移交Match",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowTicketTests.未配置_取票失败_零Match排队",
+          "status": "failed",
+          "message": "Expected string length 20 but was 19. Strings differ at index 10. Expected: \"entry.not-configured\" But was: \"entry.not-logged-in\" ---------------------^"
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowTicketTests.流程构造_缺必要端口_当场fail_fast",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowTicketTests.票据地址不可解析_确定性失败_零Match排队",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False"
+        }
+      ]
+    },
+    {
+      "name": "battle-red",
+      "command": "python scripts/gate/unity-tests.py --mode editor --filter BattleRunPort --timeout 600",
+      "total": 7,
+      "failed": 0,
+      "passed": 7,
+      "red": false,
+      "cases": [
+        {
+          "case": "LiteGame.Tests.EditMode.BattleRunPortEditModeTests.Dispose不触发Ended",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.BattleRunPortEditModeTests.Ended早到_等待端口返回false且映射Leave",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.BattleRunPortEditModeTests.StartGame早到_等待端口立即返回true",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.BattleRunPortEditModeTests.等待取消_抛取消异常",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.BattleRunPortEditModeTests.等待挂起后Ended到达_唤醒返回false",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.BattleRunPortEditModeTests.等待挂起后StartGame到达_唤醒返回true",
+          "status": "passed",
+          "message": ""
+        },
+        {
+          "case": "LiteGame.Tests.EditMode.BattleRunPortEditModeTests.视图挂载与拆除_归运行端口",
+          "status": "passed",
+          "message": ""
+        }
+      ]
+    },
+    {
+      "name": "match-loop-red",
+      "command": "python scripts/gate/unity-tests.py --mode editor --filter MatchLoopLeakEditModeTests --timeout 900",
+      "total": 1,
+      "failed": 0,
+      "passed": 1,
+      "red": false,
+      "cases": [
+        {
+          "case": "LiteGame.Tests.EditMode.MatchLoopLeakEditModeTests.百次进房离场_作用域与传输无残留",
+          "status": "passed",
+          "message": ""
+        }
+      ]
+    }
+  ],
+  "coverage": {
+    "401": {
+      "required_case": "四调用点401_各调度一次_不自拆",
+      "found": true,
+      "red": true,
+      "cases": [
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.四调用点401_各调度一次_不自拆",
+          "status": "failed",
+          "message": "四个令牌调用点各调度一次账号重入（不自拆、不递归） Expected: 4 But was: 0",
+          "command": "meta-entry-red"
+        }
+      ]
+    },
+    "relogin": {
+      "required_case": "重登_旧域释放恰一次_新scope不等",
+      "found": true,
+      "red": true,
+      "cases": [
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.重登_旧域释放恰一次_新scope不等",
+          "status": "failed",
+          "message": "首次登录（前置） Expected: True But was: False",
+          "command": "meta-entry-red"
+        }
+      ]
+    },
+    "leave-match-unload-failure": {
+      "required_case": "卸载失败_返回false",
+      "found": true,
+      "red": true,
+      "cases": [
+        {
+          "case": "LiteGame.Tests.EditMode.RoomFlowLeaveMatchAsyncTests.卸载失败_返回false",
+          "status": "failed",
+          "message": "登录后账户域必须开启（前置） Expected: True But was: False",
+          "command": "room-flow-red"
+        }
+      ]
+    },
+    "facade-switch": {
+      "required_case": "门面切换_登录读新会话_登出读NotLoggedIn_旧会话不可读",
+      "found": true,
+      "red": true,
+      "cases": [
+        {
+          "case": "LiteGame.Tests.EditMode.MetaEntryEditModeTests.门面切换_登录读新会话_登出读NotLoggedIn_旧会话不可读",
+          "status": "failed",
+          "message": "登录成功（前置） Expected: True But was: False",
+          "command": "meta-entry-red"
+        }
+      ]
+    },
+    "account-reentry-order": {
+      "required_case": "重入_顺序固定_登出_等离场_关域_回登录页",
+      "found": true,
+      "red": false,
+      "cases": [
+        {
+          "case": "重入_顺序固定_登出_等离场_关域_回登录页",
+          "status": "passed",
+          "message": "",
+          "command": "account-domain-red"
+        }
+      ]
+    }
+  },
+  "red_command_count": 3,
+  "total_cases": 80,
+  "failed_cases": 50,
+  "green_commands": [
+    "battle-red",
+    "match-loop-red"
+  ]
+}

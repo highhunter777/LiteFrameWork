@@ -15,7 +15,7 @@ namespace LiteSim.Editor
         /// <summary>查表长度：引用运行期常量 SimTrig.TableSize（同一单源，生成器不另存一份）。</summary>
         private const int TableSize = SimTrig.TableSize;
         private const int PerLine = 8;
-        public const string OutputPath = "Packages/com.litegame.sim/Scripts/Map/SimTrigTables.cs";
+        public const string OutputPath = "Packages/com.litegame.sim/Scripts/Map/Trig/SimTrigTables.cs";
 
         public static void Generate()
         {

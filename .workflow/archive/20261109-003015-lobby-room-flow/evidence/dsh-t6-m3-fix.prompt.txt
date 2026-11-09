@@ -1,0 +1,3 @@
+继续独立测试作者T6。宿主验证结果：当前Unity编译0错误，完整RoomFlow 15用例13passed/2failed（仅T3的卸载未完放行和登录覆盖）；Entry六项全green，QueuedBattle恰一次回收已green，Ticket六项全green。MetaEntry fixture正在宿主执行。Core定向8项7passed/1failed：M3“ProcedureSegment必须构造ProcedureFlow”，原因是你正则只接受var/类型+变量声明和new在同一行，而当前生产合法实现为ProcedureFlow flow=null; try { flow=new ProcedureFlow(...); context.Scope.Register(flow); }，为了失败回滚不是缺生产接线。
+只改Tests/LiteFramework.Core.Tests/M3WiringGuardTests.cs这个测试，不动生产/其他测试/.workflow。把变量捕获扩展为支持先声明后赋值，同时保持同变量Put<IRoomFlow>/Put<IAccountSessionControl>/AccountReentry及shared lifetime三个消费者的全部断言；不能删“必须构造”或把同实例校验改为只包含任意字符串。使用现有去注释/字符串工具风格，先读目标+当前ProcedureSegment后局部改。最多3次read然后edit，直接返回；不运行Unity。主代理会重跑失败用例/相关集。
+补充source流程MethodCount改兼容旧IAppFlow是另一批并发留下，主代理后续会在确认零生产消费者后退役，不因旧兼容块要求弱化守卫。此次只修正能覆盖合法生产语法的正则解析。

@@ -1,0 +1,6 @@
+{
+  "file": "Assets/LiteGame/Modules/Procedure/ProcedureSegment.cs",
+  "sha256": "c1832b74655fbb2252e86295997ecc2166dddb74d5ab7e88d14910439c2b2673",
+  "note": "Current file contains partial ProcedureFlow/IRoomFlow and obsolete IAppFlow registration not present in initial baseline. No authorized dsh tool write event to this file at checkpoint. Preserve current unrelated changes, apply required same-instance lifetime/control wiring locally.",
+  "classification": "concurrent working-tree change, do not revert to HEAD"
+}

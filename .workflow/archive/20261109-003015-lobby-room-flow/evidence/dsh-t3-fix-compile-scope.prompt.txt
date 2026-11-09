@@ -1,0 +1,5 @@
+T3实际编译首轮红（不是行为red）：PageFlow.cs82 `internal void InvalidateRecovery() => unchecked { _recoveryGeneration++; }` 非法C#表达式体。请立即局部改为合法块方法unchecked语法，不改测试/其他无关文件、不跑Unity。还须同时修你已写的两个明确逻辑问题，允许写PageFlow/ProcedureBattle/ProcedureSegment/RoomFlowOperation：
+1 UnloadBattleScenesAsync枚举所有_sc enes.AdditiveLocations会卸其他功能已载的场景，不能称本局持有。增加private实例owned场景列表（最多Rig+地图）仅在LoadBattleScenesAsync本次IsLoaded=false且LoadAdditiveAsync成功后登记，finally仅逆序await这份列表；取消发生在load完成但await抛取消的边界要根据IsLoaded并在try/finally捕获本次加载责任，不能漏。卸载使用RootToken（活的清理生命周期）传给服务，而不是被阶段取消的workToken，也不能`_ = ct`忽略传入token。
+2 当前Battle取消catch后next=null，收尾用else operation.SuppressRecovery把普通主动离房也当高优先恢复抑制，结果不会回大厅。只有账号重入/宿主退出的RecoverySuppressed应抑制；普通主动离房应MarkBattleOutcome(false,null,...)并走RecoveryStep→大厅。next=Error的真正Fatal另处理。账号重入已有Logout.SuppressRecovery标记不用再按next=null猜。
+3 RecoveryStep现在在operation.CleanupDone后等待Main，但原Flow代码恢复执行顺序请确认不会OnLeave同步Request。你的RecoverRoomAsync要检查RootToken/operation.RecoverySuppressed/代次后再导航，ShowErrorAsync等待期间账号重入后应取消旧弹窗或至少token/代次压过旧确认，不覆盖登录页。
+此外卸载失败目前保busy进Error、不会触发RecoveryStep；请如实保留未完成项，不为先过编译掩盖为已恢复。先修语法+本局owned+普通leave抑制三个有确定依据的问题，直接写代码并返回，禁止再广泛调查。

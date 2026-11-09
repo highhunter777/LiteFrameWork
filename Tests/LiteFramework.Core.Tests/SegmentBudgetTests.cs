@@ -10,8 +10,8 @@ namespace LiteFramework.Core.Tests
     /// </summary>
     public sealed class SegmentBudgetTests
     {
-        /// <summary>装配段数量下限（18 段全部就地）。</summary>
-        private const int MinimumSegments = 18;
+        /// <summary>装配段数量下限（17 段全部就地；LuaHostSegment 随脚本宿主退出）。</summary>
+        private const int MinimumSegments = 17;
 
         [Fact]
         public void 模块目录不得残留于Bootstrap()

@@ -76,9 +76,9 @@ SHARED_LINK_FILES = [
     # 显式出树链接进服务端编译）。它们同时决定两端的装载映射/路径/摘要取数，改一端而另一端不重建 =
     # 静默分叉且 buildHash 不动。登记规则（与 META_EXTRA_FILES 同一条）：csproj 每加一条出树链接，
     # 这里必须同批加对应条目。
-    'Assets/LiteGame/Modules/Config/SimConfigMapper.cs',   # 表 → CombatValues 投影（两端同链）
-    'Assets/LiteGame/Modules/Config/BattleStrategyTableReader.cs', # 战斗策略键/规则四值投影（两端同链）
-    'Assets/LiteGame/Modules/Config/TableLayout.cs',       # 表清单/判定面清单/取数键单源
+    'Assets/LiteGame/Modules/Config/Table/SimConfigMapper.cs',   # 表 → CombatValues 投影（两端同链）
+    'Assets/LiteGame/Modules/Config/Table/BattleStrategyTableReader.cs', # 战斗策略键/规则四值投影（两端同链）
+    'Assets/LiteGame/Modules/Config/Table/TableLayout.cs',       # 表清单/判定面清单/取数键单源
 ]
 # 第二目标（P1④）：**Meta 服务自身**的构建身份——"接真"取代原手写占位常量
 # （`Host/BuildHash.cs` 的 "meta-0.0.0-unwired"，该文件随本批删除）。
@@ -98,23 +98,23 @@ META_EXTRA_FILES = [
     'Assets/RoomServer/Core/MatchStateMachine.cs',
     # Meta HTTP 契约线形状与序列化行为（客户端编译、MetaServer/RoomServer 源链接共编）：
     # 改字段名/口径 = 协议变更，Meta 构建身份必须跟着变。
-    'Assets/LiteGame/Modules/Meta/WireSubModule/MetaError.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/GuestLoginRequest.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/GuestLoginInfo.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/JoinTicketRequest.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/CreateRoomRequest.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/JoinTicketInfo.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/RoomsResponse.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/LobbyInstanceView.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/LobbyRoomEntry.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/MatchesResponse.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/MatchRecordInfo.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/InstanceRegisterRequest.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/InstanceRegisterResponse.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/MatchResultSubmission.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/PlayerResultEntry.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/MetaWireEndpoints.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/MetaWireLimits.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Core/MetaError.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Login/GuestLoginRequest.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Login/GuestLoginInfo.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Join/JoinTicketRequest.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/CreateRoomRequest.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Join/JoinTicketInfo.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/RoomsResponse.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/LobbyInstanceView.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/LobbyRoomEntry.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Match/MatchesResponse.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Match/MatchRecordInfo.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Instance/InstanceRegisterRequest.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Instance/InstanceRegisterResponse.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Match/MatchResultSubmission.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Match/PlayerResultEntry.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Core/MetaWireEndpoints.cs',
+    'Assets/LiteGame/Modules/Meta/WireSubModule/Core/MetaWireLimits.cs',
     'Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft/WireJsonSettings.cs',
 ]
 SHARED_OUT_REL = 'Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs'

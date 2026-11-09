@@ -92,16 +92,6 @@ namespace LiteGame.Toolchain
         private static void RegisterActions(EditorToolRegistry registry)
         {
             registry.RegisterAction("codegen.sim-trig", request => SimTrigToolActions.Run(request));
-            registry.RegisterAction("codegen.lua-reload", () =>
-            {
-                LuaDevReload.ReloadForTool();
-                return Ok("已请求 Lua Reload（仅 Play 模式生效，见 Console）。");
-            });
-            registry.RegisterAction("codegen.lua-refill", () =>
-            {
-                LuaDevRefill.RefillForTool();
-                return Ok("已请求 Lua 注册表重填（仅 Play 模式生效，见 Console）。");
-            });
             registry.RegisterAction("quality.discipline", () =>
             {
                 var result = DisciplineScanMenu.RunForTool();

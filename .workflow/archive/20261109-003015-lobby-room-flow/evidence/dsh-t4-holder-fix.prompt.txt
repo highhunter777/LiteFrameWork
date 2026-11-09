@@ -1,0 +1,1 @@
+Holder源码已通过宿主build0错误，但真实运行FAIL guest-login status400。只改HolderClient/Program.cs，在/auth/guest和/lobby/create-room的JSON载荷都加requestId=Guid.NewGuid().ToString("N")（项目Meta所有写请求的幂等/有效性校验要求），其余密钥/流程不改。主代理已核对UnityMetaClient同样给requestId。不得回显响应原文，不运行网络/Unity，不改生产。只读目标一次后edit，直接返回。

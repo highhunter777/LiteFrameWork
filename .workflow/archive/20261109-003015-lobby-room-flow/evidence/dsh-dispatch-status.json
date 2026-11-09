@@ -1,0 +1,17 @@
+{
+  "agent_type": "dsh headless",
+  "task": "independent task review before T1",
+  "session_id": "session-e3024fc8-f9fc-4631-8130-63ee59f2e517",
+  "exit_code": 1,
+  "error_code": "MISSING_CREDENTIAL",
+  "provider_route": "opencode-go",
+  "required_environment_name": "OPENCODE_GO_API_KEY",
+  "result": "Initial credential failure resolved: per-invocation patch enables existing managed credential service",
+  "credential_files_read": false,
+  "global_profile_changed": false,
+  "fallback_implementation_used": false,
+  "next_action": "Independent task re-review running; T1 tests dispatch follows PASS",
+  "resolution_evidence": "evidence/dsh-credential-resolution.json",
+  "completed_task_review_session": "session-128282f0-318f-41e2-8ea3-121f44c7026b",
+  "completed_task_review_result": "FAIL with actionable task changes; real dsh exit=0, final.reason.kind=completed"
+}

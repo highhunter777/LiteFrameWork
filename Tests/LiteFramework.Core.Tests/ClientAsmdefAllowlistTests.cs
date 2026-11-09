@@ -100,7 +100,6 @@ namespace LiteFramework.Core.Tests
                         ForbidPrefix(refs, pair.Key, "LiteFramework.Adapters", offenders);   // 服务实现不得依赖第三方/平台适配器
                         ForbidPrefix(refs, pair.Key, "LiteFramework.Hosting", offenders);    // 前三件不得引用宿主
                         Forbid(refs, pair.Key, "YooAsset", offenders);
-                        Forbid(refs, pair.Key, "xLuaMain", offenders);
                         break;
                     case "Packages/com.litegame.framework/Runtime/Adapters/LiteFramework.Adapters.asmdef":
                         ForbidPrefix(refs, pair.Key, "LiteGame.", offenders);
@@ -117,12 +116,8 @@ namespace LiteFramework.Core.Tests
                         ForbidPrefix(refs, pair.Key, "LiteGame.", offenders);          // 进程壳不认识产品实现
                         ForbidPrefix(refs, pair.Key, "LiteFramework.Adapters", offenders);
                         break;
-                    case "Assets/LiteGame/Adapters/LuaBridge/LiteGame.Adapters.LuaBridge.asmdef":
-                        ForbidPrefix(refs, pair.Key, "LiteGame.App", offenders);
-                        ForbidPrefix(refs, pair.Key, "LiteGame.Adapters.Dev", offenders);
-                        break;
                 }
-                // 产品模块只经**模块自持端口**谈协作：适配器（LuaBridge/Unity/Dev）都是实现侧，
+                // 产品模块只经**模块自持端口**谈协作：适配器（Unity/Dev）都是实现侧，
                 // 由装配根注入；任何 Modules/* 反向引用实现程序集即红（P1 硬边，无例外）。
                 if (pair.Key.StartsWith("Assets/LiteGame/Modules/", StringComparison.Ordinal))
                 {
@@ -172,7 +167,7 @@ namespace LiteFramework.Core.Tests
 
         private static readonly string[] ThirdPartyNamespaces =
         {
-            "UniTask", "Cysharp", "YooAsset", "XLua", "DG.Tweening", "Cinemachine",
+            "UniTask", "Cysharp", "YooAsset", "DG.Tweening", "Cinemachine",
             "Luban", "Newtonsoft", "Sirenix", "UnityEngine", "UnityEditor",
         };
 

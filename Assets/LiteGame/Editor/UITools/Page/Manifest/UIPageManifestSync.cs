@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -117,22 +117,6 @@ namespace LiteGame.Editor.UITools.Page
                 }
                 entry.ContractPath = UIContractPaths.ForPage(name);
                 entry.ContractPresent = File.Exists(UIPageManifestPaths.FullPath(entry.ContractPath));
-
-                List<string> luaPaths = groupRows
-                    .Select(row => (row.lua ?? string.Empty).Trim())
-                    .Where(lua => lua.Length > 0)
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(lua => lua, StringComparer.Ordinal)
-                    .ToList();
-                if (luaPaths.Count > 1)
-                {
-                    entry.LuaPath = null;
-                    result.Manifest.Warnings.Add($"{name}：多行 luaPath 不一致（{string.Join(",", luaPaths)}）");
-                }
-                else
-                {
-                    entry.LuaPath = luaPaths.Count == 1 ? luaPaths[0] : null;
-                }
 
                 if (string.IsNullOrWhiteSpace(entry.Owner)) entry.Owner = DefaultOwner;
                 if (!UIPageStatusRules.TryParse(entry.Status, out UIPageStatus parsed))

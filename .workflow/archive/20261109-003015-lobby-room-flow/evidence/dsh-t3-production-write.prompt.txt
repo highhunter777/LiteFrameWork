@@ -1,0 +1,2 @@
+同一T3生产会话，立即停止调查并写代码。你已经读过目标与测试，主代理不接受更多源码读取。只允许目标生产文件：ProcedureMatch.cs、ProcedureBattle.cs、ProcedureFlow.cs、RoomFlowLifetime.cs、RoomFlowOperation.cs、PageFlow.cs、ProcedureSegment.cs。不要改测试/.workflow/文档/门禁，不运行Unity。
+交付最小可编译修复：建连异常对operation回Main；Battle卸载必要场景await而不是Forget，NotifyCleaned在await后；旧直调PageFlow恢复改为同一Lifetime.RecoveryStep，ShowLogin/旧回调有实例代次/RecoverySuppressed保护。若完整Feedback单按钮链无法在本片安全接线，至少清理完成回Main可重试，并明确未完成项，不要假称T3通过。先编辑文件，遇到编译签名才定点读一个错误位置。返回修改清单，不要继续调查。

@@ -9,6 +9,12 @@ namespace LiteFramework
         /// <summary>本节点的值类别。</summary>
         JsonValueKind Kind { get; }
 
+        /// <summary>本实现的紧凑 JSON 表达；不承诺不同实现之间的规范化字节一致。</summary>
+        string ToCompactJson();
+
+        /// <summary>将节点投影为对象；非法字段或类型返回 false，保留实现的对象映射规则。</summary>
+        bool TryConvertTo<T>(out T value) where T : class;
+
         /// <summary>仅在类别为 <see cref="JsonValueKind.String"/> 时成功（空串照返回；是否接受空串由调用方判）。</summary>
         bool TryGetString(out string value);
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace LiteGame.Editor.UITools.Page
@@ -133,7 +133,6 @@ namespace LiteGame.Editor.UITools.Page
                 rows.Add(new UIPageTableRow
                 {
                     id = item.id,
-                    lua = item.lua,
                     prefab = item.prefab,
                     layer = item.layer,
                     fullScreen = item.fullScreen,

@@ -3,7 +3,7 @@ using System;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// GM 工具箱页件的运行态取件单源：经 <c>GameEntry.TakeContainer()</c> 解析容器服务 （DevReload / LuaDevRefill 同口径——编辑器工具豁免形态，业务侧禁此形态）。
+    /// GM 工具箱页件的运行态取件单源：经 <c>GameEntry.TakeContainer()</c> 解析容器服务 （DevReload 同口径——编辑器工具豁免形态，业务侧禁此形态）。
     /// </summary>
     internal static class GMEditorResolve
     {

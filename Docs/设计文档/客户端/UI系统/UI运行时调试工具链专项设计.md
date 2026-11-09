@@ -70,7 +70,7 @@
 
 | 段 | 内容 | 来源 |
 | --- | --- | --- |
-| `pages[]` | id / name / prefab / lua / state / layer / fullScreen / sortingOrder / displayGeneration / 是否复用 / 实例根路径 / 缓存策略 / 租约 | `tbuiform`、`UIForm`、`UIService`、`UIFormStore` 只读投影 |
+| `pages[]` | id / name / prefab / state / layer / fullScreen / sortingOrder / displayGeneration / 是否复用 / 实例根路径 / 缓存策略 / 租约 | `tbuiform`、`UIForm`、`UIService`、`UIFormStore` 只读投影 |
 | `navigation` | 打开栈/当前层、队列深度、executed/rejected/timedOut/cancelled、最近操作 | `UINavigationController` 公开计数 |
 | `modal/coverage` | 顶层模态、是否模态、组级遮盖、输入拦截数/拦截者 | `UIModalStack`、`UICoverageResolver`、`IInputService` |
 | `focus/input` | `EventSystem.currentSelectedGameObject`、指针首命中、Back 目标、导航候选 | `EventSystem`、`UIService.TryGetBackTarget`、`UIFocusCoordinator` |
@@ -81,7 +81,7 @@
 | 段 | 内容 | 来源 |
 | --- | --- | --- |
 | `bindings[]` | BindName → 组件类型 / 驱动方式（Bound/Command/None）/ 是否被消费 / 缺失/重复 / 来源 A/B / 近 1s 写入计数（dev-only） | `UIBindIndex` 只读视图 + dev 计数 |
-| `consumers[]` | Lua/C# 字符串字面量中对 BindName 的引用（file:line） | 编辑器引用扫描（只读） |
+| `consumers[]` | 页面逻辑（C#）字符串字面量中对 BindName 的引用（file:line） | 编辑器引用扫描（只读） |
 | `contract` | 契约是否存在、sourceHash、与 prefab 的漂移、controls 差异 | `UIPageContract` 生成/校验结果 |
 | `templates[]` | 页面使用的模板、版本/hash、内部件是否被误暴露 | 契约 + 资源扫描 |
 
@@ -152,7 +152,7 @@ Scenario = Default | Empty | Large | LongText | Error | Loading | PseudoLocalize
 Seed / Language / PageId
 ```
 
-- **页面选择加入**：C# 页面在 `OnInit/OnShow` 识别并应用；Lua 页面经 `LuaBehaviourAdapter` 的 `IUIData` 通道接收保留字段（仅 dev 分支）；未接入页面忽略并记录一次 Info，不伪造状态。
+- **页面选择加入**：页面逻辑在 `OnInit`/`OnShow` 取 `IUIData` 上的保留字段识别并应用（dev 分支；release 剥离）；未接入页面忽略并记录一次 Info，不伪造状态。
 - **类型落位**：`UiDebugState` 住 `LiteFramework.UI` dev 区，release 剥离；内核构造并传入。
 - **不反射页面私有字段**，不替换实例，不绕过生命周期；状态注入只影响页面自己的数据模型与展示。
 - **已打开页换场景**：先按关闭语义收尾，再带新状态重新打开；不直接改现有实例数据模型。
@@ -200,7 +200,7 @@ Seed / Language / PageId
 - 渲染：UI Toolkit EditorWindow + dev-only UXML/USS/ThemeStyleSheet；与 F10 共用快照与主题链，不共用绘制代码。
 - 布局：左页面/层树；右页签 `概览 / 绑定与契约 / 布局与安全区 / 文本与本地化 / 样式与写回 / 输入与焦点 / 性能 / 反馈面 / 操作记录`；底拾取/定位/复制路径/冻结快照/采集/应用/撤销。
 - 深查能力：
-  - 页面 → `UIForm` 状态、prefab/lua、显示代次、复用/租约、Canvas/Group/Raycaster、sortingOrder。
+  - 页面 → `UIForm` 状态、prefab、显示代次、复用/租约、Canvas/Group/Raycaster、sortingOrder。
   - 绑定 → `UIBindIndex` 条目、驱动方式、来源 A/B、缺失/重复、消费者/引用点；契约漂移与 diff。
   - 布局 → CanvasScaler、SafeArea、选中节点屏幕矩形；Ping 节点/prefab。
   - 文本 → locale、`ILocaleBound`、缺 key、静态/动态归属、字体/缺字。

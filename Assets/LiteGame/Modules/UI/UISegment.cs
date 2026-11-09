@@ -9,29 +9,28 @@ using LiteGame.Modules.Config;
 namespace LiteGame.Modules.UI
 {
     /// <summary>
-    /// ⑬ UI 能力段装配：页面目录端口 + 数据面端口 + 红点 + UIService（逻辑解析器经 ILuaUIBinding 端口注入 ← 实现住 Lua 桥适配器。）。
+    /// ⑬ UI 能力段装配：页面目录 + UIService（页面逻辑＝prefab 自带 C# 组件）。
     /// </summary>
     public sealed class UISegment : IClientSegment, IClientSegmentGraph
     {
-        private readonly Func<ILuaHost, ILuaUIBinding> _createLuaBinding;
-
-        private RedDotRegistry _redDotRegistry;
         private ConfirmDialogRouter _confirmRouter;      // 确认缝端口（本段产出，本段内绑定真实现）
         private UIService _uiService;
+        private UINavigationController _nav;
         private DialogService _dialogs;
         private FeedbackService _feedback;
         private IDisposable _themeLease;
         private UIThemeAsset _themeAsset;
 
-        /// <param name="createLuaBinding">Lua 桥装订面工厂（逻辑工厂/数据投射/文本门面——实现归适配器，
-        /// 装配根产出；UI 段不直引 `LiteGame.Adapters.*`）。</param>
-        public UISegment(Func<ILuaHost, ILuaUIBinding> createLuaBinding)
-            => _createLuaBinding = createLuaBinding ?? throw new ArgumentNullException(nameof(createLuaBinding));
+        /// <param name="pageContextFactory">页面上下文工厂（组合根产出；延迟调用，页面打开时才取件）。</param>
+        public UISegment(Func<object> pageContextFactory = null)
+            => _pageContextFactory = pageContextFactory;
+
+        private readonly Func<object> _pageContextFactory;
 
         public string Name => "UI";
 
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
-        public IReadOnlyList<string> DependsOn => new[] { "LuaHost", "Config", "Content", "Clocks" };
+        public IReadOnlyList<string> DependsOn => new[] { "Config", "Content", "Clocks" };
 
         public async UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
         {
@@ -39,15 +38,10 @@ namespace LiteGame.Modules.UI
             // 由 Host 释放 scope 回收；UIService 的异步关闭仍在 ShutdownAsync（scope 只收 IDisposable）。
             context.Scope.Register(new DelegatedDisposable(DisposeSyncResources));
             var config = context.Require<IConfigService>();
-            var lua = context.Require<ILuaHost>();
             var content = context.Require<IContentService>();   // 依赖②内容服务——注册序即依赖序
             var pageDirectory = UIPageDirectory.Instance;      // 页面目录端口（生成物适配，无状态共享实例）
-            ILuaUIBinding luaBinding = _createLuaBinding(lua);
             context.Put<IPageDirectory>(pageDirectory);
-            context.Put<IPageDataFactory>(luaBinding.PageData);   // 数据面端口：流程段只装配具名键
 
-            _redDotRegistry = new RedDotRegistry();
-            context.Put(_redDotRegistry);                    // 红点登记面（当前无生产规则/调用点——已登记技术债）
             _confirmRouter = new ConfirmDialogRouter();      // 确认缝：本段产口，装配根后段绑定实现
             context.Put(_confirmRouter);
             context.Put<IConfirmDialog>(_confirmRouter);
@@ -55,37 +49,36 @@ namespace LiteGame.Modules.UI
             var localeProvider = BuildLocaleProvider(config);
             var themeProvider = await TryLoadThemeProviderAsync(content, ct);   // P2-3 B2：失败降级 null（页面保持烘焙值）
             _uiService = new UIService(pageDirectory,
-                logicResolver: page => luaBinding.LogicFactory.Create(page, _confirmRouter),
                 loadPrefab: (location, token) => LoadPrefabLeaseAsync(content, location, token),
                 // 转场策略**必须显式传**（《客户端总设计》§5.1 逻辑边界）：UIService 默认为零动效 InstantTransition（通用层不认识 DOTween）。
                 transitionStrategy: new FadeSlideTransition(),
                 localeProvider: localeProvider,              // 页面索引 BindLocale 注入缝（批C-②）
-                themeProvider: themeProvider);               // 主题注入缝（UIStyleRef/IThemeBound——P2-3 B2）
+                themeProvider: themeProvider,                // 主题注入缝（UIStyleRef/IThemeBound——P2-3 B2）
+                pageContextProvider: _ => _pageContextFactory != null ? _pageContextFactory() : null,
+                showToast: text => (_feedback ?? throw new InvalidOperationException("反馈服务尚未装配")).ShowToast(text));   // 页面上下文注入缝（P1 页面逻辑）
             context.Put(_uiService);
-            var nav = new UINavigationController(_uiService);        // 产品导航的单写者入口
-            _uiService.Focus.PlatformBack = () => nav.BackAsync(); // 平台返回统一口径（§6.2）：ESC→协调者→导航器 Back 链
-            context.Put(nav);
+            _nav = new UINavigationController(_uiService);        // 产品导航的单写者入口
+            _uiService.Focus.PlatformBack = () => _nav.BackAsync(); // 平台返回统一口径（§6.2）：ESC→协调者→导航器 Back 链
+            context.Put(_nav);
 
             // UI 能力段自持的配套件：UI 时钟驱动 + 弹窗/反馈/提示 + 确认缝真实现。
             context.Services.RegisterInstance(new DotweenUIClockDriver(context.Require<IUIClock>()));
-            _dialogs = new DialogService(_uiService, nav: nav);
+            _dialogs = new DialogService(_uiService, nav: _nav);
             context.Services.RegisterInstance(_dialogs, ServiceOwnership.ContainerOwned);
-            _feedback = new FeedbackService(_uiService, _dialogs, nav);
+            _feedback = new FeedbackService(_uiService, _dialogs, _nav);
             context.Services.RegisterInstance(_feedback, ServiceOwnership.ContainerOwned);
             context.Services.RegisterInstance(new ToastTicker(() => _feedback.ToastHost));
             _confirmRouter.Bind((title, message, okText, cancelText)
                 => _feedback.ConfirmAsync(title, message, okText, cancelText));
-            luaBinding.BindTextFacade(localeProvider);          // Lua 门面后端（Bridge.text——与页面索引共用同一实例）
         }
 
-        /// <summary>同步资源释放（由模块作用域在关闭/回滚时调用）：红点登记清空 + 主题资产租约归还。
+        /// <summary>同步资源释放（由模块作用域在关闭/回滚时调用）：确认缝解绑与主题资产租约归还。
         /// 调用时机在 <see cref="ShutdownAsync"/>（页面全关）之后——页面先销毁，主题引用后释放。</summary>
         private void DisposeSyncResources()
         {
-            _redDotRegistry?.Clear();
-            _redDotRegistry = null;
             _confirmRouter?.Unbind();                         // 确认缝解除绑定（不留指向已拆服务的委托）
             _confirmRouter = null;
+            _nav = null;
             _dialogs = null;                                  // 反馈面随容器所有权释放（ServiceOwnership.ContainerOwned）
             _feedback = null;
             _themeLease?.Dispose();                           // 主题资产租约归还（引用计数递减）

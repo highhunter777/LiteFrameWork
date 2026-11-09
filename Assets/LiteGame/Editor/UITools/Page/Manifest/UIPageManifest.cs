@@ -50,10 +50,7 @@ namespace LiteGame.Editor.UITools.Page
         [JsonProperty("forms", Order = 2)]
         public List<UIPageFormEntry> Forms { get; set; } = new List<UIPageFormEntry>();
 
-        /// <summary>Lua 逻辑路径（多行不一致时为 null 并告警）。</summary>
-        [JsonProperty("luaPath", Order = 3, NullValueHandling = NullValueHandling.Ignore)]
-        public string LuaPath { get; set; }
-
+        /// <summary>缓存策略（per-form 缓存策略列；缺省 LRU）。</summary>
         [JsonProperty("cacheStrategy", Order = 4)]
         public string CacheStrategy { get; set; } = UIPageContract.DefaultCacheStrategy;
 

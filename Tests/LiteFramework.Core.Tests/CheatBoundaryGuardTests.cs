@@ -15,7 +15,6 @@ namespace LiteFramework.Core.Tests
         {
             "Packages/com.litegame.framework/Runtime/Services", "Packages/com.litegame.framework/Runtime/Hosting",
             "Assets/LiteGame/App",
-            "Assets/LiteGame/Adapters/LuaBridge",
         };
 
         private static readonly string[] Forbidden =

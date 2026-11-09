@@ -1724,6 +1724,7 @@ GameObject:
   - component: {fileID: 946681948814154439}
   - component: {fileID: 4631404900767696831}
   - component: {fileID: 443188203804010227}
+  - component: {fileID: 4967601818422800551}
   m_Layer: 0
   m_Name: Page_Lobby
   m_TagString: Untagged
@@ -1865,6 +1866,18 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &4967601818422800551
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2153679178315281482}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b0bba2305631d7141a05c1710d4c2e4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &2337724566550092790
 GameObject:
   m_ObjectHideFlags: 0

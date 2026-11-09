@@ -50,7 +50,7 @@ namespace LiteFramework.UI
     public static class UIFx
     {
         /// <summary>脉冲：透明度快速呼吸两次（图标/红点提醒）。完成态 = 原透明度。
-        /// 缺省参单源＝<see cref="UIFxDefaults"/>（Lua shim 同表引用）。</summary>
+        /// 缺省参单源＝<see cref="UIFxDefaults"/>（受控 API 同表引用）。</summary>
         public static UIFxHandle Pulse(Graphic g, float strength = UIFxDefaults.PulseStrength, float duration = UIFxDefaults.PulseDuration)
         {
             var baseAlpha = g.color.a;

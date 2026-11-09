@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">  <!--
+﻿<Project Sdk="Microsoft.NET.Sdk">  <!--
     MetaServer（《Meta 服务专项设计》§4.1 宿主选型裁决、§4.2 目标工程结构）。
     服务端总设计 §6/§11/§12：Generic Host + Options ValidateOnStart + 健康检查 + 优雅关闭。
 
@@ -65,23 +65,23 @@
       Meta HTTP 契约的**线形状单源**（客户端 LiteGame.App 编译同一份）：改字段 = 两端同时编译失败。
       三个文件均零引擎、零第三方（属性 POCO / 常量表），可直接进服务端编译。
     -->
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaError.cs" Link="Shared\MetaWire\MetaError.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\GuestLoginRequest.cs" Link="Shared\MetaWire\GuestLoginRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\GuestLoginInfo.cs" Link="Shared\MetaWire\GuestLoginInfo.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\JoinTicketRequest.cs" Link="Shared\MetaWire\JoinTicketRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\CreateRoomRequest.cs" Link="Shared\MetaWire\CreateRoomRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\JoinTicketInfo.cs" Link="Shared\MetaWire\JoinTicketInfo.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\RoomsResponse.cs" Link="Shared\MetaWire\RoomsResponse.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\LobbyInstanceView.cs" Link="Shared\MetaWire\LobbyInstanceView.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\LobbyRoomEntry.cs" Link="Shared\MetaWire\LobbyRoomEntry.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchesResponse.cs" Link="Shared\MetaWire\MatchesResponse.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchRecordInfo.cs" Link="Shared\MetaWire\MatchRecordInfo.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\InstanceRegisterRequest.cs" Link="Shared\MetaWire\InstanceRegisterRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\InstanceRegisterResponse.cs" Link="Shared\MetaWire\InstanceRegisterResponse.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MatchResultSubmission.cs" Link="Shared\MetaWire\MatchResultSubmission.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\PlayerResultEntry.cs" Link="Shared\MetaWire\PlayerResultEntry.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\MetaWireLimits.cs" Link="Shared\MetaWire\MetaWireLimits.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Core\MetaError.cs" Link="Shared\MetaWire\MetaError.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Login\GuestLoginRequest.cs" Link="Shared\MetaWire\GuestLoginRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Login\GuestLoginInfo.cs" Link="Shared\MetaWire\GuestLoginInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Join\JoinTicketRequest.cs" Link="Shared\MetaWire\JoinTicketRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\CreateRoomRequest.cs" Link="Shared\MetaWire\CreateRoomRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Abstractions\Room\JoinTicketInfo.cs" Link="Shared\MetaWire\JoinTicketInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\RoomsResponse.cs" Link="Shared\MetaWire\RoomsResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\LobbyInstanceView.cs" Link="Shared\MetaWire\LobbyInstanceView.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\LobbyRoomEntry.cs" Link="Shared\MetaWire\LobbyRoomEntry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\MatchesResponse.cs" Link="Shared\MetaWire\MatchesResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\MatchRecordInfo.cs" Link="Shared\MetaWire\MatchRecordInfo.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Instance\InstanceRegisterRequest.cs" Link="Shared\MetaWire\InstanceRegisterRequest.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Instance\InstanceRegisterResponse.cs" Link="Shared\MetaWire\InstanceRegisterResponse.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\MatchResultSubmission.cs" Link="Shared\MetaWire\MatchResultSubmission.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\PlayerResultEntry.cs" Link="Shared\MetaWire\PlayerResultEntry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Core\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Core\MetaWireLimits.cs" Link="Shared\MetaWire\MetaWireLimits.cs" />
     <!--
       契约序列化行为单源（camelCase + 禁日期自动解析 + 未知字段报错）。它引用 Newtonsoft，
       因此住客户端适配层（R12 允许），服务端链接同一份——**两端的字段名/转义/日期口径只有一个定义**。

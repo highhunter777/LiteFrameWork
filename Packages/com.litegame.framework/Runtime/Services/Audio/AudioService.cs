@@ -27,7 +27,6 @@ namespace LiteFramework
             public Group Group;
             public string Name;
             public float Volume = 1f;
-            public bool Mute;
             public List<Proxy> Proxies = new List<Proxy>(4);
             public int Cursor;                             // 轮转游标（空闲代理公平轮转）
         }
@@ -240,7 +239,7 @@ namespace LiteFramework
             var src = pick.Source;
             src.clip = clip;
             src.loop = loop;
-            src.mute = g.Mute;
+            src.mute = false;
             src.spatialBlend = spatialBlend;
             src.rolloffMode = AudioRolloffMode.Linear;
             src.minDistance = 1f;
@@ -287,21 +286,6 @@ namespace LiteFramework
             foreach (var p in g.Proxies) ApplyVolume(g, p, 1f);
         }
 
-        /// <summary>组静音（Source.mute——播放状态保留，解除静音无缝续播）。</summary>
-        public void SetGroupMute(Group group, bool mute)
-        {
-            ThrowIfShutdown();
-            var g = _groups[group];
-            g.Mute = mute;
-            foreach (var p in g.Proxies) p.Source.mute = mute;
-        }
-
-        public bool IsGroupMuted(Group group)
-        {
-            ThrowIfShutdown();
-            return _groups[group].Mute;
-        }
-
         /// <summary>全局停止（Audio 总线统一停止面）——全部组全部在播代理立即停
         /// （系统路径不等淡出表现；失效句柄语义不变）。用户语义的逐句柄淡出走 <see cref="Stop"/>。</summary>
         public void StopAll()
@@ -338,7 +322,7 @@ namespace LiteFramework
             {
                 int busy = 0;
                 foreach (var p in kv.Value.Proxies) if (p.Busy) busy++;
-                into[$"{kv.Value.Name}{(kv.Value.Mute ? "(静音)" : "")}"] = $"{busy}/{kv.Value.Proxies.Count}";
+                into[kv.Value.Name] = $"{busy}/{kv.Value.Proxies.Count}";
             }
         }
 

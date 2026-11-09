@@ -115,7 +115,7 @@ namespace LiteGame.Editor.UITools.Workbench
 
                 using (new EditorGUI.DisabledScope(!canRun(UIWorkbenchAction.Register)))
                 {
-                    var content = new GUIContent("页面登记", disabledReason(UIWorkbenchAction.Register) ?? "页面登记（表/Lua/清单）");
+                    var content = new GUIContent("页面登记", disabledReason(UIWorkbenchAction.Register) ?? "页面登记（表/清单）");
                     if (GUILayout.Button(content, GUILayout.Width(110f))) RequestRegister();
                 }
 

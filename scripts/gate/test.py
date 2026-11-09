@@ -279,6 +279,18 @@ def invoke_arch_check(project, profile, results, run_id):
         raise
 
 
+def invoke_dir_flat_lint(project, profile, results, run_id):
+    info("quality/dir-flat-lint", "=== dir-flat-lint ===")
+    script = project / "scripts" / "gate" / "dir-flat-lint.py"
+    if not script.is_file():
+        raise RuntimeError(f"dir-flat-lint script missing: {script}")
+    try:
+        run_or_raise([sys.executable, str(script), "--root", str(project)], "dir-flat-lint", cwd=project)
+    except RuntimeError as exc:
+        write_summary(results, suite="L1", profile=profile, status="fail", run_id=run_id, error=str(exc))
+        raise
+
+
 def invoke_l2(project, results):
     if os.name != "nt":
         raise RuntimeError("L2 requires Windows, a complete Unity project and a licensed Unity Editor.")
@@ -334,6 +346,7 @@ def main(argv=None):
     try:
         if args.suite in {"L1", "All"}:
             invoke_arch_check(project, args.profile, results, run_id)
+            invoke_dir_flat_lint(project, args.profile, results, run_id)
         if args.suite == "L1":
             invoke_dotnet_suite(
                 "L1",

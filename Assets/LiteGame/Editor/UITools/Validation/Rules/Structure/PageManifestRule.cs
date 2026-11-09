@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using LiteGame.Editor.UITools.Page;
@@ -88,7 +88,7 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                     Severity = UISeverity.Warning,
                     Asset = manifestPath,
                     Message = "页面清单告警：" + warning,
-                    FixHint = "按告警清理孤儿条目/补 prefab/统一 luaPath（§8.5）",
+                    FixHint = "按告警清理孤儿条目/补 prefab/统一层/全屏（§8.5）",
                 });
             return issues;
         }

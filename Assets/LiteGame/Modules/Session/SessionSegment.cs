@@ -49,9 +49,16 @@ namespace LiteGame
             Func<int, int> resolveMapId = BattleScenes.ResolveMapId;
 
             // 注册面＝服务接口（消费者经构造注入解析）：Account 半边零引擎依赖（L1 源链接直测）。
-            context.Put<IAccountSessionFactory>(new AccountSessionFactory(
+            context.Put<IMatchSessionFactory>(new MatchSessionFactory(
                 context.RootScope, context.Services, transport.Create, identity.Handshake,
-                battleClients, mapsFn, resolveMapId));
+                battleClients, mapsFn, resolveMapId,
+                () =>
+                {
+                    IAccountDomain account = context.Get<IAccountDomain>();
+                    return account != null && account.IsOpen
+                        ? (account.Scope, account.Services)
+                        : (context.RootScope, context.Services);
+                }));
             return UniTask.CompletedTask;
         }
 

@@ -1,8 +1,8 @@
 {
   "$schema": "./UIApiSpec.schema.json",
   "version": 1,
-  "apiVersion": 7,
-  "note": "UI 受控 API 唯一源：生成 UIBindIndex 声明 / UIBindBase 转发 / Lua shim / dispatch / 参考表 / 清单。新增 API = 改本文件 + 重生成。",
+  "apiVersion": 8,
+  "note": "UI 受控 API 唯一源：生成 UIBindIndex 声明 / UIBindBase 转发 / 清单。新增 API = 改本文件 + 重生成。",
   "categories": [
     {
       "id": "text",
@@ -43,7 +43,7 @@
       "id": "bind",
       "title": "按钮绑定",
       "notes": [
-        "按钮回调替换式绑定；`UnbindButton` 只解绑该控件，`OnHide` 时框架统一 `UnbindAll`。"
+        "按钮回调替换式绑定；`UnbindButtonClick` 只解绑该控件，`OnHide` 时框架统一 `UnbindAll`。"
       ]
     }
   ],
@@ -73,7 +73,7 @@
       "summary": "控件是否存在（不抛）。"
     },
     {
-      "name": "BindButton",
+      "name": "BindButtonClick",
       "returns": "void",
       "params": [
         {
@@ -86,9 +86,9 @@
         }
       ],
       "summary": "替换式绑按钮（重绑先移除旧监听；回调经 SafeCall 隔离）。",
-      "lua": [
+      "api": [
         {
-          "name": "onButton",
+          "name": "onButtonClick",
           "manual": true,
           "category": "bind",
           "call": [
@@ -111,7 +111,7 @@
       ]
     },
     {
-      "name": "UnbindButton",
+      "name": "UnbindButtonClick",
       "returns": "void",
       "params": [
         {
@@ -120,9 +120,9 @@
         }
       ],
       "summary": "解绑该控件的按钮监听（不影响其它控件）。",
-      "lua": [
+      "api": [
         {
-          "name": "offButton",
+          "name": "offButtonClick",
           "category": "bind",
           "call": [
             {
@@ -152,7 +152,7 @@
         }
       ],
       "summary": "命令式写文本（与 Bind 互斥；挂 LTextLabel 时走打字机）。",
-      "lua": [
+      "api": [
         {
           "name": "setText",
           "category": "text",
@@ -194,7 +194,7 @@
         }
       ],
       "summary": "按 key 写文本；未注入语言服务即抛。",
-      "lua": [
+      "api": [
         {
           "name": "setTextKey",
           "category": "text",
@@ -265,7 +265,7 @@
         }
       ],
       "summary": "按 key 写文本（英文 one/other 显式复数）。",
-      "lua": [
+      "api": [
         {
           "name": "setTextKeyPlural",
           "category": "text",
@@ -308,7 +308,7 @@
         }
       ],
       "summary": "解除该控件的本地化绑定（不再随语言刷新）。",
-      "lua": [
+      "api": [
         {
           "name": "unbindTextKey",
           "category": "text",
@@ -340,7 +340,7 @@
         }
       ],
       "summary": "显隐（直接 SetActive）。",
-      "lua": [
+      "api": [
         {
           "name": "setVisible",
           "category": "state",
@@ -377,7 +377,7 @@
         }
       ],
       "summary": "可交互开关（Selectable 优先，回退 UIWidget.Interactable）。",
-      "lua": [
+      "api": [
         {
           "name": "setInteractable",
           "category": "state",
@@ -414,7 +414,7 @@
         }
       ],
       "summary": "进度条：归一化值（0~1）。",
-      "lua": [
+      "api": [
         {
           "name": "setProgress",
           "category": "state",
@@ -455,7 +455,7 @@
         }
       ],
       "summary": "进度条：当前/上限。",
-      "lua": [
+      "api": [
         {
           "name": "setProgressRange",
           "category": "state",
@@ -501,7 +501,7 @@
         }
       ],
       "summary": "血条（前条瞬时 + 后条滑落）。",
-      "lua": [
+      "api": [
         {
           "name": "setHp",
           "category": "state",
@@ -543,7 +543,7 @@
         }
       ],
       "summary": "倒计时启动。",
-      "lua": [
+      "api": [
         {
           "name": "startCountdown",
           "category": "state",
@@ -576,7 +576,7 @@
         }
       ],
       "summary": "倒计时停止（不触发完成）。",
-      "lua": [
+      "api": [
         {
           "name": "stopCountdown",
           "category": "state",
@@ -604,7 +604,7 @@
         }
       ],
       "summary": "轻提示（无 Toast 实例时记日志不抛）。",
-      "lua": [
+      "api": [
         {
           "name": "showToast",
           "category": "feedback",
@@ -640,7 +640,7 @@
         }
       ],
       "summary": "控件旁气泡（缺省时长来自 UIFxDefaults）。",
-      "lua": [
+      "api": [
         {
           "name": "showBubble",
           "category": "feedback",
@@ -683,7 +683,7 @@
         }
       ],
       "summary": "飘字（位置取控件 anchoredPosition）。",
-      "lua": [
+      "api": [
         {
           "name": "showFlyText",
           "category": "feedback",
@@ -732,7 +732,7 @@
         }
       ],
       "summary": "确认弹窗（经确认缝；无服务/取消/异常回调 false）。注意：C# 侧无此方法体（Lua 专属，实现住适配器）。",
-      "lua": [
+      "api": [
         {
           "name": "showConfirm",
           "manual": true,
@@ -802,7 +802,7 @@
         }
       ],
       "summary": "滑块设值（0~1，程序 Set 不触发变化回调）。",
-      "lua": [
+      "api": [
         {
           "name": "setSlider",
           "category": "controls",
@@ -835,7 +835,7 @@
         }
       ],
       "summary": "滑块当前值（0~1）。",
-      "lua": [
+      "api": [
         {
           "name": "getSlider",
           "category": "controls",
@@ -868,7 +868,7 @@
         }
       ],
       "summary": "滑块变化通知（用户拖动；重复登记替换）。",
-      "lua": [
+      "api": [
         {
           "name": "onSliderChanged",
           "category": "controls",
@@ -904,7 +904,7 @@
         }
       ],
       "summary": "开关设值（程序 Set 不触发变化回调）。",
-      "lua": [
+      "api": [
         {
           "name": "setToggle",
           "category": "controls",
@@ -937,7 +937,7 @@
         }
       ],
       "summary": "开关当前值。",
-      "lua": [
+      "api": [
         {
           "name": "getToggle",
           "category": "controls",
@@ -970,7 +970,7 @@
         }
       ],
       "summary": "开关变化通知（用户点击；重复登记替换）。",
-      "lua": [
+      "api": [
         {
           "name": "onToggleChanged",
           "category": "controls",
@@ -1006,7 +1006,7 @@
         }
       ],
       "summary": "下拉选项（文本须已本地化；值保持）。",
-      "lua": [
+      "api": [
         {
           "name": "setDropdownOptions",
           "category": "controls",
@@ -1043,7 +1043,7 @@
         }
       ],
       "summary": "下拉设值（索引；程序 Set 不触发变化回调）。",
-      "lua": [
+      "api": [
         {
           "name": "setDropdown",
           "category": "controls",
@@ -1076,7 +1076,7 @@
         }
       ],
       "summary": "下拉当前索引。",
-      "lua": [
+      "api": [
         {
           "name": "getDropdown",
           "category": "controls",
@@ -1109,7 +1109,7 @@
         }
       ],
       "summary": "下拉变化通知（用户选择；重复登记替换）。",
-      "lua": [
+      "api": [
         {
           "name": "onDropdownChanged",
           "category": "controls",
@@ -1145,7 +1145,7 @@
         }
       ],
       "summary": "程序设页签（静默：不触发 OnTabChanged，避免页面重入）",
-      "lua": [
+      "api": [
         {
           "name": "setTab",
           "category": "controls",
@@ -1178,7 +1178,7 @@
         }
       ],
       "summary": "取当前选中页签（无选中 = -1）",
-      "lua": [
+      "api": [
         {
           "name": "getTab",
           "category": "controls",
@@ -1211,7 +1211,7 @@
         }
       ],
       "summary": "页签变化通知（用户点击；程序 SetTab 不触发）。重复登记替换；null = 仅退订",
-      "lua": [
+      "api": [
         {
           "name": "onTabChanged",
           "category": "controls",
@@ -1247,7 +1247,7 @@
         }
       ],
       "summary": "装配列表数据源（整表替换语义）。",
-      "lua": [
+      "api": [
         {
           "name": "setList",
           "manual": true,
@@ -1285,7 +1285,7 @@
         }
       ],
       "summary": "行点击通知（key + 按钮节点名；条目根按钮为空串）。",
-      "lua": [
+      "api": [
         {
           "name": "onListClick",
           "manual": true,
@@ -1330,7 +1330,7 @@
         }
       ],
       "summary": "脉冲（透明度呼吸两次）；true = tween 已创建。",
-      "lua": [
+      "api": [
         {
           "name": "pulse",
           "category": "fx",
@@ -1375,7 +1375,7 @@
         }
       ],
       "summary": "闪烁（一次性高亮回落）。",
-      "lua": [
+      "api": [
         {
           "name": "flash",
           "category": "fx",
@@ -1418,7 +1418,7 @@
         }
       ],
       "summary": "位移入场（从 offset 滑回原位）。",
-      "lua": [
+      "api": [
         {
           "name": "slide",
           "category": "fx",
@@ -1487,7 +1487,7 @@
       "summary": "控件是否存在。"
     },
     {
-      "name": "OnButton",
+      "name": "OnButtonClick",
       "access": "protected",
       "returns": "Action",
       "params": [
@@ -1500,7 +1500,7 @@
           "type": "Action"
         }
       ],
-      "shape": "bindButton",
+      "shape": "bindButtonClick",
       "summary": "替换式绑按钮；返回注销委托。"
     },
     {

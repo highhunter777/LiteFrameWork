@@ -1,0 +1,11 @@
+{
+  "root": "C:\\Users\\hunter\\.codex\\tmp\\workflows\\lobby-room-flow-01a1baf2",
+  "state": "E:/unityProject/Test/.workflow/active/lobby-room-flow/state.json",
+  "link": "directory junction to original run; one state, no state edits",
+  "original_config_sha256": "a9057f818f9727926b1191d5f29d2a36fcac7bb53e842bc144f1c3346a0edc32",
+  "original_config_untouched": true,
+  "other_active_runs_untouched": true,
+  "commands_finalization": "new fixture filter RoomFlow; adapt concrete filters only after tests are authored, without weakening ACs",
+  "commands_execution": "argv wrapper changes cwd to E:/unityProject/Test; no shell-built command text",
+  "isolated_config": "C:/Users/hunter/.codex/tmp/workflows/lobby-room-flow-01a1baf2/.workflow/config.json"
+}

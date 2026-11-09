@@ -1,0 +1,40 @@
+{
+  "observation": "UI OnButton→OnButtonClick changes appeared during T2 read-only investigation; T2 log contains no source edit/write calls at this checkpoint. Preserve current bytes and API, do not attribute these edits to this batch.",
+  "files": [
+    {
+      "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Auth/Page_LoginLogic.cs",
+      "current_sha256": "3bf7a2b69f63570246b7d23a75510e113ffcc72b43758cd12351b59d7229c897",
+      "previous_sha256": "972fc56a4c03aeb18138b3c3c8d422bff4fc933ff51a7a9f13d5d4527fce9fbd"
+    },
+    {
+      "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Demo/Page_ButtonDemoLogic.cs",
+      "current_sha256": "3bc7d4e96f42008728a68157fce74692551fc6fa4ec9abbedc820d8beabaa905",
+      "previous_sha256": "88a422c9f845f86750f15d6b47ab8fe1f098c55663005bab29a32d642a482eba"
+    },
+    {
+      "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_LobbyLogic.cs",
+      "current_sha256": "91f9750e0c884babb8b4df637dc950057aa6785b01863840639e2008c27d3789",
+      "previous_sha256": "d879c54f992074900f47c649da5496c692873a059f0276a3dd9238eb665af23b"
+    },
+    {
+      "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_RecordsLogic.cs",
+      "current_sha256": "663235e6d4a1a8b5e09a49d05dbafba482db03f7dd2a694aced5a9b3cecfeea3",
+      "previous_sha256": "cb62d00124fad822e04f4b6bc6b9ee9ca98b56735cb1c64c479e6c68edd2778b"
+    },
+    {
+      "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_RoomLogic.cs",
+      "current_sha256": "7c8cd76f2bff1976feb711c5f617e082435594f6e69f2415d9ae555de205b8b5",
+      "previous_sha256": "85040ec1cd05081032393ba554bdfe8c1b2fc76d6ee7aaa4702f1996b6735a8e"
+    },
+    {
+      "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Match/Page_ResultLogic.cs",
+      "current_sha256": "b21b5cfacb3d1b2469a7b6467e7e96abcaf7d163cf211d9213b130c5fbdac098",
+      "previous_sha256": "2bec76345761b3083a6a64cf4f588127c417d865d0cf7b67431ac1db4ee86dee"
+    },
+    {
+      "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Settings/Page_SettingsLogic.cs",
+      "current_sha256": "54479e4818bb647a22f0d0fd4c3b73fd257f90c7569a5f41a2c2058b5f12c72e",
+      "previous_sha256": "b58c790425b6847c1cb3395826f2728f0b642951eb95cdbb46123f49dc475a57"
+    }
+  ]
+}

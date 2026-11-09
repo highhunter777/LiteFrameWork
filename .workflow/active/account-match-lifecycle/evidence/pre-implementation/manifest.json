@@ -1,0 +1,258 @@
+{
+  "created_at": "2026-11-09T02:40:00+08:00",
+  "purpose": "batch2 pre-implementation snapshot",
+  "files": [
+    {
+      "path": "Assets/LiteGame/App/AppComposition.cs",
+      "sha256": "e899e4da24ecbaaa82031c52d0fc7e32939b0bd4468ed19b72700792a123095e"
+    },
+    {
+      "path": "Assets/LiteGame/App/PageServices/ConfigMapCatalog.cs",
+      "sha256": "1c350ed6ae10eab951ad2f12944a40dae35f1c35f0d9729f2cdd5646dd39de17"
+    },
+    {
+      "path": "Assets/LiteGame/App/PageServices/MetaEntrySession.cs",
+      "sha256": "1ca5b6ef5a98ca324a756e7b6c98c024269cd061e23a6d6f44cdef6c3ebff65c"
+    },
+    {
+      "path": "Assets/LiteGame/App/PageServices/RoomBridge.cs",
+      "sha256": "414a22b5b1ed67300f5d9e82ab9153adb4ba708cb4412de876febc047aee0d01"
+    },
+    {
+      "path": "Assets/LiteGame/Editor/Gm/GMTestModePage.cs",
+      "sha256": "837af6b6a0a76316dbc1006256d57b4f37493420c5c8854706c0c607ade916c3"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/Abstractions/Run/IBattleClient.cs",
+      "sha256": "31414630f0b88c3956c4ddfb9d528cf48144de482091c666ba3b4ef830278bb6"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/Abstractions/Run/IBattleClientFactory.cs",
+      "sha256": "bdd3573aafc6ca6d0059bbf6c3639b3fd0a9801d2a635be5f20029e305edb045"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/Abstractions/Run/IBattleCommands.cs",
+      "sha256": "e45c118b6e907cdd22feaf241e4b75391e233b2e6705e1f31f454c9a9b0abc9a"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/Abstractions/Run/IBattleRun.cs",
+      "sha256": "6d77a842db5aef7043d97dbfa746ed176a18856c897ae66499779810b04d7f78"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/Abstractions/Run/IBattleRunFactory.cs",
+      "sha256": "7865e9d8dcd722de60f63665be03f6c36d68c178a59f60b93c89d16bca43c53a"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/Abstractions/Session/IAccountRuntime.cs",
+      "sha256": "b26182a6552b047ca5d42ca89cb02fd0ff527bcb7e555772985c75bd70065478"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/Abstractions/Session/IMatchIdentity.cs",
+      "sha256": "75c33324c36bf11da8a70e1fd38f143dcec07bb2043e1668d5adaeb47b6f1446"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/Abstractions/Session/IRoomSessionFace.cs",
+      "sha256": "2549f2542b76c5658f3c1757017db2eedd32a29d75f41a0bb370e15955457ec7"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/BattleSegment.cs",
+      "sha256": "014e4aaa6e10a5470551a9e365ee77b510da022c63db805d1bf8d6dc2afc2705"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/Shared/BattleContext.cs",
+      "sha256": "33e9c568c6fe7e5d21c1e0bdddaf58694b97403ad7219cd5de9d3ac315b99f38"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/BattleRunFactory.cs",
+      "sha256": "1f03ba851dd0c99c7f7d585a7c7a887ab1b3eb782fb60c29d67b1e8709f0a75c"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/BattleSession.cs",
+      "sha256": "87837ba459f018aea7cc64ad4622566228471810096358a7a87447089aca7f9d"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/IMatchSessionFactory.cs",
+      "sha256": "4f222f214f87dfd6fcd8fdb47fb0c80997ce20af9c1f35638d5bdc8643c8bbc0"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/MatchSessionFactory.cs",
+      "sha256": "f49674d59510aef610c1e4a79e7e7da6378acff5060eff36f64dc25b2cbfb7a1"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule/RoomSessionFace.cs",
+      "sha256": "e2008f28d1870b5d3c87a6bfaea69198f47e160ecf21715b6f3f51e9d36e1892"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Meta/Abstractions/IAccountSessionControl.cs",
+      "sha256": "1b9f0906d0891323b68807933fd26e947d5b94d2abc43eb31e36c8da6e7dba15"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Meta/Abstractions/IMetaClient.cs",
+      "sha256": "c7f89f201158c60b33e9d68994f025a5b90a0af1eb4a8534103ae7612d1a1dce"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Meta/Abstractions/IMetaConfigFacts.cs",
+      "sha256": "62182d1e26c0818d62ce7ecf17cc86aead14ceef68310e6f385a845d00d00700"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Meta/Abstractions/IRoomFlow.cs",
+      "sha256": "34e54fc1d64a4fe2708859cd882d6180aa33c5899cd0143e18e226d93ffbe190"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Meta/Abstractions/IRoomTicketSource.cs",
+      "sha256": "907c10c26e2d416316f1e1cd70a7a8e7e3bdd5e5d0524210afd92d644c482fa0"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Meta/Client/MetaEntryService.cs",
+      "sha256": "ccfae7f348bd4430637c4286c7b2d5ff9e345ee1dd22eae8230867a1bf249271"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Meta/Client/UnityMetaClient.cs",
+      "sha256": "6c3fa8aef4bf08882dfb4d291ddbae6bb9708a6fdf5d258b2e4491b3bffa5128"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Meta/MetaSegment.cs",
+      "sha256": "3a39bcc5ad58abfde943046c176d5cc5021866fc42ee25488a0fbbf1cbcd3a6e"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/Flow/AccountReentry.cs",
+      "sha256": "a9b5aeaf2fa9b0e33059801c7d96b18058445f562376ee0e4792f774a1d0ff68"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/Flow/PageFlow.cs",
+      "sha256": "16fb323a626cd28ef7b68e0c6259ae344775396ac8618208eb662e1a7de324ee"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/Flow/ProcedureFlow.cs",
+      "sha256": "07fb12d2d2b83fc03d5fa438786899640fd892e0614983f6fec9dc80196a6bf1"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/Flow/RoomFlowLifetime.cs",
+      "sha256": "68f6f3232b320faa44b365c364528eaf646752a1cfe30eadb20c6020c445813d"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/Flow/RoomFlowOperation.cs",
+      "sha256": "46d44955567cda41c575f4f2900dee214abbc3e064e3c1b428f9fbc1efbac1d2"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/ProcedureSegment.cs",
+      "sha256": "addfbdf216c71e56597701c97a6727fce6b1cff74ca61366503f8663d419365d"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/Shared/ProcedureArgs.cs",
+      "sha256": "ea26f1fa813fa186c83ec2ec92b1a2d8bc60af1f34220f49d3e23367b49e8b67"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/Shared/ProcedureId.cs",
+      "sha256": "917019110f4eeb2e442d5bf611cdd702178136b75a08f9b88a126d69c86f9ec2"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/Shared/StageSignal.cs",
+      "sha256": "f0d319d6547ca8598da154c3eb3967c67ff656043608d32e2bd5d45d0dd2b495"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureBattle.cs",
+      "sha256": "c6a3a20fcc76d80e79930edd64f6abda21a587f22e193d2e444d05dd5995fe29"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play/ProcedureMatch.cs",
+      "sha256": "efe09e54a2d0bb23ed4bb86942bf278f9c97dd4b545969f213f8a396b6a4519e"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Session/Abstractions/IAccountSession.cs",
+      "sha256": "019cdb0f675b1633379f18cdc9c42ae345d5b46382389a2e17e702189a6ac4b5"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Session/Abstractions/IAccountSessionFactory.cs",
+      "sha256": "2aeeeaeb9c1619ad1404b1a78de726c0a0a870be800ff30ebcf3b06f5e76e0ed"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Session/Abstractions/IMatchJoin.cs",
+      "sha256": "16204d13c5c21d6608839dc312666f6489a309bbbbb997c5a24bb710144d204f"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Session/Abstractions/IRoomSessionBridge.cs",
+      "sha256": "5f823bca0c6208604fd1e62b3e67dea34ef0cf7a3ae644efbe53aac6ec371040"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Session/Abstractions/ITransportFactory.cs",
+      "sha256": "8ceac76d7dcb1e510ad0a1c2ab326297c39214841fcbc6a49d04d69ccb557667"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Session/AccountSessionFactory.cs",
+      "sha256": "f2f60af5736d20b80f0c174a5b8ab92aa0fa34b06f0f5fd078fe63a55d356fab"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Session/AssemblyInfo.cs",
+      "sha256": "ae3a665a7f926c8a94c013b5c028397465f97e0407b840afed4825f5e4d8c916"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/Session/SessionSegment.cs",
+      "sha256": "a8cdbd68ffb546a53008c654f1759263c2d1e95edcfb9988337738bbee6ea086"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/UI/Abstractions/Ports/IMetaSession.cs",
+      "sha256": "ed8326ad680404d52057951eed0cbe7bc62375ff3c64355722508c810d2b8d4b"
+    },
+    {
+      "path": "Assets/LiteGame/Modules/UI/Pages/PageContext.cs",
+      "sha256": "c06b58a746aed0943daadba259943807dd8a56a397a65fa0b475894e34e70437"
+    },
+    {
+      "path": "Assets/Tests/EditMode/Battle/Net/MatchLoopLeakEditModeTests.cs",
+      "sha256": "d34ac6e8bf83e072b31efb5d42e72b073f1d970329c5238fdfa1b4194fe92296"
+    },
+    {
+      "path": "Assets/Tests/EditMode/Battle/Session/BattleDiagnosticsEditModeTests.cs",
+      "sha256": "502c8868e7753b0280d8d47324baf97bb692ab1fd8ba4da23f48655ae48bd1c8"
+    },
+    {
+      "path": "Assets/Tests/EditMode/Battle/Session/BattleRunPortEditModeTests.cs",
+      "sha256": "f681755280e7801b229f7e541b5e12ad17cba920885d98de9de0ebbb93f9cd72"
+    },
+    {
+      "path": "Assets/Tests/EditMode/Battle/Session/BattleSessionEditModeTests.cs",
+      "sha256": "520e2b2701640a3a769ccecca3db3555d166f6e6904dc5d61ff32716633dc32a"
+    },
+    {
+      "path": "Assets/Tests/EditMode/Meta/MetaEntryEditModeTests.cs",
+      "sha256": "acc76aa2eab103f4eff68d6d9c41405d7864cb67b0c75a6bec1cff9a01f278ad"
+    },
+    {
+      "path": "Tests/LiteFramework.Core.Tests/CrossModuleContractLocationTests.cs",
+      "sha256": "4152b3d3eec772695cd2b44d3b7f638f270604a6383d4b0074a579d260d0fea8"
+    },
+    {
+      "path": "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+      "sha256": "a4483199e44f5b3eedfeb603f4080cf5529daed4da22c33d8d537da001de8495"
+    },
+    {
+      "path": "Tests/LiteFramework.Core.Tests/M3WiringGuardTests.cs",
+      "sha256": "fe36e262770fc89963b68e4052e8c846032f5e8209f78c6d2b6d5480e9b43a5e"
+    },
+    {
+      "path": "Tests/LiteFramework.Core.Tests/Meta/AccountReentryTests.cs",
+      "sha256": "98044b0ad0947aa69fb25298a0923f9f2a3da467d327c01772957b35525e1264"
+    },
+    {
+      "path": "Tests/LiteFramework.Core.Tests/ModuleInterfaceOwnershipTests.cs",
+      "sha256": "4d5bf44fc1fe9611b477ff89d8263b351ba7f7b2d838ea2349cb06de122872c9"
+    },
+    {
+      "path": "Tests/LiteFramework.Core.Tests/ProcedureBoundaryTests.cs",
+      "sha256": "5948c91f2aa8f63b2ecf422b1148f847fa4e7cc849f696282f94d29e04610899"
+    },
+    {
+      "path": "Tests/LiteFramework.Core.Tests/SessionBoundaryTests.cs",
+      "sha256": "e488c92472dc5624a4140544e42ffe7f7d367d04b994ad5e1b51d2b7de380c7e"
+    },
+    {
+      "path": "Tests/LiteNet.Tests/AccountSessionFactoryTests.cs",
+      "sha256": "d2e9706dde20064f76f73646b2cd60caf32ceec94bc0cd9c305db2f27e86111c"
+    },
+    {
+      "path": "Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+      "sha256": "17f7b4f70978f921e4875bc17bbf22e89c98c543518931cf2b9bb1017e9375d4"
+    }
+  ]
+}

@@ -12,8 +12,6 @@ Pinned by this file (tests-first, implementation task T3):
 - regeneration is byte-identical (idempotent);
 - the sync-code fingerprint tracks the parsed ``[StateLayer]`` field model, not
   arbitrary source edits;
-- the LuaKeys fingerprint tracks only the registry xlsx set
-  (``gen_lua_keys.collect()``), so non-registry tables do not churn the head.
 
 Battle.cs (protoc output), SimTrigTables.cs (inside the BuildHash closure) and
 the Luban template outputs stay out of this contract (see the design doc).
@@ -43,11 +41,10 @@ def _load(module_name, relative):
 gen_candidate = _load("gen_candidate", "scripts/content/gen-candidate.py")
 gen_luban = _load("gen_luban", "scripts/codegen/gen_luban.py")
 gen_sync_code = _load("gen_sync_code", "scripts/codegen/gen_sync_code.py")
-gen_lua_keys = _load("gen_lua_keys", "Luban/gen_lua_keys.py")
 
 SYNC_OUTPUT = ROOT / "Packages" / "com.litegame.sim" / "Diagnostics" / "Generated" / "EntitySlot.Sync.g.cs"
 
-# artifact path -> toolbox tool token (11 artifacts; ui-page now emits catalog + PageIds)
+# artifact path -> toolbox tool token (8 artifacts; ui-page emits catalog + PageIds)
 GENERATED = {
     "Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs": "build-hash",
     "Server/MetaServer/Host/BuildHash.g.cs": "build-hash",
@@ -57,9 +54,6 @@ GENERATED = {
     "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindIndex.Api.g.cs": "ui-api",
     "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindBase.Api.g.cs": "ui-api",
     "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIApiManifest.g.cs": "ui-api",
-    "Assets/LiteGame/Adapters/LuaBridge/Generated/UIApiShim.g.cs": "ui-api",
-    "Assets/LiteGame/Adapters/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs": "ui-api",
-    "Assets/LiteGame/Modules/Shared/Generated/LuaKeys.g.cs": "luban",
 }
 
 
@@ -189,58 +183,6 @@ class SyncCodeFingerprintTests(unittest.TestCase):
         self.assertNotEqual(
             signature_block_text(baseline), signature_block_text(edited),
             "a [StateLayer] field-model change must move the input fingerprint")
-
-
-REGISTRY_HEADER = ["##var", "id", "lua_path"]
-
-
-def write_workbook(path, rows):
-    import openpyxl
-
-    workbook = openpyxl.Workbook()
-    sheet = workbook.active
-    for row in rows:
-        sheet.append(row)
-    workbook.save(path)
-
-
-def render_lua_keys(data_dir, temp):
-    output = Path(temp) / "LuaKeys.g.cs"
-    with mock.patch.object(gen_lua_keys, "DATA_DIR", str(data_dir)), \
-         mock.patch.object(sys, "argv", ["gen_lua_keys.py", "--output", str(output)]):
-        gen_lua_keys.main()
-    return output.read_text(encoding="utf-8")
-
-
-class LuaKeysFingerprintTests(unittest.TestCase):
-    def make_registry_dir(self, temp):
-        data = Path(temp) / "data"
-        data.mkdir()
-        write_workbook(data / "tb_a.xlsx",
-                       [REGISTRY_HEADER, ["row", 1, "UI.Foo"]])
-        return data
-
-    def test_non_registry_table_does_not_change_header_or_body(self):
-        with tempfile.TemporaryDirectory() as temp:
-            data = self.make_registry_dir(temp)
-            baseline = render_lua_keys(data, temp)
-            write_workbook(data / "tb_extra.xlsx",
-                           [["##var", "id"], ["row", 2]])  # no lua_path/entry column
-            churned = render_lua_keys(data, temp)
-        self.assertEqual(signature_block_text(baseline), signature_block_text(churned))
-        self.assertEqual(baseline, churned)
-
-    def test_registry_table_change_moves_the_header(self):
-        with tempfile.TemporaryDirectory() as temp:
-            data = self.make_registry_dir(temp)
-            baseline = render_lua_keys(data, temp)
-            write_workbook(data / "tb_b.xlsx",
-                           [["##var", "id", "entry"], ["row", 2, "UI.Bar"]])
-            churned = render_lua_keys(data, temp)
-        self.assertIn("UI.Bar", churned)
-        self.assertNotEqual(
-            signature_block_text(baseline), signature_block_text(churned),
-            "adding a registry path must move the LuaKeys input fingerprint")
 
 
 class CandidateManifestTests(unittest.TestCase):

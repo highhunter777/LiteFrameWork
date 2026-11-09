@@ -1,0 +1,56 @@
+using LiteNet;
+using LiteTesting.Unity;
+using NUnit.Framework;
+
+using LiteSync.Client;
+namespace LiteGame.Tests.EditMode
+{
+    /// <summary>
+    /// 对局诊断读口的 L2 EditMode 覆盖（联机诊断 HUD 批）：钉住描述单源的展示口径—— 丢包千分比 → 一位小数百分比（与 BattleNetworkHudDriver 同口径）、无样本占位不显示数值。
+    /// </summary>
+    public sealed class BattleDiagnosticsEditModeTests : UnityTestBase
+    {
+        [Test]
+        public void 诊断行_有样本_千分比转一位小数百分比()
+        {
+            var snapshot = new BattleDiagnostics.Snapshot(
+                ClientSessionPhase.Connected, new NetworkQuality(48, 3, true), 12);
+            string[] lines = BattleDiagnostics.DescribeLines(snapshot);
+
+            Assert.AreEqual(2, lines.Length);
+            Assert.AreEqual("相位: Connected  RTT: 48ms  丢包: 0.3%", lines[0], "3‰ = 0.3%（生产 HUD 同口径）");
+            Assert.AreEqual("和解: 12 次", lines[1]);
+        }
+
+        [Test]
+        public void 诊断行_无样本_占位不显示数值()
+        {
+            var snapshot = new BattleDiagnostics.Snapshot(
+                ClientSessionPhase.Reconnecting, NetworkQuality.None, 0);
+            string[] lines = BattleDiagnostics.DescribeLines(snapshot);
+
+            Assert.AreEqual("相位: Reconnecting  RTT: 无样本  丢包: —", lines[0], "无样本占位不撒谎");
+            Assert.AreEqual("和解: 0 次", lines[1]);
+        }
+
+        [Test]
+        public void 无对局_DescribeCurrent为空_消费方整组隐藏()
+        {
+            Assert.IsNull(BattleDiagnostics.DescribeCurrent(), "无对局 = null（HUD 段/GM 页读数按空态隐藏）");
+        }
+
+        [Test]
+        public void 扩展快照_回滚与快照年龄透传_GM两行口径不变()
+        {
+            var snapshot = new BattleDiagnostics.Snapshot(
+                ClientSessionPhase.Connected, NetworkQuality.None, 5,
+                "m1", 42, 1, 9, 0xABCDu, 7, 2, 3, 4);
+
+            Assert.AreEqual(7, snapshot.RollbackCount);
+            Assert.AreEqual(2, snapshot.DeferredRollbacks);
+            Assert.AreEqual(3, snapshot.InputLeadFrames);
+            Assert.AreEqual(4, snapshot.SnapshotAgeFrames);
+            Assert.AreEqual(2, BattleDiagnostics.DescribeLines(snapshot).Length, "GM 页仍用两行口径");
+        }
+    }
+}

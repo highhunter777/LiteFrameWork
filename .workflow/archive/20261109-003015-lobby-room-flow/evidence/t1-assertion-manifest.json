@@ -1,0 +1,68 @@
+{
+  "author_type": "dsh headless",
+  "author_session": "session-1ae08d74-641c-4dab-beae-c439e3030248",
+  "supervisor_validation": "workflow verify --red: PASS, command exit 1 due to 9/9 NUnit assertion failures; no compiler failures",
+  "source_files": {
+    "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowEntryTests.cs": "4e94d0ad151258f602b9e30af94dfcb4cb6f4a927c41fbcdd5178f423b9d0024",
+    "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowLifecycleTests.cs": "9ce584c21b0ebee569bf4e4f831a9b38573b517ed0f6b18e4175133e21e622f5",
+    "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowRig.cs": "27f213a9eff5c337579c36c5627410240ede4fa4e9c272cd8bb54c03c3f9a9b6",
+    "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowTestDoubles.cs": "77964b62f0da86da4dd28a736eb343b6c7e5e23f6bfa0656e2c624ffa1ab4385"
+  },
+  "tests": [
+    {
+      "name": "取票前已取消_零网络请求零RequestMatch",
+      "file": "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowEntryTests.cs",
+      "observed": "assertion red in supervisor workflow verify --red, all 9 selected/failed"
+    },
+    {
+      "name": "在途取消_晚到票据成功_零流程推进零建连接",
+      "file": "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowEntryTests.cs",
+      "observed": "assertion red in supervisor workflow verify --red, all 9 selected/failed"
+    },
+    {
+      "name": "重复请求_只发一次取票只建一次连接",
+      "file": "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowEntryTests.cs",
+      "observed": "assertion red in supervisor workflow verify --red, all 9 selected/failed"
+    },
+    {
+      "name": "旧A取消后新B成功_A晚到不得推进流程",
+      "file": "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowEntryTests.cs",
+      "observed": "assertion red in supervisor workflow verify --red, all 9 selected/failed"
+    },
+    {
+      "name": "Main到Match排队后离房_零建连接",
+      "file": "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowEntryTests.cs",
+      "observed": "assertion red in supervisor workflow verify --red, all 9 selected/failed"
+    },
+    {
+      "name": "账号重入_在途取票晚到不得RequestMatch",
+      "file": "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowEntryTests.cs",
+      "observed": "assertion red in supervisor workflow verify --red, all 9 selected/failed"
+    },
+    {
+      "name": "JoinAck后Battle排队被Main覆盖_未接管会话恰好回收一次",
+      "file": "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowLifecycleTests.cs",
+      "observed": "assertion red in supervisor workflow verify --red, all 9 selected/failed"
+    },
+    {
+      "name": "必要卸载未结束_再次入场零取票_完成后放行",
+      "file": "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowLifecycleTests.cs",
+      "observed": "assertion red in supervisor workflow verify --red, all 9 selected/failed"
+    },
+    {
+      "name": "账号重入后旧房间清理完成_不覆盖登录页",
+      "file": "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowLifecycleTests.cs",
+      "observed": "assertion red in supervisor workflow verify --red, all 9 selected/failed"
+    }
+  ],
+  "test_stimulus_corrections": [
+    "A cancelled before B starts; A late while B pending",
+    "Scene unload case actually loads per-operation map/rig before blocking unload",
+    "Test finally disposes only unowned remaining fake session"
+  ],
+  "known_followups": [
+    "T6 add observable queued-before-consumption rejection assertion via HTTP count; no new busy API required",
+    "T6 before T3 add missing failure-recovery/RoomBridge scenario tests where new recovery contract is available",
+    "Test fake SceneService must reflect loaded state removal on completed unload for future full lifecycle assertions; current blocked-entry assertion is already meaningful"
+  ]
+}

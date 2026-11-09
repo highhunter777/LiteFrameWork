@@ -1,0 +1,7 @@
+fileFormatVersion: 2
+guid: de1204dbc4857344ea1bba85442bfe10
+AssemblyDefinitionImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

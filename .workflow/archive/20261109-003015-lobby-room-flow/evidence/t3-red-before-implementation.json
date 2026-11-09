@@ -1,0 +1,20 @@
+{
+  "command": "python scripts/gate/unity-tests.py --mode editor --filter RoomFlow --timeout 180",
+  "total": 24,
+  "passed": 21,
+  "failed": 3,
+  "skipped": 0,
+  "failed_cases": [
+    "RoomFlowFailureTests.建连工厂抛异常_清理回Main允许新票重进",
+    "RoomFlowLifecycleTests.必要卸载未结束_再次入场零取票_完成后放行",
+    "RoomFlowLifecycleTests.账号重入后旧房间清理完成_不覆盖登录页"
+  ],
+  "green_groups": [
+    "RoomFlowBridgeTests 2/2",
+    "Entry 6/6",
+    "ticket 6/6",
+    "failure malformed/reject/retry 6?",
+    "queued battle ownership 1/1"
+  ],
+  "note": "T3 implementation red evidence; re-run after production changes. No tests skipped."
+}

@@ -1,0 +1,196 @@
+{
+  "status": "completed",
+  "duration": 2.73,
+  "summary": {
+    "total": 26,
+    "passed": 26,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowBridgeTests.旧会话解绑后事件不回到新投影",
+      "Status": "Passed",
+      "Duration": 0.0671782,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowBridgeTests.重复Bind先摘旧_开局请求只归新会话",
+      "Status": "Passed",
+      "Duration": 0.0042872,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowCleanupFailureTests.卸载抛异常_保留占用不报清理完成_错误反馈展示_不导航_再次入场被拒",
+      "Status": "Passed",
+      "Duration": 1.1191808,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowEntryTests.Main到Match排队后离房_零建连接",
+      "Status": "Passed",
+      "Duration": 0.0030955,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowEntryTests.取票前已取消_零网络请求零RequestMatch",
+      "Status": "Passed",
+      "Duration": 0.0055444,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowEntryTests.在途取消_晚到票据成功_零流程推进零建连接",
+      "Status": "Passed",
+      "Duration": 0.0077246,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowEntryTests.旧A取消后新B成功_A晚到不得推进流程",
+      "Status": "Passed",
+      "Duration": 0.0056989,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowEntryTests.账号重入_在途取票晚到不得RequestMatch",
+      "Status": "Passed",
+      "Duration": 0.0025926,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowEntryTests.重复请求_只发一次取票只建一次连接",
+      "Status": "Passed",
+      "Duration": 0.0023936,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowFailureTests.取票拒绝_零排队零连接_占用释放后可重取",
+      "Status": "Passed",
+      "Duration": 0.0019613,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowFailureTests.取票网络失败_零排队零连接_占用释放后可重取",
+      "Status": "Passed",
+      "Duration": 0.0017871,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowFailureTests.建连工厂抛异常_清理回Main允许新票重进",
+      "Status": "Passed",
+      "Duration": 0.429958,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowFailureTests.成功响应缺值或非法地址_稳定失败零排队(\"null-value\")",
+      "Status": "Passed",
+      "Duration": 0.0025829,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowFailureTests.成功响应缺值或非法地址_稳定失败零排队(\"empty-ticket\")",
+      "Status": "Passed",
+      "Duration": 0.0012978,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowFailureTests.成功响应缺值或非法地址_稳定失败零排队(\"bad-address\")",
+      "Status": "Passed",
+      "Duration": 0.0006855,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowFailureTests.排队未消费重复进入_只发一票_离房消费后放行",
+      "Status": "Passed",
+      "Duration": 0.3175202,
+tests: 26/26 passed
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowLifecycleTests.JoinAck后Battle排队被Main覆盖_未接管会话恰好回收一次",
+      "Status": "Passed",
+      "Duration": 0.0033581,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowLifecycleTests.必要卸载未结束_再次入场零取票_完成后放行",
+      "Status": "Passed",
+      "Duration": 0.0051359,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowLifecycleTests.账号重入后旧房间清理完成_不覆盖登录页",
+      "Status": "Passed",
+      "Duration": 0.0383825,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowLoadingCancelTests.等待JoinAck时取消加载遮罩_回Main_会话恰释放一次_观察者放行可重进",
+      "Status": "Passed",
+      "Duration": 0.1097519,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowTicketTests.创建房间_服务端出号_精确移交Match",
+      "Status": "Passed",
+      "Duration": 0.0108596,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowTicketTests.建房票据地址不可解析_确定性失败_零Match排队",
+      "Status": "Passed",
+      "Duration": 0.0013255,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowTicketTests.换票成功_地址解析并精确移交Match",
+      "Status": "Passed",
+      "Duration": 0.0018381,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowTicketTests.未配置_取票失败_零Match排队",
+      "Status": "Passed",
+      "Duration": 0.0011767,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowTicketTests.流程构造_缺必要端口_当场fail_fast",
+      "Status": "Passed",
+      "Duration": 0.0064612,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.RoomFlowTicketTests.票据地址不可解析_确定性失败_零Match排队",
+      "Status": "Passed",
+      "Duration": 0.0017619,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}

@@ -5,7 +5,7 @@ namespace LiteGame
 {
     /// <summary>
     /// 进房连接端口（流程段唯一认识的"连接"）：JoinAck 等待与传输泵。
-    /// 实现归会话域（<c>AccountSession</c>）——流程不再直引 <c>BattleClient</c>。
+    /// 实现归会话域（<c>MatchSession</c>）——流程不再直引 <c>BattleClient</c>。
     /// </summary>
     public interface IMatchJoin
     {

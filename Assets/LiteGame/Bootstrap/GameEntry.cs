@@ -27,6 +27,7 @@ namespace LiteGame
 
         private ClientHost _host;
         private IClientEntry _entry;              // 产品入口（反射装载；本件只认 IClientEntry）
+        private FrameSchedule _frames;
         private ServiceContainer _container;      // 实例全程持有，随引导件销毁
         private CancellationTokenSource _bootCts;
         private UniTask<bool> _hostInit;          // Awake 启动、Start 等待；失败已出错误面
@@ -93,6 +94,8 @@ namespace LiteGame
             {
                 await _host.InitializeAsync(ct);
                 _container = _host.Product<ServiceContainer>();
+                _frames = _host.Product<FrameSchedule>()
+                    ?? throw new InvalidOperationException("未装配帧调度器");
                 return true;
             }
             catch (OperationCanceledException)
@@ -133,11 +136,8 @@ namespace LiteGame
 
         private void Update()
         {
-            if (!_active || _container == null) return;      // 重复引导件销毁前 / 引导未完成不驱动
-            // 统一喂真实帧间隔：变速由 IGameClock 内部缩放（勿用 Time.deltaTime 二次乘）。
-            // 按索引遍历：IReadOnlyList 的接口枚举器会每帧箱化一次（60fps 零分配纪律）。
-            var tickables = _container.Tickables;
-            for (int i = 0; i < tickables.Count; i++) tickables[i].Tick(Time.unscaledDeltaTime);
+            if (!_active || _frames == null || _frames.IsDisposed) return;
+            _frames.Tick(Time.unscaledDeltaTime);
         }
 
         private void OnDestroy()

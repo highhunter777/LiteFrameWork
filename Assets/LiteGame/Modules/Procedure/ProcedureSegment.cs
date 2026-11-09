@@ -18,94 +18,144 @@ namespace LiteGame
     /// </summary>
     public sealed class ProcedureSegment : IClientSegment, IClientSegmentGraph
     {
-        private readonly Func<(IRoomSessionBridge room, ILuaProductBridge product)> _createBridges;
-        private readonly Func<ILuaHost, IPageDirectory, ILuaRegistryFiller> _createRegistryFiller;
+        private readonly Func<IRoomSessionBridge> _createBridges;
+        private PageFlow _pageFlow;                          // 宿主退出时使在途恢复代次失效（不触发导航）
 
-        /// <param name="createBridges">Lua 桥装订口工厂（房间会话门面与产品桥**共用同一实例**：Battle 阶段装订的
-        /// 会话须被 env 重建后的门面读到）。</param>
-        /// <param name="createRegistryFiller">注册表填充器工厂（读页面目录 → 报告；实现归 Lua 桥适配器——
-        /// 流程段只认 <see cref="ILuaRegistryFiller"/> 端口，不认注册表与页面的具体类型）。</param>
-        public ProcedureSegment(Func<(IRoomSessionBridge room, ILuaProductBridge product)> createBridges,
-            Func<ILuaHost, IPageDirectory, ILuaRegistryFiller> createRegistryFiller)
-        {
-            _createBridges = createBridges ?? throw new ArgumentNullException(nameof(createBridges));
-            _createRegistryFiller = createRegistryFiller ?? throw new ArgumentNullException(nameof(createRegistryFiller));
-        }
+        /// <param name="createBridges">房间会话装订口工厂（Battle 阶段装订的会话由页面端口 <c>IRoomView</c> 同实例消费）。</param>
+        public ProcedureSegment(Func<IRoomSessionBridge> createBridges)
+            => _createBridges = createBridges ?? throw new ArgumentNullException(nameof(createBridges));
 
         public string Name => "Procedure";
 
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
         public IReadOnlyList<string> DependsOn => new[]
         {
-            "PlatformInfrastructure", "Camera", "DevSession", "Content", "Events", "LuaHost",
+            "PlatformInfrastructure", "Camera", "DevSession", "Content", "Events",
             "Config", "Map", "UI", "Input", "Meta", "Battle", "Session",
         };
 
         public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
         {
-            IConfigService config = context.Require<IConfigService>();
-            IContentService content = context.Require<IContentService>();
-            ILuaHost lua = context.Require<ILuaHost>();
+            CancellationToken rootToken = context.RootScope.Token;
             UIService ui = context.Require<UIService>();
             UINavigationController nav = context.Require<UINavigationController>();
-            IAccountSessionControl accountControl = context.Require<IAccountSessionControl>();
             IPageDirectory pages = context.Require<IPageDirectory>();          // 页面目录端口（UI 段产出）
-            IPageDataFactory pageData = context.Require<IPageDataFactory>();   // 数据面端口（UI 段产出）
             ISettlementSummary settlement = context.Require<ISettlementSummary>();   // 结算摘要端口（Battle 段产出）
+            IMetaConfigFacts metaFacts = context.Require<IMetaConfigFacts>();
+            IRoomTicketSource tickets = context.Require<IRoomTicketSource>();
 
-            // 页面流（入口/开局关房/结算三处流程×页面接缝）——只吃目录/数据两个端口，不认生成物与 Lua 表。
-            var pageFlow = new PageFlow(nav, ui, pageData, settlement);
-            // 账号重入单点（登录失效 → 清登录态 → 在途对局回 Main → 登录页）；Bridge.meta 是唯一调用方。
-            context.Put<IAccountReentry>(new AccountReentry(accountControl, pageFlow));
+            // 页面流（入口/开局关房/结算三处流程×页面接缝）——只吃导航/UI/结算三个端口，不认生成物与脚本表。
+            var pageFlow = new PageFlow(nav, ui, settlement);
+            _pageFlow = pageFlow;
+            FeedbackService feedback = context.Require<FeedbackService>();
 
-            // Lua 桥装订口：房间会话门面与产品桥共用同一实例（实现住 Adapters.LuaBridge，本段只经接口）。
-            var (roomBridge, productBridge) = _createBridges();
-            context.Put<IRoomSessionBridge>(roomBridge);
-            context.Put<ILuaProductBridge>(productBridge);
+            // 房间会话装订口（实现住 App/PageServices 的 RoomBridge，本段只经接口）。
+            IRoomSessionBridge roomSession = _createBridges();
+            context.Put<IRoomSessionBridge>(roomSession);
 
             // 恢复执行器（Root：启动/内容/会话失败共用）；清缓存实现面归内容段。
             var recovery = new ErrorRecoveryService(
                 new AppRecoveryActions(cache: context.Require<IContentCacheMaintenance>()));
             context.Put(recovery);
 
-            var machine = CreateMachine(context, pageFlow, context.Require<IMetaConfigFacts>(), recovery,
-                productBridge, roomBridge, pages);
-            context.Put(machine);
-            // 联机入口只认流程端口（不回看阶段机/阶段参数类型）。
-            context.Put<IAppFlow>(new ProcedureFlow(machine));
+            // 阶段机与流程共用同一操作寿命；flow 是 lifetime 的唯一 Dispose owner。
+            var lifetime = new RoomFlowLifetime(rootToken);
+            // 恢复单写者仍是 ProcedureFlow（CleanupTask 观察者）；这里只把页面落点注入寿命，导航不写进 Lifetime。
+            lifetime.RecoveryStep = operation => RecoverRoomAsync(operation, pageFlow, feedback, rootToken);
+            ProcedureFlow flow = null;
+            try
+            {
+                var machine = CreateMachine(context, pageFlow, metaFacts, recovery,
+                    roomSession, pages, lifetime);
+                context.Put(machine);
+                // 联机入口只认流程端口（不回看阶段机/阶段参数类型）；票据源与操作寿命由本段装订。
+                flow = new ProcedureFlow(machine, tickets, lifetime, rootToken);
+                context.Scope.Register(flow);
+            }
+            catch
+            {
+                if (flow != null) flow.Dispose();
+                else lifetime.Dispose();                     // 尚未交给 flow：由本段回收
+                throw;
+            }
+
+            context.Put<IRoomFlow>(flow);
+            context.Put<IAccountLoginControl>(flow);
+            // 账号重入单点（登录失效 → 清登录态 → 等离场终态 → 关账户域 → 登录页）；Meta 门面是唯一调用方。
+            context.Put<IAccountReentry>(new AccountReentry(flow, flow, context.Require<IAccountDomain>(), pageFlow));
             return UniTask.CompletedTask;
         }
 
-        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
+        public UniTask ShutdownAsync(CancellationToken ct)
+        {
+            _pageFlow?.InvalidateRecovery();                  // 宿主退出：旧房间清理完成不得再导航
+            return UniTask.CompletedTask;
+        }
+
+        /// <summary>房间操作清理完成后的唯一页面恢复：失败先反馈再大厅；正常终态按 completed 进结算/大厅。</summary>
+        private static async UniTask RecoverRoomAsync(RoomFlowOperation operation, PageFlow pages,
+            FeedbackService feedback, CancellationToken rootToken)
+        {
+            if (rootToken.IsCancellationRequested || operation == null || operation.RecoverySuppressed) return;
+            if (pages == null || pages.IsLoginOpen
+                || !pages.IsRecoveryGenerationCurrent(operation.RecoveryGeneration)) return;
+
+            if (operation.RecoveryFailed)
+            {
+                if (feedback != null)
+                {
+                    // 反馈等待期间账号重入会取消操作令牌：旧弹窗随之收口，代次/登录页守卫再兜底。
+                    using CancellationTokenSource feedbackCts =
+                        CancellationTokenSource.CreateLinkedTokenSource(rootToken, operation.Token);
+                    try
+                    {
+                        await feedback.ShowErrorAsync(operation.RecoveryErrorTitle, operation.RecoveryErrorMessage,
+                            retryable: false, mergeKey: "room.recovery", ct: feedbackCts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[Procedure] 房间失败反馈未完成（继续回大厅）:{ex.Message}", LogTag.Procedure);
+                    }
+                }
+                else
+                {
+                    Log.Warning($"[Procedure] 房间失败反馈未接线（FeedbackService 缺失）："
+                        + $"{operation.RecoveryErrorTitle}/{operation.RecoveryErrorMessage}", LogTag.Procedure);
+                }
+            }
+
+            if (rootToken.IsCancellationRequested || operation.RecoverySuppressed || pages.IsLoginOpen) return;
+            if (!pages.IsRecoveryGenerationCurrent(operation.RecoveryGeneration)) return;
+            pages.OnMatchEnded(operation.RecoveryCompleted, operation.RecoveryResult,
+                operation.RecoveryPlayerId, operation.RecoveryGeneration);
+        }
 
         /// <summary>阶段表（注册序之外的第二道显式拼装面）：每阶段只吃端口/阶段实例。</summary>
         private StageMachine<ProcedureId, ProcedureArgs> CreateMachine(SegmentContext context,
             PageFlow pageFlow, IMetaConfigFacts metaFacts, ErrorRecoveryService recovery,
-            ILuaProductBridge productBridge, IRoomSessionBridge roomBridge, IPageDirectory pages)
+            IRoomSessionBridge roomSession, IPageDirectory pages, RoomFlowLifetime lifetime)
         {
             IContentService content = context.Require<IContentService>();
             IConfigService config = context.Require<IConfigService>();
-            ILuaHost lua = context.Require<ILuaHost>();
-            // 注册表填充器经端口注入：注册表与页面目录的具体形态归适配器/UI 域。
-            ILuaRegistryFiller filler = _createRegistryFiller(lua, pages);
             var rootToken = context.RootScope.Token;
 
             return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                 (ProcedureId.Launch, new ProcedureLaunch(rootToken)),
                 (ProcedureId.Patch, new ProcedurePatch(content, context.Require<ActivationTransactionStore>(),
                     context.Require<PatchRunner>(), rootToken, context.Require<AssetsHealthProbe>(), recovery)),
-                (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler,
-                    productBridge, context.Require<EventBus>(), context.Require<UIService>(),
-                    () => ListLuaAssetPaths(content), rootToken, context.Require<FeedbackService>(),
-                    context.Require<ICandidateLuaSource>())),
+                (ProcedureId.Preload, new ProcedurePreload(config, context.Require<UIService>(),
+                    rootToken, context.Require<FeedbackService>())),
                 (ProcedureId.Main, new ProcedureMain(rootToken, pageFlow, metaFacts,
                     dev: context.Require<IDevSession>())),
-                (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(),
-                    context.Require<FeedbackService>(), rootToken)),
+                (ProcedureId.Match, new ProcedureMatch(context.Require<IMatchSessionFactory>(),
+                    lifetime, context.Require<FeedbackService>(), rootToken)),
                 (ProcedureId.Battle, new ProcedureBattle(context.Require<IInputService>(),
                     context.Require<ICameraService>(), context.Require<IBattleCommands>(),
-                    context.Require<IBattleViewGroupFactory>(), roomBridge,
-                    rootToken, requireCamera: true,
+                    context.Require<IBattleViewGroupFactory>(), roomSession,
+                    lifetime, rootToken, requireCamera: true,
                     runs: context.Require<IBattleRunFactory>(),
                     pages: pageFlow,
                     scenes: context.Require<ISceneService>(),          // 开局入场加载 / 离场卸载对局场景组
@@ -113,16 +163,6 @@ namespace LiteGame
                     feedback: context.Require<FeedbackService>(),      // 开局入场加载遮罩
                     devSession: context.Require<IDevSession>())),      // dev 投影读本局规则（实例端口）
                 (ProcedureId.Error, new ProcedureError(rootToken, recovery)));
-        }
-
-        /// <summary>Lua 资源清单由内容适配器按发布约定查询，装配点绑定预载委托。</summary>
-        private static string[] ListLuaAssetPaths(IContentService content)
-        {
-            IReadOnlyList<string> paths = content.ListAssetPathsByTag("lua");
-            if (paths == null || paths.Count == 0) return Array.Empty<string>();
-            var result = new string[paths.Count];
-            for (int i = 0; i < paths.Count; i++) result[i] = paths[i];
-            return result;
         }
     }
 }

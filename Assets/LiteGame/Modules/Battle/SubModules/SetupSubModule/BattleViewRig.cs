@@ -187,13 +187,15 @@ namespace LiteGame
             Func<long> localEntityIdOf = () => _viewAssembler.View != null ? _viewAssembler.View.LocalEntityId : 0L;
             var predictedFacts = new BattleReadModel(() => _context.Sim.State, localEntityIdOf);
             var publicFacts = new BattleReadModel(PublicFactState, localEntityIdOf);
+            var respawnFacts = new BattleReadModel(PublicFactState, localEntityIdOf, _viewAssembler.IsLocalDead);
+            var hudModel = new BattleHudModel(predictedFacts, publicFacts, respawnFacts, localEntityIdOf,
+                () => _context.NetworkQuality, _context.CombatFeed);
             _hudAssembler.Attach(_context, _viewAssembler.View, _input,
-                _assets.HudView, _assets.HudInstance, menuClick, dispatcher, predictedFacts, publicFacts);
+                _assets.HudView, _assets.HudInstance, menuClick, dispatcher, hudModel);
 
             _viewAssembler.AttachLaser(_context, _input, _assets.LaserBeam, _dev);
             _viewAssembler.AttachProtectionFx(_assets.ProtectionShellLease);
-            _hudAssembler.AttachRespawnHud(
-                new BattleReadModel(PublicFactState, localEntityIdOf, _viewAssembler.IsLocalDead), dispatcher);
+            _hudAssembler.AttachRespawnHud(dispatcher);
             _lookController.Attach(_viewAssembler.View);
             _feedbackAssembler.AttachConsumers(_context, _viewAssembler.View);
             // 开发叠加层（爆头区域常驻可视化 + 爆头自动验证件）：由 Dev 装配实现，发布形态 null = 零开销。

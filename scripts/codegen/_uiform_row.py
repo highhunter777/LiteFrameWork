@@ -33,7 +33,7 @@ DEFAULT_TABLE = ROOT / "Luban" / "Data" / "#uiform.xlsx"
 DEFAULT_BACKUP_DIR = ROOT / "Temp" / "uiform-backups"
 SHEET = "Sheet"
 HEADER_ROWS = 3
-COL_ID, COL_LUA, COL_PREFAB, COL_LAYER, COL_FULL = 2, 3, 4, 5, 6
+COL_ID, COL_PREFAB, COL_LAYER, COL_FULL = 2, 3, 4, 5
 RESERVED_IDS = {201, 202, 203, 204, 205, 206}
 PAGE_RE = re.compile(r"^Page_[A-Z][A-Za-z0-9]*$")
 PREFAB_RE = re.compile(r"^LiteGame/Modules/UI/Content/Screens/Page_[A-Z][A-Za-z0-9]*\.prefab$")
@@ -72,21 +72,19 @@ def load_workbook(table):
 
 def data_rows(ws):
     for row in range(HEADER_ROWS + 1, ws.max_row + 1):
-        values = [ws.cell(row=row, column=col).value for col in range(1, 7)]
+        values = [ws.cell(row=row, column=col).value for col in range(1, 6)]
         if any(value is not None for value in values[1:]):
             yield row, values
 
 
 def existing(ws):
-    ids, lua_paths, prefabs = set(), set(), set()
+    ids, prefabs = set(), set()
     for _, values in data_rows(ws):
         if values[COL_ID - 1] is not None:
             ids.add(int(values[COL_ID - 1]))
-        if values[COL_LUA - 1]:
-            lua_paths.add(str(values[COL_LUA - 1]))
         if values[COL_PREFAB - 1]:
             prefabs.add(str(values[COL_PREFAB - 1]))
-    return ids, lua_paths, prefabs
+    return ids, prefabs
 
 
 def validate(args, ws):
@@ -99,24 +97,19 @@ def validate(args, ws):
         raise ValueError(f"id {args.id} 属系统反馈面/静态先例保留区，不得复用")
     if args.layer < 0 or args.layer > 3:
         raise ValueError("layer 必须在 0..3")
-    lua_path = f"UI.{page}"
     prefab = f"LiteGame/Modules/UI/Content/Screens/{page}.prefab"
-    if args.lua_path and args.lua_path != lua_path:
-        raise ValueError(f"lua_path 与页面名不一致：{args.lua_path} != {lua_path}")
     if args.prefab and args.prefab != prefab:
         raise ValueError(f"prefab 与页面名不一致：{args.prefab} != {prefab}")
-    ids, lua_paths, prefabs = existing(ws)
+    ids, prefabs = existing(ws)
     if args.id in ids:
         raise ValueError(f"id 已存在：{args.id}")
-    if lua_path in lua_paths:
-        raise ValueError(f"lua_path 已存在：{lua_path}")
     if prefab in prefabs:
         raise ValueError(f"prefab 已存在：{prefab}")
-    return lua_path, prefab
+    return prefab
 
 
 def suggest(ws):
-    ids, _, _ = existing(ws)
+    ids, _ = existing(ws)
     candidate = 16
     while candidate in ids or candidate in RESERVED_IDS:
         candidate += 1
@@ -147,7 +140,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--page")
     parser.add_argument("--id", type=int, default=0)
-    parser.add_argument("--lua-path", default="")
     parser.add_argument("--prefab", default="")
     parser.add_argument("--layer", type=int, default=0)
     parser.add_argument("--full-screen", type=lambda value: value.lower() == "true", default=True)
@@ -180,7 +172,6 @@ def main():
                     continue
                 rows.append({
                     "id": int(values[COL_ID - 1]),
-                    "lua": str(values[COL_LUA - 1] or ""),
                     "prefab": str(values[COL_PREFAB - 1] or ""),
                     "layer": int(values[COL_LAYER - 1] or 0),
                     "fullScreen": str(values[COL_FULL - 1]).lower() == "true",
@@ -214,8 +205,8 @@ def main():
 
         if not args.page:
             raise ValueError("缺少 --page")
-        lua_path, prefab = validate(args, ws)
-        row = [None, args.id, lua_path, prefab, args.layer, "true" if args.full_screen else "false"]
+        prefab = validate(args, ws)
+        row = [None, args.id, prefab, args.layer, "true" if args.full_screen else "false"]
         if not args.confirm:
             return emit(True, dryRun=True, row=row, table=str(table))
 

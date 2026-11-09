@@ -1,0 +1,398 @@
+{
+  "schema_version": 1,
+  "kind": "verify",
+  "at": "2026-11-09T04:41:01+08:00",
+  "ok": true,
+  "command_fingerprint": "ec581bda9aefa5001b9b24de60ea5b618576ff7ee982c6f3fb92f9234cc3af5a",
+  "commands": [
+    {
+      "name": "core-account-regression",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~AccountReentryTests|FullyQualifiedName~ProcedureBoundaryTests|FullyQualifiedName~SessionBoundaryTests|FullyQualifiedName~M3WiringGuardTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 4012,
+      "ok": true,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Packages\\com.litegame.framework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Packages\\com.litegame.framework\\Runtime\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:    13，已跳过:     0，总计:    13，持续时间: 39 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "net-session-regression",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "dotnet",
+        "test",
+        "Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~MatchSessionFactoryTests|FullyQualifiedName~RoomClientLeaveTests|FullyQualifiedName~SessionLifecycleTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 6882,
+      "ok": true,
+      "output_tail": "num\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\nE:\\unityProject\\Test\\Assets\\GameData\\Generated\\entityconfig.cs(15,29): warning CS8981: 类型名称 \"entityconfig\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\nE:\\unityProject\\Test\\Assets\\GameData\\Generated\\ltext.cs(15,29): warning CS8981: 类型名称 \"ltext\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\nE:\\unityProject\\Test\\Assets\\GameData\\Generated\\itemconfig.cs(15,29): warning CS8981: 类型名称 \"itemconfig\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\nE:\\unityProject\\Test\\Assets\\GameData\\Generated\\mapobstacle.cs(15,29): warning CS8981: 类型名称 \"mapobstacle\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\nE:\\unityProject\\Test\\Assets\\GameData\\Generated\\movementconfig.cs(15,29): warning CS8981: 类型名称 \"movementconfig\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\nE:\\unityProject\\Test\\Assets\\GameData\\Generated\\map.cs(15,29): warning CS8981: 类型名称 \"map\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\nE:\\unityProject\\Test\\Assets\\GameData\\Generated\\mapspawn.cs(15,29): warning CS8981: 类型名称 \"mapspawn\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\nE:\\unityProject\\Test\\Assets\\GameData\\Generated\\strategy.cs(15,29): warning CS8981: 类型名称 \"strategy\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\nE:\\unityProject\\Test\\Assets\\GameData\\Generated\\uiform.cs(15,29): warning CS8981: 类型名称 \"uiform\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\nE:\\unityProject\\Test\\Assets\\GameData\\Generated\\weapon.cs(15,29): warning CS8981: 类型名称 \"weapon\" 仅包含小写 ascii 字符。此类名称可能会成为该语言的保留值。 [E:\\unityProject\\Test\\Server\\RoomServer\\RoomServer.csproj]\n  LiteNet -> E:\\unityProject\\Test\\Packages\\com.litegame.net\\.dotnet\\bin\\Debug\\net8.0\\LiteNet.dll\n  RoomServer -> E:\\unityProject\\Test\\Server\\RoomServer\\bin\\Debug\\net8.0\\RoomServer.dll\n  LiteSync -> E:\\unityProject\\Test\\Packages\\com.litegame.sync\\.dotnet\\bin\\Debug\\net8.0\\LiteSync.dll\n  ReplayTool -> E:\\unityProject\\Test\\Server\\ReplayTool\\bin\\Debug\\net8.0\\ReplayTool.dll\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\MatchSessionFactoryTests.cs(4,7): warning CS0105: “LiteFramework”的 using 指令以前在此命名空间中出现过 [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\MatchSessionFactoryTests.cs(29,59): warning CS0067: 从不使用事件“MatchSessionFactoryTests.FakeClientTransport.OnData” [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\CrashCaptureTests.cs(25,17): warning xUnit2009: Do not use Assert.True() to check for substrings. Use Assert.StartsWith instead. (https://xunit.net/xunit.analyzers/rules/xUnit2009) [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\CrashCaptureTests.cs(26,17): warning xUnit2009: Do not use Assert.True() to check for substrings. Use Assert.EndsWith instead. (https://xunit.net/xunit.analyzers/rules/xUnit2009) [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\MatchSessionFactoryTests.cs(128,17): warning xUnit2020: Do not use Assert.True(false, message) to fail a test. Use Assert.Fail(message) instead. (https://xunit.net/xunit.analyzers/rules/xUnit2020) [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\InputGateTests.cs(441,13): warning xUnit2000: The literal or constant value InputGate.AllowedButtons should be passed as the 'expected' argument in the call to 'Assert.Equal(expected, actual)' in method '契约_按键白名单必须覆盖S0的全部可上报位' on type 'InputGateTests'. Swap the parameter values. (https://xunit.net/xunit.analyzers/rules/xUnit2000) [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\OwnerStartEarlyTests.cs(159,13): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\OwnerStartEarlyTests.cs(133,13): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\RoomSeatsTests.cs(54,13): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\SettlementOutboxTests.cs(283,21): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\SettlementOutboxTests.cs(344,21): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Empty instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\LiteNet.Tests.csproj]\n  LiteNet.Tests -> E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\bin\\Debug\\net8.0\\LiteNet.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteNet.Tests\\bin\\Debug\\net8.0\\LiteNet.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:    16，已跳过:     0，总计:    16，持续时间: 45 ms - LiteNet.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "room-flow-editmode",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "RoomFlow",
+        "--timeout",
+        "900"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 14054,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.RoomFlowTicketTests.建房票据地址不可解析_确定性失败_零Match排队\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0003154,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.RoomFlowTicketTests.换票成功_地址解析并精确移交Match\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0004442,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.RoomFlowTicketTests.未配置_取票失败_零Match排队\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0003456,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.RoomFlowTicketTests.流程构造_缺必要端口_当场fail_fast\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0002664,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.RoomFlowTicketTests.票据地址不可解析_确定性失败_零Match排队\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0005251,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 39/39 passed"
+    },
+    {
+      "name": "meta-entry-editmode",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "MetaEntryEditModeTests",
+        "--timeout",
+        "900"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 9712,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.MetaEntryEditModeTests.真实MetaSegment装配_根容器登记账户域_ForceReleaseRoot释放\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0039179,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.MetaEntryEditModeTests.配置测试房_建房带模板与口令_未配置则请求体不变\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0006685,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.MetaEntryEditModeTests.重登_旧域释放恰一次_新scope不等\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0007953,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.MetaEntryEditModeTests.门面切换_登录读新会话_登出读NotLoggedIn_旧会话不可读\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0005227,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.MetaEntryEditModeTests.预取消_取票与建房取票均零HTTP\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0005616,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 22/22 passed"
+    },
+    {
+      "name": "page-flow-editmode",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "PageFlowBattleMenuEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 9628,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.OnMatchEnded_菜单开着_随对局结束收口\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0024125,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.会话失败_房间页不在也回大厅\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0023218,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.对局Back_空栈_开菜单页并带battleExit数据\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0015215,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.对局Back_菜单开着_先关菜单不重开\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0023681,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.菜单Back策略_启用幂等_停用还原基线\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0009568,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 6/6 passed"
+    },
+    {
+      "name": "battle-domains-editmode",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "BattleRunPort",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 9543,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleRunPortEditModeTests.StartGame早到_等待端口立即返回true\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0006488,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleRunPortEditModeTests.等待取消_抛取消异常\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0005688,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleRunPortEditModeTests.等待挂起后Ended到达_唤醒返回false\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0004789,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleRunPortEditModeTests.等待挂起后StartGame到达_唤醒返回true\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0163879,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleRunPortEditModeTests.视图挂载与拆除_归运行端口\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0009074,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 7/7 passed"
+    },
+    {
+      "name": "L1",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/test.py",
+        "--suite",
+        "L1",
+        "--profile",
+        "PullRequest"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 52513,
+      "ok": true,
+      "output_tail": "VSTest 版本 17.14.1 (x64)\n\n正在启动测试执行，请稍候...\n总共 1 个测试文件与指定模式相匹配。\n没有测试匹配 E:\\unityProject\\Test\\Tests\\MetaServer.Integration.Tests\\bin\\Release\\net8.0\\MetaServer.Integration.Tests.dll 中的给定用例测试筛选器“Category!=Integration&Category!=EndToEnd&Category!=Performance&Category!=Quarantine&Duration!=LongRunning”\n数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。\n结果文件: E:\\unityProject\\Test\\TestResults\\l1-MetaServer.Integration.Tests-pullrequest-20261108-203915.trx\n\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\nE:\\unityProject\\Test\\Tests\\MetaServer.Tests\\bin\\Release\\net8.0\\MetaServer.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\nVSTest 版本 17.14.1 (x64)\n\n正在启动测试执行，请稍候...\n总共 1 个测试文件与指定模式相匹配。\n数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。\n结果文件: E:\\unityProject\\Test\\TestResults\\l1-MetaServer.Tests-pullrequest-20261108-203915.trx\n\n已通过! - 失败:     0，通过:   153，已跳过:     0，总计:   153，持续时间: 4 s - MetaServer.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[quality/arch] === arch-check ===\n[quality/dir-flat-lint] === dir-flat-lint ===\n[quality/test] === L1 | PullRequest ===\n[quality/test] -> restore LiteFramework.Core.Tests (parallelism disabled)\n[quality/test] -> restore LiteNet.Tests (parallelism disabled)\n[quality/test] -> restore LiteSim.Core.Tests (parallelism disabled)\n[quality/test] -> restore LiteTesting.Core.Tests (parallelism disabled)\n[quality/test] -> restore MetaServer.Integration.Tests (parallelism disabled)\n[quality/test] -> restore MetaServer.Tests (parallelism disabled)\n[quality/test] -> ensure shared packages (LocalPackages/)\n[quality/test] -> restore solution (shared packages feed)\n[quality/test] -> build solution (single MSBuild node)\n[quality/test] -> LiteFramework.Core.Tests\n[quality/test] -> LiteNet.Tests\n[quality/test] -> LiteSim.Core.Tests\n[quality/test] -> LiteTesting.Core.Tests\n[quality/test] -> MetaServer.Integration.Tests\n[quality/test] -> MetaServer.Tests\n[quality/test] PASS: L1 completed 1967 tests."
+    },
+    {
+      "name": "domain-matrix",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/domain-matrix.py",
+        "--check"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 2961,
+      "ok": true,
+      "output_tail": "[quality/domain-matrix] OK: 12 ����������һ��"
+    },
+    {
+      "name": "dependency",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/l0-dep-scan.py"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 2882,
+      "ok": true,
+      "output_tail": "[toolchain] WARN: unregistered executable script: scripts/gate/sync-and-sim-e2e.py\n[toolchain] WARN: unregistered executable script: scripts/gate/unity-tests.py\n[toolchain] check OK (2 warning(s))\n[quality/l0] L0 dependency & secret scan | project: E:\\unityProject\\Test\n[quality/l0] PASS: deps reproducible, zero floating deps, vendored licenses kept, no secret hits"
+    },
+    {
+      "name": "comments",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/comment-lint.py"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 1336,
+      "ok": true,
+      "output_tail": "[quality/comment-lint] OK: 0 violation(s), 799 file(s) scanned (changed(vs HEAD))"
+    },
+    {
+      "name": "directories",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/dir-flat-lint.py"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 245,
+      "ok": true,
+      "output_tail": "[quality/dir-flat-lint] OK: 417 dir(s) scanned, 20 baselined, no growth"
+    },
+    {
+      "name": "documents",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/test.py",
+        "--suite",
+        "Doc"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 2801,
+      "ok": true,
+      "output_tail": "[quality/doc-lint] OK: 0 violation(s), 0 warning(s)  (root=E:\\unityProject\\Test)\n[toolchain] generated index current: E:\\unityProject\\Test\\Docs\\说明\\工具索引.md\n[quality/comment-lint] OK: 0 violation(s), 799 file(s) scanned (changed(vs HEAD))\n[quality/test] doc-lint | PullRequest\n[quality/test] PASS: doc-lint + tool index + comment-lint completed."
+    },
+    {
+      "name": "toolchain",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/toolchain.py",
+        "check"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 305,
+      "ok": true,
+      "output_tail": "[toolchain] WARN: unregistered executable script: scripts/gate/sync-and-sim-e2e.py\n[toolchain] WARN: unregistered executable script: scripts/gate/unity-tests.py\n[toolchain] check OK (2 warning(s))"
+    },
+    {
+      "name": "core-full",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 13325,
+      "ok": true,
+      "output_tail": "Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\CommandAdvancedTests.cs(135,70): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\CommandAdvancedTests.cs(155,70): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(31,77): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(51,84): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(52,84): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\FsmAuditStatsTests.cs(150,13): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(73,72): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(97,68): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(98,68): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(99,68): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LogRingConcurrencyTests.cs(42,18): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(133,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(134,80): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Hosting\\ContentContractTests.cs(165,74): warning xUnit1031: Test methods should not use blocking task operations, as they can cause deadlocks. Use an async test method and await instead. (https://xunit.net/xunit.analyzers/rules/xUnit1031) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\Animation\\AnimationContractTests.cs(1109,13): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\LiteFramework.Core.Tests.csproj]\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:   815，已跳过:     0，总计:   815，持续时间: 8 s - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "battle-session-editmode",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "BattleSession",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 9632,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleSessionEditModeTests.无图拒构_D22必填注入\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.000717,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleSessionEditModeTests.无票据断线_BeginReconnect失败转Failed\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0013802,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleSessionEditModeTests.离场收尾_Ended恰好一次_Dispose拆订阅且MatchScope清零\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0012933,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleSessionEditModeTests.连接即Join_收JoinAck进入Connected\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0006413,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleSessionEditModeTests.重连响应版本不符_转Failed_不发恢复ACK\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0009725,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 12/12 passed"
+    },
+    {
+      "name": "battle-runport-editmode",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "BattleRunPort",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 9629,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleRunPortEditModeTests.StartGame早到_等待端口立即返回true\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0006018,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleRunPortEditModeTests.等待取消_抛取消异常\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0005658,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleRunPortEditModeTests.等待挂起后Ended到达_唤醒返回false\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0004889,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleRunPortEditModeTests.等待挂起后StartGame到达_唤醒返回true\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0118276,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BattleRunPortEditModeTests.视图挂载与拆除_归运行端口\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0007648,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 7/7 passed"
+    },
+    {
+      "name": "match-loop-leak-editmode",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "MatchLoopLeakEditModeTests",
+        "--timeout",
+        "900"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 9615,
+      "ok": true,
+      "output_tail": "{\n  \"status\": \"completed\",\n  \"duration\": 0.3,\n  \"summary\": {\n    \"total\": 1,\n    \"passed\": 1,\n    \"failed\": 0,\n    \"skipped\": 0,\n    \"inconclusive\": 0\n  },\n  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.MatchLoopLeakEditModeTests.百次进房离场_作用域与传输无残留\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0472901,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 1/1 passed"
+    },
+    {
+      "name": "unity-recompile",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "unity",
+        "command",
+        "--project-path",
+        "E:/unityProject/Test",
+        "recompile"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 629,
+      "ok": true,
+      "output_tail": "Command\tSuccess\tResult\tParameters\nrecompile\ttrue\t{\"status\":\"up_to_date\",\"message\":\"No scripts needed recompilation.\"}"
+    },
+    {
+      "name": "unity-recompile-status",
+      "cmd": [
+        "python",
+        "-c",
+        "import os,subprocess,sys; os.chdir('E:/unityProject/Test'); sys.exit(subprocess.call(sys.argv[1:]))",
+        "unity",
+        "command",
+        "--project-path",
+        "E:/unityProject/Test",
+        "recompile_status"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 547,
+      "ok": true,
+      "output_tail": "Command\tSuccess\tResult\tParameters\nrecompile_status\ttrue\t{\"status\":\"up_to_date\",\"failed\":false,\"errors\":[],\"compilationFailed\":false}"
+    }
+  ]
+}

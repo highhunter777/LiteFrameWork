@@ -9,7 +9,6 @@
     "name": "Page_Records",
     "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Page_Records.prefab",
     "prefabGuid": "6548c0f57aae2c146b083f5203b8aeb2",
-    "luaPath": "UI.Page_Records",
     "layer": 0,
     "fullScreen": true,
     "cacheStrategy": "Lru",

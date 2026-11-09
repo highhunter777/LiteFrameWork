@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using LiteFramework;
 using LiteNet;
 using LiteNet.Diagnostics;
 using LiteNet.Transport;
@@ -17,7 +16,7 @@ using LiteSync.Client;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// **全链诊断样例**（《框架先行建设与业务接入专项设计》§8 准入项「可诊断」： "一次注入失败可关联 Build/内容、事务、会话/房间并定位阶段"——证据类型：受控日志/错误码/诊断产物）。
+    /// 真实网络诊断样例：版本拒绝与客户端连接事件按关联键串联，并保留调用方内容上下文。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class JoinDiagChainTests : IDisposable
@@ -45,23 +44,13 @@ namespace LiteNet.Tests
         }
 
         [Fact]
-        public void 一次注入失败_版本红线_两端同键_阶段可定位_事务可关联()
+        public void 一次注入失败_版本红线_两端同键_阶段与上下文可定位()
         {
-            // ---- 内容/事务面：一次真实的激活事务失败（组合根接线，见类注释边界）----
-            var store = new ActivationTransactionStore(new MemoryActivationIO(), () => 1000)
-            {
-                TransactionIdFactory = () => "txn-diag-1",
-                DiagSink = new DiagSinkAdapter(),
-            };
-            store.BeginCandidate("rel-7");
-            store.MarkPendingActivation();
-            store.RecordFailure("健康检查失败：入口页面未打开");
-
             // ---- 会话/房间面：真客户端携错误 buildHash 进房（本样例的**唯一注入**）----
             var transport = ConnectClient();
             var client = new RoomClient(transport)
             {
-                ContentContext = $"release=rel-7;gen=3;txn={store.Current.TransactionId}",
+                ContentContext = "release=rel-7;gen=3;txn=txn-diag-1",
             };
             client.SendJoin("two", "harness", "deadbeef-deadbeef");
 
@@ -82,20 +71,14 @@ namespace LiteNet.Tests
             Assert.Equal(DiagStage.Session, attempt.Stage);
             Assert.Equal(serverReject.Key, attempt.Key);
 
-            // ③ 内容/事务关联：两条记录互相可指认（客户端 detail 里的 txn == 事务记录键里的 txn）
-            var txn = Find(DiagCode.ActivationFailed, "txn-diag-1");
-            Assert.Equal(DiagStage.Txn, txn.Stage);
-            Assert.Contains("release=rel-7", txn.Key);
-            Assert.Contains("txn=txn-diag-1", txn.Key);
-            Assert.Equal("健康检查失败：入口页面未打开", txn.Detail);
-            Assert.Contains(store.Current.TransactionId, attempt.Detail);
+            Assert.Contains(client.ContentContext, attempt.Detail);
 
             // 会话面事实：未获应答即断开 → 客户端侧记录（与①②同键）
             var noAck = Find(DiagCode.JoinNoAckDisconnected, "deadbeef-deadbeef");
             Assert.Equal(serverReject.Key, noAck.Key);
             Assert.Equal(-1, client.PlayerId);   // 未进房（未获 JoinAck）
 
-            // ④ 诊断产物：有产物目录就落盘（一行一条；环境未设时跳过——本地/CI 均不假绿）
+            // ③ 诊断产物：有产物目录就落盘（一行一条；环境未设时跳过——本地/CI 均不假绿）
             string artifacts = Environment.GetEnvironmentVariable("LITETEST_ARTIFACTS");
             if (!string.IsNullOrEmpty(artifacts))
             {
@@ -105,26 +88,6 @@ namespace LiteNet.Tests
                 Assert.True(File.Exists(path), "诊断产物应已落盘");
                 Assert.Contains(DiagCode.JoinRejectedBuildHash, File.ReadAllText(path));
             }
-        }
-
-        [Fact]
-        public void 内容激活事务中断恢复_记录带事务ID与恢复结论()
-        {
-            var store = new ActivationTransactionStore(new MemoryActivationIO(), () => 1000)
-            {
-                TransactionIdFactory = () => "txn-recover-1",
-                DiagSink = new DiagSinkAdapter(),
-            };
-            store.BeginCandidate("rel-8");
-            store.MarkPendingActivation();
-
-            store.RecoverOnStartup();      // 模拟"待激活态被中断后重启"的恢复决策
-
-            var recovered = Find(DiagCode.ActivationRecovered, "txn-recover-1");
-            Assert.Equal(DiagStage.Txn, recovered.Stage);
-            Assert.Contains("release=rel-8", recovered.Key);
-            Assert.Contains("txn=txn-recover-1", recovered.Key);
-            Assert.Contains("rel-8", recovered.Detail);
         }
 
         // ---- 装置（同 MultiRoomTransportTests）----
@@ -173,19 +136,5 @@ namespace LiteNet.Tests
             => DiagTrace.Recent.First(e => e.Code == code
                 && ((e.Key != null && e.Key.Contains(marker)) || (e.Detail != null && e.Detail.Contains(marker))));
 
-        /// <summary>组合根接线：Core 诊断端口 → 结构化记录面（生产形态由宿主/Bootstrap 装同款适配）。</summary>
-        private sealed class DiagSinkAdapter : IDiagRecordSink
-        {
-            public void Record(string stage, string code, string key, string detail)
-                => DiagTrace.Emit(stage, code, key, detail);
-        }
-
-        /// <summary>内存激活记录（真存储由 Unity 侧 FileSystem/JSON 适配；本样例只验诊断链）。</summary>
-        private sealed class MemoryActivationIO : IActivationRecordIO
-        {
-            private ActivationRecord _record;
-            public ActivationRecord TryLoad() => _record;
-            public void Save(ActivationRecord record) => _record = record;
-        }
     }
 }

@@ -17,18 +17,14 @@ namespace LiteGame.Editor.UITools.Validation.Rules
         private static readonly HashSet<string> KeyApis = new HashSet<string>(
             new[] { "SetTextKey", "SetTextKeyArgs", "SetTextKeyPlural" }, System.StringComparer.Ordinal);
 
-        private readonly string _luaRootDir;
         private readonly string _logicRootDir;
 
-        /// <summary>生产形态：Lua 根＝起页 Lua 目录（UIPageScaffold.LuaDir）；C# 根＝页面逻辑件根。</summary>
-        public TextStaticKeyRule() : this(Page.UIPageScaffold.LuaDir, UIPageLogicScanner.LogicRoot) { }
+        /// <summary>生产形态：C# 根＝页面逻辑件根。</summary>
+        public TextStaticKeyRule() : this(UIPageLogicScanner.LogicRoot) { }
 
         /// <summary>测试形态：注入替代扫描根（合成页源落临时目录）。</summary>
-        public TextStaticKeyRule(string luaRootDir, string logicRootDir = null)
-        {
-            _luaRootDir = luaRootDir;
-            _logicRootDir = logicRootDir ?? UIPageLogicScanner.LogicRoot;
-        }
+        public TextStaticKeyRule(string logicRootDir = null)
+            => _logicRootDir = logicRootDir ?? UIPageLogicScanner.LogicRoot;
 
         public string RuleId => UIRuleIds.TextStaticKey;
         public string Family => "文本";
@@ -71,11 +67,11 @@ namespace LiteGame.Editor.UITools.Validation.Rules
                 }
             }
 
-            foreach (string relative in UIPageLogicScanner.EnumerateSources(_luaRootDir, _logicRootDir))
+            foreach (string relative in UIPageLogicScanner.EnumerateSources(_logicRootDir))
             {
                 string source = UIPageLogicScanner.ReadSource(relative);
                 if (source == null) continue;
-                foreach (UIPageApiCall call in UIPageLogicScanner.ScanApiCalls(relative, source))
+                foreach (UIPageApiCall call in UIPageLogicScanner.ScanApiCalls(source))
                 {
                     if (!KeyApis.Contains(call.Api)) continue;
                     string key = call.Args.ElementAtOrDefault(1);

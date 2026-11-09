@@ -9,7 +9,6 @@
     "name": "Tmp_Toast",
     "prefabPath": "Assets/LiteGame/Modules/UI/Content/Screens/Tmp_Toast.prefab",
     "prefabGuid": "0bf9df73520fbb44598749076ba98391",
-    "luaPath": null,
     "layer": 3,
     "fullScreen": false,
     "cacheStrategy": "Lru",

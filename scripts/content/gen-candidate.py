@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E402
 
 DEFAULT_KEY = Path.home() / ".unitylib-content-signing" / "release-key-2026-09-26.xml"
-DEFAULT_ANCHORS = "Packages/com.litegame.framework/Runtime/Services/Content/ContentTrustAnchors.cs"
+DEFAULT_ANCHORS = "Packages/com.litegame.framework/Runtime/Services/Content/Release/ContentTrustAnchors.cs"
 
 
 def parse_args(argv=None):
@@ -54,7 +54,6 @@ def collect_entries(content_dir):
         relative = path.relative_to(root).as_posix()
         controlled = (
             relative.startswith("config/")
-            or (relative.startswith("lua/") and relative.endswith(".lua"))
             or relative.startswith("bundle/")
         )
         if not controlled:
@@ -177,7 +176,7 @@ def main(argv=None):
     if not entries:
         return fail(
             "content/gen-candidate",
-            f"no controlled content in {content} (need config/**, lua/**.lua or bundle/**); skipped {skipped}",
+            f"no controlled content in {content} (need config/** or bundle/**); skipped {skipped}",
         )
 
     now = int(time.time())

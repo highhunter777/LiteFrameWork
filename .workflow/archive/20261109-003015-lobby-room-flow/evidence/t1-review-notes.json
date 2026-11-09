@@ -1,0 +1,8 @@
+[
+  {
+    "file": "Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowEntryTests.cs",
+    "test": "旧A取消后新B成功_A晚到不得推进流程",
+    "finding": "Current test starts B before canceling A but asserts two HTTP calls. That contradicts duplicate-request exclusion. Must cancel A before starting B, then deliver A late while B is pending, so the expected two requests match the named scenario.",
+    "required_action": "Independent dsh test author corrects stimulus ordering; keep late A zero progression and B-only connection assertions."
+  }
+]

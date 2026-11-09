@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 868110506395090764}
-  - component: {fileID: 3089345104318002790}
   - component: {fileID: 8518923673790781094}
   - component: {fileID: 7776618173598979363}
+  - component: {fileID: 8555682829573365472}
   m_Layer: 0
   m_Name: Tmp_RedDot
   m_TagString: Untagged
@@ -39,22 +39,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 28, y: 28}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3089345104318002790
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4747800033224797529}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: be6235eaf63e414293718c0c5e947fcc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  interactable: 1
-  pressFx: 1
-  Dot: {fileID: 7099415456320237262}
-  Key: 
 --- !u!114 &8518923673790781094
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -89,6 +73,20 @@ MonoBehaviour:
   Events: []
   SizeBehavior: 0
   Constraints: []
+--- !u!114 &8555682829573365472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4747800033224797529}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f71768859fae4c09a813626bb6c2dbe3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interactable: 1
+  pressFx: 1
 --- !u!1 &7099415456320237262
 GameObject:
   m_ObjectHideFlags: 0

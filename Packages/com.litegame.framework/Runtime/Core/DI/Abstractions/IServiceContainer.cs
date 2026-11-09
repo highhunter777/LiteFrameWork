@@ -16,9 +16,7 @@ namespace LiteFramework
         bool TryResolve<T>(out T service);
         bool TryGetInstance<T>(out T instance); // 只查询已有实例，不构造；装配面同引用检查
         void Validate();                       // 只校验声明图，无构造/工厂副作用
-        void SetTickOrder(params Type[] serviceTypes);
         void Seal();                          // 预检后密封；此后一切 Register* 抛
-        IReadOnlyList<ITickable> Tickables { get; }   // 显式驱动序；未设置时按注册序发现
-        IReadOnlyList<IModuleStats> Stats { get; }  // 同上，HUD 数据源
+        IReadOnlyList<IModuleStats> Stats { get; }  // 已构造实例的 HUD 数据源
     }
 }

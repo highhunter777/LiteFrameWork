@@ -1,0 +1,6 @@
+你是独立T1测试作者，执行T6第一轮的“Meta职责测试迁移”小片；与生产dsh B修复并行，但写集不重叠，不运行Unity。唯一可写：Assets/Tests/EditMode/Meta/MetaEntryEditModeTests.cs 与新文件 Assets/Tests/EditMode/Flow/RoomFlow/RoomFlowTicketTests.cs（当前该目录4源码，加1刚好5）。不改RoomFlowRig/Entry/Lifecycle/Doubles，不改M3、Tests.csproj、生产/.workflow/门禁。主代理后续另派rig和接线迁移。
+请先读当前纯Meta服务/IRoomTicketSource/IRoomFlow以及ProcedureFlow构造签名（已落生产），再读旧MetaEntryEditModeTests。仅针对这些文件，约8次定点read后开始编辑，不漫游全仓。
+目标：去除旧Meta测试中FakeAppFlow/BindFlow和service.EnterRoomAsync/CreateRoomAsync/LeaveMatch等已移除API依赖。纯Meta测试改调用RequestJoinTicketAsync/CreateRoomTicketAsync，保持登录/未配置/未登录、BuildHash、房号/地图/人数、默认模板/显式GM模板密钥、原请求调用次数与错误码等断言。原先“票据地址不可解析零Request/精确移交Match/未绑定门禁”的行为归流程：新增RoomFlowTicketTests使用真实ProcedureFlow(Machine,IRoomTicketSource,Lifetime)与真实StageMachine只注册noop Main/Match来观察PendingId和入场参数，保留原精确Host/Port/RoomId/Ticket/创建参数传递及非法地址零Request。你可以用当前T1 ControlledMetaClient，若数据不可配置则在新fixture内部写最小IMetaClient/IRoomTicketSource测试替身，不能复制生产校验/取消算法。不要用无生产调用的旧FakeAppFlow仅让测试过；流程调用必须真实。
+旧“未绑定BindFlow失败”是被删除的生产后绑定机制，不应为保持旧字面断言重加API；替换为新flow构造缺必要端口fail-fast和真实生产装配守卫（本片先用构造依赖断言），在返回映射表说明语义替代。不能只删除旧用例。若名称改变，逐条返回旧用例→纯Meta测试/新流程测试对应，所有参数/错误/精确移交断言需有新落点。
+补新的纯Meta cancellation测试：预取消零HTTP、传递给IMetaClient的token确实是caller token；IRoomFlow busy/invalid payload由其他fixture负责。不读取凭据、不写敏感响应日志。
+不跑Unity（沙箱不可见宿主Editor），主代理会宿主编译/运行。完成本片两个文件后直接返回修改文件、旧→新断言表、预期未接线的编译依赖和风险，不标T6完成。

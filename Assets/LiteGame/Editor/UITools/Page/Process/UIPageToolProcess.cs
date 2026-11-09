@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -28,8 +28,7 @@ namespace LiteGame.Editor.UITools.Page
         internal sealed class HelperRow
         {
             public int id;
-            public string lua;
-            public string prefab;
+                public string prefab;
             public int layer;
             public bool fullScreen;
         }

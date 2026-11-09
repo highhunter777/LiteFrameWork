@@ -44,7 +44,7 @@ OUT_FILE = os.path.join(ROOT, *OUT_REL.split('/'))
 # The three kind tables (ItemState/ProjectileState/ZoneState) are world-visible
 # faces folded identically into BOTH profiles, like EntitySlot.
 TARGETS = [
-    ('EntitySlot',      'Packages/com.litegame.sim/Scripts/World/EntitySlot.cs'),
+    ('EntitySlot',      'Packages/com.litegame.sim/Scripts/World/Entity/EntitySlot.cs'),
     ('WeaponRuntime',   'Packages/com.litegame.sim/Scripts/Pipeline/SimCombatRuntime.cs'),
     ('ActionRuntime',   'Packages/com.litegame.sim/Scripts/Pipeline/SimCombatRuntime.cs'),
     ('StatusSlotData',  'Packages/com.litegame.sim/Scripts/Pipeline/SimCombatRuntime.cs'),

@@ -19,7 +19,7 @@ Sim 只接受已解析的 primitive 数值；不直接读 Luban、Unity Asset �
 
 ```text
 Luban xlsx
- → 客户端 binary + Lua/C# 生成物
+ → 客户端 binary + C# 生成物
  → 服务端直读同一份 binary（同源，不另存 JSON）
  → buildHash
  → 装载产出 `CombatValues`/`MovementValues` 实例（两端同源；机制消费经参数显式接收——技术债 #1）
@@ -33,7 +33,7 @@ Luban xlsx
 
 **单源映射**：`combatnum` 不再存储重力和出生生命。`tbmovementconfig.gravity` 是重力唯一表源；`tbentityconfig.initial_hp` 是实体出生生命唯一表源，当前消费者为 id=1 默认角色。`SimConfigMapper` 放在 `LiteGame/Modules/Config/`（程序集 `LiteGame.Modules.Config`，命名空间 `LiteGame`），RoomServer 只源链接该无 Unity/UniTask 依赖文件，两端共用必要行与数值校验及投影。`CombatValues.Gravity/EntityHp` 是固定对局配置中的投影值，不构成第二套可编辑表源；Sim 不直接读表或静态配置。所属表行缺失、非有限重力或非正出生生命必须拒绝装载，不回退代码默认值。schema 迁移通过重生成 buildHash（`Assets/GameData/Generated` 生成读码面在闭包内）与表字节同批发布共同保护准入。
 
-**生成入口**：`Luban/gen.bat` 委托 `scripts/codegen/toolbox.py luban`，路径从仓库根推导。Luban 先在 `TestResults/luban-generation/<run>/` 生成 C#/binary/Lua；成功后只发布相应文件类型且跳过内容相同的文件，保留现有文本行尾，binary 不做文本归一化。生成器不清空 Assets 输出目录，也不通过 Git 恢复 asmdef 或 `.meta`。Unity 导入与资源收集验证仍由本机 Pipeline 执行。
+**生成入口**：`Luban/gen.bat` 委托 `scripts/codegen/toolbox.py luban`，路径从仓库根推导。Luban 先在 `TestResults/luban-generation/<run>/` 生成 C#/binary；成功后只发布相应文件类型且跳过内容相同的文件，保留现有文本行尾，binary 不做文本归一化。生成器不清空 Assets 输出目录，也不通过 Git 恢复 asmdef 或 `.meta`。Unity 导入与资源收集验证仍由本机 Pipeline 执行。
 
 ## 3. 表设计
 
@@ -46,7 +46,7 @@ Luban xlsx
 | `tbentityconfig` | **已落地** | id、initial_hp；默认角色 id=1 |
 | `tbweapon` | **已落地** | id、name、archetype、slot（槽位默认映射单源）、fire_mode（auto/semi→bool）、damage/rpm/magazine_size/reserve_ammo/reload_frames/range/spread/pellets/ammo_type/switch_frames、vfx/sfx |
 | `tbitemconfig` | **已落地** | 道具表（类型 + 刷新/拾取/携带/使用 + 各类型效果数值）；**空表即拒装载** |
-| `tbuiform` | **已落地** | UI 表单投影（lua_path/prefab/layer/full_screen）；**排除在 buildHash 外**（纯表现） |
+| `tbuiform` | **已落地** | UI 表单投影（id/prefab/layer/full_screen）；**排除在 buildHash 外**（纯表现） |
 | `tbcontententry` | **已落地** | 内容入口表（样例①真实资源包段的入口 location 单源） |
 | `tbstrategy` | **已落地** | 策略表 |
 | `tbanimationprofile` | **已落地** | 动画 Profile 登记行（id＝行键〔定义语义 ID/回退源 ID/Mask 路径〕、model_family 分派键、kind〔single/blend/fallback/mask〕、channel〔base/overlay/override→枚举〕、binding、bindings〔逗号分隔串——拆分在装载边界〕、loop、min/max_speed、hold_on_finish、requires_load、fallback_id）；**空表即拒装载**，类别/通道字符串与全族语义校验（FromRows 演练）在装载门 |

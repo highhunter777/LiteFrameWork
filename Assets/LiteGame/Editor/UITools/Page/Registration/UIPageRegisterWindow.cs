@@ -12,7 +12,7 @@ namespace LiteGame.Editor.UITools.Page
 {
     /// <summary>
     /// 页面登记窗口（工程，`ui.page-register`）：选草稿页 → id/layer/全屏/缓存策略 → 契约门槛校验 →
-    /// 写表 + Lua + 代码生成链 + 清单状态 + 契约刷新。只做输入与结果呈现。
+    /// 写表 + 代码生成链 + 清单状态 + 契约刷新。只做输入与结果呈现。
     /// </summary>
     public sealed class UIPageRegisterWindow : EditorWindow
     {

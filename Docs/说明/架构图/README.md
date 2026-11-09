@@ -2,7 +2,7 @@
 
 > **定位**：`说明/` 层的可视化入口——用可交互图回答"系统由哪几块组成、一次对局的数据怎么走、某个模块自己怎么转"。
 > **权威边界**：本目录只放图的产物与图源，不裁决架构、不记批次；图与文字章节或代码冲突时，以文字与代码为准，改图不改文。
-> **来源**：Archify `architecture` 图（showcase 档）由仓库源码生成；每个节点带仓库相对 `sources`（路径 + 行号），钉在生成时的提交上。
+> **来源**：Archify `architecture` 图（showcase 档）由仓库源码生成；每个节点带仓库相对 `sources`（路径 + 行号），钉在生成时的提交上。 图源和 HTML 保留生成时快照；现行帧职责见[依赖注入设计 §5](../../设计文档/架构/客户端依赖注入专项设计.md#5-帧驱动)。
 > **关联**：[01 项目定位与技术栈](../01-项目定位与技术栈.md) · [02 架构总览与程序集分层](../02-架构总览与程序集分层.md) · [03 客户端框架与运行时](../03-客户端框架与运行时.md) · [04 服务端与房间内核](../04-服务端与房间内核.md) · [06 联机同步与网络协议](../06-联机同步与网络协议.md)
 
 ## 1. 图列表
@@ -19,6 +19,7 @@
 | LiteSim | [LiteSim.html](LiteSim.html) | [图源-LiteSim.json](图源-LiteSim.json) | 判定内核八块：九系统固定顺序、确定性三件、快照环与回滚复盘 |
 | LiteNet | [LiteNet.html](LiteNet.html) | [图源-LiteNet.json](图源-LiteNet.json) | 协议与传输：信封 → 端口 → 安全装饰 → KCP，尺寸预算与准入常量 |
 | LiteSync | [LiteSync.html](LiteSync.html) | [图源-LiteSync.json](图源-LiteSync.json) | 会话与编解码：一个门面 + 六个专件，快照 / 输入 / 事件双端同一份 |
+| LiteFramework | [LiteFramework.html](LiteFramework.html) | [图源-LiteFramework.json](图源-LiteFramework.json) | 四大块与依赖梯：Core 零依赖零引擎 → Services → Adapters → Hosting |
 
 - **产物**：单文件 HTML，离线可开、无外部依赖；点节点可聚焦并查看它的来源（路径 + 行号）；右上切浅/深色与视觉档、缩放、导出图片与 SVG。
 - **图源**：节点、连线、边界、卡片与 `sources`。改图只改这里，再重出 HTML。
@@ -36,7 +37,7 @@
 ### 2.2 Bootstrap 进程壳
 
 - **壳的四件事**：场景入口（Boot.unity 上唯一引导件、执行序 -1000、重复引导静默销毁）、宿主（`new ClientHost()` + 同一 GameObject 上 `AppLifetime.Bind`）、入口装载（反射取 `IClientEntry` → `Configure` → 宿主初始化 → `StartAsync`）、错误面（内建 uGUI，锚 `[BootstrapError]`）。
-- **三条去向**：ClientHost 初始化并密封 → ServiceContainer 供取；容器 Tickables 每帧被 `Update` 喂 `Time.unscaledDeltaTime`；任一异常统一进 BootstrapErrorPresenter 分类展示。
+- **三条去向**：ClientHost 初始化并密封 → ServiceContainer 供取；独立 `FrameSchedule` 每帧被 `Update` 喂 `Time.unscaledDeltaTime`；任一异常统一进 BootstrapErrorPresenter 分类展示。
 - **边界**：`LiteGame.Bootstrap` 只引 `LiteFramework.{Core, Services, Hosting}` + UniTask，不引 `LiteGame.App` / Modules / Adapters；产品的 `ClientEntry` 由 `ClientEntryLoader` 反射装载——AOT 壳不认识产品代码。
 - **四张卡片**：壳的四件事、AOT 壳的边界、启动时序与帧泵、失败与重入。
 
@@ -44,7 +45,7 @@
 
 - **App 只留装配根**：ClientEntry（登记 18 段 + 启动续体）、AppComposition（11 个适配器工厂 + 跨域装订）、Probes；18 段全在 `Modules/**`。
 - **两条装配线**：ClientEntry 按依赖序 `RegisterSegments ①…⑱`；AppComposition 把适配器工厂注入各段，段经 `SegmentContext.Put / Require` 产出到容器。
-- **密封前一次装订**：`ComposeAfter` 跑 9 步（Lua 门面 / 身份 / 模态 / 输入门 / 注册表回填 / Meta 入口 / 产品设置 / 判定参数覆写 / 开发装饰）→ `DeclareTickOrder` → `Services.Seal()`。
+- **密封前一次装订**：`ComposeAfter` 跑 8 步（页面服务 / 身份 / 模态 / 输入门 / Meta 入口 / 产品设置 / 判定参数覆写 / 开发装饰）→ `DeclareFrameOrder` → `Services.Seal()`。
 - **收尾**：`StartAsync` 从容器取 `StageMachine`，`fsm.Start(Launch)` 把流程机点着；开发调参与两个探针在这里武装。
 - **四张卡片**：App 只留装配根、唯一 new 点、ComposeAfter 装订、启动续体。
 
@@ -98,6 +99,13 @@
 - **双端共用编解码**：`SnapshotCodec`（两端同编）、`SnapshotReassembler`（客户端解码入镜像）、`SnapshotDiffer + AoiFilter`（只在服务端造差量）、`InputPacker`（≤16 帧冗余，两端同一常量）。
 - **重连与恢复**：`ReconnectResponse` 只在 `Restoring` 相位可应用，应用完毕必须 `CompleteRestore` 回报；预算 10s，超时或拒绝进 `Failed`。
 - **边界**：本包不认识地图表、场景、UI；`NetworkQualityProbe` 只喂表现与诊断。`CombatEventCodec` 未画成节点（独立包型，卡片「这个包是双端共用的」已写明）。
+
+### 2.11 LiteFramework
+
+- **依赖梯（asmdef 实证）**：`Core`（`references=[]`、`noEngineReferences=true`）← `Services`（只引 Core + DOTween/UniTask/InputSystem/TMP）← `Adapters`（引 Core + Services）← `Hosting`（三者全引）。
+- **份量（357 个 .cs）**：Core 16 件 / 83、Services 12 域 / 228（UI 112、Content 58、Animation 30）、Adapters 5 组 / 23、Hosting 23。
+- **为什么 Adapters 画在 Services 上面**：这是依赖方向不是运行时方向——Adapters 实现 Services 声明的端口，编译期必须引用 Services。
+- **装配与封印**：ClientHost 建容器 → 段按序 Compose → Seal（注册冻结、帧计划不可改）；`DeclareFrameOrder` 向 `FrameSchedule` 声明每帧顺序。
 
 ## 3. 怎么重出
 

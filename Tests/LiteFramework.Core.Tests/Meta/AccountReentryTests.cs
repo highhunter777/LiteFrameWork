@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
+using MetaWire;
 using LiteGame;
 using Xunit;
 
@@ -12,7 +14,7 @@ namespace LiteFramework.Core.Tests
     /// </summary>
     public sealed class AccountReentryTests
     {
-        private sealed class FakeAccount : IAccountSessionControl
+        private sealed class FakeAccount : IAccountLoginControl
         {
             public readonly List<string> Calls = new List<string>();
             public bool LeaveResult;
@@ -33,6 +35,22 @@ namespace LiteFramework.Core.Tests
             }
         }
 
+        private sealed class FakeRooms : IRoomFlow
+        {
+            private readonly FakeAccount _account;
+            public FakeRooms(FakeAccount account) => _account = account;
+
+            public UniTask<MetaCall<JoinTicketInfo>> EnterRoomAsync(string roomId, CancellationToken ct = default)
+                => throw new NotSupportedException();
+            public UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(int mapId = 0, int expectedPlayers = 0,
+                CancellationToken ct = default) => throw new NotSupportedException();
+            public UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(int mapId, int expectedPlayers,
+                string template, string gmKey, CancellationToken ct = default) => throw new NotSupportedException();
+            public bool LeaveMatch() => _account.LeaveMatch();
+            public UniTask<bool> LeaveMatchAsync(CancellationToken ct = default)
+                => UniTask.FromResult(_account.LeaveMatch());
+        }
+
         private sealed class FakeSurface : ILoginSurface
         {
             public readonly List<string> Calls = new List<string>();
@@ -47,7 +65,7 @@ namespace LiteFramework.Core.Tests
         {
             var account = new FakeAccount { LeaveResult = true };
             var surface = new FakeSurface();
-            var reentry = new AccountReentry(account, surface);
+            var reentry = new AccountReentry(account, new FakeRooms(account), null, surface);
 
             bool navigated = await reentry.ReturnToLoginAsync("token-expired");
 
@@ -62,7 +80,7 @@ namespace LiteFramework.Core.Tests
         {
             var account = new FakeAccount { LeaveResult = false };
             var surface = new FakeSurface();
-            var reentry = new AccountReentry(account, surface);
+            var reentry = new AccountReentry(account, new FakeRooms(account), null, surface);
 
             Assert.True(await reentry.ReturnToLoginAsync("token-expired"));
             Assert.Equal(new[] { "logout:token-expired", "leave" }, account.Calls);
@@ -75,7 +93,7 @@ namespace LiteFramework.Core.Tests
         {
             var account = new FakeAccount();
             var surface = new FakeSurface { IsLoginOpen = true };
-            var reentry = new AccountReentry(account, surface);
+            var reentry = new AccountReentry(account, new FakeRooms(account), null, surface);
 
             Assert.False(await reentry.ReturnToLoginAsync("token-expired"));
             Assert.Empty(account.Calls);                           // 不清登录态（未失效路径不误伤）
@@ -87,7 +105,7 @@ namespace LiteFramework.Core.Tests
         {
             var account = new FakeAccount();
             var surface = new FakeSurface();
-            var reentry = new AccountReentry(account, surface);
+            var reentry = new AccountReentry(account, new FakeRooms(account), null, surface);
 
             Assert.False(await reentry.ReturnToLoginAsync("token-expired",
                 new CancellationToken(canceled: true)));
@@ -99,7 +117,7 @@ namespace LiteFramework.Core.Tests
         public void 重入_端口为空_拒绝构造()
         {
             Assert.Throws<ArgumentNullException>(() => new AccountReentry(null, new FakeSurface()));
-            Assert.Throws<ArgumentNullException>(() => new AccountReentry(new FakeAccount(), null));
+            Assert.Throws<ArgumentNullException>(() => new AccountReentry(new FakeAccount(), new FakeRooms(new FakeAccount()), null, null));
         }
     }
 }

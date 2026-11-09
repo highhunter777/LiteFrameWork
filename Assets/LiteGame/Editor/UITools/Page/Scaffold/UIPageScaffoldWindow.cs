@@ -6,7 +6,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Page
 {
     /// <summary>
-    /// 起页窗口（美术，`ui.page-scaffold`）：页面名 + 视觉基线 → prefab + 草稿清单；不写 Lua/表。
+    /// 起页窗口（美术，`ui.page-scaffold`）：页面名 + 视觉基线 → prefab + 草稿清单；不写表。
     /// 只做输入与结果呈现，判定/写面全在 <see cref="UIPageScaffold"/>。
     /// </summary>
     public sealed class UIPageScaffoldWindow : EditorWindow
