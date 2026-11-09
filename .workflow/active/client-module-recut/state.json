@@ -5,7 +5,7 @@
   "status": "active",
   "current_stage": "implement",
   "created_at": "2026-11-09T11:50:08+08:00",
-  "updated_at": "2026-11-09T16:40:34+08:00",
+  "updated_at": "2026-11-09T17:15:19+08:00",
   "completed_at": null,
   "completed_stages": [
     {
@@ -211,12 +211,12 @@
       "deps": [
         "T5"
       ],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "UI asmdef 去 Settings；units UI refs/domainEdges 去 Ui→Settings（28→27）；CrossModule allowlist 15→14；Docs/18 生成物 Ui→Settings 0、Ui 类型 28；SettingsPortMigration 5/5 + CrossModule 2/2 + ClientAsmdef 5/5=12/12；arch 27 edges/domain OK；zero-use 53/54；L1 1982 PASS；Unity recompile failed=false errors=[]",
       "status_reason": "",
       "created_at": "2026-11-09T15:38:01+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-11-09T16:41:03+08:00",
+      "completed_at": "2026-11-09T16:52:53+08:00"
     },
     {
       "id": "T7",
@@ -230,12 +230,12 @@
       "deps": [
         "T5"
       ],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "SettingsPagePlayModeTests 5/5（PM_SET_1..5）；真 Page_Settings.prefab + 真 UIService/PageContext；fake ILocalizationService + fake ISettingsPagePort；画质/音量写入、Close+Back SaveCount、空端口 12 控件 interactable=false/面板可见/页签可切/关闭可用；comment-lint 0/dir-flat 0",
       "status_reason": "",
       "created_at": "2026-11-09T15:38:12+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-11-09T16:52:53+08:00",
+      "completed_at": "2026-11-09T17:15:19+08:00"
     },
     {
       "id": "T8",
@@ -252,12 +252,12 @@
         "T3",
         "T6"
       ],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "zero-use-edges --write 收紧 54→53（删除 UI→Settings）；--check 53/53；unittest 5/5；friend 55；CrossModule allowlist 14（ProductSettings 已删）；arch 27 edges；L1 1982 PASS（1972+10 新增测试）",
       "status_reason": "",
       "created_at": "2026-11-09T15:38:13+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-11-09T16:52:54+08:00",
+      "completed_at": "2026-11-09T17:00:12+08:00"
     },
     {
       "id": "T9",

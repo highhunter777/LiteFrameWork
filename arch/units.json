@@ -658,7 +658,6 @@
         "LiteFramework.Hosting",
         "LiteGame.Core",
         "LiteGame.Modules.Config",
-        "LiteGame.Modules.Settings",
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask"
@@ -1442,11 +1441,6 @@
       "from": "Dev",
       "to": "Map",
       "reason": "开发直入/本地服的地图提供者（IMapProvider）"
-    },
-    {
-      "from": "Ui",
-      "to": "Settings",
-      "reason": "设置页读写设置端口（ProductSettings/LookPreferences）"
     },
     {
       "from": "Ui",

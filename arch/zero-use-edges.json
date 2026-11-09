@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-11-09T16:36:03+08:00",
+  "generatedAt": "2026-11-09T16:54:26+08:00",
   "generator": "python scripts/gate/zero-use-edges.py --write",
   "model": "arch/units.json",
   "glossary": {
@@ -226,10 +226,6 @@
     {
       "from": "LiteGame.Modules.UI",
       "to": "LiteGame.Core"
-    },
-    {
-      "from": "LiteGame.Modules.UI",
-      "to": "LiteGame.Modules.Settings"
     }
   ]
 }

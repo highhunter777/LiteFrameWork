@@ -4,7 +4,7 @@
 
 ## 任务清单
 
-阶段：子代理正式施工（implement） ｜ 完成 5/9（取消 0，阻塞 0）
+阶段：子代理正式施工（implement） ｜ 完成 8/9（取消 0，阻塞 0）
 
 | ID | 任务 | 依赖 | 状态 | 验收标准 | 验证方式 | 证据 |
 |---|---|---|---|---|---|---|
@@ -13,9 +13,9 @@
 | T3 | 零使用边脚本/基线 + toolchain 注册 | T2 | 完成 | zero-use-edges.py 复用 domain-matrix 口径（去注释/字符串、depth=1 顶层类型、出现次数）；arch/zero-use-edges.json 基线；quality.zero-use-edges 登记 toolchain.json；.workflow/config.json 挂 command；--check 只减不增；合成负例红。 | python scripts/gate/zero-use-edges.py --check; python scripts/toolchain.py docs --check | zero-use-edges.py（复用 domain-matrix 口径，--write/--check，子集语义）；arch/zero-use-edges.json 54 条基线；toolchain.json quality.zero… |
 | T4 | ISettingsPagePort + ProductSettingsAdapter + 页面上下文 | T1 | 完成 | ISettingsPagePort 28 成员（15 读+13 写/动作，无 Apply）；ProductSettingsAdapter 在 App；IPageContext.Settings/PageLogicBase.Settings；adapter 创建点在 BindProductSettings 之后/惰性；Unity 重编译 0 错。 | python scripts/gate/arch-check.py --check; Unity 重编译 0 错 | 6 授权文件 + 2 .meta；ISettingsPagePort 28 成员（15 读+13 写/动作，无 ProductSettings/Apply）；ProductSettingsAdapter 在 App；IPageContex… |
 | T5 | Page_SettingsLogic 10 处替换 + FrameRateIndex + 空端口守卫 | T4 | 完成 | 页面代码 ProductSettings.Current=0；FrameRateIndex(ISettingsPagePort)；空端口 OnShow 早退 + 10 处 ?.；Ctx.Meta 仍用于 Version/AccountId/ServerUrl/LeaveMatch；Unity 重编译 0 错。 | rg ProductSettings.Current Assets/LiteGame/Modules/UI/Pages; Unity 重编译 0 错 | Page_SettingsLogic 10 处替换（+55/-26，305→334）、FrameRateIndex(ISettingsPagePort)、空端口 ApplyPortlessState+12 控件禁用、OnShow 早退、1… |
-| T6 | UI asmdef 去 Settings + units/domain/allowlist 收口 | T5 | 待办 | UI asmdef 不再引 Settings；units.json UI refs 去 Settings；domain-matrix 去 Ui→Settings；allowlist 删 ProductSettings；arch-check/domain-matrix/L1 绿。 | python scripts/gate/arch-check.py --check; python scripts/gate/domain-matrix.py --check; python scripts/gate/test.py --suite L1 --profile PullRequest | - |
-| T7 | Settings 页 PlayMode 用例 | T5 | 待办 | 新增 SettingsPagePlayModeTests：fake ILocalizationService、真 Page_Settings.prefab、Dropdown/Slider 事件、空端口 10 处 ?. + OnShow 早退；打开/改画质/改音量/Back 保存/空端口绿。 | python scripts/gate/unity-tests.py --mode playmode --filter SettingsPagePlayModeTests | - |
-| T8 | friend/零使用边棘轮 | T2, T3, T6 | 待办 | friend 55；零使用边基线只减不增；白名单 15→14 已在 Phase 1；记录数字。 | python scripts/gate/zero-use-edges.py --check; python scripts/gate/test.py --suite L1 --profile PullRequest | - |
+| T6 | UI asmdef 去 Settings + units/domain/allowlist 收口 | T5 | 完成 | UI asmdef 不再引 Settings；units.json UI refs 去 Settings；domain-matrix 去 Ui→Settings；allowlist 删 ProductSettings；arch-check/domain-matrix/L1 绿。 | python scripts/gate/arch-check.py --check; python scripts/gate/domain-matrix.py --check; python scripts/gate/test.py --suite L1 --profile PullRequest | UI asmdef 去 Settings；units UI refs/domainEdges 去 Ui→Settings（28→27）；CrossModule allowlist 15→14；Docs/18 生成物 Ui→Settings… |
+| T7 | Settings 页 PlayMode 用例 | T5 | 完成 | 新增 SettingsPagePlayModeTests：fake ILocalizationService、真 Page_Settings.prefab、Dropdown/Slider 事件、空端口 10 处 ?. + OnShow 早退；打开/改画质/改音量/Back 保存/空端口绿。 | python scripts/gate/unity-tests.py --mode playmode --filter SettingsPagePlayModeTests | SettingsPagePlayModeTests 5/5（PM_SET_1..5）；真 Page_Settings.prefab + 真 UIService/PageContext；fake ILocalizationService +… |
+| T8 | friend/零使用边棘轮 | T2, T3, T6 | 完成 | friend 55；零使用边基线只减不增；白名单 15→14 已在 Phase 1；记录数字。 | python scripts/gate/zero-use-edges.py --check; python scripts/gate/test.py --suite L1 --profile PullRequest | zero-use-edges --write 收紧 54→53（删除 UI→Settings）；--check 53/53；unittest 5/5；friend 55；CrossModule allowlist 14（ProductSe… |
 | T9 | 文档回写与审计登记路径核销 | T4, T5, T6, T7, T8 | 待办 | 说明 03/08/10/14/15/17/18/19/20、UI 系统/UI 工具链/UI API/DI/设置/技术债/进度卷事实性回写；章程类只记不变/待另立设计；审计路径核销；doc-lint/toolchain docs 绿。 | python scripts/gate/doc-lint.py; python scripts/toolchain.py docs --check | - |
 
 ## 任务详情
