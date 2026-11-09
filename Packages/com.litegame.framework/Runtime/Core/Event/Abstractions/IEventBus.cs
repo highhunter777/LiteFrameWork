@@ -15,11 +15,28 @@ namespace LiteFramework
         IEventSubscription Subscribe<T>(Action<T> handler, int priority = 0) where T : class;
     }
 
+    /// <summary>值型信号发布端口：同步派发、异常上抛（与事实通道的吞并计数相反）。</summary>
+    public interface ISignalPublisher
+    {
+        /// <summary>立即派发值型信号；订阅者异常向调用方上抛并中断本次派发。</summary>
+        void PublishSignal<T>(in T signal) where T : struct;
+    }
+
+    /// <summary>值型信号订阅端口：句柄释放即注销。</summary>
+    public interface ISignalSubscriber
+    {
+        /// <summary>订阅值型信号；同优先级保持注册序。</summary>
+        IEventSubscription SubscribeSignal<T>(SignalHandler<T> handler, int priority = 0) where T : struct;
+    }
+
+    /// <summary>值型信号委托（in 传递，零拷贝；不参与 StrictMode 的无订阅告警）。</summary>
+    public delegate void SignalHandler<T>(in T signal) where T : struct;
+
     /// <summary>
-    /// 事件总线主端口：发布 + 订阅 + 延迟/有界队列 + 生命周期。
+    /// 事件总线主端口：事实通道（class）+ 值型信号通道 + 延迟/有界队列 + 生命周期。
     /// 作用域内由组合根持有并在 Scope 关闭时 Dispose。
     /// </summary>
-    public interface IEventBus : IEventPublisher, IEventSubscriber, ITickable, IDisposable
+    public interface IEventBus : IEventPublisher, IEventSubscriber, ISignalPublisher, ISignalSubscriber, ITickable, IDisposable
     {
         bool IsDisposed { get; }
 

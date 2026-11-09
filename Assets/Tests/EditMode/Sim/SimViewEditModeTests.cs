@@ -52,8 +52,9 @@ namespace LiteGame.Tests.EditMode
         }
 
         private static SimView NewView(SimWorldState world, ViewCounter counter,
-            ICameraService camera = null, System.Func<EntitySlot, string> locationOf = null)
-            => new SimView(world, null, Factory(counter), counter.Recycled.Add, camera, locationOf);
+            ICameraService camera = null, System.Func<EntitySlot, string> locationOf = null,
+            IEventBus events = null)
+            => new SimView(world, null, Factory(counter), counter.Recycled.Add, camera, locationOf, events);
 
         /// <summary>无回收方形态：EntityViewMap 走**自有池**（生产接 EntityService 时池归它所有，
         /// 两份池不重复记账——这是设计口径）。</summary>
@@ -315,10 +316,11 @@ namespace LiteGame.Tests.EditMode
         {
             var world = NewWorld(new SimVector3(0f, 0f, 0f));
             var counter = new ViewCounter();
-            var view = NewView(world, counter);
+            var bus = new EventBus();
+            var view = NewView(world, counter, events: bus);
 
             int delivered = 0;
-            view.EventSink = (in FrameEvent e) => delivered++;
+            bus.SubscribeSignal<FrameEvent>((in FrameEvent e) => delivered++);
 
             // 逻辑帧边界交付（接 RollbackSim.OnFrameEvents——事件在 FrameDriver 清空缓冲前取件）
             world.Events.Write(FrameEventKind.Hit, 1, 2, -10, new SimVector3(0f, 0f, 0f));
@@ -344,10 +346,11 @@ namespace LiteGame.Tests.EditMode
         {
             var world = NewWorld(new SimVector3(0f, 0f, 0f));
             var counter = new ViewCounter();
-            var view = NewView(world, counter);
+            var bus = new EventBus();
+            var view = NewView(world, counter, events: bus);
 
             int delivered = 0;
-            view.EventSink = (in FrameEvent e) => delivered++;
+            bus.SubscribeSignal<FrameEvent>((in FrameEvent e) => delivered++);
 
             world.Events.Write(FrameEventKind.Fire, 1, 0, 0, new SimVector3(0f, 0f, 0f));
             view.Tick(1f / 60f);                                     // 渲染帧驱动

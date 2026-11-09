@@ -110,7 +110,7 @@ namespace LiteGame
 
         /// <summary>本地 Fire 帧事件 → 连发张开增量 + 后坐冲量（其余事件/他人开火不吃——
         /// <c>HitFeedbackDispatcher</c> 已把"我开枪"解析为 <see cref="HitLocalRole.Caused"/>；
-        /// 回滚重放段的静默门在其上游 EventSink 保证，重放不重计入）。</summary>
+        /// 回滚重放段的静默门在其上游（SimView 静默门）保证，重放不重计入）。</summary>
         public void OnHitFeedback(in HitFeedbackContext ctx)
         {
             if (_disposed) return;

@@ -35,7 +35,8 @@ namespace LiteGame
             View = new SimView(context.Sim.State, viewRoot,
                 factory: InstantiateView,
                 recycler: null,                                   // 自有池（EntityService 接线归表现域批）
-                camera: camera);
+                camera: camera,
+                events: context.Events);                          // 帧事件唯一投递面（Match 作用域总线）
             context.AttachView(View);
 
             // 动画 Profile：表单源（读口行 → 按模型族装载——缺行/坏行在装配期显性失败）。

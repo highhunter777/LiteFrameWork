@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using LiteFramework;
-using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
 using LiteTesting;
@@ -815,6 +814,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -823,7 +823,8 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);                                            // 自有池：回收 = 停用入池
+                recycler: null,
+                events: viewBus);                                            // 自有池：回收 = 停用入池
             var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             var weights = new float[4];
@@ -874,6 +875,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -882,7 +884,8 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);
+                recycler: null,
+                events: viewBus);
             view.AlignLocal(selfId);                                    // 本地实体：IsAiming 走预测态分支
             var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
@@ -946,6 +949,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -954,9 +958,10 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);
+                recycler: null,
+                events: viewBus);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());       // 构造即自订阅 EventSink（§8 接缝）
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());       // 构造即订阅帧信号通道（§8 接缝）
             const float dt = 1f / 60f;
             var stats = new Dictionary<string, string>();
             var firePos = new SimVector3(0f, 0f, 0f);
@@ -1020,6 +1025,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -1028,7 +1034,8 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);
+                recycler: null,
+                events: viewBus);
             view.AlignLocal(selfId);
             view.ReconcileSharpness = 600f;                     // 本地朝向衰减加速收敛——测角断言不等指数尾巴
             var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
@@ -1091,6 +1098,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -1099,7 +1107,8 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);
+                recycler: null,
+                events: viewBus);
             view.AlignLocal(selfId);
             var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
@@ -1149,6 +1158,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -1157,7 +1167,8 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);
+                recycler: null,
+                events: viewBus);
             view.AlignLocal(selfId);
             var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
@@ -1202,6 +1213,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -1210,7 +1222,8 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);
+                recycler: null,
+                events: viewBus);
             view.AlignLocal(selfId);
             var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
@@ -1265,6 +1278,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -1273,7 +1287,8 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);
+                recycler: null,
+                events: viewBus);
             view.AlignLocal(selfId);                                    // 本地实体：IsAiming 走预测态分支
             var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
@@ -1346,6 +1361,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out int slot);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -1354,7 +1370,8 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);
+                recycler: null,
+                events: viewBus);
             view.AlignLocal(selfId);
             var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
@@ -1416,6 +1433,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out int slot);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -1424,7 +1442,8 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);
+                recycler: null,
+                events: viewBus);
             view.AlignLocal(selfId);
             var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
@@ -1489,7 +1508,7 @@ namespace LiteGame.Tests.EditMode
             return w.ReloadEndFrame;
         }
 
-        /// <summary>按真实链路交付一个 Fire 事件（写入缓冲 → SimView 静默门 → EventSink → 消费者）。</summary>
+        /// <summary>按真实链路交付一个 Fire 事件（写入缓冲 → SimView 静默门 → 帧信号通道 → 消费者）。</summary>
         private static void DeliverFire(SimView view, SimWorldState world, long shooterId, SimVector3 pos)
         {
             world.Events.Write(FrameEventKind.Fire, shooterId, 0L, 0, pos);
@@ -1591,6 +1610,7 @@ namespace LiteGame.Tests.EditMode
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
 
+            var viewBus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) =>
                 {
@@ -1599,7 +1619,8 @@ namespace LiteGame.Tests.EditMode
                     Scope.Track(go);
                     return go;
                 },
-                recycler: null);
+                recycler: null,
+                events: viewBus);
             view.AlignLocal(selfId);
             var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;

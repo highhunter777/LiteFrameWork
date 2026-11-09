@@ -2,7 +2,6 @@ using System;
 using LiteFramework;
 using LiteSim;
 using UnityEngine;
-using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Shared;
@@ -20,9 +19,6 @@ namespace LiteGame
 
         /// <summary>视图回收（生产接 EntityService.Hide；null = 走 EntityViewMap 的自有池）。</summary>
         public delegate void ViewRecycler(GameObject view);
-
-        /// <summary>静默门放行的帧事件回调（编排方接线：VFX/音效/飘字）。</summary>
-        public delegate void FrameEventSink(in FrameEvent e);
 
         /// <summary>对局实体视图 prefab（**单源**＝共享常量面 <see cref="BattleViewPaths.DefaultEntityPrefab"/>——
         /// 内容段健康检查与内存循环探针也读同一份，不必认识战斗域类型）。</summary>
@@ -48,6 +44,7 @@ namespace LiteGame
         private readonly FrameEventSilenceGate _silence;
         private readonly LocalReconciler _local;
         private readonly SimViewFacts _facts;
+        private readonly IEventBus _events;
         private long _localEntityId;
 
         /// <summary>渲染相对最新快照的落后帧数（tick 帧；0 = 测试用即时模式）。</summary>
@@ -93,8 +90,8 @@ namespace LiteGame
         /// <summary>本地视图关 CC 直写（瞬移落位）的次数（诊断/测试读数）。</summary>
         public int LocalTeleportCount => _local.TeleportCount;
 
-        /// <summary>静默门放行的事件回调（编排方接线表现；null = 只做去重统计）。</summary>
-        public FrameEventSink EventSink { get; set; }
+        /// <summary>帧事件投递总线（Match 作用域；null = 测试构型，事件只做去重统计）。</summary>
+        public IEventBus Events => _events;
 
         /// <summary>本地玩家表现位置（相机跟随目标）。</summary>
         public Vector3 LocalDisplayPosition => new Vector3(_local.Display.X, _local.Display.Y, _local.Display.Z);
@@ -121,10 +118,11 @@ namespace LiteGame
         public int DeliveredEvents => _silence.DeliveredEvents;
 
         public SimView(SimWorldState sim, Transform root, ViewFactory factory, ViewRecycler recycler = null,
-            ICameraService camera = null, Func<EntitySlot, string> prefabLocationOf = null)
+            ICameraService camera = null, Func<EntitySlot, string> prefabLocationOf = null, IEventBus events = null)
         {
             _sim = sim ?? throw new ArgumentNullException(nameof(sim));
             _camera = camera;
+            _events = events;
             _views = new EntityViewMap(factory, recycler, root, prefabLocationOf);
             _binder = new EntityViewBinder(_views);
             _snapshots = new SnapshotInterpolationBuffer();
@@ -171,8 +169,14 @@ namespace LiteGame
             _camera.Follow(LocalDisplayPosition, SimViewMath.FacingRotation(_local.Yaw), dt);
         }
 
-        /// <summary>帧事件交付（逻辑帧边界）：静默门内的帧丢弃，放行的交 <see cref="EventSink"/>。</summary>
-        public void OnFrameEvents(SimWorldState state) => _silence.Deliver(state, EventSink);
+        /// <summary>帧事件交付（逻辑帧边界）：静默门内的帧丢弃，放行的发布到 <see cref="Events"/>。</summary>
+        public void OnFrameEvents(SimWorldState state) => _silence.Deliver(state, PublishFrameEvent);
+
+        private void PublishFrameEvent(in FrameEvent e)
+        {
+            if (_events == null) return;
+            _events.PublishSignal(in e);
+        }
 
         public bool IsAiming(int slotIndex) => _facts.IsAiming(slotIndex);
 

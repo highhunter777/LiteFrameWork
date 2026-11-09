@@ -1,11 +1,12 @@
 using System;
+using LiteFramework;
 using LiteSim;
 
 namespace LiteGame
 {
     /// <summary>
     /// 帧事件静默门（回滚重放/和解去重）：帧号 ≤ <see cref="SilenceUntilFrame"/> 的事件丢弃，
-    /// 放行的事件交 <see cref="SimView.FrameEventSink"/>；只做计数与闸门，不触达表现服务。
+    /// 放行的事件交 <see cref="SimView.Events"/>；只做计数与闸门，不触达表现服务。
     /// </summary>
     internal sealed class FrameEventSilenceGate
     {
@@ -24,7 +25,7 @@ namespace LiteGame
             if (untilFrame > SilenceUntilFrame) SilenceUntilFrame = untilFrame;
         }
 
-        public void Deliver(SimWorldState state, SimView.FrameEventSink sink)
+        public void Deliver(SimWorldState state, SignalHandler<FrameEvent> receiver)
         {
             if (state == null) return;
             FrameEventBuffer events = state.Events;
@@ -38,7 +39,7 @@ namespace LiteGame
                 }
 
                 DeliveredEvents++;
-                sink?.Invoke(in e);
+                if (receiver != null) receiver(in e);
             }
         }
     }

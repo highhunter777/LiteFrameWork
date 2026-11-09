@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using LiteFramework;
 using LiteSim;
 using LiteTesting;
 using LiteTesting.Unity;
@@ -9,10 +11,12 @@ using LiteGame.Feedback;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 命中分发器（<see cref="HitFeedbackDispatcher"/>）的 L2 EditMode 覆盖（《命中反馈与伤害数字专项设计》批A）： 并列订阅 <see cref="SimView.EventSi。
+    /// 命中分发器（<see cref="HitFeedbackDispatcher"/>）的 L2 EditMode 覆盖（《命中反馈与伤害数字专项设计》批A）：
+    /// 订阅 <see cref="SimView.Events"/> 的值型帧信号通道。
     /// </summary>
     public sealed class HitFeedbackDispatcherEditModeTests : UnityTestBase
     {
+        private EventBus _bus;
         /// <summary>记录消费者（按抵达序收上下文——转发序与字段断言共用）。</summary>
         private sealed class Recorder : IHitFeedbackConsumer
         {
@@ -41,15 +45,17 @@ namespace LiteGame.Tests.EditMode
             if (bots.Length > 1)
                 botB = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(bots[1].x, bots[1].y, bots[1].z) }, out _);
 
+            _bus = new EventBus();
             SimView view = new SimView(world, null,
                 factory: (loc, parent) => Scope.CreateGameObject(loc),
-                recycler: null);
+                recycler: null,
+                events: _bus);
             view.AlignLocal(self);
             view.Tick(1f / 60f);                      // 首帧落位：视图建立（槽位可解析）
             return (world, view, self, botA, botB);
         }
 
-        /// <summary>按真实链路交付一个帧事件（写入缓冲 → 静默门 → EventSink → 分发器）。</summary>
+        /// <summary>按真实链路交付一个帧事件（写入缓冲 → 静默门 → 帧信号通道 → 分发器）。</summary>
         private static void Deliver(SimView view, SimWorldState world, FrameEventKind kind,
             long entityId, long otherId, int value, SimVector3 pos)
         {
@@ -186,7 +192,8 @@ namespace LiteGame.Tests.EditMode
             Deliver(view, world, FrameEventKind.Hit, botA, self, 30, default);
 
             Assert.AreEqual(0, recorder.Got.Count, "Dispose 摘订阅后不再分发");
-            Assert.AreEqual(0, view.EventSink?.GetInvocationList().Length ?? 0, "EventSink 上无残留订阅");
+            Assert.AreEqual(0, _bus.GetChannelInfos().Where(i => i.EventType == typeof(FrameEvent)).Sum(i => i.Subscribers),
+                "信号通道上无残留订阅");
         }
 
         [Test]

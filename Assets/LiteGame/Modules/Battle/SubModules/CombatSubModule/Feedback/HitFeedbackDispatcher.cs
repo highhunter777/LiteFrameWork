@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LiteFramework;
 using LiteSim;
 using UnityEngine;
 using LiteGame.Feedback;
@@ -12,6 +13,7 @@ namespace LiteGame
     public sealed class HitFeedbackDispatcher : IDisposable
     {
         private readonly SimView _view;
+        private readonly IEventSubscription _subscription;
         private readonly List<IHitFeedbackConsumer> _consumers = new List<IHitFeedbackConsumer>(4);
         private bool _disposed;
 
@@ -21,7 +23,7 @@ namespace LiteGame
         public HitFeedbackDispatcher(SimView view)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
-            _view.EventSink += OnFrameEvent;          // 并列订阅（§8 接缝之后、静默门之后）
+            _subscription = _view.Events?.SubscribeSignal<FrameEvent>(OnFrameEvent);   // 静默门之后
         }
 
         /// <summary>注册消费者（转发序 = 注册序）；null 拒收、重复注册幂等。</summary>
@@ -86,7 +88,7 @@ namespace LiteGame
         {
             if (_disposed) return;
             _disposed = true;
-            _view.EventSink -= OnFrameEvent;          // 先摘订阅：此后到达的事件一律不再进入本类
+            _subscription?.Dispose();                 // 先摘订阅：此后到达的事件一律不再进入本类
             _consumers.Clear();
         }
     }

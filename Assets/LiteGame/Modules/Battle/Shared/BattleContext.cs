@@ -111,6 +111,9 @@ namespace LiteGame
         private readonly DiagnosticIdentity _diagnosticsIdentity;
         private readonly BattleInputPipeline _inputs;      // 输入三件（顺序与上行）
         private readonly IEventBus _events;                // 局内事件总线（Match Scope；null = 测试直构）
+
+        /// <summary>局内事件总线（Match 作用域；null = 测试直构，表现层据此判空）。</summary>
+        public IEventBus Events => _events;
         private readonly BattleSnapshotMirror _mirror = new BattleSnapshotMirror();   // 持久镜像 + 和解 + 插值源
         private readonly PublicCombatFeed _combatFeed = new PublicCombatFeed();       // 公共战斗事件面（独立事件批 → 按 kind 分流入队）
 

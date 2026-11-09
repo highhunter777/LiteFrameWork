@@ -15,6 +15,7 @@ namespace LiteGame
     public sealed class CharacterLocomotionDriver : IDisposable, IModuleStats, IFrameEventAnimationConsumer
     {
         private readonly SimView _view;
+        private readonly IEventSubscription _subscription;
         private readonly AnimationProfile _profile;
         private readonly AnimationClipManifest _manifest;
 
@@ -123,7 +124,7 @@ namespace LiteGame
             _cameraPitchOf = cameraPitchOf;
             _aimPointOf = aimPointOf;
 
-            _view.EventSink += OnFrameEvent;      // 自订阅（§8 接缝：接在静默门之后）；Dispose 时摘下
+            _subscription = _view.Events?.SubscribeSignal<FrameEvent>(OnFrameEvent);   // 静默门之后；Dispose 时摘下
         }
 
         /// <summary>当前有动画播放器的实体视图数（诊断/测试）。</summary>
@@ -425,14 +426,15 @@ namespace LiteGame
         {
             if (_disposed) return;
             _disposed = true;
-            _view.EventSink -= OnFrameEvent;      // 先摘订阅：此后到达的事件一律不再进入本类
+            _subscription?.Dispose();             // 先摘订阅：此后到达的事件一律不再进入本类
             for (int i = 0; i < _slots.Length; i++) ReleaseSlot(i);
         }
 
         // ---- IFrameEventAnimationConsumer（§8：帧事件 → 播放请求）----。
 
         /// <summary>
-        /// 帧事件消费（**逻辑帧边界**，由 SimView.EventSink 在静默门之后调用）： fire 事件即进 Fire 系——语义/通道由战斗层装配期从 Profile 单源解析 （构造期校验保留）。
+        /// 帧事件消费（**逻辑帧边界**，由 Match 总线在静默门之后派发）：fire 事件即进 Fire 系——
+        /// 语义/通道由战斗层装配期从 Profile 单源解析（构造期校验保留）。
         /// </summary>
         public void OnFrameEvent(in FrameEvent e)
         {
