@@ -751,6 +751,20 @@
       "order": 25
     },
     {
+      "id": "quality.zero-use-edges",
+      "title": "零使用 asmdef 边",
+      "category": "quality",
+      "kind": "gate",
+      "plane": "external",
+      "purpose": "delivery",
+      "summary": "unit→unit asmdef 引用中目标顶层类型名出现 0 次的边；--check 只减不增。",
+      "docs": "Docs/说明/10-测试与门禁.md",
+      "command": ["python", "scripts/gate/zero-use-edges.py", "--check"],
+      "writes": ["none"],
+      "destructive": false,
+      "order": 26
+    },
+    {
       "id": "quality.l2",
       "title": "L2 Unity 门禁",
       "category": "quality",

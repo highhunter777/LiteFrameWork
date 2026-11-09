@@ -497,6 +497,9 @@
         "LiteSim",
         "Luban.Runtime"
       ],
+      "friends": [
+        "LiteGame.EditModeTests"
+      ],
       "notes": "配置装载与表投影"
     },
     {
@@ -615,6 +618,15 @@
         "Luban.Tables",
         "UniTask"
       ],
+      "friends": [
+        "LiteGame.App",
+        "LiteGame.Adapters.Dev",
+        "LiteGame.Editor",
+        "LiteGame.Editor.Core",
+        "LiteGame.Editor.UITools",
+        "LiteGame.EditModeTests",
+        "LiteGame.UI.PlayModeTests"
+      ],
       "notes": "地图表/场景域"
     },
     {
@@ -650,6 +662,15 @@
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask"
+      ],
+      "friends": [
+        "LiteGame.App",
+        "LiteGame.Adapters.Dev",
+        "LiteGame.Editor",
+        "LiteGame.Editor.Core",
+        "LiteGame.Editor.UITools",
+        "LiteGame.EditModeTests",
+        "LiteGame.UI.PlayModeTests"
       ],
       "notes": "UI 能力域：页面目录/寻址/绑定"
     },
@@ -759,6 +780,12 @@
         "LiteGame.Shared",
         "LiteGame.Battle.Abstractions"
       ],
+      "friends": [
+        "LiteGame.App",
+        "LiteGame.Adapters.Dev",
+        "LiteGame.EditModeTests",
+        "LiteGame.UI.PlayModeTests"
+      ],
       "notes": "战斗玩法与表现（竖向自持）"
     },
     {
@@ -791,6 +818,16 @@
         "LiteSync",
         "LiteSim",
         "UniTask"
+      ],
+      "friends": [
+        "LiteGame.App",
+        "LiteGame.Adapters.Dev",
+        "LiteGame.Editor",
+        "LiteGame.Editor.Core",
+        "LiteGame.Editor.UITools",
+        "LiteGame.EditModeTests",
+        "LiteGame.UI.PlayModeTests",
+        "LiteGame.Modules.Session"
       ],
       "notes": "开发面模块（发布剥离；本地传输端口经 IDevAssembly.LocalTransport）"
     },
@@ -825,6 +862,15 @@
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask"
+      ],
+      "friends": [
+        "LiteGame.App",
+        "LiteGame.Adapters.Dev",
+        "LiteGame.Editor",
+        "LiteGame.Editor.Core",
+        "LiteGame.Editor.UITools",
+        "LiteGame.EditModeTests",
+        "LiteGame.UI.PlayModeTests"
       ],
       "notes": "联机入口/大厅域"
     },
@@ -862,6 +908,15 @@
         "LiteGame.Shared",
         "LiteGame.Modules.Config"
       ],
+      "friends": [
+        "LiteGame.App",
+        "LiteGame.Adapters.Dev",
+        "LiteGame.Editor",
+        "LiteGame.Editor.Core",
+        "LiteGame.Editor.UITools",
+        "LiteGame.EditModeTests",
+        "LiteGame.UI.PlayModeTests"
+      ],
       "notes": "组装件：平台/身份/内容/时钟/时序装配"
     },
     {
@@ -898,6 +953,15 @@
         "Luban.Tables",
         "UniTask",
         "LiteGame.Battle.Abstractions"
+      ],
+      "friends": [
+        "LiteGame.App",
+        "LiteGame.Adapters.Dev",
+        "LiteGame.Editor",
+        "LiteGame.Editor.Core",
+        "LiteGame.Editor.UITools",
+        "LiteGame.EditModeTests",
+        "LiteGame.UI.PlayModeTests"
       ],
       "notes": "会话/账号/传输域"
     },
@@ -942,6 +1006,15 @@
         "UniTask",
         "LiteGame.Battle.Abstractions",
         "LiteGame.Bootstrap"
+      ],
+      "friends": [
+        "LiteGame.App",
+        "LiteGame.Adapters.Dev",
+        "LiteGame.Editor",
+        "LiteGame.Editor.Core",
+        "LiteGame.Editor.UITools",
+        "LiteGame.EditModeTests",
+        "LiteGame.UI.PlayModeTests"
       ],
       "notes": "应用壳：流程/页面流/恢复"
     },

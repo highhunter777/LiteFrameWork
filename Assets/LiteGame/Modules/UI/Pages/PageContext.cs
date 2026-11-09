@@ -12,10 +12,12 @@ namespace LiteGame.Modules.UI
         private readonly Func<IRoomView> _room;
         private readonly Func<IConfirmDialog> _confirm;
         private readonly Func<UIService> _ui;
+        private readonly Func<ISettingsPagePort> _settings;
 
         public PageContext(Func<UINavigationController> nav, Func<IMetaSession> meta = null,
             Func<IMapCatalog> maps = null, Func<IRoomView> room = null,
-            Func<IConfirmDialog> confirm = null, Func<UIService> ui = null)
+            Func<IConfirmDialog> confirm = null, Func<UIService> ui = null,
+            Func<ISettingsPagePort> settings = null)
         {
             _nav = nav ?? throw new ArgumentNullException(nameof(nav));
             _meta = meta;
@@ -23,6 +25,7 @@ namespace LiteGame.Modules.UI
             _room = room;
             _confirm = confirm;
             _ui = ui;
+            _settings = settings;
         }
 
         public UINavigationController Nav => _nav();
@@ -31,5 +34,6 @@ namespace LiteGame.Modules.UI
         public IRoomView Room => _room?.Invoke();
         public IConfirmDialog Confirm => _confirm?.Invoke();
         public UIService UI => _ui?.Invoke();
+        public ISettingsPagePort Settings => _settings?.Invoke();
     }
 }

@@ -13,8 +13,6 @@ namespace LiteGame.Modules.Settings
         /// <summary>UI 画质档数（低/中/高）；GameSettings.Quality 值域 0..3，UI 只暴露 0..2。</summary>
         public const int UIQualityTiers = GraphicsSettingsApplier.UIQualityTiers;
 
-        private static ProductSettings s_instance;          // 设置门面单源（UI 设置页直接读口）
-
         private readonly GameSettings _settings;
         private readonly SettingService _store;
         private readonly AudioSettingsApplier _audio;
@@ -38,16 +36,8 @@ namespace LiteGame.Modules.Settings
             ApplyAll();
         }
 
-        /// <summary>装配期装订（组合根 ComposeAfter）。</summary>
-        public static void Bind(ProductSettings settings)
-            => s_instance = settings ?? throw new ArgumentNullException(nameof(settings));
-
         /// <summary>视角偏好端口（对局视图装配时注入，供 <see cref="BattleLookController"/> 读）。</summary>
         public ILookPreferences Look => _look;
-
-        /// <summary>已装订的设置门面（未装订即 fail-fast）。</summary>
-        public static ProductSettings Current
-            => s_instance ?? throw new InvalidOperationException("ProductSettings 未装订（装配点未 Bind 设置门面）");
 
         // ---- 音频 ----。
 

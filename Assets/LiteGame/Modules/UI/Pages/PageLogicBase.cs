@@ -35,6 +35,9 @@ namespace LiteGame.Modules.UI
         /// <summary>房间会话读口（null = 未装配）。</summary>
         protected IRoomView Room => Ctx?.Room;
 
+        /// <summary>设置页端口（null = 未装配）。</summary>
+        protected ISettingsPagePort Settings => Ctx?.Settings;
+
         /// <summary>关闭本页（经 UI 服务统一关闭路径；未装配 = no-op）。</summary>
         protected void CloseSelf()
         {

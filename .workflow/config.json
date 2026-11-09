@@ -809,6 +809,15 @@
       "timeout": 120
     },
     {
+      "name": "zero-use-edges",
+      "cmd": [
+        "python",
+        "scripts/gate/zero-use-edges.py",
+        "--check"
+      ],
+      "timeout": 300
+    },
+    {
       "name": "sync-and-sim-litesync",
       "cmd": [
         "dotnet",

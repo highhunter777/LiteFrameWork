@@ -24,5 +24,8 @@ namespace LiteGame.Modules.UI
 
         /// <summary>UI 服务（关闭自身等页面级操作；null = 未装配）。</summary>
         UIService UI { get; }
+
+        /// <summary>设置页端口（null = 未装配——控件禁用/收起）。</summary>
+        ISettingsPagePort Settings { get; }
     }
 }

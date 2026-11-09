@@ -24,6 +24,7 @@ namespace LiteGame
         private IMetaSession _metaSession;       // 页面联机端口（IMetaSession 的生产实现）
         private IMapCatalog _mapCatalog;         // 页面地图目录端口
         private PageContext _pageContext;        // 页面上下文（UI 段经工厂延迟取件）
+        private ISettingsPagePort _settingsPort; // 设置页端口（ProductSettings 适配器；页面只取端口）
 
         /// <summary>判定参数覆写实例（判定几何 13 列的调参面）：装配期创建一次，调参面板与编辑器导出器
         /// 共用同一实例（容器登记；编辑器 GM 经 <c>GMEditorResolve</c> 取件）。
@@ -112,21 +113,22 @@ namespace LiteGame
             UIService ui = context.Require<UIService>();
             IConfirmDialog confirm = context.Require<IConfirmDialog>();
             _pageContext = new PageContext(() => nav, () => _metaSession, () => _mapCatalog,
-                () => _roomSession, () => confirm, () => ui);   // 房间会话装订/摘除仍由流程段驱动
+                () => _roomSession, () => confirm, () => ui,
+                () => _settingsPort);   // 房间会话装订/摘除仍由流程段驱动；设置端口惰性取（适配器随后创建）
         }
 
         /// <summary>页面上下文工厂（UI 段构造注入；延迟取件——首次页面打开时组合根已装订完毕）。</summary>
         internal Func<object> PageContextFactory() => () => _pageContext;
 
-        /// <summary>设置门面装订：构造即全量应用持久化值（启动生效点），容器取件面。
-        /// 视角偏好用设置段的**同一实例**（<c>LookPreferences</c>）——改灵敏度后对局即时生效。</summary>
-        private static void BindProductSettings(SegmentContext context)
+        /// <summary>设置门面装订：构造即全量应用持久化值（启动生效点），容器取件面；Put 之后包页面端口
+        /// （页面只认 <see cref="ISettingsPagePort"/>）。视角偏好用设置段的**同一实例**（<c>LookPreferences</c>）。</summary>
+        private void BindProductSettings(SegmentContext context)
         {
             var settings = new ProductSettings(
                 context.Require<GameSettings>(), context.Require<SettingService>(),
                 context.Require<AudioService>(), context.Require<LookPreferences>());
-            ProductSettings.Bind(settings);
             context.Put(settings);
+            _settingsPort = new ProductSettingsAdapter(settings);   // 创建点固定在 Put 之后（惰性 Func 只取此字段）
         }
 
         /// <summary>内容身份绑定（只此一次）：内容/配置装配完成后，身份上下文用同一份 Activation/Config 事实回答。

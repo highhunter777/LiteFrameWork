@@ -15,6 +15,18 @@
 - 2026-11-09T15:38:13+08:00 · 新增任务 T8「friend/零使用边棘轮」
 - 2026-11-09T15:38:13+08:00 · 新增任务 T9「文档回写与审计登记路径核销」
 - 2026-11-09T15:40:04+08:00 · 更新任务 T9（files）
+- 2026-11-09T15:57:46+08:00 · 开始任务 T1「Phase 0 基线快照与 meta 债登记」
+- 2026-11-09T16:08:04+08:00 · 更新任务 T1（verify）
+- 2026-11-09T16:08:05+08:00 · 完成任务 T1 · 证据: HEAD 3a2d3b32/0283a9e3；生产树干净；arch 33/6/12/28、domain 12、doc 0、shared 5937ac51、hot 23/66 绿；L1 1972 基线（3a2d3b32 前），当前 7 红=新增红测；meta stale 已登记 技术债 + 客户端重构线 §58.1（g…
+- 2026-11-09T16:08:27+08:00 · 更新任务 T2（verify）
+- 2026-11-09T16:08:28+08:00 · 开始任务 T2「friend 允许集单一来源 + L1 守卫」
+- 2026-11-09T16:09:12+08:00 · 开始任务 T4「ISettingsPagePort + ProductSettingsAdapter + 页面上下文」
+- 2026-11-09T16:14:15+08:00 · 完成任务 T2 · 证据: arch/units.json +73 行，9 单元 friends 合计 55（Battle4/Composition7/Config1/Dev8/Map7/Meta7/Procedure7/Session7/UI7）；ModuleFriendAllowlistTests 5/5 通过；arch-check OK …
+- 2026-11-09T16:14:43+08:00 · 开始任务 T3「零使用边脚本/基线 + toolchain 注册」
+- 2026-11-09T16:26:16+08:00 · 完成任务 T4 · 证据: 6 授权文件 + 2 .meta；ISettingsPagePort 28 成员（15 读+13 写/动作，无 ProductSettings/Apply）；ProductSettingsAdapter 在 App；IPageContext.Settings/PageLogicBase.Settings；PageCo…
+- 2026-11-09T16:26:41+08:00 · 开始任务 T5「Page_SettingsLogic 10 处替换 + FrameRateIndex + 空端口守卫」
+- 2026-11-09T16:38:11+08:00 · 完成任务 T5 · 证据: Page_SettingsLogic 10 处替换（+55/-26，305→334）、FrameRateIndex(ISettingsPagePort)、空端口 ApplyPortlessState+12 控件禁用、OnShow 早退、10 处 ?.；删 ProductSettings.Bind/Current（-1…
+- 2026-11-09T16:40:34+08:00 · 完成任务 T3 · 证据: zero-use-edges.py（复用 domain-matrix 口径，--write/--check，子集语义）；arch/zero-use-edges.json 54 条基线；toolchain.json quality.zero-use-edges；config commands +1；unittest 5…
 
 ## 关键决定
 
