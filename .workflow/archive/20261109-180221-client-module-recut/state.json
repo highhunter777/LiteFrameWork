@@ -2,11 +2,11 @@
   "schema_version": 1,
   "slug": "client-module-recut",
   "title": "客户端按功能/行为重切模块（方案）",
-  "status": "active",
-  "current_stage": "implement",
+  "status": "archived",
+  "current_stage": null,
   "created_at": "2026-11-09T11:50:08+08:00",
-  "updated_at": "2026-11-09T17:50:21+08:00",
-  "completed_at": null,
+  "updated_at": "2026-11-09T18:02:21+08:00",
+  "completed_at": "2026-11-09T18:02:20+08:00",
   "completed_stages": [
     {
       "id": "propose",
@@ -38,6 +38,26 @@
       "id": "tests-first",
       "title": "子代理先写测试",
       "completed_at": "2026-11-09T15:56:53+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "子代理正式施工",
+      "completed_at": "2026-11-09T17:58:43+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-11-09T17:58:52+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "主代理评审代码",
+      "completed_at": "2026-11-09T18:00:48+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-11-09T18:02:20+08:00"
     }
   ],
   "history": [
@@ -87,6 +107,39 @@
       "from": "tests-first",
       "to": "implement",
       "approved_by": null
+    },
+    {
+      "at": "2026-11-09T17:58:43+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T17:58:52+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T18:00:48+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T18:02:20+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T18:02:21+08:00",
+      "event": "archive",
+      "path": "20261109-180221-client-module-recut"
     }
   ],
   "tasks": [
@@ -298,7 +351,17 @@
       "completed_at": "2026-11-09T17:50:21+08:00"
     }
   ],
-  "verification": null,
+  "verification": {
+    "at": "2026-11-09T17:56:46+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "ade8dd9d4a9a133af644b95ba2e4e1b427744c5f68d37f03693d20dc4f4a1a77",
+    "summary": {
+      "total": 9,
+      "passed": 9
+    }
+  },
   "red_verification": {
     "at": "2026-11-09T15:56:41+08:00",
     "ok": true,
@@ -309,5 +372,6 @@
       "total": 2,
       "passed": 2
     }
-  }
+  },
+  "archived_at": "2026-11-09T18:02:21+08:00"
 }

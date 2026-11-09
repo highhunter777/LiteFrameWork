@@ -38,36 +38,61 @@
 
 ## 关键决定
 
-- 待填写
+- **v6.1 最小切片**：只做 Settings 页面端口 + friend/零使用边守卫/棘轮；Battle 内部收口、Account/Lobby 重切另立设计（§7），避免边设计边施工。
+- **端口形状**：ISettingsPagePort 28 个原语成员（15 读 + 13 写/动作，无 Apply），不暴露 ProductSettings；ProductSettingsAdapter 住 App，PageContext 用 Func 惰性取，创建点在 BindProductSettings 的 Put 之后，避免 BindPageServices 当场 Require 的时序抛。
+- **空端口策略**：OnShow 早退 + 12 个设置控件禁用 + 面板/页签仍可见可切 + 关闭可用；不隐藏页面，读写全 ?.。
+- **friend 单源**：arch/units.json 每 unit friends（程序集名），作用域 9 个 Modules/*/AssemblyInfo.cs、55 基线；最近 asmdef 归属、不递归子单元。
+- **零使用边口径**：复用 domain-matrix 的去注释/字符串 + depth=1 顶层类型；基线子集只减不增；挂 .workflow/config.json，不挂 L1（扫描面宽）。
+- **BuildHash**：meta stale 记已知债，不重烘 Server/MetaServer/Host/BuildHash.g.cs；本批只守 --check-shared。
 
 ## 偏差与处理
 
-- 待填写（无偏差时写明“无”，并说明与方案的对应关系）
+- **Phase 0/1 顺序**：原方案曾写“可并行”，实际都改 arch/units.json/Tests，改为 Phase 0 → Phase 1 顺序；T3 基线在 T4/T5 中间态生成 54 条，T6 删 Ui→Settings 后 T8 --write 收紧为 53，属预期。
+- **空端口表现**：方案写“禁用/收起”，实现选择“控件禁用、面板可见、页签可切、关闭可用”；T7 按此断言（interactable=false，不断言 activeSelf=false）。
+- **L1 计数**：基线 1972 → 1982（+10：friend 5 + SettingsPortMigration 5）；非回归，已在 §58 归因。
+- **T9 范围**：只核销本批触及的审计路径，未全量清理 69 条历史 stale 路径；剩余记入 §58.4 已知债。
+- **工具数**：T9 附带修正说明 README 71→72（toolchain.json 实况）。
 
 ## 问题与修复
 
-- 待填写
+- **红测编译**：LiteFramework.JsonValueKind 遮蔽 System.Text.Json.JsonValueKind；测试用 `using StjKind = System.Text.Json.JsonValueKind` 修复，语义不变。
+- **PageContext 兼容**：第 7 参用可选 `Func<ISettingsPagePort> settings = null`，现有 6 参调用点不受影响。
+- **删除静态门面**：T5 删 ProductSettings.Bind/Current 后，AppComposition 同步删 Bind 调用；全仓 grep 无代码消费者。
+- **T6 生成物行尾**：arch-check --write 把 ScanTargets.Generated.cs 落成 LF 产生仅行尾 diff，已 git checkout 还原；无内容 diff。
+- **T3 中间态红**：domain-matrix 在 T4/T5 后报 Ui→Settings 16→0，T6 --write 收口；非 T3 引入。
+- **T7 时限**：首次 PlayMode 调用被 120s 工具时限掐断，轮询后重跑 5/5。
 
 ## 验证结果
 
-- 待填写（verify 会自动追加每次运行记录）
 - 2026-11-09T15:56:41+08:00 · 先行测试 PASS · 2/2 · 证据 evidence/red.json
+- 2026-11-09T17:56:46+08:00 · 验证 PASS · 9/9 · 证据 evidence/verify.json
 
 ## 交付摘要
 
-- 待填写
+- 方案 v6.1 落地：Settings 页面端口（28 成员/adapter/页面 10 处/空端口）+ friend 55 + zero-use 53 + allowlist 14 + 27 域边。
+- 测试：friend 5/5、SettingsPortMigration 5/5、Settings PlayMode 5/5、zero unittest 5/5、L1 1982。
+- 提交：3a2d3b32（基线/WIP）→ 0283a9e3（红测）→ 66b9f632（T1-T5）→ d6551f0e（T6-T8）→ 8028ac07（T9 docs）。
 
 ## 未决事项
 
-- 待填写（无则写“无”）
+- BuildHash meta stale（已知债，另批重烘）。
+- Battle 内部收口、Account/Lobby 重切（§7 另立设计）。
+- 全量 69 条审计 stale 路径未清（只核销本批触及项）。
+- verify/代码评审/归档由流程收尾。
 
 ## 文件清单
 
-- 待填写
+- 端口/装配：ISettingsPagePort.cs、ProductSettingsAdapter.cs、IPageContext.cs、PageLogicBase.cs、PageContext.cs、AppComposition.cs。
+- 页面/模型：Page_SettingsLogic.cs、ProductSettings.cs。
+- 模型/门禁：arch/units.json、LiteGame.Modules.UI.asmdef、CrossModuleContractLocationTests.cs、Docs/说明/18-域间引用矩阵.md、zero-use-edges.py、arch/zero-use-edges.json、toolchain.json、.workflow/config.json。
+- 测试：ModuleFriendAllowlistTests.cs、SettingsPortMigrationTests.cs、SettingsPagePlayModeTests.cs、scripts/tests/test_zero_use_edges.py。
+- 文档：说明 03/08/10/14/15/17/20/README、设置/UI总设/UI API/DI/热更/Lua退出/README、技术债+归档、进度 §58。
 
 ## 后续建议
 
-- 待填写
+- 归档本运行；下一批另立 Account/Lobby 或 Battle 设计（先裁决方案 §7 七项）。
+- 发布 Meta 产物前重烘 Server/MetaServer/Host/BuildHash.g.cs 并跑 build-hash --check。
+- 保持 friend/zero-use 棘轮：新增 friend 或零使用边必须同步登记/收紧基线。
 
 ## 阶段流转
 
@@ -79,3 +104,7 @@
 - 2026-11-09T15:38:59+08:00 · 完成「实施任务清单」→ 「任务评审（本仓默认跳过：2026-11-09 用户裁决）」
 - 2026-11-09T15:38:59+08:00 · 完成「任务评审（本仓默认跳过：2026-11-09 用户裁决）」→ 「子代理先写测试」
 - 2026-11-09T15:56:53+08:00 · 完成「子代理先写测试」→ 「子代理正式施工」
+- 2026-11-09T17:58:43+08:00 · 完成「子代理正式施工」→ 「测试代码」
+- 2026-11-09T17:58:52+08:00 · 完成「测试代码」→ 「主代理评审代码」
+- 2026-11-09T18:00:48+08:00 · 完成「主代理评审代码」→ 「回写与收尾」
+- 2026-11-09T18:02:20+08:00 · 完成「回写与收尾」→ 完成

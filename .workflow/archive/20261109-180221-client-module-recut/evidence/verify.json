@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "kind": "verify",
+  "at": "2026-11-09T17:56:46+08:00",
+  "ok": true,
+  "command_fingerprint": "ade8dd9d4a9a133af644b95ba2e4e1b427744c5f68d37f03693d20dc4f4a1a77",
+  "commands": [
+    {
+      "name": "L1",
+      "cmd": [
+        "python",
+        "scripts/gate/test.py",
+        "--suite",
+        "L1",
+        "--profile",
+        "PullRequest"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 185216,
+      "ok": true,
+      "output_tail": "VSTest 版本 17.14.1 (x64)\n\n正在启动测试执行，请稍候...\n总共 1 个测试文件与指定模式相匹配。\n没有测试匹配 E:\\unityProject\\Test\\Tests\\MetaServer.Integration.Tests\\bin\\Release\\net8.0\\MetaServer.Integration.Tests.dll 中的给定用例测试筛选器“Category!=Integration&Category!=EndToEnd&Category!=Performance&Category!=Quarantine&Duration!=LongRunning”\n数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。\n结果文件: E:\\unityProject\\Test\\TestResults\\l1-MetaServer.Integration.Tests-pullrequest-20261109-095116.trx\n\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\nE:\\unityProject\\Test\\Tests\\MetaServer.Tests\\bin\\Release\\net8.0\\MetaServer.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\nVSTest 版本 17.14.1 (x64)\n\n正在启动测试执行，请稍候...\n总共 1 个测试文件与指定模式相匹配。\n数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。\n结果文件: E:\\unityProject\\Test\\TestResults\\l1-MetaServer.Tests-pullrequest-20261109-095116.trx\n\n已通过! - 失败:     0，通过:   153，已跳过:     0，总计:   153，持续时间: 40 s - MetaServer.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[quality/arch] === arch-check ===\n[quality/dir-flat-lint] === dir-flat-lint ===\n[quality/test] === L1 | PullRequest ===\n[quality/test] -> restore LiteFramework.Core.Tests (parallelism disabled)\n[quality/test] -> restore LiteNet.Tests (parallelism disabled)\n[quality/test] -> restore LiteSim.Core.Tests (parallelism disabled)\n[quality/test] -> restore LiteTesting.Core.Tests (parallelism disabled)\n[quality/test] -> restore MetaServer.Integration.Tests (parallelism disabled)\n[quality/test] -> restore MetaServer.Tests (parallelism disabled)\n[quality/test] -> ensure shared packages (LocalPackages/)\n[quality/test] -> restore solution (shared packages feed)\n[quality/test] -> build solution (single MSBuild node)\n[quality/test] -> LiteFramework.Core.Tests\n[quality/test] -> LiteNet.Tests\n[quality/test] -> LiteSim.Core.Tests\n[quality/test] -> LiteTesting.Core.Tests\n[quality/test] -> MetaServer.Integration.Tests\n[quality/test] -> MetaServer.Tests\n[quality/test] PASS: L1 completed 1982 tests."
+    },
+    {
+      "name": "arch-check",
+      "cmd": [
+        "python",
+        "scripts/gate/arch-check.py",
+        "--check"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 1130,
+      "ok": true,
+      "output_tail": "[quality/arch] OK: 33 units / 6 layers / 9 collect groups / 18 scan targets / 12 domains / 27 domain edges"
+    },
+    {
+      "name": "domain-matrix",
+      "cmd": [
+        "python",
+        "scripts/gate/domain-matrix.py",
+        "--check"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 7827,
+      "ok": true,
+      "output_tail": "[quality/domain-matrix] OK: 12 ����������һ��"
+    },
+    {
+      "name": "doc-lane",
+      "cmd": [
+        "python",
+        "scripts/gate/test.py",
+        "--suite",
+        "Doc"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 7476,
+      "ok": true,
+      "output_tail": "[quality/doc-lint] OK: 0 violation(s), 0 warning(s)  (root=E:\\unityProject\\Test)\n[toolchain] generated index current: E:\\unityProject\\Test\\Docs\\说明\\工具索引.md\n[quality/comment-lint] OK: 0 violation(s), 0 file(s) scanned (changed(vs HEAD))\n[quality/test] doc-lint | PullRequest\n[quality/test] PASS: doc-lint + tool index + comment-lint completed."
+    },
+    {
+      "name": "build-hash-shared",
+      "cmd": [
+        "python",
+        "scripts/codegen/toolbox.py",
+        "build-hash",
+        "--check-shared"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 927,
+      "ok": true,
+      "output_tail": "[codegen/build-hash] CHECK OK[shared]: Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs = 5937ac5161377bac (120 files)"
+    },
+    {
+      "name": "hot-boundary",
+      "cmd": [
+        "python",
+        "scripts/gate/hot-boundary-check.py"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 15139,
+      "ok": true,
+      "output_tail": "[quality/hot-boundary] OK: hot=23 aot=66，无 AOT→hot 引用"
+    },
+    {
+      "name": "zero-use-edges",
+      "cmd": [
+        "python",
+        "scripts/gate/zero-use-edges.py",
+        "--check"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 3017,
+      "ok": true,
+      "output_tail": "[quality/zero-use-edges] OK: 当前 53 条零使用边（基线 53 条，只减不增）"
+    },
+    {
+      "name": "settings-playmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "playmode",
+        "--filter",
+        "SettingsPagePlayModeTests"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 109072,
+      "ok": true,
+      "output_tail": "  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.UI.PlayMode.SettingsPagePlayModeTests.PM_SET_1_打开设置页_不抛且控件按端口初始化\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.9895689,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.UI.PlayMode.SettingsPagePlayModeTests.PM_SET_2_改画质下拉_端口收到所选索引\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0971351,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.UI.PlayMode.SettingsPagePlayModeTests.PM_SET_3_改音量滑块_端口收到所选值\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0891849,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.UI.PlayMode.SettingsPagePlayModeTests.PM_SET_4_关闭按钮与Back_均经OnPageHide落盘\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.2278189,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.UI.PlayMode.SettingsPagePlayModeTests.PM_SET_5_空端口_控件禁用且面板可见页签可切关闭可用\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0957422,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 5/5 passed"
+    },
+    {
+      "name": "toolchain-docs",
+      "cmd": [
+        "python",
+        "scripts/toolchain.py",
+        "docs",
+        "--check"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 421,
+      "ok": true,
+      "output_tail": "[toolchain] generated index current: E:\\unityProject\\Test\\Docs\\说明\\工具索引.md"
+    }
+  ]
+}
