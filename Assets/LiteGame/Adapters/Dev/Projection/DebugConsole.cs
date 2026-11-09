@@ -261,6 +261,9 @@ namespace LiteGame
                 case "battle":
                     AppendBattle();
                     break;
+                case "assembly":
+                    AppendAssembly();
+                    break;
                 case "tune":
                     DispatchTune(args);
                     break;
@@ -309,6 +312,7 @@ namespace LiteGame
             Append("log [n]                    最近日志（默认 10）");
             Append("diag [n]                   DiagTrace（默认 8）");
             Append("battle                     对局诊断描述");
+            Append("assembly                   装配地图（段序/产物归属/未解析读取）");
             Append("tune                       列出可调参数（或 tune list [scope]）");
             Append("tune <id>                  查看单项当前值/默认值/范围");
             Append("tune <id> <value>          设置数值或 on/off");
@@ -409,6 +413,16 @@ namespace LiteGame
         {
             string[] lines = _kernel.DescribeBattle();
             if (lines.Length == 0) { Append("(无对局)"); return; }
+            for (int i = 0; i < lines.Length; i++) Append(lines[i]);
+        }
+
+        /// <summary>装配地图：段序 + 产物归属（提供段/消费段）+ 未解析读取；按需读取，不随帧刷新。</summary>
+        private void AppendAssembly()
+        {
+            GameEntry entry = Object.FindAnyObjectByType<GameEntry>();
+            AssemblyReport report = entry != null ? entry.AssemblyReport : null;
+            if (report == null) { AppendError("装配报告未就绪（未完成装配或当前场景不含引导件）"); return; }
+            string[] lines = report.ToText().Split('\n');
             for (int i = 0; i < lines.Length; i++) Append(lines[i]);
         }
 

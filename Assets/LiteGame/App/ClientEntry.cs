@@ -59,7 +59,18 @@ namespace LiteGame
             InputModalProbe.TryArm(_host);
 
             _fsm.Start(ProcedureId.Launch);
+            LogCompositionSummary();
             return UniTask.CompletedTask;
+        }
+
+        /// <summary>装配摘要（段数/产物数/未解析数；完整报告留在 <c>ClientHost.AssemblyReport</c>，调试控制台 <c>assembly</c> 可见）。</summary>
+        private void LogCompositionSummary()
+        {
+            AssemblyReport report = _host.AssemblyReport;
+            if (report == null) return;
+            Log.Info($"装配完成：段 {report.SegmentOrder.Count} / 产物 {report.Products.Count} / 未解析 {report.Unresolved.Count}",
+                LogTag.GameEntry);
+            for (int i = 0; i < report.Unresolved.Count; i++) Log.Warning("未解析读取：" + report.Unresolved[i], LogTag.GameEntry);
         }
 
         /// <summary>

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "slug": "client-module-recut",
+  "title": "客户端按功能/行为重切模块（方案）",
+  "status": "active",
+  "current_stage": "confirm-acceptance",
+  "created_at": "2026-11-09T11:50:08+08:00",
+  "updated_at": "2026-11-09T14:44:46+08:00",
+  "completed_at": null,
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-11-09T11:52:21+08:00"
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "completed_at": "2026-11-09T14:44:46+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-11-09T11:50:08+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-11-09T11:52:21+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-09T14:44:46+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    }
+  ],
+  "tasks": [],
+  "verification": null,
+  "red_verification": null
+}

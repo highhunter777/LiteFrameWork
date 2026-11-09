@@ -11,7 +11,7 @@ namespace LiteFramework
     public sealed class ClientHost
     {
         private readonly object _gate = new object();
-        private readonly List<IClientSegment> _modules = new List<IClientSegment>();     // 注册顺序 = 初始化顺序 = 关闭逆序
+        private readonly List<IClientSegment> _modules = new List<IClientSegment>();     // 注册序只作同层稳定序（初始化序＝DependsOn 拓扑序）
         private readonly List<(string name, Func<CancellationToken, UniTask> flush)> _flushHooks = new List<(string, Func<CancellationToken, UniTask>)>();
         private readonly List<Action<bool>> _pauseHandlers = new List<Action<bool>>();
         private readonly List<Action<bool>> _focusHandlers = new List<Action<bool>>();
@@ -27,12 +27,24 @@ namespace LiteFramework
         private bool _scopeFailuresReported;
         private readonly List<(IClientSegmentHandle handle, SegmentScope scope)> _handles = new List<(IClientSegmentHandle, SegmentScope)>();   // 已成功模块的关闭句柄 + 资源作用域（逆序关闭/释放）
 
-        /// <summary>模块初始化/关闭事件（诊断：模块名 + 阶段）。
-        /// 字段而非 event：引导适配器整钩替换（= 赋值）+ Host 内部 invoke，订阅语义由使用方自理。</summary>
-        public Action<string, string> SegmentTrace;
+        /// <summary>模块初始化/关闭事件（诊断：模块名 + 阶段）。经 <see cref="SetSegmentTrace"/> 整钩设置，
+        /// 订阅语义由使用方自理。</summary>
+        public Action<string, string> SegmentTrace => _segmentTrace;
+
+        private Action<string, string> _segmentTrace;
+
+        /// <summary>整钩替换诊断回调（引导适配器装配期设置）。</summary>
+        public ClientHost SetSegmentTrace(Action<string, string> trace)
+        {
+            _segmentTrace = trace;
+            return this;
+        }
 
         public int State => _state;
         public int SegmentCount { get { lock (_gate) { return _modules.Count; } } }
+
+        /// <summary>装配报告（初始化成功后有值；失败/取消路径为 null）。</summary>
+        public AssemblyReport AssemblyReport { get; private set; }
 
         /// <summary>运行期根作用域（初始化成功后可用；未初始化时为 null）。</summary>
         public ClientScope RootScope => _rootScope;
@@ -49,7 +61,7 @@ namespace LiteFramework
         }
 
         /// <summary>注册模块（必须在 InitializeAsync 之前；启动后拒绝——运行期动态增删模块是生命周期错误）。
-        /// **注册顺序即初始化顺序、关闭逆序**——装配方用调用序表达依赖图。</summary>
+        /// **依赖由 <see cref="IClientSegmentGraph.DependsOn"/> 声明决定，注册序只作同层稳定序**。</summary>
         public ClientHost AddSegment(IClientSegment module)
         {
             if (module == null) throw new ArgumentNullException(nameof(module));
@@ -99,7 +111,7 @@ namespace LiteFramework
         public ClientHost SubscribeLowMemory(Action handler) { lock (_gate) { _lowMemoryHandlers.Add(handler); } return this; }
 
         /// <summary>
-        /// 按注册顺序初始化全部模块。
+        /// 按 DependsOn 拓扑序初始化全部模块（同层按注册序稳定）。
         /// </summary>
         public async UniTask InitializeAsync(CancellationToken ct = default)
         {
@@ -111,11 +123,11 @@ namespace LiteFramework
                 modules = new List<IClientSegment>(_modules);
             }
 
-            // 启动前图校验（路线图 M1）：重复名/缺失依赖/依赖环一律 fail-fast——早于任何副作用。
-            // 校验失败 = 启动终止：进入终态（4），否则 Host 会停在"初始化中"且无法重试。
+            // 启动前图校验（重名/缺失依赖/依赖环 fail-fast）后按 DependsOn 拓扑排序（同层按注册序）。
+            // 校验失败＝启动终止，进入终态（4），否则 Host 停在"初始化中"无法重试。
             try
             {
-                SegmentGraphValidator.Validate(modules);
+                modules = SegmentGraphValidator.Order(modules);
             }
             catch
             {
@@ -138,6 +150,7 @@ namespace LiteFramework
 
                 _context.SealAssembly();                       // 装配完成：运行期不再新增注册
                 if (!_context.Services.IsSealed) _context.Services.Seal();
+                AssemblyReport = _context.BuildReport(SegmentNames(modules));   // 装配事实快照（段序/产物归属）
                 lock (_gate) _state = 2;
             }
             catch (Exception)
@@ -268,7 +281,14 @@ namespace LiteFramework
             catch (Exception ex) { lock (_gate) _shutdownFailures.Add(ex); }
         }
 
-        /// <summary>按注册序初始化全部模块；任一失败抛出（调用方走回滚）。失败模块的作用域就地释放，
+        private static string[] SegmentNames(List<IClientSegment> modules)
+        {
+            var names = new string[modules.Count];
+            for (int i = 0; i < modules.Count; i++) names[i] = modules[i].Name;
+            return names;
+        }
+
+        /// <summary>按给定顺序初始化全部模块；任一失败抛出（调用方走回滚）。失败模块的作用域就地释放，
         /// 成功模块产出关闭句柄（"初始化成功"与"可关闭"绑定）。</summary>
         private async UniTask InitializeSegmentsAsync(List<IClientSegment> modules, CancellationToken ct)
         {

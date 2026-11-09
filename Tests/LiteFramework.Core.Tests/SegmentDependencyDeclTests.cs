@@ -147,10 +147,10 @@ namespace LiteFramework.Core.Tests
                 module.Produced.Add(LastSegment(item.Groups[1].Value));
             foreach (Match item in Regex.Matches(code, @"context\.Put\s*\(\s*new\s+([\w.]+)"))
                 module.Produced.Add(LastSegment(item.Groups[1].Value));
-            // 两种登记调法同语义：模块上下文 `context.Services`（现行）与旧的 `_services` 局部名。
-            foreach (Match item in Regex.Matches(code, @"(?:context\.Services|_services)\.RegisterInstance\s*<\s*([\w.]+)\s*>"))
+            // 两种登记调法同语义：模块上下文 `context.Services`/`context.RegisterInstance`（现行）与旧的 `_services` 局部名。
+            foreach (Match item in Regex.Matches(code, @"(?:context\.Services|context|_services)\.RegisterInstance\s*<\s*([\w.]+)\s*>"))
                 module.Produced.Add(LastSegment(item.Groups[1].Value));
-            foreach (Match item in Regex.Matches(code, @"(?:context\.Services|_services)\.RegisterInstance\s*\(\s*new\s+([\w.]+)"))
+            foreach (Match item in Regex.Matches(code, @"(?:context\.Services|context|_services)\.RegisterInstance\s*\(\s*new\s+([\w.]+)"))
                 module.Produced.Add(LastSegment(item.Groups[1].Value));
 
             // ④ 实参形态（Put(变量) / Put(方法调用)）：先建"标识符 -> 类型"表再解析
@@ -159,7 +159,7 @@ namespace LiteFramework.Core.Tests
                 Resolve(module, item.Groups[1].Value, identifierTypes, "Put");
             foreach (Match item in Regex.Matches(code, @"context\.Put\s*\(\s*([A-Za-z_]\w*)\s*\("))
                 Resolve(module, item.Groups[1].Value, identifierTypes, "Put");
-            foreach (Match item in Regex.Matches(code, @"(?:context\.Services|_services)\.RegisterInstance\s*\(\s*([A-Za-z_]\w*)\s*[,)]"))
+            foreach (Match item in Regex.Matches(code, @"(?:context\.Services|context|_services)\.RegisterInstance\s*\(\s*([A-Za-z_]\w*)\s*[,)]"))
                 Resolve(module, item.Groups[1].Value, identifierTypes, "RegisterInstance");
 
             return module;

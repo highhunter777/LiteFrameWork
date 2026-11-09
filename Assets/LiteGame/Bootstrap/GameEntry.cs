@@ -47,6 +47,9 @@ namespace LiteGame
             ? _container.Stats
             : Array.Empty<IModuleStats>();
 
+        /// <summary>装配报告（调试控制台/GM 读取面；未完成装配 = null，不是服务解析口）。</summary>
+        public AssemblyReport AssemblyReport => _host?.AssemblyReport;
+
         private void Awake()
         {
             // 重复引导守卫（叠加加载场景时的真实隐患）：场景实例若误含 GameEntry，DontDestroyOnLoad + Awake

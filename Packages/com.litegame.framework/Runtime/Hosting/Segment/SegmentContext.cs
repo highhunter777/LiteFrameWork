@@ -60,17 +60,43 @@ namespace LiteFramework
         /// <summary>装配期登记产物。窗口关闭后（本模块初始化已返回）一律抛出——登记不得跨模块/跨帧。</summary>
         public void Put<T>(T product) where T : class
         {
-            if (Volatile.Read(ref _open) == 0)
-                throw new InvalidOperationException(
-                    $"模块 {_moduleName} 的装配窗口已关闭——Put 只允许在本模块 InitializeAsync 内（路线图 §4.3）");
-            _context.Put(product);
+            EnsureOpen("Put");
+            _context.Put(product, _moduleName);
+        }
+
+        /// <summary>装配期登记实例（直接走容器的形态；与 <see cref="Put{T}"/> 同窗口约束，提供段同样入报告）。</summary>
+        public void RegisterInstance<T>(T instance, ServiceOwnership ownership = ServiceOwnership.Borrowed) where T : class
+        {
+            EnsureOpen("RegisterInstance");
+            Services.RegisterInstance(instance, ownership);
+            _context.RecordProvider(typeof(T), _moduleName);
         }
 
         /// <summary>按类型取产物；缺失返回 null（由消费方决定 fail-fast 语义）。</summary>
-        public T Get<T>() where T : class => _context.Get<T>();
+        public T Get<T>() where T : class
+        {
+            T product = _context.Get<T>();
+            _context.RecordConsumer(typeof(T), _moduleName);
+            return product;
+        }
 
-        /// <summary>按类型取产物；缺失即抛（fail-fast 依赖声明）。</summary>
-        public T Require<T>() where T : class => _context.Require<T>();
+        /// <summary>按类型取产物；缺失即抛（消息带模块名与排查方向）。</summary>
+        public T Require<T>() where T : class
+        {
+            T product = _context.Get<T>();
+            _context.RecordConsumer(typeof(T), _moduleName);
+            if (product == null)
+                throw new InvalidOperationException(
+                    $"模块 {_moduleName} Require 了未装配的产物 {typeof(T).Name}——检查提供段是否 Put、以及 DependsOn 是否缺声明");
+            return product;
+        }
+
+        private void EnsureOpen(string surface)
+        {
+            if (Volatile.Read(ref _open) == 0)
+                throw new InvalidOperationException(
+                    $"模块 {_moduleName} 的装配窗口已关闭——{surface} 只允许在本模块 InitializeAsync 内（路线图 §4.3）");
+        }
 
         internal void Close() => Interlocked.Exchange(ref _open, 0);
     }
@@ -82,6 +108,7 @@ namespace LiteFramework
     public sealed class ClientContext
     {
         private int _assemblySealed;
+        private readonly AssemblyLedger _ledger = new AssemblyLedger();
 
         /// <summary>装配面是否已密封（全部模块成功，或启动失败/取消的回滚结束）。</summary>
         public bool IsAssemblySealed => Volatile.Read(ref _assemblySealed) != 0;
@@ -101,17 +128,29 @@ namespace LiteFramework
             Services.RegisterInstance(Services);
             Services.RegisterInstance<IServiceContainer>(Services);
             Services.RegisterInstance(rootScope);
+            _ledger.RecordProvider(typeof(FrameSchedule), AssemblyLedger.FrameworkProvider);
+            _ledger.RecordProvider(typeof(ServiceContainer), AssemblyLedger.FrameworkProvider);
+            _ledger.RecordProvider(typeof(IServiceContainer), AssemblyLedger.FrameworkProvider);
+            _ledger.RecordProvider(typeof(ClientScope), AssemblyLedger.FrameworkProvider);
         }
 
         /// <summary>按类型登记模块产物（同类型重复登记即装配错误）。**仅装配期合法**：
         /// 全部模块成功（或启动回滚结束）后装配面密封，运行期调用即抛。</summary>
-        public void Put<T>(T product) where T : class
+        public void Put<T>(T product) where T : class => Put(product, AssemblyLedger.FrameworkProvider);
+
+        /// <summary>登记产物并记录提供段（装配报告来源；同型同引用重复暴露保留首个提供段）。</summary>
+        internal void Put<T>(T product, string provider) where T : class
         {
             if (product == null) throw new ArgumentNullException(nameof(product));
             if (IsAssemblySealed)
                 throw new InvalidOperationException($"装配已完成——运行期不得新增注册（{typeof(T).Name}）");
-            if (!Services.IsSealed && Services.TryGetInstance<T>(out T existing) && ReferenceEquals(existing, product)) return;
+            if (!Services.IsSealed && Services.TryGetInstance<T>(out T existing) && ReferenceEquals(existing, product))
+            {
+                RecordProvider(typeof(T), provider);
+                return;
+            }
             Services.RegisterInstance(product);
+            RecordProvider(typeof(T), provider);
         }
 
         /// <summary>按类型取产物；缺失返回 null（缺失 = 依赖顺序错误或未装配，由消费方决定 fail-fast 语义）。</summary>
@@ -127,5 +166,16 @@ namespace LiteFramework
             if (v == null) throw new InvalidOperationException($"ClientContext 缺少产物 {typeof(T).Name}（依赖顺序错误或未装配）");
             return v;
         }
+
+        internal void RecordProvider(Type type, string provider) => _ledger.RecordProvider(type, provider);
+
+        internal void RecordConsumer(Type type, string consumer)
+        {
+            if (IsAssemblySealed) return;                       // 运行期读取不入报告（报告密封后即定稿）
+            _ledger.RecordConsumer(type, consumer);
+        }
+
+        /// <summary>构建装配报告（密封后调用一次；只读快照，不再随运行期变化）。</summary>
+        internal AssemblyReport BuildReport(IReadOnlyList<string> order) => _ledger.Build(order);
     }
 }

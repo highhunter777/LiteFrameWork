@@ -62,12 +62,12 @@ namespace LiteGame.Modules.UI
             context.Put(_nav);
 
             // UI 能力段自持的配套件：UI 时钟驱动 + 弹窗/反馈/提示 + 确认缝真实现。
-            context.Services.RegisterInstance(new DotweenUIClockDriver(context.Require<IUIClock>()));
+            context.RegisterInstance(new DotweenUIClockDriver(context.Require<IUIClock>()));
             _dialogs = new DialogService(_uiService, nav: _nav);
-            context.Services.RegisterInstance(_dialogs, ServiceOwnership.ContainerOwned);
+            context.RegisterInstance(_dialogs, ServiceOwnership.ContainerOwned);
             _feedback = new FeedbackService(_uiService, _dialogs, _nav);
-            context.Services.RegisterInstance(_feedback, ServiceOwnership.ContainerOwned);
-            context.Services.RegisterInstance(new ToastTicker(() => _feedback.ToastHost));
+            context.RegisterInstance(_feedback, ServiceOwnership.ContainerOwned);
+            context.RegisterInstance(new ToastTicker(() => _feedback.ToastHost));
             _confirmRouter.Bind((title, message, okText, cancelText)
                 => _feedback.ConfirmAsync(title, message, okText, cancelText));
         }
