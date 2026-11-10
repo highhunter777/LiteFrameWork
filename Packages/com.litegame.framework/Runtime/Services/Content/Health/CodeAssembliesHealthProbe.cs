@@ -17,9 +17,7 @@ namespace LiteFramework
         public CodeAssembliesHealthProbe(string candidateRoot,
             Func<ReleaseManifest, IReadOnlyList<CodeEntry>> codeMap, IFileStore files)
         {
-            _candidateRoot = string.IsNullOrEmpty(candidateRoot)
-                ? throw new ArgumentException("候选根不能为空", nameof(candidateRoot))
-                : candidateRoot.TrimEnd('/');
+            _candidateRoot = ReleaseLayout.RequireCandidateRoot(candidateRoot, nameof(candidateRoot));
             _map = codeMap ?? throw new ArgumentNullException(nameof(codeMap));
             _files = files ?? throw new ArgumentNullException(nameof(files));
         }

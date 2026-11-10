@@ -22,9 +22,7 @@ namespace LiteFramework
         public HttpCandidateFetcher(string candidateRoot, int timeoutSeconds = 30,
             IFileStore files = null)
         {
-            _candidateRoot = string.IsNullOrEmpty(candidateRoot)
-                ? throw new ArgumentException("候选根不能为空", nameof(candidateRoot))
-                : candidateRoot.TrimEnd('/');
+            _candidateRoot = ReleaseLayout.RequireCandidateRoot(candidateRoot, nameof(candidateRoot));
             _timeoutSeconds = timeoutSeconds < 1 ? 30 : timeoutSeconds;
             _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
         }

@@ -26,6 +26,14 @@ namespace LiteFramework
         /// <summary>候选资产包根（FileSystem 相对路径；资源层解析根与存在性探测共用单源）。</summary>
         public const string CandidateBundleRootRelative = CandidateRootRelative + "/" + BundleRootRelative;
 
+        /// <summary>候选根守卫：空串抛 <see cref="System.ArgumentException"/>，否则去尾斜杠（各候选实现构造点共用）。</summary>
+        /// <param name="value">候选根（IFileStore 相对路径）。</param>
+        /// <param name="paramName">调用方参数名（<c>nameof(...)</c>）。</param>
+        public static string RequireCandidateRoot(string value, string paramName)
+            => string.IsNullOrEmpty(value)
+                ? throw new System.ArgumentException("候选根不能为空", paramName)
+                : value.TrimEnd('/');
+
         /// <summary>清单 → 配置文件相对路径集合（health 探针与发布流水线共用）。</summary>
         public static IReadOnlyList<string> ConfigPaths(ReleaseManifest manifest)
         {

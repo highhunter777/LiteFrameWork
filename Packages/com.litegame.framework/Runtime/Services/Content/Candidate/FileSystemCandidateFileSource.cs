@@ -14,9 +14,7 @@ namespace LiteFramework
         /// <param name="rootDir">候选根（IFileStore 相对路径）。</param>
         public FileSystemCandidateFileSource(string rootDir, IFileStore files = null)
         {
-            _rootDir = string.IsNullOrEmpty(rootDir)
-                ? throw new ArgumentException("候选根不能为空", nameof(rootDir))
-                : rootDir.TrimEnd('/');
+            _rootDir = ReleaseLayout.RequireCandidateRoot(rootDir, nameof(rootDir));
             _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
         }
 

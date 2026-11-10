@@ -50,12 +50,12 @@ namespace LiteGame.Modules.Config
             out IReadOnlyDictionary<string, byte[]> tables, out string problem)
         {
             if (files == null) throw new ArgumentNullException(nameof(files));
-            if (string.IsNullOrEmpty(candidateRoot)) throw new ArgumentException("候选根不能为空", nameof(candidateRoot));
+            string root = ReleaseLayout.RequireCandidateRoot(candidateRoot, nameof(candidateRoot));
 
             var cache = new Dictionary<string, byte[]>(TableLayout.Files.Length, StringComparer.Ordinal);
             foreach (string file in TableLayout.Files)
             {
-                string rel = candidateRoot.TrimEnd('/') + "/" + ReleaseLayout.ConfigPrefix + file + ".bytes";
+                string rel = root + "/" + ReleaseLayout.ConfigPrefix + file + ".bytes";
                 byte[] bytes = files.ReadAllBytes(rel);
                 if (bytes == null || bytes.Length == 0)
                 {

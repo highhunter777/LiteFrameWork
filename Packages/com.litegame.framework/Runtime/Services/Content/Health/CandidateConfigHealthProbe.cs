@@ -22,9 +22,7 @@ namespace LiteFramework
         public CandidateConfigHealthProbe(string candidateRoot,
             Func<ReleaseManifest, IReadOnlyList<string>> configPaths, IJsonCodec json, IFileStore files = null)
         {
-            _candidateRoot = string.IsNullOrEmpty(candidateRoot)
-                ? throw new ArgumentException("候选根不能为空", nameof(candidateRoot))
-                : candidateRoot.TrimEnd('/');
+            _candidateRoot = ReleaseLayout.RequireCandidateRoot(candidateRoot, nameof(candidateRoot));
             _configPaths = configPaths ?? throw new ArgumentNullException(nameof(configPaths));
             _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
             _json = json ?? throw new ArgumentNullException(nameof(json));

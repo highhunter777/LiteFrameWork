@@ -21,9 +21,7 @@ namespace LiteGame
             string candidateRoot = ReleaseLayout.CandidateRootRelative)
         {
             _files = files ?? throw new ArgumentNullException(nameof(files));
-            _candidateRoot = string.IsNullOrEmpty(candidateRoot)
-                ? throw new ArgumentException("候选根不能为空", nameof(candidateRoot))
-                : candidateRoot.TrimEnd('/');
+            _candidateRoot = ReleaseLayout.RequireCandidateRoot(candidateRoot, nameof(candidateRoot));
         }
 
         public string Name => "candidate-config-tables";
