@@ -76,14 +76,14 @@
 | `focus/input` | `EventSystem.currentSelectedGameObject`、指针首命中、Back 目标、导航候选 | `EventSystem`、`UIService.TryGetBackTarget`、`UIFocusCoordinator` |
 | `feedback` | Loading/Error/Confirm/Toast 的 form id、可见性、文案、最近结果 | `FeedbackService` |
 
-### 3.2 绑定与契约
+### 3.2 绑定与页面目录
 
 | 段 | 内容 | 来源 |
 | --- | --- | --- |
 | `bindings[]` | BindName → 组件类型 / 驱动方式（Bound/Command/None）/ 是否被消费 / 缺失/重复 / 来源 A/B / 近 1s 写入计数（dev-only） | `UIBindIndex` 只读视图 + dev 计数 |
 | `consumers[]` | 页面逻辑（C#）字符串字面量中对 BindName 的引用（file:line） | 编辑器引用扫描（只读） |
-| `contract` | 契约是否存在、sourceHash、与 prefab 的漂移、controls 差异 | `UIPageContract` 生成/校验结果 |
-| `templates[]` | 页面使用的模板、版本/hash、内部件是否被误暴露 | 契约 + 资源扫描 |
+| `catalog` | `PageDefinition.Controls` 与当前 prefab 控件面的差异、缺失/越界 | `toolbox.py ui-page --check` 摘要 + 资源扫描 |
+| `templates[]` | 页面使用的模板、版本/hash、内部件是否被误暴露 | prefab + 资源扫描 |
 
 ### 3.3 布局、文本、样式
 

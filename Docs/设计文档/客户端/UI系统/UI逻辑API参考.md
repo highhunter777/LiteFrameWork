@@ -54,7 +54,7 @@ C# 页面导航 (Ctx.Nav / Go / Replace / CloseSelf) ──► UINavigationContr
 | `UnbindTextKey(name)` | 控件名 | 解除该控件本地化绑定 |
 
 - 未注入语言服务时 `SetTextKey*` 抛（静默显示 key 是隐蔽故障）。
-- 同一节点只能有一个文案写者（静态 key 与动态 SetText 互斥；`ContractTextDoubleWriteRule` 对账）。
+- 同一节点只能有一个文案写者（静态 key 与动态 SetText 互斥；由评审与[规范 06 §3.3](../../../规范/06-UI美术协作与交接.md) 把守）。
 
 ### 3.2 显隐/交互/数值
 

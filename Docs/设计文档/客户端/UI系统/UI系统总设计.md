@@ -206,10 +206,10 @@ Docs/设计文档/客户端/UI/      本套设计文档
 - **唯一索引来源（运行时标记）**：`BindNode.BindName` → `BindIndexBuilder.Build` → `UIBindIndex`，按名字取控件；页面逻辑（`PageLogicBase` 派生，prefab 根挂 `IUIFormLogic` 载体）与 HUD/工具共用一个索引实现。
 - **C# 生成类**：`BindRoot` + `BindNode` → `BindGenerator` 生成 `Xxx.cs` / `Xxx.Designer.cs`，只提供强类型字段引用（不参与索引登记）。
 - **单一驱动路径**：页面逻辑只走命令式受控 API（`SetText`/`SetTextKey`/`BindButtonClick`/`SetList` 等）；不存在运行时“数据绑定驱动”，值变化由页面逻辑显式写。
-- **文本单写者**：同一节点不得同时有静态 `LTextKeyRef` 与动态 `SetTextKey`（`ui.contract.text-double-write`）。
+- **文本单写者**：同一节点不得同时有静态 `LTextKeyRef` 与动态 `SetTextKey`（由评审与[规范 06 §3.3](../../../规范/06-UI美术协作与交接.md) 把守）。
 - **生命周期**：按钮、输入控件、列表行、本地化 key 的订阅随 `UnbindAll`/展示作用域清理；池化复用不得留旧回调。
 - **受控 API**：`SetText/SetTextKey/SetVisible/SetInteractable/SetProgress/SetHp/StartCountdown/SetSlider/SetToggle/SetDropdown/SetList/OnListClick/UIFx` 等；详见[UI 逻辑 API 参考](UI逻辑API参考.md)。
-- **绑定面遍历单源**：编辑器侧 `UIBindSurfaceWalker` 一次深度优先给出「本页/本模板」归属（绑定根、`Clone_` 子树、嵌套模板实例、模板内部件）；绑定 hash、页面契约生成与校验共用同一遍历，禁止各写一份。
+- **绑定面遍历单源**：编辑器侧 `UIBindSurfaceWalker` 一次深度优先给出「本页/本模板」归属（绑定根、`Clone_` 子树、嵌套模板实例、模板内部件）；绑定 hash 与页面校验共用同一遍历，禁止各写一份。
 
 **生成物纪律**：生成文件禁手改；源 prefab 的绑定面 hash 与生成物清单由工具记录；CI 复算，漏生成即红。
 
@@ -246,10 +246,10 @@ Docs/设计文档/客户端/UI/      本套设计文档
 
 <a id="ch-page-definition"></a>
 
-- **唯一源**：`#uiform`（id/prefab/layer/full_screen，五列）+ `UIPageManifest`（Owner/状态/设备档/缓存策略）+ `UIPageContract`（绑定表/文案；控件表已由 prefab BindNode 生成），由 `codegen.ui-page` 生成器合并为 `PageDefinition`。
+- **唯一源**：`#uiform`（id/prefab/layer/full_screen/cache_strategy）+ 页面 prefab（`BindNode` 控件、`LTextKeyRef` 文案、样式引用；组件映射 `ui_builtin_component_types.json`），由 `toolbox.py ui-page` 生成 `PageDefinition`；`UIPageManifest` 只承担 Owner/状态/设备档等维护字段，不是生成输入。
 - **生成物**：`Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteFramework` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，页面目录端口 `IPageDirectory`（`LiteGame.Modules.UI`）与调试/探针面都要消费；生成物只依赖壳类型，不依赖产品程序集。
-- **缺失处理**：缺失 contract 的 Tmp 页告警并以空绑定表生成；缺失 prefab/table 行 fail-fast；同一 prefab 多行（如 201/206）各生成一条，id 独立。
-- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Packages/com.litegame.framework/Runtime/Services`、`Assets/LiteGame/Modules` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
+- **缺失处理**：缺失 prefab/table 行 fail-fast；同一 prefab 多行（如 201/206）各生成一条，id 独立；无 `BindNode` 的页面生成空控件表。
+- **工具边界**：表/清单/hash 保留在编辑器域；运行时程序集直读表/清单由 `PageDefinitionGuardTests` 拦截。
 - **迁移结果**：旧 `UIFormInfo`/`UIFormCatalog` 已删除；运行时只认 `PageDefinition`/`IPageCatalog`。
 
 ### 5.2 生命周期与状态机
