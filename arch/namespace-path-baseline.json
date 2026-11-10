@@ -3,9 +3,9 @@
  "guard": "python scripts/gate/namespace-path.py",
  "generator": "python scripts/gate/namespace-path.py --update-baseline",
  "version": 1,
- "generatedAt": "2026-11-10T19:43:32+08:00",
- "gitHead": "695a2c783096a9aab67ff4a8989d27827fe071a7",
- "dirty": true,
+ "generatedAt": "2026-11-10T20:19:16+08:00",
+ "gitHead": "a21a3e9b013079a89b90f61da597ca016cce02a4",
+ "dirty": false,
  "scope": [
   "Assets/LiteGame",
   "Assets/LiteCodeGen",
