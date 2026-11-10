@@ -214,6 +214,30 @@ namespace RoomServer.Runtime
             // 主帧校验（任一违规整条丢弃——安全口径不变；**重复帧不再整条丢弃**：未消费则后到生效）
             if (!ValidateWire(wire, frame, playerId, shooterPos)) return false;
 
+            SimInputFrame input = AcceptFrame(wire, frame, playerId, entityId);
+            acceptedFrame = frame;
+            acceptedInput = input;
+
+            // 未来帧预存：窗口内 (serverFrame+1, serverFrame+容忍窗] 的帧逐帧校验后一并入库。)。
+            int futureMax = serverFrame + FutureFrameTolerance;
+            for (int f = serverFrame + 2; f <= futureMax && f <= batch.Frame; f++)
+            {
+                int offset = batch.Frame - f;
+                if (offset < 0 || offset >= batch.Count) continue;      // 不在窗口
+                SimInputFrame extra = batch.Frames[offset];
+                if (!ValidateWire(extra, f, playerId, shooterPos)) continue;
+
+                AcceptFrame(extra, f, playerId, entityId);              // 同主帧口径（返回值只供主帧出参）
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// 单帧接受记账（主帧与预存未来帧同口径）：去重/seq 前推、EntityId 防伪覆写、入库、接受计数。
+        /// 返回**已覆写 EntityId** 的入库副本（主帧出参用；未来帧调用点丢弃返回值）。
+        /// </summary>
+        private SimInputFrame AcceptFrame(in SimInputFrame wire, int frame, int playerId, long entityId)
+        {
             // 接受记账：**同帧未消费 = 更新**（客户端"最新采样"与"后到生效"对齐）——只计数、不丢弃
             if (frame <= _lastAcceptedFrame[playerId]) NoteDuplicateFrame();   // 冗余重发计数（值照常覆盖）
             else _lastAcceptedFrame[playerId] = frame;
@@ -227,31 +251,7 @@ namespace RoomServer.Runtime
             input.EntityId = entityId;                                  // EntityId 防伪覆写
             _pending.Store(frame, playerId, input);
             NoteAccepted();
-            acceptedFrame = frame;
-            acceptedInput = input;
-
-            // 未来帧预存：窗口内 (serverFrame+1, serverFrame+容忍窗] 的帧逐帧校验后一并入库。)。
-            int futureMax = serverFrame + FutureFrameTolerance;
-            for (int f = serverFrame + 2; f <= futureMax && f <= batch.Frame; f++)
-            {
-                int offset = batch.Frame - f;
-                if (offset < 0 || offset >= batch.Count) continue;      // 不在窗口
-                SimInputFrame extra = batch.Frames[offset];
-                if (!ValidateWire(extra, f, playerId, shooterPos)) continue;
-
-                if (f <= _lastAcceptedFrame[playerId]) NoteDuplicateFrame();
-                else _lastAcceptedFrame[playerId] = f;
-                if ((extra.Buttons & SimInputFrame.DiscreteIntentButtons) != 0u && extra.ActionSeq > _lastActionSeq[playerId])
-                {
-                    _lastActionSeq[playerId] = extra.ActionSeq;
-                    _lastActionSeqFrame[playerId] = f;
-                }
-
-                extra.EntityId = entityId;                              // EntityId 防伪覆写（同主帧口径）
-                _pending.Store(f, playerId, extra);
-                NoteAccepted();
-            }
-            return true;
+            return input;
         }
 
         /// <summary>
