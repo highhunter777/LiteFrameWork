@@ -1,3 +1,5 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteSim;
 using cfg;
@@ -5,8 +7,14 @@ using cfg;
 namespace LiteGame.Modules.Config
 {
     /// <summary>Luban 专用的配置服务视图（Tables 是 Luban 生成类型）；消费者必须本来就认识 Luban。</summary>
-    public interface IConfigService : IConfigTableSource
+    public interface IConfigService
     {
+        /// <summary>表是否已装载并发布。</summary>
+        bool Loaded { get; }
+
+        /// <summary>候选构建→校验→原子发布；完成即放行（Preload 尾部放行判据）。</summary>
+        UniTask LoadAsync(CancellationToken ct);
+
         cfg.Tables Tables { get; }
 
         /// <summary>玩法数据身份基摘要（判定面表字节 + 规则位 → 两端 ConfigHash 对账用）。</summary>

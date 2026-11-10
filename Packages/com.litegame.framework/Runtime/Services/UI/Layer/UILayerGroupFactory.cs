@@ -10,7 +10,7 @@ namespace LiteFramework.UI
     internal static class UILayerGroupFactory
     {
         /// <summary>建根与全部层级组（顺序＝语义层索引，即 <see cref="PageDefinition.Layer"/>）。</summary>
-        public static UILayerGroup[] Create(IReadOnlyList<string> groupNames, ILayerStrategy strategy, out Transform root)
+        public static UILayerGroup[] Create(IReadOnlyList<string> groupNames, DefaultLayerStrategy strategy, out Transform root)
         {
             if (groupNames == null) throw new ArgumentNullException(nameof(groupNames));
             root = new GameObject("[UIRoot]").transform;

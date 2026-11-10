@@ -13,6 +13,7 @@ namespace LiteGame.Modules.UI
 
         protected override void OnShow(IUIData data)
         {
+            if (Services == null) return;
             _starting = false;
             SetInteractable("Btn_StartMatch", true);           // 复用页复位：上次点开局后的禁钮不得残留
             string roomId = (data as RoomPageData)?.RoomId;
@@ -28,7 +29,6 @@ namespace LiteGame.Modules.UI
             OnButtonClick("Btn_StartMatch", StartMatch);
 
             IRoomView room = Room;
-            if (room == null) return;
             room.OwnerChanged += OnOwner;
             room.SeatsChanged += OnSeats;
             room.StartMatchDenied += OnStartDenied;
@@ -41,7 +41,7 @@ namespace LiteGame.Modules.UI
         private void OnSeats(IReadOnlyList<RoomSeat> seats)
         {
             var set = UIListRowSet.Create();
-            int count = seats?.Count ?? 0;
+            int count = seats.Count;
             for (int i = 0; i < count; i++)
             {
                 RoomSeat seat = seats[i];
@@ -56,27 +56,21 @@ namespace LiteGame.Modules.UI
         /// <summary>等待人数：分子 = 在册席位、分母 = JoinAck 房规模；任一未就绪一律隐藏。</summary>
         private void RefreshWaiting(int seated)
         {
-            IRoomView room = Room;
-            int expected = room != null ? room.ExpectedPlayers : 0;
+            int expected = Room.ExpectedPlayers;
             bool show = seated > 0 && expected > 0;
             SetVisible("Txt_PlayerCount", show);
             if (show) SetTextKey("Txt_PlayerCount", "UI.Room.Waiting", seated, expected);
         }
 
         /// <summary>离房：只表达离房意图，页面保留到统一恢复清理完成后由 PageFlow 回大厅。</summary>
-        private void Leave()
-        {
-            Meta?.LeaveMatch();
-        }
+        private void Leave() => Meta.LeaveMatch();
 
         private void StartMatch()
         {
             if (_starting) return;
-            IRoomView room = Room;
-            if (room == null) return;
             _starting = true;
             SetInteractable("Btn_StartMatch", false);
-            room.RequestStartMatch();                           // 成功不回调（OnStartGame 流程接管关页）
+            Room.RequestStartMatch();                           // 成功不回调（OnStartGame 流程接管关页）
         }
 
         private void OnStartDenied(string reason)
@@ -90,8 +84,8 @@ namespace LiteGame.Modules.UI
         protected override void OnPageHide()
         {
             _starting = false;
+            if (Services == null) return;
             IRoomView room = Room;
-            if (room == null) return;
             room.OwnerChanged -= OnOwner;
             room.SeatsChanged -= OnSeats;
             room.StartMatchDenied -= OnStartDenied;

@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
+using LiteGame.Modules.Settings;
 
 namespace LiteGame.Modules.UI
 {
@@ -46,6 +47,12 @@ namespace LiteGame.Modules.UI
 
         protected override void OnShow(IUIData data)
         {
+            if (Services == null)
+            {
+                ApplyNoServicesState();
+                return;
+            }
+
             PushStaticTexts();
             var pageData = data as SettingsPageData;
             _exitable = pageData != null && pageData.BattleExit;
@@ -59,12 +66,6 @@ namespace LiteGame.Modules.UI
 
             PushReadOnlyFacts();
             ISettingsPagePort settings = Settings;
-            if (settings == null)
-            {
-                ApplyPortlessState();
-                return;
-            }
-
             _tab = settings.LastTab + 1;
             if (_tab < 1 || _tab > TabCount) _tab = 1;
             ApplyTab(_tab);
@@ -74,28 +75,28 @@ namespace LiteGame.Modules.UI
             RefreshControls();
 
             Index.OnTabChanged("Tabs_Settings", index => OnTab(index + 1));
-            Index.OnSliderChanged("Sld_Volume", value => settings?.SetVolume(value));
-            Index.OnToggleChanged("Tgl_Sound", on => settings?.SetSoundEnabled(on));
-            Index.OnDropdownChanged("Ddl_Quality", index => settings?.SetQuality(index));
+            Index.OnSliderChanged("Sld_Volume", value => settings.SetVolume(value));
+            Index.OnToggleChanged("Tgl_Sound", on => settings.SetSoundEnabled(on));
+            Index.OnDropdownChanged("Ddl_Quality", index => settings.SetQuality(index));
             Index.OnDropdownChanged("Ddl_DisplayMode", index =>
             {
-                settings?.SetDisplayMode(DisplayModeValues[index]);
+                settings.SetDisplayMode(DisplayModeValues[index]);
                 RefreshResolutionRow();
             });
-            Index.OnDropdownChanged("Ddl_Resolution", index => settings?.SetResolutionIndex(index));
-            Index.OnDropdownChanged("Ddl_FrameRate", index => settings?.SetFrameRate(settings.FrameRateOption(index)));
-            Index.OnDropdownChanged("Ddl_VSync", index => settings?.SetVSync(VSyncValues[index]));
+            Index.OnDropdownChanged("Ddl_Resolution", index => settings.SetResolutionIndex(index));
+            Index.OnDropdownChanged("Ddl_FrameRate", index => settings.SetFrameRate(settings.FrameRateOption(index)));
+            Index.OnDropdownChanged("Ddl_VSync", index => settings.SetVSync(VSyncValues[index]));
             Index.OnSliderChanged("Sld_LookSensitivity", value =>
             {
-                settings?.SetLookSensitivity(value);
+                settings.SetLookSensitivity(value);
                 PushSensitivityText();
             });
             Index.OnSliderChanged("Sld_AdsSensitivity", value =>
             {
-                settings?.SetAdsSensitivity(value);
+                settings.SetAdsSensitivity(value);
                 PushSensitivityText();
             });
-            Index.OnToggleChanged("Tgl_InvertLookY", on => settings?.SetInvertLookY(on));
+            Index.OnToggleChanged("Tgl_InvertLookY", on => settings.SetInvertLookY(on));
             Index.OnDropdownChanged("Ddl_Language", index =>
             {
                 Locale?.SetLocale(Locales[index]);
@@ -110,8 +111,8 @@ namespace LiteGame.Modules.UI
             if (locked) SetInteractable("Ddl_Resolution", false);
         }
 
-        /// <summary>空端口（设置服务未装配）：设置控件全部禁用、页签仍可切换，关闭键保留——不抛。</summary>
-        private void ApplyPortlessState()
+        /// <summary>无装配面（页面上下文未注入）：设置控件全部禁用、页签仍可切换，关闭键保留——不抛。</summary>
+        private void ApplyNoServicesState()
         {
             _tab = 1;
             ApplyTab(_tab);
@@ -142,16 +143,16 @@ namespace LiteGame.Modules.UI
             SetTextKey("Txt_InvertLookY", "UI.Settings.InvertLookY");
             SetTextKey("Txt_Language", "UI.Settings.Language");
             SetTextKey("Txt_ResetDefaults", "UI.Settings.ResetDefaults");
-            SetTextKey("Txt_Version", "Common.Version", Meta != null ? Meta.Version : string.Empty);
+            SetTextKey("Txt_Version", "Common.Version", Services != null ? Meta.Version : string.Empty);
         }
 
         private void PushReadOnlyFacts()
         {
-            string account = Meta != null ? Meta.AccountId : string.Empty;
+            string account = Meta.AccountId;
             SetVisible("Txt_Account", !string.IsNullOrEmpty(account));
             if (!string.IsNullOrEmpty(account)) SetTextKey("Txt_Account", "UI.Settings.Account", account);
 
-            string server = Meta != null ? Meta.ServerUrl : string.Empty;
+            string server = Meta.ServerUrl;
             SetVisible("Txt_ServerAddress", !string.IsNullOrEmpty(server));
             if (!string.IsNullOrEmpty(server)) SetTextKey("Txt_ServerAddress", "UI.Settings.Server", server);
         }
@@ -160,7 +161,7 @@ namespace LiteGame.Modules.UI
         {
             _tab = index;
             ApplyTab(index);
-            Settings?.SetLastTab(index - 1);
+            Settings.SetLastTab(index - 1);
         }
 
         private void ApplyTab(int index)
@@ -195,7 +196,6 @@ namespace LiteGame.Modules.UI
         private void PushFrameRateOptions()
         {
             ISettingsPagePort settings = Settings;
-            if (settings == null) return;
             int count = settings.FrameRateOptionCount;
             var options = new string[count];
             for (int i = 0; i < count; i++)
@@ -211,7 +211,6 @@ namespace LiteGame.Modules.UI
         private void RefreshResolutionRow()
         {
             ISettingsPagePort settings = Settings;
-            if (settings == null) return;
             if (settings.DisplayMode != WindowedMode)
             {
                 Index.SetDropdownOptions("Ddl_Resolution", new[] { Text("UI.Settings.Resolution.FollowDisplay") });
@@ -232,7 +231,6 @@ namespace LiteGame.Modules.UI
         private void PushSensitivityText()
         {
             ISettingsPagePort settings = Settings;
-            if (settings == null) return;
             SetText("Txt_LookSensitivityValue", Percent(settings.LookSensitivity));
             SetText("Txt_AdsSensitivityValue", Percent(settings.AdsSensitivity));
         }
@@ -243,7 +241,6 @@ namespace LiteGame.Modules.UI
         private void RefreshControls()
         {
             ISettingsPagePort settings = Settings;
-            if (settings == null) return;
             Index.SetSlider("Sld_Volume", settings.Volume);
             Index.SetToggle("Tgl_Sound", settings.SoundEnabled);
             Index.SetDropdownValue("Ddl_Quality", settings.Quality);
@@ -283,13 +280,12 @@ namespace LiteGame.Modules.UI
 
         private async UniTask ConfirmResetAsync()
         {
-            IConfirmDialog confirm = Ctx?.Confirm;
-            if (confirm == null) return;
+            IConfirmDialog confirm = Confirm;
             int generation = Form.DisplayGeneration;
             bool ok = await confirm.ShowAsync(Text("UI.Settings.ResetConfirmTitle"),
                 Text("UI.Settings.ResetConfirmMessage"), Text("Common.Confirm"), Text("Common.Cancel"));
             if (!ok || !Form.IsDisplayCurrent(generation)) return;
-            Settings?.ResetDefaults();
+            Settings.ResetDefaults();
             PushAllOptions();
             RefreshControls();
         }
@@ -302,13 +298,7 @@ namespace LiteGame.Modules.UI
             if (_leaving) return;
             _leaving = true;
             SetInteractable("Btn_ExitMatch", false);
-            IConfirmDialog confirm = Ctx?.Confirm;
-            if (confirm == null)
-            {
-                _leaving = false;
-                SetInteractable("Btn_ExitMatch", true);
-                return;
-            }
+            IConfirmDialog confirm = Confirm;
             int generation = Form.DisplayGeneration;
             bool ok = await confirm.ShowAsync(Text("UI.Settings.ExitConfirmTitle"),
                 Text("UI.Settings.ExitConfirmMessage"), Text("Common.Confirm"), Text("Common.Cancel"));
@@ -316,18 +306,18 @@ namespace LiteGame.Modules.UI
             _leaving = false;
             SetInteractable("Btn_ExitMatch", true);
             if (!ok) return;
-            Meta?.LeaveMatch();
+            Meta.LeaveMatch();
         }
 
         private void CloseWithSave()
         {
-            Settings?.Save();
+            if (Services != null) Settings.Save();
             CloseSelf();
         }
 
         protected override void OnPageHide()
         {
-            Settings?.Save();                              // Back/ESC 关闭同径落盘
+            if (Services != null) Settings.Save();         // Back/ESC 关闭同径落盘
             _leaving = false;
         }
     }

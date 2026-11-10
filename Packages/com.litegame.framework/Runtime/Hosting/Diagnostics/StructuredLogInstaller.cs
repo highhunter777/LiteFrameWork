@@ -16,11 +16,12 @@ namespace LiteFramework
         public static StructuredLogSink Current => _sink;
 
         /// <summary>安装（幂等）；返回当前 sink（已安装则原样返回）。</summary>
-        public static StructuredLogSink Install()
+        /// <param name="clock">时间戳源（null = 系统墙钟）。</param>
+        public static StructuredLogSink Install(IWallClock clock = null)
         {
             if (_sink != null) return _sink;
             string directory = Path.Combine(Application.persistentDataPath, "logs");
-            var sink = new StructuredLogSink(directory);
+            var sink = new StructuredLogSink(directory, clock: clock);
             sink.Start();
             _sink = sink;
             Log.SetSink(sink);

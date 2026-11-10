@@ -7,6 +7,7 @@ using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Dev;
 using LiteGame.Modules.Input;
+using LiteGame.Modules.Map;
 using LiteGame.Modules.Settings;
 using LiteGame.Modules.UI;
 using LiteSim;
@@ -20,11 +21,9 @@ namespace LiteGame
     internal sealed class AppComposition
     {
         private IDisposable _devDecoration;      // 开发装配装饰句柄（GM/弱网/调试内核；null = 发布形态）
-        private RoomBridge _roomSession;          // 房间会话门面（流程端口与页面端口 IRoomView 同实例）
-        private IMetaSession _metaSession;       // 页面联机端口（IMetaSession 的生产实现）
-        private IMapCatalog _mapCatalog;         // 页面地图目录端口
-        private PageContext _pageContext;        // 页面上下文（UI 段经工厂延迟取件）
-        private ISettingsPagePort _settingsPort; // 设置页端口（ProductSettings 适配器；页面只取端口）
+        private RoomBridge _roomSession;          // 房间会话门面（流程端口与页面读口 IRoomView 同实例）
+        private PageServices _pageServices;      // 页面装配面（UI 段经工厂延迟取件）
+        private ISettingsPagePort _settingsPort; // 设置页端口（ProductSettings 同实例）
 
         /// <summary>判定参数覆写实例（判定几何 13 列的调参面）：装配期创建一次，调参面板与编辑器导出器
         /// 共用同一实例（容器登记；编辑器 GM 经 <c>GMEditorResolve</c> 取件）。
@@ -88,11 +87,11 @@ namespace LiteGame
             if (context == null) throw new ArgumentNullException(nameof(context));
             context.Scope.Register(new DelegatedDisposable(DisposeComposition));
 
+            BindProductSettings(context);
             BindPageServices(context);
             BindIdentity(context);
             BindModals(context);
             BindInputGate(context);
-            BindProductSettings(context);
             BindSimParams(context);
             BindDevDecoration(context);
             FrameSchedule frames = context.Require<FrameSchedule>();
@@ -103,34 +102,30 @@ namespace LiteGame
             await UniTask.CompletedTask;               // 无异步步骤：签名保留"装配窗口内执行"的语义
         }
 
-        /// <summary>页面消费端口（P1 页面 C# 化）：联机业务面与地图目录由组合根适配，UI 段只认端口。</summary>
+        /// <summary>页面装配面：域服务一律取域实现（组合根只负责装配，不做页面级映射）。</summary>
         private void BindPageServices(SegmentContext context)
         {
             IConfigService config = context.Require<IConfigService>();
-            _metaSession = new MetaSessionFacade(
-                context.Require<IAccountDomain>(), context.Require<MetaLoginService>(),
+            var meta = new MetaSession(context.Require<IAccountDomain>(), context.Require<MetaLoginService>(),
                 context.Require<IRoomFlow>(), () => config.Tables);
-            _mapCatalog = new ConfigMapCatalog(config);
-            UINavigationController nav = context.Require<UINavigationController>();
-            UIService ui = context.Require<UIService>();
-            IConfirmDialog confirm = context.Require<IConfirmDialog>();
-            _pageContext = new PageContext(() => nav, () => _metaSession, () => _mapCatalog,
-                () => _roomSession, () => confirm, () => ui,
-                () => _settingsPort);   // 房间会话装订/摘除仍由流程段驱动；设置端口惰性取（适配器随后创建）
+            _pageServices = new PageServices(
+                context.Require<UINavigationController>(), context.Require<UIService>(),
+                context.Require<IConfirmDialog>(), meta, context.Require<IMapProvider>(),
+                _roomSession, _settingsPort);
         }
 
-        /// <summary>页面上下文工厂（UI 段构造注入；延迟取件——首次页面打开时组合根已装订完毕）。</summary>
-        internal Func<object> PageContextFactory() => () => _pageContext;
+        /// <summary>页面装配面工厂（UI 段构造注入；延迟取件——首次页面打开时组合根已装订完毕）。</summary>
+        internal Func<object> PageServicesFactory() => () => _pageServices;
 
-        /// <summary>设置门面装订：构造即全量应用持久化值（启动生效点），容器取件面；Put 之后包页面端口
-        /// （页面只认 <see cref="ISettingsPagePort"/>）。视角偏好用设置段的**同一实例**（<c>LookPreferences</c>）。</summary>
+        /// <summary>设置门面装订：构造即全量应用持久化值（启动生效点），容器取件面；同一实例即页面端口
+        /// （<see cref="ISettingsPagePort"/>）。视角偏好用设置段的**同一实例**（<c>LookPreferences</c>）。</summary>
         private void BindProductSettings(SegmentContext context)
         {
             var settings = new ProductSettings(
                 context.Require<GameSettings>(), context.Require<SettingService>(),
                 context.Require<AudioService>(), context.Require<LookPreferences>());
             context.Put(settings);
-            _settingsPort = new ProductSettingsAdapter(settings);   // 创建点固定在 Put 之后（惰性 Func 只取此字段）
+            _settingsPort = settings;                                // 同一实例：设置页端口即设置门面
         }
 
         /// <summary>内容身份绑定（只此一次）：内容/配置装配完成后，身份上下文用同一份 Activation/Config 事实回答。

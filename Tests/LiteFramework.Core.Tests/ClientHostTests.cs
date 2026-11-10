@@ -83,7 +83,7 @@ namespace LiteFramework.Tests
             Pump(host.InitializeAsync());
 
             Assert.Equal(new[] { "init:A", "init:B", "init:C" }, trace.ToArray());
-            Assert.Equal(2, host.State);                       // 运行态
+            Assert.Equal(HostState.Running, host.State);                       // 运行态
             Assert.NotNull(host.RootScope);
         }
 
@@ -101,7 +101,7 @@ namespace LiteFramework.Tests
             Assert.Same(boom, ex);                             // 原异常上抛（回滚不吞不换装）
 
             Assert.Equal(new[] { "init:A", "init:B", "shutdown:A" }, trace.ToArray());   // 只回滚已成功者
-            Assert.Equal(4, host.State);                       // 确定关闭终态
+            Assert.Equal(HostState.Closed, host.State);                       // 确定关闭终态
             Assert.NotNull(host.RootScope);                    // Scope 引用保留（已释放）
             Assert.True(host.RootScope.IsDisposed);
         }
@@ -119,7 +119,7 @@ namespace LiteFramework.Tests
             Assert.Equal(new[] { "init:A", "init:B", "init:C", "shutdown:C", "shutdown:B", "shutdown:A" }, trace.ToArray());
             Assert.Equal(1, bad.ShutdownCount);                // B 抛异常后自身关闭流程仍完成
             Assert.Single(host.ShutdownFailures);              // 聚合上报（不抛出）
-            Assert.Equal(4, host.State);
+            Assert.Equal(HostState.Closed, host.State);
         }
 
         [Fact]
@@ -338,7 +338,7 @@ namespace LiteFramework.Tests
         {
             var host = Host(new GraphModule("A"), new GraphModule("B", "GraphModule2NotRegistered"));
             Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
-            Assert.Equal(4, host.State);   // 图校验失败 = 终态，不得停在"初始化中"
+            Assert.Equal(HostState.Closed, host.State);   // 图校验失败 = 终态，不得停在"初始化中"
         }
 
         [Fact]
@@ -499,7 +499,7 @@ namespace LiteFramework.Tests
             Assert.Same(boom, ex);                              // 原异常上抛
             Assert.Contains("shutdown:A", trace);               // 已成功模块照常逆序回滚
             Assert.Equal(new[] { "release:compose-resource" }, released.ToArray());   // 组合根登记资源就地回收
-            Assert.Equal(4, host.State);
+            Assert.Equal(HostState.Closed, host.State);
         }
 
         [Fact]
@@ -518,8 +518,8 @@ namespace LiteFramework.Tests
 
             Assert.ThrowsAny<OperationCanceledException>(() => Pump(host.InitializeAsync(cts.Token)));
             Assert.Contains("shutdown:A", trace);
-            Assert.Equal(4, host.State);
-            Assert.NotEqual(2, host.State);
+            Assert.Equal(HostState.Closed, host.State);
+            Assert.NotEqual(HostState.Running, host.State);
         }
 
         [Fact]
@@ -646,7 +646,7 @@ namespace LiteFramework.Tests
             gate.TrySetResult();
             await first;
             await second;
-            Assert.Equal(4, host.State);
+            Assert.Equal(HostState.Closed, host.State);
         }
 
         private sealed class GatedModule : IClientSegment

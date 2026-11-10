@@ -213,7 +213,7 @@ namespace LiteFramework.Tests
 
             Assert.DoesNotContain("init:C", trace);                // 竞态守卫：装配中止，C 未被初始化
             Assert.Contains("shutdown:B", trace);                 // B 已完成初始化 → 回滚路径关闭它
-            Assert.Equal(4, host.State);                          // 确定关闭终态
+            Assert.Equal(HostState.Closed, host.State);                          // 确定关闭终态
         }
 
         /// <summary>初始化挂起在 UniTaskCompletionSource 上的模块（定向续延——不依赖真实时钟/线程调度）。</summary>

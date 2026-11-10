@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -99,6 +100,46 @@ namespace LiteFramework.Tests
                 Log.ResetForTesting();
                 Directory.Delete(dir, true);
             }
+        }
+
+        [Fact]
+        public void Sink_时间源可注入_文件名与ts取注入时钟()
+        {
+            string dir = TempDir();
+            var fixedTime = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+            var sink = new StructuredLogSink(dir, capacity: 8, clock: new FixedWallClock(fixedTime));
+            try
+            {
+                Log.ResetForTesting();
+                sink.Start();
+                Log.SetSink(sink);
+                Log.Info("tick");
+                Assert.True(sink.Flush(TimeSpan.FromSeconds(5)), "flush 超时");
+
+                string file = Directory.GetFiles(dir, "*.jsonl").Single();
+                string line;
+                using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var reader = new StreamReader(stream, Encoding.UTF8))
+                    line = reader.ReadToEnd().TrimEnd('\n');
+
+                Assert.Contains("\"ts\":\"" + fixedTime.ToString("O", CultureInfo.InvariantCulture), line);
+                Assert.Contains("20200102-030405", Path.GetFileName(file));
+            }
+            finally
+            {
+                Log.SetSink(null);
+                sink.Dispose();
+                Log.ResetForTesting();
+                Directory.Delete(dir, true);
+            }
+        }
+
+        private sealed class FixedWallClock : IWallClock
+        {
+            private readonly DateTime _utc;
+            public FixedWallClock(DateTime utc) => _utc = utc;
+            public DateTime UtcNow => _utc;
+            public long NowMs => new DateTimeOffset(_utc).ToUnixTimeMilliseconds();
         }
 
         private static string TempDir()

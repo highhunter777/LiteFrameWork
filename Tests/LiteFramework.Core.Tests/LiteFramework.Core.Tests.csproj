@@ -39,7 +39,7 @@
   </ItemGroup>
 
   <!--
-    M3-6 / M3-5c 恢复面的 L1 覆盖：内容受控缓存清理（LiteClient 零引擎）与账号重入单点（App 零引擎端口）
+    恢复面的 L1 覆盖：内容受控缓存清理（LiteClient 零引擎）与账号重入单点（App 零引擎端口）
     按源链接纳入——真件行为在 L1 直测，Unity 面只提供 ILoginSurface/IContentService 实现。
   -->
   <ItemGroup>

@@ -10,16 +10,21 @@ namespace LiteFramework
 
         public readonly UIClock UI;
 
-        public readonly SystemWallClock Wall;
+        public readonly IWallClock Wall;
 
-        private FrameworkClocks(WorldClock world, UIClock ui, SystemWallClock wall)
+        private FrameworkClocks(WorldClock world, UIClock ui, IWallClock wall)
         {
             World = world;
             UI = ui;
             Wall = wall;
         }
 
-        public static FrameworkClocks Create() => new FrameworkClocks(new WorldClock(), new UIClock(), new SystemWallClock());
+        /// <summary>默认装配（自建系统墙钟；与日志 sink 时间源不是同一实例时优先用带参重载）。</summary>
+        public static FrameworkClocks Create() => Create(new SystemWallClock());
+
+        /// <summary>装配并注入墙钟（与 <see cref="FrameworkInfrastructure.WallClock"/> 共实例）。</summary>
+        public static FrameworkClocks Create(IWallClock wall)
+            => new FrameworkClocks(new WorldClock(), new UIClock(), wall ?? new SystemWallClock());
     }
 
     /// <summary>事件总线装配入口：形态位（严格模式只在开发期开）；事件域与时钟域分离。</summary>

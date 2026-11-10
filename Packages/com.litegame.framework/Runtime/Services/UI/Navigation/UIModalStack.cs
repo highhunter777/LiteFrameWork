@@ -6,14 +6,14 @@ namespace LiteFramework.UI
     /// <summary>
     /// 模态栈（《UI框架总设计》§6.2 视觉/输入单一来源）：**从仍打开的全部页面推导**，不独立记账。
     /// </summary>
-    public sealed class UIModalStack
+    internal sealed class UIModalStack
     {
 
         private readonly IUIFormQuery _query;
         private readonly HashSet<int> _registered = new HashSet<int>(4);   // 登记为模态的 formId（幂等）
         private readonly List<UIForm> _scratch = new List<UIForm>(8);      // 复用缓冲（推导零分配）
 
-        public UIModalStack(IUIFormQuery query)
+        internal UIModalStack(IUIFormQuery query)
         {
             _query = query ?? throw new ArgumentNullException(nameof(query));
         }

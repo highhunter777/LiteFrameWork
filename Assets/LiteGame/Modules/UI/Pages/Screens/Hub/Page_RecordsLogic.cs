@@ -12,6 +12,7 @@ namespace LiteGame.Modules.UI
     {
         protected override void OnShow(IUIData data)
         {
+            if (Services == null) return;
             SetTextKey("Txt_Title", "UI.Lobby.Records");
             SetTextKey("Txt_Back", "Common.BackLobby");
             SetText("Txt_HeaderTime", "时间");
@@ -25,7 +26,7 @@ namespace LiteGame.Modules.UI
         private async UniTask LoadAsync()
         {
             IMetaSession meta = Meta;
-            if (meta == null || !meta.IsConfigured)
+            if (!meta.IsConfigured)
             {
                 Empty();
                 return;

@@ -35,6 +35,7 @@ namespace LiteFramework
         {
             if (_quitApproved || _host == null) return true;
             if (Application.isEditor) return true;      // 编辑器：交给 OnDestroy 兜底，避免拦下后无法再放行
+            if (_quitting) return false;                 // 重复退出请求：等待首次关闭完成，不重复起流程
             _quitting = true;
             ApproveAfterShutdownAsync().ForgetLogged("AppLifetime");
             return false;

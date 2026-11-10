@@ -185,7 +185,7 @@ namespace LiteGame.Tests.EditMode
             public readonly MetaLoginService Login;
             public readonly AccountDomain Domain;
             public readonly AccountTicketSource Tickets;
-            public readonly MetaSessionFacade Facade;
+            public readonly MetaSession Facade;
             public readonly bool ReentryInjected;
 
             public AccountRig(FakeMetaClient client = null, bool configured = true)
@@ -206,7 +206,7 @@ namespace LiteGame.Tests.EditMode
                 RootScope.Register(Domain);
 
                 Tickets = new AccountTicketSource(Domain);
-                Facade = new MetaSessionFacade(Domain, Login, Rooms);
+                Facade = new MetaSession(Domain, Login, Rooms);
             }
 
             public bool Login2() => Facade.GuestLoginAsync().GetAwaiter().GetResult().Ok;
@@ -653,7 +653,7 @@ namespace LiteGame.Tests.EditMode
             using var rig = new AccountRig();
             Assert.IsTrue(rig.Login2(), "登录成功（前置）");
             IMetaAccountSession old = rig.RequireAccount();
-            MetaSessionFacade facade = rig.Facade;
+            MetaSession facade = rig.Facade;
 
             Assert.AreEqual(AccountId, facade.AccountId, "门面读当前账户");
             Assert.IsTrue(facade.ListRoomsAsync().GetAwaiter().GetResult().Ok, "登录后房间列表可读");

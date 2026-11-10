@@ -5,7 +5,10 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
+using LiteGame.Modules.Map;
+using LiteGame.Modules.Settings;
 using LiteGame.Modules.UI;
+using LiteSim;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
@@ -101,6 +104,58 @@ namespace LiteGame.Tests.UI.PlayMode
             public void Save() => SaveCount++;
         }
 
+        /// <summary>联机面替身：版本号等只读事实可辨识，不触网。</summary>
+        private sealed class FakeMeta : IMetaSession
+        {
+            public bool IsConfigured => true;
+            public string AccountId => "acc-test";
+            public string ServerUrl => "http://meta.test";
+            public string Version => "v-test";
+
+            public UniTask<MetaResult<bool>> GuestLoginAsync(CancellationToken ct = default)
+                => UniTask.FromResult(MetaResult<bool>.Success(true));
+            public UniTask<MetaResult<IReadOnlyList<MetaRoomRow>>> ListRoomsAsync(CancellationToken ct = default)
+                => UniTask.FromResult(MetaResult<IReadOnlyList<MetaRoomRow>>.Success(Array.Empty<MetaRoomRow>()));
+            public UniTask<MetaResult<string>> QuickEnterAsync(CancellationToken ct = default)
+                => UniTask.FromResult(MetaResult<string>.Success("room"));
+            public UniTask<MetaResult<string>> CreateRoomAsync(int mapId, int expectedPlayers, CancellationToken ct = default)
+                => UniTask.FromResult(MetaResult<string>.Success("room"));
+            public UniTask<MetaResult<string>> EnterRoomAsync(string roomId, CancellationToken ct = default)
+                => UniTask.FromResult(MetaResult<string>.Success(roomId));
+            public UniTask<MetaResult<IReadOnlyList<MetaRecordRow>>> ListRecordsAsync(CancellationToken ct = default)
+                => UniTask.FromResult(MetaResult<IReadOnlyList<MetaRecordRow>>.Success(Array.Empty<MetaRecordRow>()));
+            public void LeaveMatch() { }
+        }
+
+        /// <summary>地图表替身：设置页不读地图，空表即可。</summary>
+        private sealed class FakeMaps : IMapProvider
+        {
+            public SimMapData GetMap(int mapId = 0) => null;
+            public string ScenePath(int mapId) => string.Empty;
+            public IReadOnlyList<string> ScenePaths() => Array.Empty<string>();
+            public IReadOnlyList<MapOption> Options => Array.Empty<MapOption>();
+        }
+
+        /// <summary>房间读口替身：空快照。</summary>
+        private sealed class FakeRoom : IRoomView
+        {
+            public bool IsOwner => false;
+            public int ExpectedPlayers => 0;
+            public IReadOnlyList<RoomSeat> Seats => Array.Empty<RoomSeat>();
+            public event Action<bool> OwnerChanged { add { } remove { } }
+            public event Action<IReadOnlyList<RoomSeat>> SeatsChanged { add { } remove { } }
+            public event Action<string> StartMatchDenied { add { } remove { } }
+            public void RequestStartMatch() { }
+        }
+
+        /// <summary>确认弹窗替身。</summary>
+        private sealed class FakeConfirm : IConfirmDialog
+        {
+            public bool IsBound => true;
+            public UniTask<bool> ShowAsync(string title, string message, string okText, string cancelText)
+                => UniTask.FromResult(true);
+        }
+
         private PlayModeTestScope _scope;
         private FakeLocale _locale;
         private FakeSettingsPort _settings;
@@ -127,7 +182,10 @@ namespace LiteGame.Tests.UI.PlayMode
                 UIPageCatalog.Instance,
                 loadPrefab: LoadRealPrefabAsync,
                 localeProvider: () => _locale,
-                pageContextProvider: _ => new PageContext(() => _nav, settings: () => _settings, ui: () => _ui));
+                pageContextProvider: _ => _settings == null
+                    ? null
+                    : new PageServices(_nav, _ui, new FakeConfirm(), new FakeMeta(), new FakeMaps(),
+                        new FakeRoom(), _settings));
             _nav = new UINavigationController(_ui);
 
             GameObject host = _scope.CreateGameObject("SettingsPlayModeHost");

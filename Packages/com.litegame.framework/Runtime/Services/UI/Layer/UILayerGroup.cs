@@ -5,7 +5,7 @@ using UnityEngine;
 namespace LiteFramework.UI
 {
     /// <summary>
-    /// 层级组：组内栈 + Depth 分配（分配规则经 <see cref="ILayerStrategy"/> 注入）。
+    /// 层级组：组内栈 + Depth 分配（分配规则经 <see cref="DefaultLayerStrategy"/> 注入）。
     /// </summary>
     public sealed class UILayerGroup
     {
@@ -15,9 +15,9 @@ namespace LiteFramework.UI
         public int BaseDepth { get; }
         public Transform Root { get; }                  // UIRoot 下的组节点（实例化挂点）
         public UIStack Stack { get; } = new UIStack();
-        private readonly ILayerStrategy _layerStrategy;
+        private readonly DefaultLayerStrategy _layerStrategy;
 
-        public UILayerGroup(string name, int baseDepth, Transform root, ILayerStrategy layerStrategy)
+        public UILayerGroup(string name, int baseDepth, Transform root, DefaultLayerStrategy layerStrategy)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             BaseDepth = baseDepth;

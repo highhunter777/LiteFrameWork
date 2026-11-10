@@ -5,6 +5,7 @@ using System.Text;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
+using LiteGame.Modules.Map;
 
 namespace LiteGame.Modules.UI
 {
@@ -30,6 +31,8 @@ namespace LiteGame.Modules.UI
 
         protected override void OnShow(IUIData data)
         {
+            PageServices services = Services;
+            if (services == null) return;
             SetTextKey("Txt_QuickEnter", "UI.Lobby.QuickEnter");
             SetTextKey("Txt_Rooms", "UI.Lobby.RoomList");
             SetTextKey("Txt_CreateRoom", "UI.Lobby.CreateRoom");
@@ -42,7 +45,7 @@ namespace LiteGame.Modules.UI
             SetTextKey("Txt_PlayersLabel", "UI.Lobby.Players");
             SetTextKey("Txt_ConfirmCreate", "UI.Lobby.Create");
             SetTextKey("Txt_CancelCreate", "Common.Cancel");
-            SetText("Txt_PlayerName", Meta != null ? Meta.AccountId : string.Empty);
+            SetText("Txt_PlayerName", services.Meta.AccountId);
 
             _lines.Clear();
             if (Locale != null)
@@ -68,7 +71,7 @@ namespace LiteGame.Modules.UI
             OnButtonClick("Btn_Character", Tap);
             Index.OnListClick("VList_Rooms", (key, action) => Enter(key));
 
-            SetupCreateParams();
+            SetupCreateParams(services.Maps);
             _closed = false;
             _entering = false;
             _statusKey = null;
@@ -98,12 +101,11 @@ namespace LiteGame.Modules.UI
             RefreshRooms();
         }
 
-        private void SetupCreateParams()
+        private void SetupCreateParams(IMapProvider maps)
         {
-            _maps = Maps?.All;
-            var mapOptions = new List<string>(_maps?.Count ?? 0);
-            if (_maps != null)
-                for (int i = 0; i < _maps.Count; i++) mapOptions.Add(_maps[i].Name);
+            _maps = maps.Options;
+            var mapOptions = new List<string>(_maps.Count);
+            for (int i = 0; i < _maps.Count; i++) mapOptions.Add(_maps[i].Name);
             Index.SetDropdownOptions("Ddl_Map", mapOptions);
             Index.SetDropdownValue("Ddl_Map", 0);
 
@@ -141,7 +143,7 @@ namespace LiteGame.Modules.UI
         {
             if (_closed || _entering || _refreshPending) return;
             IMetaSession meta = Meta;
-            if (meta == null || !meta.IsConfigured)
+            if (!meta.IsConfigured)
             {
                 SetStatus("UI.Login.NoServer");
                 return;
@@ -201,7 +203,7 @@ namespace LiteGame.Modules.UI
         {
             if (_entering) return;
             IMetaSession meta = Meta;
-            if (meta == null || !meta.IsConfigured)
+            if (!meta.IsConfigured)
             {
                 SetStatus("UI.Login.NoServer");
                 return;
@@ -248,7 +250,7 @@ namespace LiteGame.Modules.UI
         {
             if (_entering) return;
             IMetaSession meta = Meta;
-            if (meta == null || !meta.IsConfigured)
+            if (!meta.IsConfigured)
             {
                 SetStatus("UI.Login.NoServer");
                 return;

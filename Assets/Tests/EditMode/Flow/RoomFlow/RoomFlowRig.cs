@@ -33,7 +33,7 @@ namespace LiteGame.Tests.EditMode
         public readonly AccountDomain Domain;
         public readonly MetaLoginService LoginService;
         public readonly AccountTicketSource Tickets;
-        public readonly MetaSessionFacade Session;
+        public readonly MetaSession Session;
         public readonly ProcedureFlow Flow;
         public readonly RecordingLoginSurface Surface = new();
         public readonly AccountReentry Reentry;
@@ -66,7 +66,7 @@ namespace LiteGame.Tests.EditMode
             Machine.Start(ProcedureId.Main);
 
             Flow = new ProcedureFlow(Machine, Tickets, Lifetime, rootToken);
-            Session = new MetaSessionFacade(Domain, LoginService, Flow);
+            Session = new MetaSession(Domain, LoginService, Flow);
             Reentry = new AccountReentry(Flow, Flow, Domain, Surface);
         }
 

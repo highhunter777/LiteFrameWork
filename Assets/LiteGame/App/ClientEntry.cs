@@ -93,7 +93,7 @@ namespace LiteGame
                 .AddSegment(new TimelineSegment())               // ⑨ 世界时间轴（依赖 ⑧）
                 .AddSegment(new ConfigSegment(_appComposition.ConfigServiceFactory()))          // ⑪ 表投影数据源
                 .AddSegment(new MapSegment())                 // ⑫ 地图提供者（依赖 ⑪ 的表链）
-                .AddSegment(new UISegment(_appComposition.PageContextFactory()))   // ⑬ UI 能力：服务/导航/反馈面（页面逻辑＝prefab 组件）
+                .AddSegment(new UISegment(_appComposition.PageServicesFactory()))   // ⑬ UI 能力：服务/导航/反馈面（页面逻辑＝prefab 组件）
                 .AddSegment(new InputSegment(_appComposition.IntentSourceFactory()))            // ⑭ 输入服务（设备源由组合根注入）
                 .AddSegment(new MetaSegment(_deployBake))     // ⑮ 联机入口（部署快照 + 客户端 + 入口编排件）
                 .AddSegment(new BattleSegment(() => DevHooks.Diagnostics,

@@ -20,5 +20,8 @@ namespace LiteGame.Modules.Map
 
         /// <summary>全部地图场景路径（表内全部行——离场卸载面按表枚举：加图不改卸载代码）。</summary>
         IReadOnlyList<string> ScenePaths();
+
+        /// <summary>选图行（表内全部行按表序；开房/选图 UI 的唯一来源）。</summary>
+        IReadOnlyList<MapOption> Options { get; }
     }
 }

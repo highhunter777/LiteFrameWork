@@ -127,7 +127,7 @@ namespace LiteFramework.Tests
             Assert.Equal(new[] { "module shutdown" }, trace);
             Assert.Equal(1, product.DisposeCount);
             Assert.True(host.RootScope.IsDisposed);
-            Assert.Equal(4, host.State);
+            Assert.Equal(HostState.Closed, host.State);
         }
 
         [Fact]

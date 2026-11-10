@@ -7,6 +7,10 @@
         "LiteFramework.Hosting",
         "LiteGame.Core",
         "LiteGame.Modules.Config",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Meta",
+        "LiteGame.Modules.Session",
+        "LiteGame.Modules.Settings",
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask"

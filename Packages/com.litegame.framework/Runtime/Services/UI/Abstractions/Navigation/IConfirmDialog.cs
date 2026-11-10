@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 
 namespace LiteFramework.UI
 {
-    /// <summary>页面确认缝端口（页面经 <c>IPageContext.Confirm</c> 消费；UI 能力层只认这个口）。
+    /// <summary>页面确认缝端口（页面经 <c>IPageServices.Confirm</c> 消费；UI 能力层只认这个口）。
     /// 实现由装配根在后段绑定（<see cref="ConfirmDialogRouter.Bind"/>）——UI 段因此不认识任何具体实现。</summary>
     public interface IConfirmDialog
     {

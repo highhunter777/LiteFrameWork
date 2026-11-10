@@ -63,6 +63,7 @@ namespace LiteGame.Tests.EditMode
             public SimMapData GetMap(int mapId = 0) => _map;
             public string ScenePath(int mapId) => ScenePathValue;
             public IReadOnlyList<string> ScenePaths() => new[] { ScenePathValue };
+            public IReadOnlyList<MapOption> Options => Array.Empty<MapOption>();
         }
 
         [Test]

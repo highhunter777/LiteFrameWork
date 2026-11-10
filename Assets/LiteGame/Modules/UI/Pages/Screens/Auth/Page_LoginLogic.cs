@@ -12,10 +12,12 @@ namespace LiteGame.Modules.UI
 
         protected override void OnShow(IUIData data)
         {
+            PageServices services = Services;
+            if (services == null) return;
             SetTextKey("Txt_Title", "UI.Login.Title");
             SetTextKey("Txt_GuestLogin", "UI.Login.GuestEnter");
             SetTextKey("Txt_Settings", "Common.Settings");
-            SetTextKey("Txt_Version", "Common.Version", Meta != null ? Meta.Version : string.Empty);
+            SetTextKey("Txt_Version", "Common.Version", services.Meta.Version);
             SetBusy(false);
             OnButtonClick("Btn_GuestLogin", Login);
             OnButtonClick("Btn_Settings", () => Go(PageIds.Page_Settings));
@@ -26,7 +28,7 @@ namespace LiteGame.Modules.UI
         {
             _busy = busy;
             IMetaSession meta = Meta;
-            if (meta == null || !meta.IsConfigured)
+            if (!meta.IsConfigured)
             {
                 SetVisible("Txt_Status", true);
                 SetTextKey("Txt_Status", "UI.Login.NoServer");
@@ -43,7 +45,7 @@ namespace LiteGame.Modules.UI
         private async UniTask LoginAsync()
         {
             IMetaSession meta = Meta;
-            if (_busy || meta == null || !meta.IsConfigured) return;
+            if (_busy || !meta.IsConfigured) return;
 
             SetBusy(true);
             Index.Pulse("Btn_GuestLogin");

@@ -635,7 +635,7 @@
       "path": "Assets/LiteGame/Modules/UI",
       "asmdef": "Assets/LiteGame/Modules/UI/LiteGame.Modules.UI.asmdef",
       "layer": "product",
-      "rank": 35,
+      "rank": 52,
       "owner": "product",
       "tier": [
         "base",
@@ -658,6 +658,10 @@
         "LiteFramework.Hosting",
         "LiteGame.Core",
         "LiteGame.Modules.Config",
+        "LiteGame.Modules.Map",
+        "LiteGame.Modules.Meta",
+        "LiteGame.Modules.Session",
+        "LiteGame.Modules.Settings",
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask"
@@ -1446,6 +1450,26 @@
       "from": "Ui",
       "to": "Config",
       "reason": "UI 段读表读口与文本目录（IConfigService/LTextCatalog）"
+    },
+    {
+      "from": "Ui",
+      "to": "Map",
+      "reason": "页面选图行取地图表（IMapProvider.Options）"
+    },
+    {
+      "from": "Ui",
+      "to": "Meta",
+      "reason": "页面联机面（IMetaSession：登录/房间列表/战绩）"
+    },
+    {
+      "from": "Ui",
+      "to": "Session",
+      "reason": "页面房间读口（IRoomView：房主/席位/提前开局）"
+    },
+    {
+      "from": "Ui",
+      "to": "Settings",
+      "reason": "页面设置端口（ISettingsPagePort：读写即生效）"
     }
   ],
   "scanTargets": [

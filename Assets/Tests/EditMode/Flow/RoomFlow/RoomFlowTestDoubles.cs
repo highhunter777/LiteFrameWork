@@ -256,6 +256,7 @@ namespace LiteGame.Tests.EditMode
         public SimMapData GetMap(int mapId) => throw new NotSupportedException();
         public string ScenePath(int mapId) => MapLocation;
         public IReadOnlyList<string> ScenePaths() => new[] { MapLocation };
+        public IReadOnlyList<MapOption> Options => Array.Empty<MapOption>();
     }
 
     /// <summary>可控场景服务：记录本次加载持有的场景；仅其卸载挂起，表达“必要卸载未结束”。</summary>

@@ -20,6 +20,7 @@ namespace LiteFramework.Diagnostics
         private char[] _chars = new char[4096];
         private readonly StringBuilder _line = new StringBuilder(512);
         private readonly string _sessionId = Log.CurrentSessionId;
+        private readonly IWallClock _clock;
 
         private int _head;
         private int _count;
@@ -44,8 +45,9 @@ namespace LiteFramework.Diagnostics
         /// <param name="capacity">入队环容量（满则丢最旧并计数）。</param>
         /// <param name="maxBytesPerFile">单文件字节上限（近似按行字符数计）；达到即轮转。</param>
         /// <param name="maxFiles">目录内保留的日志文件数（超出按修改时间删最旧）。</param>
+        /// <param name="clock">时间戳源（null = 系统墙钟；测试注入固定时钟）。</param>
         public StructuredLogSink(string directory, int capacity = 1024,
-            long maxBytesPerFile = 8L * 1024 * 1024, int maxFiles = 8)
+            long maxBytesPerFile = 8L * 1024 * 1024, int maxFiles = 8, IWallClock clock = null)
         {
             if (string.IsNullOrWhiteSpace(directory)) throw new ArgumentException("日志目录不能为空", nameof(directory));
             if (capacity < 1) throw new ArgumentOutOfRangeException(nameof(capacity));
@@ -57,6 +59,7 @@ namespace LiteFramework.Diagnostics
             _maxFiles = maxFiles;
             _queue = new LogEntry[capacity];
             _batch = new LogEntry[Math.Min(capacity, 64)];
+            _clock = clock ?? new SystemWallClock();
         }
 
         /// <summary>已写出的条目数（后台线程推进）。</summary>
@@ -189,7 +192,7 @@ namespace LiteFramework.Diagnostics
             {
                 EnsureWriter();
                 _line.Clear();
-                _line.Append("{\"ts\":\"").Append(DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture))
+                _line.Append("{\"ts\":\"").Append(_clock.UtcNow.ToString("O", CultureInfo.InvariantCulture))
                      .Append("\",\"lvl\":\"").Append(LevelName(entry.Level))
                      .Append("\",\"tag\":\"").Append(Log.TagName(entry.Tag))
                      .Append("\",\"sid\":\"");
@@ -228,7 +231,7 @@ namespace LiteFramework.Diagnostics
             Directory.CreateDirectory(_directory);
             _part++;
             string name = string.Format(CultureInfo.InvariantCulture, "log-{0}-{1:yyyyMMdd-HHmmss}-p{2}.jsonl",
-                _sessionId, DateTime.UtcNow, _part);
+                _sessionId, _clock.UtcNow, _part);
             _currentPath = Path.Combine(_directory, name);
             var stream = new FileStream(_currentPath, FileMode.Create, FileAccess.Write, FileShare.Read, 64 * 1024);
             _writer = new StreamWriter(stream, new UTF8Encoding(false));

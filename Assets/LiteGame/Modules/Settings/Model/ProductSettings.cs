@@ -8,7 +8,7 @@ namespace LiteGame.Modules.Settings
     /// <summary>
     /// 设置门面本体：**四组设置的读写 + 立即生效**。
     /// </summary>
-    public sealed class ProductSettings
+    public sealed class ProductSettings : ISettingsPagePort
     {
         /// <summary>UI 画质档数（低/中/高）；GameSettings.Quality 值域 0..3，UI 只暴露 0..2。</summary>
         public const int UIQualityTiers = GraphicsSettingsApplier.UIQualityTiers;

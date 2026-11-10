@@ -1,4 +1,4 @@
-﻿using System.Threading;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
@@ -15,11 +15,12 @@ namespace LiteGame.Modules.Composition
         public string Name => "Clocks";
 
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
-        public System.Collections.Generic.IReadOnlyList<string> DependsOn => System.Array.Empty<string>();
+        public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[] { "PlatformInfrastructure" };
 
         public UniTask InitializeAsync(SegmentContext context, CancellationToken ct)
         {
-            _clocks = FrameworkClocks.Create();
+            var infra = context.Require<FrameworkInfrastructure>();   // 墙钟与日志 sink 共实例
+            _clocks = FrameworkClocks.Create(infra.WallClock);
             context.Put<IWorldClock>(_clocks.World);
             context.Put<IUIClock>(_clocks.UI);
             context.Put<IWallClock>(_clocks.Wall);

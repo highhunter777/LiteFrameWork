@@ -50,6 +50,24 @@ namespace LiteGame.Modules.Map
             return paths;
         }
 
+        public IReadOnlyList<MapOption> Options
+        {
+            get
+            {
+                cfg.Tbmap table = _config.Tables?.Tbmap;
+                if (table == null)
+                    throw new InvalidDataException("tbmap 未装载——表链缺 Map 域（TableLayout.Files 应含 "
+                        + MapTableProjection.TableFile + "）");
+                var options = new List<MapOption>(table.DataList.Count);
+                for (int i = 0; i < table.DataList.Count; i++)
+                {
+                    cfg.map row = table.DataList[i];
+                    options.Add(new MapOption(row.MapId, row.Name));
+                }
+                return options;
+            }
+        }
+
         private cfg.map RowOrThrow(int mapId)
         {
             cfg.Tbmap table = _config.Tables?.Tbmap;

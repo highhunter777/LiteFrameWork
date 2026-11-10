@@ -75,7 +75,7 @@ namespace LiteFramework.UI
         /// <param name="localeProvider">语言服务工厂（批C-② 装配缝：页面经 <see cref="ILocaleBound"/>
         /// 收注入、文案键自动随语言切换刷新；null = 不注入——测试/工具装配，此时 SetTextKey 由索引抛）。</param>
         public UIService(IPageCatalog catalog,
-            ILayerStrategy layerStrategy = null,
+            DefaultLayerStrategy layerStrategy = null,
             ITransitionStrategy transitionStrategy = null,
             IPopInterceptor popInterceptor = null,
             Func<PageDefinition, IUIFormLogic> logicResolver = null,

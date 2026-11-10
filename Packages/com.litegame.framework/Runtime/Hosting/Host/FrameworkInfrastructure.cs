@@ -41,16 +41,20 @@ namespace LiteFramework
 
         public CommandBus Commands { get; }
 
+        /// <summary>时间戳源（日志 sink 与容器注册共用同一实例——替换点只有装配根）。</summary>
+        public IWallClock WallClock { get; }
+
         private bool _disposed;
 
         private FrameworkInfrastructure(IFileStore files, IJsonCodec json,
-            ILog logger, IMainThreadDispatcher dispatcher, CommandBus commands)
+            ILog logger, IMainThreadDispatcher dispatcher, CommandBus commands, IWallClock wallClock)
         {
             Files = files;
             Json = json;
             Logger = logger;
             Dispatcher = dispatcher;
             Commands = commands;
+            WallClock = wallClock;
         }
 
         /// <summary>按固定顺序构造并安装（顺序即契约；幂等之外的失败直接抛给引导层）。</summary>
@@ -64,15 +68,16 @@ namespace LiteFramework
             var json = new NewtonsoftJsonCodec();
 
             var level = options.MinimumLevel ?? (options.IsDevelopment ? LogLevel.Info : LogLevel.Warning);
+            var wallClock = new SystemWallClock();          // 时间戳单一来源：sink 与容器注册同一实例
             var logger = new LogService(level);
             Log.Install(logger);
             Log.SetHelper(new UnityLogHelper());
-            if (options.InstallStructuredLog) StructuredLogInstaller.Install();
+            if (options.InstallStructuredLog) StructuredLogInstaller.Install(wallClock);
 
             var dispatcher = new MainThreadDispatcher();
             var commands = new CommandBus(gmEnabled: options.IsDevelopment);
 
-            return new FrameworkInfrastructure(files, json, logger, dispatcher, commands);
+            return new FrameworkInfrastructure(files, json, logger, dispatcher, commands, wallClock);
         }
 
         public void Dispose()
