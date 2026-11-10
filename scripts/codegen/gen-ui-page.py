@@ -5,17 +5,18 @@
 Inputs:
   - Luban/Data/#uiform.xlsx        (runtime directory source: id/prefab/layer/full_screen/
                                     cache_strategy —页面元数据唯一来源)
-  - Assets/LiteGame/Editor/UITools/UIPageManifest.json  (name)
-  - every page prefab registered by the manifest        (controls / text / styles,
-                                                         read by prefab_page_reader)
+  - every page prefab the table lists (controls / text / styles, read by
+                                    prefab_page_reader; the page name is that
+                                    prefab's file stem)
 
 Output:
   - Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs
   - Assets/LiteGame/Modules/UI/Generated/PageIds.g.cs   (page id constants; same source, same run)
 
-The generated file is the only runtime page directory. Manifest/hash stay
-editor-side; runtime code reads PageDefinition via IPageCatalog. Contracts are
-no longer read here (prefab_page_reader is the contract-free source).
+The generated file is the only runtime page directory; runtime code reads
+PageDefinition via IPageCatalog. Neither UIPageManifest.json nor the contracts
+are read here: the table is the only metadata source and prefab_page_reader is
+the contract-free bind-surface reader.
 
 Usage:
   python scripts/codegen/toolbox.py ui-page [--check]     # supported entry
@@ -23,7 +24,7 @@ Usage:
 """
 
 import argparse
-import json
+import re
 import sys
 from pathlib import Path
 
@@ -33,16 +34,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from collections import Counter  # noqa: E402
 
 from _common import repo_root  # noqa: E402
-from _codegen import fail, info, input_digest, run_tool, signature, warn  # noqa: E402
+from _codegen import fail, info, input_digest, run_tool, signature  # noqa: E402
 import _uiform_row  # noqa: E402
 import prefab_page_reader  # noqa: E402
 
 ROOT = Path(repo_root())
 TOOL = "ui-page"
 DEFAULT_TABLE = ROOT / "Luban" / "Data" / "#uiform.xlsx"
-DEFAULT_MANIFEST = ROOT / "Assets" / "LiteGame" / "Editor" / "UITools" / "UIPageManifest.json"
 DEFAULT_OUTPUT = ROOT / "Assets" / "LiteGame" / "Modules" / "UI" / "Generated" / "UIPageCatalog.g.cs"
 DEFAULT_IDS_OUTPUT = ROOT / "Assets" / "LiteGame" / "Modules" / "UI" / "Generated" / "PageIds.g.cs"
+# Generated page names become C# symbol/const names: no fallback, an unnameable
+# prefab fails the run instead of emitting uncompilable code.
+PAGE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def _rel(path):
@@ -61,31 +64,45 @@ def _fingerprint_entry(path):
 
 
 def build_head(args, prefab_paths):
-    """The uniform signature block; the fingerprint covers the table, the
-    manifest, the built-in component map and every page prefab actually read."""
+    """The uniform signature block; the fingerprint covers the table, the built-in
+    component map and every page prefab actually read."""
     entries = [
         _fingerprint_entry(args.table),
-        _fingerprint_entry(args.manifest),
         _fingerprint_entry(prefab_page_reader.BUILTIN_MAP_PATH),
     ]
     entries.extend(sorted(_fingerprint_entry(path) for path in prefab_paths))
-    label = "%s + %s + %s + %d page prefabs" % (
-        entries[0], entries[1], entries[2], len(prefab_paths))
+    label = "%s + %s + %d page prefabs" % (entries[0], entries[1], len(prefab_paths))
     return signature("ui-page", label, input_digest(entries))
 
 
+def table_rows(table=None):
+    """Every usable #uiform row: id / prefab path / layer / full_screen / cache."""
+    wb, ws = _uiform_row.load_workbook(Path(table or DEFAULT_TABLE))
+    rows = []
+    for _, values in _uiform_row.data_rows(ws):
+        form_id = int(values[_uiform_row.COL_ID - 1] or 0)
+        if form_id <= 0:
+            continue
+        prefab = str(values[_uiform_row.COL_PREFAB - 1] or "").strip()
+        rows.append({
+            "id": form_id,
+            "prefab": "Assets/" + prefab,
+            "layer": int(values[_uiform_row.COL_LAYER - 1] or 0),
+            "full": parse_bool(values[_uiform_row.COL_FULL - 1]),
+            "cache": _uiform_row.cache_strategy_name(values[_uiform_row.COL_CACHE - 1]),
+        })
+    return rows
+
+
 def page_prefab_paths():
-    """Every prefab path registered by the manifest (the reader's real input set)."""
-    manifest = read_json(DEFAULT_MANIFEST)
-    return sorted({page.get("prefabPath") for page in manifest.get("pages", [])
-                   if page.get("prefabPath")})
+    """Every prefab path the table lists (the reader's real input set)."""
+    return sorted({row["prefab"] for row in table_rows()})
 
 
 def path_report():
     """Declared inputs/output derived from the DEFAULT_* constants."""
     entries = [
         {"path": _rel(DEFAULT_TABLE), "kind": "input"},
-        {"path": _rel(DEFAULT_MANIFEST), "kind": "input"},
         {"path": _rel(prefab_page_reader.BUILTIN_MAP_PATH), "kind": "input"},
     ]
     entries.extend({"path": path, "kind": "input"} for path in page_prefab_paths())
@@ -99,17 +116,11 @@ def path_report():
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Generate UIPageCatalog.g.cs")
     parser.add_argument("--table", default=str(DEFAULT_TABLE))
-    parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     parser.add_argument("--ids-output", default="",
                         help="page id constants path (default: PageIds.g.cs next to --output)")
     parser.add_argument("--check", action="store_true", help="compare generated bytes with the checked-in file")
     return parser.parse_args(argv)
-
-
-def read_json(path):
-    with open(path, "r", encoding="utf-8-sig") as handle:
-        return json.load(handle)
 
 
 def parse_bool(value):
@@ -118,87 +129,42 @@ def parse_bool(value):
     return str(value).strip().lower() == "true"
 
 
-def load_pages(manifest_path):
-    manifest = read_json(manifest_path)
-    by_form = {}
-    by_prefab = {}
-    for page in manifest.get("pages", []):
-        prefab = page.get("prefabPath") or ""
-        by_prefab.setdefault(prefab, page)
-        for form in page.get("forms", []):
-            form_id = int(form.get("formId") or 0)
-            if form_id:
-                by_form[form_id] = page
-    return by_form, by_prefab, manifest
-
-
-def cache_enum(value):
-    value = (value or "Lru").strip()
-    if value not in ("Lru", "Resident", "DestroyOnClose"):
-        raise ValueError(f"未知 cacheStrategy：{value}")
-    return value
-
-
 def cs_string(value):
     value = "" if value is None else str(value)
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"').replace("\r", "\\r").replace("\n", "\\n") + '"'
 
 
 def build_definitions(args):
-    wb, ws = _uiform_row.load_workbook(Path(args.table))
-    by_form, by_prefab, manifest = load_pages(Path(args.manifest))
     reader = prefab_page_reader.PageReader(ROOT)
     read_cache = {}
     definitions = []
     prefab_paths = []
-    warnings = []
 
-    for _, values in _uiform_row.data_rows(ws):
-        form_id = int(values[_uiform_row.COL_ID - 1] or 0)
-        if form_id <= 0:
-            continue
-        prefab = str(values[_uiform_row.COL_PREFAB - 1] or "").strip()
-        layer = int(values[_uiform_row.COL_LAYER - 1] or 0)
-        full_screen = parse_bool(values[_uiform_row.COL_FULL - 1])
-        cache = _uiform_row.cache_strategy_name(values[_uiform_row.COL_CACHE - 1])
-        prefab_path = "Assets/" + prefab
-        page = by_form.get(form_id) or by_prefab.get(prefab_path)
-        if page is None:
-            raise ValueError(f"tbuiform id={form_id} 未在 UIPageManifest 登记（prefab={prefab_path}）")
+    for row in table_rows(args.table):
+        prefab_path = row["prefab"]
         page_read = read_cache.get(prefab_path)
         if page_read is None:
             page_read = reader.read(str(ROOT / prefab_path))
             read_cache[prefab_path] = page_read
             prefab_paths.append(prefab_path)
-        name = page.get("name") or Path(prefab).stem
-        # 清单同名字段已退役（表＝唯一来源）：不一致只告警，生成以表为准。
-        manifest_cache = cache_enum(page.get("cacheStrategy"))
-        if manifest_cache != cache:
-            warnings.append(
-                "%s：UIPageManifest.json 的 cacheStrategy=%s 与 #uiform 的 %s 不一致，以表为准"
-                % (name, manifest_cache, cache))
+        name = Path(prefab_path).stem
+        if not PAGE_NAME_RE.match(name):
+            raise ValueError(
+                f"prefab 文件名无法派生成页面名（需 C# 标识符，stem={name!r}）：{prefab_path}")
         definitions.append({
-            "id": form_id,
+            "id": row["id"],
             "name": name,
             "location": prefab_path,
-            "layer": layer,
-            "full": full_screen,
-            "cache": cache,
+            "layer": row["layer"],
+            "full": row["full"],
+            "cache": row["cache"],
             "controls": page_read.controls,
             "text": page_read.text,
             "styles": page_read.styles,
         })
 
-    # 清单中的每个已登记 form 必须能落成定义——防止清单/表单向漂移。
-    table_ids = {item["id"] for item in definitions}
-    for page in manifest.get("pages", []):
-        for form in page.get("forms", []):
-            form_id = int(form.get("formId") or 0)
-            if form_id and form_id not in table_ids:
-                raise ValueError(f"UIPageManifest 的 formId={form_id} 不在 #uiform 表中（{page.get('name')}）")
-
     definitions.sort(key=lambda item: item["id"])
-    return definitions, warnings, sorted(prefab_paths)
+    return definitions, sorted(prefab_paths)
 
 
 def render_ids(definitions, head):
@@ -330,15 +296,12 @@ def render(definitions, head):
 def main(argv=None):
     args = parse_args(argv)
     try:
-        definitions, warnings, prefab_paths = build_definitions(args)
+        definitions, prefab_paths = build_definitions(args)
         head = build_head(args, prefab_paths)
         text = render(definitions, head)
         ids_text = render_ids(definitions, head)
     except Exception as exc:  # noqa: BLE001 - CLI diagnosis
         return fail(TOOL, str(exc))
-
-    for warning in warnings:
-        warn(TOOL, warning)
 
     output = Path(args.output)
     ids_output = Path(args.ids_output) if args.ids_output else output.parent / DEFAULT_IDS_OUTPUT.name

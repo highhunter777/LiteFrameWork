@@ -217,14 +217,16 @@ class PathSingleSourceTests(unittest.TestCase):
         self.assertIn(module.TABLE_LAYOUT_REL.replace("\\", "/"), paths_of(entries, "input"))
 
     def test_ui_page_inputs_and_output(self):
+        """#uiform + the prefabs it lists: the page name is the prefab file stem,
+        so UIPageManifest.json is no longer an input of this generator."""
         module = load("path_report_ui_page", "gen-ui-page.py")
         entries = fetch_report(module, "ui-page")
-        for declared in (module.DEFAULT_TABLE, module.DEFAULT_MANIFEST):
-            self.assertIn(rel_of(declared), paths_of(entries, "input"))
+        inputs = paths_of(entries, "input")
+        self.assertIn(rel_of(module.DEFAULT_TABLE), inputs)
         prefabs = module.page_prefab_paths()
         self.assertTrue(prefabs, "ui-page must declare the page prefabs it reads")
         for prefab in prefabs:
-            self.assertIn(prefab, paths_of(entries, "input"))
+            self.assertIn(prefab, inputs)
         self.assertIn(rel_of(module.DEFAULT_OUTPUT), paths_of(entries, "output"))
 
     def test_ui_api_spec_and_outputs(self):
