@@ -57,14 +57,8 @@ namespace MetaServer
                 AccessTokenService tokens = context.RequestServices.GetService<AccessTokenService>();
                 if (useCase == null || tokens == null) return Disabled();
 
-                string token = InstanceKeyAuth.ReadBearer(context);
-                AccessTokenFormat.Rejection rejection = tokens.Validate(token, out AccessTokenFormat.Claims claims);
-                if (rejection != AccessTokenFormat.Rejection.None)
-                {
-                    // 拒绝分类进 args（非敏感）：稳定错误码 + 分类便于对数，票据原文绝不回显
-                    return MetaResults.Error(StatusCodes.Status401Unauthorized,
-                        AuthErrorCodes.Unauthorized, AuthErrorCodes.MessageKeyUnauthorized, rejection.ToString());
-                }
+                IResult denied = InstanceKeyAuth.TryValidateToken(context, tokens, out AccessTokenFormat.Claims claims);
+                if (denied != null) return denied;
 
                 JoinTicketCommand command = await MetaResults.TryReadJsonAsync<JoinTicketCommand>(context);
                 if (command == null)
@@ -86,13 +80,8 @@ namespace MetaServer
                 AccessTokenService tokens = context.RequestServices.GetService<AccessTokenService>();
                 if (useCase == null || tokens == null) return Disabled();
 
-                string token = InstanceKeyAuth.ReadBearer(context);
-                AccessTokenFormat.Rejection rejection = tokens.Validate(token, out AccessTokenFormat.Claims claims);
-                if (rejection != AccessTokenFormat.Rejection.None)
-                {
-                    return MetaResults.Error(StatusCodes.Status401Unauthorized,
-                        AuthErrorCodes.Unauthorized, AuthErrorCodes.MessageKeyUnauthorized, rejection.ToString());
-                }
+                IResult denied = InstanceKeyAuth.TryValidateToken(context, tokens, out AccessTokenFormat.Claims claims);
+                if (denied != null) return denied;
 
                 CreateRoomCommand command = await MetaResults.TryReadJsonAsync<CreateRoomCommand>(context);
                 if (command == null)
@@ -124,13 +113,8 @@ namespace MetaServer
                 AccessTokenService tokens = context.RequestServices.GetService<AccessTokenService>();
                 if (registry == null || tokens == null) return Disabled();
 
-                string token = InstanceKeyAuth.ReadBearer(context);
-                AccessTokenFormat.Rejection rejection = tokens.Validate(token, out AccessTokenFormat.Claims claims);
-                if (rejection != AccessTokenFormat.Rejection.None)
-                {
-                    return MetaResults.Error(StatusCodes.Status401Unauthorized,
-                        AuthErrorCodes.Unauthorized, AuthErrorCodes.MessageKeyUnauthorized, rejection.ToString());
-                }
+                IResult denied = InstanceKeyAuth.TryValidateToken(context, tokens, out AccessTokenFormat.Claims claims);
+                if (denied != null) return denied;
                 _ = claims;                                  // 鉴权即用（不按账号维度过滤——实例/房间不含个人数据）
 
                 return MetaResults.Ok(new LobbyRoomsResponse { Rooms = registry.ProjectRooms() });

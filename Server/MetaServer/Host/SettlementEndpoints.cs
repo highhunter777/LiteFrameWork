@@ -74,14 +74,8 @@ namespace MetaServer
                 AccessTokenService tokens = context.RequestServices.GetService<AccessTokenService>();
                 if (archive == null || tokens == null) return Disabled();
 
-                string token = InstanceKeyAuth.ReadBearer(context);
-                AccessTokenFormat.Rejection rejection = tokens.Validate(token, out AccessTokenFormat.Claims claims);
-                if (rejection != AccessTokenFormat.Rejection.None)
-                {
-                    // 拒绝分类进 args（非敏感）
-                    return MetaResults.Error(StatusCodes.Status401Unauthorized,
-                        AuthErrorCodes.Unauthorized, AuthErrorCodes.MessageKeyUnauthorized, rejection.ToString());
-                }
+                IResult denied = InstanceKeyAuth.TryValidateToken(context, tokens, out AccessTokenFormat.Claims claims);
+                if (denied != null) return denied;
 
                 // 分页边界进配置（P2 批二：此前是端点里的字面量常量）；每条请求读一次（IOptions 缓存实例）
                 MetaConfig meta = context.RequestServices.GetRequiredService<IOptions<MetaConfig>>().Value;
