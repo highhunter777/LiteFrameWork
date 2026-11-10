@@ -197,6 +197,7 @@ def main():
                     "prefab": str(values[COL_PREFAB - 1] or ""),
                     "layer": int(values[COL_LAYER - 1] or 0),
                     "fullScreen": str(values[COL_FULL - 1]).lower() == "true",
+                    "cache": cache_strategy_name(values[COL_CACHE - 1]),
                 })
             return emit(True, rows=rows, table=str(table))
         if args.suggest:

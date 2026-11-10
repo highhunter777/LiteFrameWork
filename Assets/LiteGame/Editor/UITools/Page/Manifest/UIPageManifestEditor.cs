@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using LiteGame.Editor.UITools.Contracts;
 
 namespace LiteGame.Editor.UITools.Page
 {
@@ -57,9 +56,7 @@ namespace LiteGame.Editor.UITools.Page
                 Forms = new List<UIPageFormEntry>(),
                 Owner = NormalizeOwner(owner),
                 Status = nameof(UIPageStatus.Draft),
-                CacheStrategy = UIPageContract.DefaultCacheStrategy,
-                ContractPath = UIContractPaths.ForPage(name),
-                ContractPresent = File.Exists(UIPageManifestPaths.FullPath(UIContractPaths.ForPage(name))),
+                CacheStrategy = UIPageManifest.DefaultCacheStrategy,
             };
             manifest.Pages.Add(draft);
             manifest.Pages.Sort((a, b) => string.CompareOrdinal(a?.Name, b?.Name));
@@ -125,7 +122,7 @@ namespace LiteGame.Editor.UITools.Page
             if (entry == null) return false;
 
             string normalized = (cacheStrategy ?? string.Empty).Trim();
-            if (!UIPageContract.IsValidCacheStrategy(normalized))
+            if (!UIPageManifest.IsValidCacheStrategy(normalized))
             {
                 error = $"{name}：缓存策略非法 {cacheStrategy}";
                 return false;

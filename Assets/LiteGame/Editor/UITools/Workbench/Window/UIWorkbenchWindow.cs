@@ -11,7 +11,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Workbench
 {
     /// <summary>
-    /// UI 工作台（《UI 编辑器工具链专项设计》§2）：**唯一制作入口**——一个宿主窗口 + 五个透视 （页面/控件库/绑定/契约/校验）+ 共享上下文（页面/目标 prefab/Lane）。
+    /// UI 工作台（《UI 编辑器工具链专项设计》§2）：**唯一制作入口**——一个宿主窗口 + 四个透视 （页面/控件库/绑定/校验）+ 共享上下文（页面/目标 prefab/Lane）。
     /// </summary>
     public sealed class UIWorkbenchWindow : EditorWindow
     {
@@ -24,7 +24,6 @@ namespace LiteGame.Editor.UITools.Workbench
         private readonly UIValidationSection _validation = new UIValidationSection();
         private readonly UIGenerateSection _generate = new UIGenerateSection();
         private readonly UIWorkbenchPageSection _page = new UIWorkbenchPageSection();
-        private readonly UIWorkbenchContractSection _contract = new UIWorkbenchContractSection();
 
         private IWorkbenchSettings _settings;
         private UIWorkbenchState _state;
@@ -142,9 +141,8 @@ namespace LiteGame.Editor.UITools.Workbench
             DrawHeader();
             DrawPerspectiveBar();
 
-            // 页面/契约透视自带列表滚动；其余透视由宿主统一滚动，避免嵌套 ScrollView。
-            bool selfScrolling = _state.Perspective == UIWorkbenchPerspectiveId.Page
-                                 || _state.Perspective == UIWorkbenchPerspectiveId.Contract;
+            // 页面透视自带列表滚动；其余透视由宿主统一滚动，避免嵌套 ScrollView。
+            bool selfScrolling = _state.Perspective == UIWorkbenchPerspectiveId.Page;
             if (selfScrolling)
             {
                 DrawPerspective();
@@ -290,7 +288,6 @@ namespace LiteGame.Editor.UITools.Workbench
             _drawers[UIWorkbenchPerspectiveId.Page] = () => _page.Draw(_state, CanRun, DisabledReasonFor, Log);
             _drawers[UIWorkbenchPerspectiveId.Widgets] = DrawWidgetsPerspective;
             _drawers[UIWorkbenchPerspectiveId.Binding] = DrawBindingPerspective;
-            _drawers[UIWorkbenchPerspectiveId.Contract] = () => _contract.Draw(CanRun, DisabledReasonFor, Log);
             _drawers[UIWorkbenchPerspectiveId.Validation] = DrawValidationPerspective;
         }
 

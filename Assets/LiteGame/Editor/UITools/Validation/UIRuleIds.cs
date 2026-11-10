@@ -57,17 +57,8 @@ namespace LiteGame.Editor.UITools.Validation
         /// <summary>性能：页面根挂 Animator（Error，UI-PREFAB-03）；UI 子树任意 Animator（Warning）。</summary>
         public const string PerformanceAnimator = "ui.performance.animator";
 
-        /// <summary>契约：盘上契约与按 prefab 重生成结果不一致（含手改检出）。</summary>
-        public const string ContractDrift = "ui.contract.drift";
-
-        /// <summary>契约：引用对账（required 控件未被页面逻辑消费＝Warning；页面调用点名不在契约面＝Error）。</summary>
-        public const string ContractReference = "ui.contract.reference";
-
         /// <summary>契约：页面逻辑件与 prefab 载体对账（逻辑件存在 ⇒ 根挂 IUIFormLogic；重复实现报错）。</summary>
         public const string PageLogic = "ui.page-logic";
-
-        /// <summary>契约：静态文案节点（`LTextKeyRef`）被页面逻辑 `SetText*` 再写（文本双写）。</summary>
-        public const string ContractTextDoubleWrite = "ui.contract.text-double-write";
 
         /// <summary>例外登记自身：条目字段非法。</summary>
         public const string ExceptionInvalid = "ui.rule-exception.invalid";

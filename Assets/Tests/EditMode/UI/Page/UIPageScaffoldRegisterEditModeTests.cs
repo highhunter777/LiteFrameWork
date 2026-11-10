@@ -1,12 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using LiteFramework.UI;
 using LiteCodeGen;
 using LiteGame.Editor.UITools.Binding;
-using LiteGame.Editor.UITools.Contracts;
 using LiteGame.Editor.UITools.Page;
 using LiteGame.Editor.UITools.Validation;
 using LiteGame.Editor.UITools.Workbench;
@@ -20,13 +18,12 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// UI 系统 P2-2 守卫（《UI 编辑器工具链专项设计》§3.1/§3.5/§3.6）： 起页（基线复制/根契约/安全区归属/原子清理）、草稿契约（formId=0/批量/漂移/diff 口径）。
+    /// UI 系统 P2-2 守卫（《UI 编辑器工具链专项设计》§3.1/§3.6）： 起页（基线复制/根契约/安全区归属/原子清理）、页面清单草稿与维护字段、登记（表/生成链/清单状态）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class UIPageScaffoldRegisterEditModeTests
     {
         private const string TempRoot = "Assets/Tests/TempUiPageSplit";
-        private const string TempContracts = TempRoot + "/Contracts";
         private const string TempManifest = TempRoot + "/PageManifest.json";
         private const string TempBindManifest = TempRoot + "/UIBindManifest.json";
         private const string TableCopyRelative = "Temp/ui-page-split/uiform.xlsx";
@@ -45,13 +42,9 @@ namespace LiteGame.Tests.EditMode
 
         private static string PrefabPath(string pageName) => UIValidator.ScreensDir + "/" + pageName + ".prefab";
 
-
-        private static string DraftContractPath(string pageName) => TempContracts + "/" + pageName + ".contract.json";
-
         private byte[] _realTableBytes;
         private byte[] _realManifestBytes;
         private byte[] _realBindManifestBytes;
-        private string _contractsBaselineHash;
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
@@ -59,12 +52,10 @@ namespace LiteGame.Tests.EditMode
             _realTableBytes = File.ReadAllBytes(RealTableFullPath);
             _realManifestBytes = ReadIfExists(FullPath(UIPageManifestPaths.DefaultPath));
             _realBindManifestBytes = ReadIfExists(FullPath(UIBindGenerationHash.DefaultManifestPath));
-            _contractsBaselineHash = HashDirectory(UIContractPaths.ContractDirectory);
             EnsureAssetsFolder("Assets/Tests");
             DeleteAssetsFolder(TempRoot);
             EnsureAssetsFolder("Assets/Tests");
             AssetDatabase.CreateFolder("Assets/Tests", "TempUiPageSplit");
-            AssetDatabase.CreateFolder(TempRoot, "Contracts");
             Directory.CreateDirectory(Path.GetDirectoryName(TableCopyFullPath));
             Directory.CreateDirectory(Path.Combine(UIValidator.ProjectRoot, "Temp/ui-page-split/backups"));
             AssetDatabase.Refresh();
@@ -81,8 +72,6 @@ namespace LiteGame.Tests.EditMode
 
             CollectionAssert.AreEqual(_realTableBytes, File.ReadAllBytes(RealTableFullPath),
                 "真实 #uiform.xlsx 不得被夹具改动");
-            Assert.AreEqual(_contractsBaselineHash, HashDirectory(UIContractPaths.ContractDirectory),
-                "真实契约基线（11 份）不得被夹具改动");
             CollectionAssert.AreEqual(_realManifestBytes,
                 ReadIfExists(FullPath(UIPageManifestPaths.DefaultPath)), "真实 UIPageManifest.json 不得被夹具改动");
             CollectionAssert.AreEqual(_realBindManifestBytes,
@@ -97,9 +86,7 @@ namespace LiteGame.Tests.EditMode
             CleanupTestPages();
             DeleteAssetIfExists(TempManifest);
             DeleteAssetIfExists(TempBindManifest);
-            DeleteAssetsFolder(TempContracts);
             EnsureAssetsFolder(TempRoot);
-            AssetDatabase.CreateFolder(TempRoot, "Contracts");
             File.Copy(RealTableFullPath, TableCopyFullPath, true);
             AssetDatabase.Refresh();
         }
@@ -197,76 +184,6 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual("block", File.ReadAllText(FullPath(blocked)), "阻断文件不被破坏");
         }
 
-        // ---------------- 草稿契约 ----------------
-
-        [Test]
-        public void 草稿契约_批量生成formId零_确定性()
-        {
-            Assert.IsTrue(Scaffold("Page_TestScaffoldE", BaselineA).Ok);
-
-            UIContractBatchResult first = UIContractBatch.Generate(TempContracts, LoadTempManifest());
-            Assert.IsTrue(first.Ok, first.ToReport());
-            Assert.IsTrue(first.Written.Any(entry => entry.Draft && entry.PageName == "Page_TestScaffoldE"),
-                "批量必须产出草稿契约：" + first.ToReport());
-
-            string path = DraftContractPath("Page_TestScaffoldE");
-            Assert.IsTrue(File.Exists(FullPath(path)), path);
-            UIPageContract contract = UIContractStore.Load(path);
-            Assert.AreEqual(0, contract.Page.FormId, "草稿 formId=0");
-            Assert.AreEqual(UIContractGenerator.DraftLayer, contract.Page.Layer);
-            Assert.AreEqual(UIContractGenerator.DraftFullScreen, contract.Page.FullScreen);
-            byte[] before = File.ReadAllBytes(FullPath(path));
-
-            UIContractBatchResult second = UIContractBatch.Generate(TempContracts, LoadTempManifest());
-            Assert.IsTrue(second.Ok, second.ToReport());
-            CollectionAssert.AreEqual(before, File.ReadAllBytes(FullPath(path)), "草稿契约重复生成逐字节一致");
-        }
-
-        [Test]
-        public void 草稿契约_空清单不产草稿()
-        {
-            UIContractBatchResult result = UIContractBatch.Generate(TempContracts, new UIPageManifest());
-            Assert.IsTrue(result.Ok, result.ToReport());
-            Assert.IsFalse(result.Written.Any(entry => entry.Draft), "空清单不得伪造草稿");
-        }
-
-        [Test]
-        public void 草稿契约_重生成与盘上一致()
-        {
-            Assert.IsTrue(Scaffold("Page_TestScaffoldF", BaselineA).Ok);
-            UIContractBatch.Generate(TempContracts, LoadTempManifest());
-            UIPageManifest manifest = LoadTempManifest();
-            UIPageManifestEntry entry = manifest.Pages.Single(page => page.Name == "Page_TestScaffoldF");
-
-            UIContractGenerationResult regenerated = UIContractBatch.Regenerate(entry, allowDraft: true);
-            Assert.IsTrue(regenerated.Ok, regenerated.ErrorText);
-            Assert.AreEqual(0, regenerated.Contract.Page.FormId);
-            string onDisk = File.ReadAllText(FullPath(DraftContractPath("Page_TestScaffoldF")));
-            Assert.AreEqual(UIContractJson.Serialize(regenerated.Contract), onDisk, "重生成逐字节一致");
-        }
-
-        [Test]
-        public void 契约diff_草稿晋升与维护字段变化_非破坏()
-        {
-            UIPageContract draft = DraftContract();
-            UIPageContract promoted = Clone(draft);
-            promoted.Page.FormId = 17;
-            promoted.Page.CacheStrategy = "DestroyOnClose";
-            promoted.Page.Layer = 2;
-            promoted.Page.FullScreen = false;
-            UIContractDiffResult diff = UIContractDiff.Compare(draft, promoted);
-            Assert.IsFalse(diff.HasBreaking, "草稿晋升/维护字段变化不得判破坏：" + string.Join(";", diff.Changes.Select(c => c.Key)));
-
-            UIPageContract renamed = Clone(promoted);
-            renamed.Page.FormId = 18;
-            Assert.IsTrue(UIContractDiff.Compare(promoted, renamed).HasBreaking, "真实 formId 变更仍是破坏性");
-
-            UIPageContract demoted = Clone(promoted);
-            demoted.Page.FormId = 0;
-            Assert.IsTrue(UIContractDiff.Compare(promoted, demoted).HasBreaking,
-                "真实→0（表行删除/回退草稿）必须判破坏，不能与草稿晋升同豁免");
-        }
-
         // ---------------- 清单与缓存策略 ----------------
 
         [Test]
@@ -305,28 +222,13 @@ namespace LiteGame.Tests.EditMode
                 "对账必须保留维护字段");
         }
 
-        [Test]
-        public void 契约投影_缓存策略与清单一致()
-        {
-            PrepareTempManifestFromRealTable();
-            UIPageManifest manifest = UIPageManifestStore.Load(TempManifest);
-            Assert.IsTrue(UIPageManifestEditor.SetCacheStrategy(manifest, "Page_Login", "Resident",
-                out string error), error);
-            UIPageManifestEntry entry = manifest.Pages.Single(p => p.Name == "Page_Login");
-
-            UIContractGenerationResult result = UIContractBatch.Regenerate(entry);
-            Assert.IsTrue(result.Ok, result.ErrorText);
-            Assert.AreEqual("Resident", result.Contract.Page.CacheStrategy, "契约投影同一缓存策略");
-        }
-
         // ---------------- 登记 ----------------
 
         [Test]
-        public void 登记_正常路径_表清单缓存契约_hash规则()
+        public void 登记_正常路径_表清单缓存_hash规则()
         {
             const string page = "Page_TestRegisterA";
             Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            Assert.IsTrue(TryGenerateDraftContract(page));
 
             var codegen = new FakeCodegen();
             UIPageRegisterResult result = UIPageRegistration.Register(Request(page, ValidId, codegen: codegen));
@@ -346,51 +248,8 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, entry.Forms.Count);
             Assert.AreEqual(ValidId, entry.Forms[0].FormId);
             Assert.AreEqual("DestroyOnClose", entry.CacheStrategy, "缓存策略保留");
-            Assert.IsTrue(entry.ContractPresent);
-
-            UIPageContract contract = UIContractStore.Load(entry.ContractPath);
-            Assert.AreEqual(ValidId, contract.Page.FormId, "登记后契约刷新真实 formId");
-            Assert.AreEqual("DestroyOnClose", contract.Page.CacheStrategy, "契约投影同一缓存策略");
 
             Assert.IsFalse(File.Exists(FullPath(TempBindManifest)), "无 BindRoot 不得写绑定 hash（不伪造）");
-        }
-
-        [Test]
-        public void 登记_缺草稿契约_拒绝且零产物()
-        {
-            const string page = "Page_TestRegisterB";
-            Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            byte[] tableBefore = File.ReadAllBytes(TableCopyFullPath);
-
-            UIPageRegisterResult result = UIPageRegistration.Register(Request(page, ValidId));
-
-            Assert.IsFalse(result.Ok);
-            Assert.AreEqual(UIPageRegisterFailure.Contract, result.FailedAt, result.Error);
-            CollectionAssert.AreEqual(tableBefore, File.ReadAllBytes(TableCopyFullPath), "预检失败不得写表");
-            Assert.IsTrue(UIPageTableHelper.TryListPages(out List<UIPageTableRow> rows, out _, TableCopyRelative));
-            Assert.IsFalse(rows.Any(row => row.id == ValidId), "预检失败不得写表");
-        }
-
-        [Test]
-        public void 登记_契约formId非零或guid不符_拒绝()
-        {
-            const string page = "Page_TestRegisterC";
-            Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            UIPageContract contract = DraftContract();
-            contract.Page.Name = page;
-            contract.Page.PrefabPath = PrefabPath(page);
-            contract.Page.PrefabGuid = AssetDatabase.AssetPathToGUID(PrefabPath(page));
-            contract.Page.FormId = 5;
-            UIContractStore.Save(DraftContractPath(page), contract);
-
-            UIPageRegisterResult result = UIPageRegistration.Register(Request(page, ValidId));
-            Assert.AreEqual(UIPageRegisterFailure.Contract, result.FailedAt, result.Error);
-
-            contract.Page.FormId = 0;
-            contract.Page.PrefabGuid = new string('0', 32);
-            UIContractStore.Save(DraftContractPath(page), contract);
-            UIPageRegisterResult stale = UIPageRegistration.Register(Request(page, ValidId));
-            Assert.AreEqual(UIPageRegisterFailure.Contract, stale.FailedAt, "同名旧契约（guid 不符）必须拒绝");
         }
 
         [Test]
@@ -399,7 +258,6 @@ namespace LiteGame.Tests.EditMode
             const string page = "Page_TestRegisterD";
             AssetDatabase.CopyAsset(BaselineA, PrefabPath(page));
             AssetDatabase.Refresh();
-            WriteDraftContract(page, 0);
 
             UIPageRegisterResult result = UIPageRegistration.Register(Request(page, ValidId));
             Assert.AreEqual(UIPageRegisterFailure.Validate, result.FailedAt, result.Error);
@@ -410,7 +268,6 @@ namespace LiteGame.Tests.EditMode
         {
             const string page = "Page_TestRegisterE";
             Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            Assert.IsTrue(TryGenerateDraftContract(page));
 
             UIPageRegisterResult conflict = UIPageRegistration.Register(Request(page, 11));
             Assert.AreEqual(UIPageRegisterFailure.Validate, conflict.FailedAt, conflict.Error);
@@ -431,7 +288,6 @@ namespace LiteGame.Tests.EditMode
         {
             const string page = "Page_TestRegisterF";
             Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            Assert.IsTrue(TryGenerateDraftContract(page));
             var table = new FailAfterWriteTablePort(new UIPageTableHelperPort(TableCopyRelative));
             byte[] before = File.ReadAllBytes(TableCopyFullPath);
 
@@ -451,7 +307,6 @@ namespace LiteGame.Tests.EditMode
         {
             const string page = "Page_TestRegisterF2";
             Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            Assert.IsTrue(TryGenerateDraftContract(page));
             var table = new FailAfterWriteTablePort(new UIPageTableHelperPort(TableCopyRelative))
             {
                 LookupFails = true,
@@ -471,7 +326,6 @@ namespace LiteGame.Tests.EditMode
         {
             const string page = "Page_TestRegisterF3";
             Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            Assert.IsTrue(TryGenerateDraftContract(page));
             var table = new UnknownAfterRollbackTablePort(new UIPageTableHelperPort(TableCopyRelative));
 
             UIPageRegisterResult result =
@@ -488,7 +342,6 @@ namespace LiteGame.Tests.EditMode
         {
             const string page = "Page_TestRegisterG";
             Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            Assert.IsTrue(TryGenerateDraftContract(page));
             var codegen = new FakeCodegen { LubanOk = false };
 
             UIPageRegisterResult result = UIPageRegistration.Register(Request(page, ValidId, codegen: codegen));
@@ -505,7 +358,6 @@ namespace LiteGame.Tests.EditMode
         {
             const string page = "Page_TestRegisterH";
             Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            Assert.IsTrue(TryGenerateDraftContract(page));
             var codegen = new FakeCodegen { HashOk = false };
 
             UIPageRegisterResult result = UIPageRegistration.Register(Request(page, ValidId, codegen: codegen));
@@ -517,29 +369,10 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 登记_契约刷新失败_显式报红()
-        {
-            const string page = "Page_TestRegisterI";
-            Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            Assert.IsTrue(TryGenerateDraftContract(page));
-            var refresher = new FakeRefresher { Ok = false, Error = "模拟刷新失败" };
-
-            UIPageRegisterResult result =
-                UIPageRegistration.Register(Request(page, ValidId, refresher: refresher));
-
-            Assert.IsFalse(result.Ok);
-            Assert.AreEqual(UIPageRegisterFailure.ContractRefresh, result.FailedAt, result.Error);
-            StringAssert.Contains("契约未刷新", result.Error);
-            Assert.AreEqual("Registered", LoadTempManifest().Pages.Single(p => p.Name == page).Status,
-                "契约刷新失败不回滚已完成的登记");
-        }
-
-        [Test]
         public void 登记_注入表路径必须同时注入生成链()
         {
             const string page = "Page_TestRegisterJ";
             Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            Assert.IsTrue(TryGenerateDraftContract(page));
             UIPageRegisterRequest request = Request(page, ValidId);
             request.Codegen = null;
 
@@ -552,7 +385,6 @@ namespace LiteGame.Tests.EditMode
         {
             const string page = "Page_TestRegisterK";
             Assert.IsTrue(Scaffold(page, BaselineA).Ok);
-            Assert.IsTrue(TryGenerateDraftContract(page));
             string prefabPath = PrefabPath(page);
             var contents = PrefabUtility.LoadPrefabContents(prefabPath);
             try
@@ -696,26 +528,8 @@ namespace LiteGame.Tests.EditMode
 
         private static UIPageManifest LoadTempManifest() => UIPageManifestStore.Load(TempManifest);
 
-        private static bool TryGenerateDraftContract(string pageName)
-        {
-            UIContractBatchResult generated = UIContractBatch.Generate(TempContracts, LoadTempManifest());
-            if (!generated.Ok) return false;
-            return File.Exists(FullPath(DraftContractPath(pageName)));
-        }
-
-        private static void WriteDraftContract(string pageName, int formId)
-        {
-            UIPageContract contract = DraftContract();
-            contract.Page.Name = pageName;
-            contract.Page.PrefabPath = PrefabPath(pageName);
-            contract.Page.PrefabGuid = AssetDatabase.AssetPathToGUID(PrefabPath(pageName));
-            contract.Page.FormId = formId;
-            UIContractStore.Save(DraftContractPath(pageName), contract);
-        }
-
         private static UIPageRegisterRequest Request(string pageName, int id,
-            IUIPageTablePort table = null, IUIPageCodegenPipeline codegen = null,
-            IUIPageContractRefresher refresher = null)
+            IUIPageTablePort table = null, IUIPageCodegenPipeline codegen = null)
             => new UIPageRegisterRequest
             {
                 PageName = pageName,
@@ -724,32 +538,11 @@ namespace LiteGame.Tests.EditMode
                 FullScreen = true,
                 CacheStrategy = "DestroyOnClose",
                 ManifestPath = TempManifest,
-                ContractPath = DraftContractPath(pageName),
                 TablePath = TableCopyRelative,
                 BindManifestPath = TempBindManifest,
                 Table = table ?? new UIPageTableHelperPort(TableCopyRelative),
                 Codegen = codegen ?? new FakeCodegen(),
-                ContractRefresher = refresher ?? new DefaultRefresher(),
             };
-
-        private static UIPageContract DraftContract()
-            => new UIPageContract
-            {
-                Page = new UIContractPage
-                {
-                    FormId = 0,
-                    Name = "Page_Draft",
-                    PrefabPath = "Assets/LiteGame/Modules/UI/Content/Screens/Page_Draft.prefab",
-                    PrefabGuid = new string('a', 32),
-                    
-                    Layer = UIContractGenerator.DraftLayer,
-                    FullScreen = UIContractGenerator.DraftFullScreen,
-                    CacheStrategy = UIPageContract.DefaultCacheStrategy,
-                },
-            };
-
-        private static UIPageContract Clone(UIPageContract contract)
-            => UIContractJson.Deserialize(UIContractJson.Serialize(contract));
 
         private void PrepareTempManifestFromRealTable()
         {
@@ -799,22 +592,6 @@ namespace LiteGame.Tests.EditMode
             if (File.Exists(FullPath(path))) AssetDatabase.DeleteAsset(path);
         }
 
-        private static string HashDirectory(string assetDirectory)
-        {
-            string full = UIContractPaths.FullPath(assetDirectory);
-            if (!Directory.Exists(full)) return string.Empty;
-            var entries = Directory.GetFiles(full, "*.contract.json")
-                .OrderBy(path => path, StringComparer.Ordinal)
-                .Select(path => Path.GetFileName(path) + ":" + Sha256(File.ReadAllBytes(path)));
-            return Sha256(System.Text.Encoding.UTF8.GetBytes(string.Join("|", entries)));
-        }
-
-        private static string Sha256(byte[] bytes)
-        {
-            using (var sha = SHA256.Create())
-                return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", string.Empty).ToLowerInvariant();
-        }
-
         // ---------------- 假端口 ----------------
 
         private sealed class FakeCodegen : IUIPageCodegenPipeline
@@ -837,45 +614,6 @@ namespace LiteGame.Tests.EditMode
                 HashCalls++;
                 Order.Add("hash");
                 return HashOk ? UIPageCodegenRun.Success("fake hash") : UIPageCodegenRun.Failure("假 BuildHash 失败");
-            }
-        }
-
-        private sealed class FakeRefresher : IUIPageContractRefresher
-        {
-            public bool Ok = true;
-            public string Error;
-            public int Calls;
-
-            public bool TryRefresh(UIPageManifestEntry entry, out string error)
-            {
-                Calls++;
-                error = Ok ? null : Error;
-                return Ok;
-            }
-        }
-
-        private sealed class DefaultRefresher : IUIPageContractRefresher
-        {
-            public bool TryRefresh(UIPageManifestEntry entry, out string error)
-            {
-                error = null;
-                try
-                {
-                    UIContractGenerationResult result = UIContractBatch.Regenerate(entry);
-                    if (!result.Ok)
-                    {
-                        error = result.ErrorText;
-                        return false;
-                    }
-
-                    UIContractStore.Save(entry.ContractPath, result.Contract);
-                    return true;
-                }
-                catch (Exception exception)
-                {
-                    error = exception.Message;
-                    return false;
-                }
             }
         }
 

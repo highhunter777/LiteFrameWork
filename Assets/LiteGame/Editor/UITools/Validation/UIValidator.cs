@@ -63,9 +63,6 @@ namespace LiteGame.Editor.UITools.Validation
             new PerformanceRaycastTargetRule(),
             new PerformanceLayoutDepthRule(),
             new PerformanceAnimatorRule(),
-            new ContractDriftRule(),
-            new ContractReferenceRule(),
-            new ContractTextDoubleWriteRule(),
             new PageLogicRule(),
         };
 

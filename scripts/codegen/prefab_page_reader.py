@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 """Read a page's bind surface straight from a Unity prefab YAML.
 
-Contract-free counterpart of UIContractGenerator.Collect / CollectControl /
-CollectText / CollectStyle (Assets/LiteGame/Editor/UITools/Contract/
-UIContractGenerator.cs): same scope rules (Clone_, nested BindRoot, prefab
-template roots), same nodePath spelling, same type/kind/required derivation,
-same text[]/styles[] projections.
+Single source of the bind surface: scope rules (Clone_, nested BindRoot, prefab
+template roots), nodePath spelling, type/kind/required derivation and the
+controls/text/styles projections all live here (页面契约已退役，本文件是唯一实现).
 
 Public API:
     read_page(prefab_path) -> PageReadResult(controls, text, styles, diagnostics)
@@ -41,7 +39,7 @@ BUILTIN_CONTENT_ROOTS = (
     "Assets/LiteGame/Modules/Battle/Content",
 )
 
-# Mirrors UIContractGenerator.MapRole (UITextRole -> contract role spelling).
+# UITextRole -> 样式角色拼写（词表单源；改枚举须同批改本表）。
 TEXT_ROLE_NAMES = {
     0: "Title",
     1: "Body",
@@ -87,7 +85,7 @@ AUTO_TYPE_CANDIDATES = (
     "ParticleSystemRenderer",
 )
 
-# Mirrors UIContractGenerator.IsCommandTarget (same file, :384-395).
+# 命令型控件判据：基类命中即 Command（含 UGUI Selectable/ScrollRect 与我们自己的列表/控件基类）。
 COMMAND_BASE_TYPES = frozenset((
     "UnityEngine.UI.Selectable",
     "UnityEngine.UI.ScrollRect",
@@ -1174,22 +1172,22 @@ def _default_reader():
 
 
 def read_page(prefab_path, reader=None):
-    """Return controls + text + styles (each in contract order)."""
+    """Return controls + text + styles（各自按 nodePath 升序）。"""
     return (reader or _default_reader()).read(prefab_path)
 
 
 def iter_page_controls(prefab_path, reader=None):
-    """Return the page's controls in contract order (nodePath ordinal ascending)."""
+    """Return the page's controls（nodePath 升序）。"""
     return read_page(prefab_path, reader).controls
 
 
 def iter_page_text(prefab_path, reader=None):
-    """Return the page's text[] bindings in contract order (nodePath ordinal)."""
+    """Return the page's text bindings（nodePath 升序）。"""
     return read_page(prefab_path, reader).text
 
 
 def iter_page_styles(prefab_path, reader=None):
-    """Return the page's styles[] bindings in contract order (nodePath ordinal)."""
+    """Return the page's style bindings（nodePath 升序）。"""
     return read_page(prefab_path, reader).styles
 
 

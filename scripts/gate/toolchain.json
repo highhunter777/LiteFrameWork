@@ -129,7 +129,7 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "ui.workbench",
-      "summary": "UI 制作唯一入口：页面/控件库/绑定/契约/校验五透视，角色 Lane 与阶段门控。",
+      "summary": "UI 制作唯一入口：页面/控件库/绑定/校验四透视，角色 Lane 与阶段门控。",
       "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/制作/UI 工作台",
       "writes": ["asset", "source"],
@@ -163,15 +163,14 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "ui.page-register",
-      "summary": "草稿页登记：契约门槛校验、tbuiform 行、Luban+BuildHash、清单状态/缓存与契约刷新。",
+      "summary": "草稿页登记：tbuiform 行、Luban+BuildHash、清单状态/缓存。",
       "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/制作/页面登记",
       "writes": ["asset", "source", "generated"],
       "outputs": [
         { "path": "Luban/Data/#uiform.xlsx", "kind": "data" },
         { "path": "Assets/GameData/Generated/", "kind": "generated" },
-        { "path": "Assets/LiteGame/Editor/UITools/UIPageManifest.json", "kind": "data" },
-        { "path": "Assets/LiteGame/Editor/UITools/Contracts/", "kind": "data" }
+        { "path": "Assets/LiteGame/Editor/UITools/UIPageManifest.json", "kind": "data" }
       ],
       "destructive": false,
       "order": 36
@@ -314,39 +313,6 @@
       "order": 110
     },
     {
-      "id": "ui.contract",
-      "title": "生成页面契约",
-      "category": "ui",
-      "kind": "action",
-      "plane": "editor",
-      "purpose": "dev",
-      "handler": "ui.contract",
-      "summary": "按 tbuiform 登记批量生成/刷新页面契约（常驻壳跳过、多行取首行并告警）。",
-      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
-      "menu": "LiteGame/UI/契约/生成页面契约（全部登记页）",
-      "writes": ["asset"],
-      "outputs": [
-        { "path": "Assets/LiteGame/Editor/UITools/Contracts/", "kind": "asset" }
-      ],
-      "destructive": false,
-      "order": 120
-    },
-    {
-      "id": "ui.contract-diff",
-      "title": "对账页面契约",
-      "category": "ui",
-      "kind": "action",
-      "plane": "editor",
-      "purpose": "dev",
-      "handler": "ui.contract-diff",
-      "summary": "磁盘基线 vs 现生成的契约 diff；破坏性变更判失败，无基线只告警。",
-      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
-      "menu": "LiteGame/UI/契约/对账页面契约（diff）",
-      "writes": ["none"],
-      "destructive": false,
-      "order": 130
-    },
-    {
       "id": "ui.widget-manifest",
       "title": "生成控件清单",
       "category": "ui",
@@ -372,7 +338,7 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "ui.page-manifest",
-      "summary": "tbuiform + 已有清单 + 契约存在性对账，刷新身份字段并保留维护字段。",
+      "summary": "tbuiform + 已有清单对账，刷新身份字段并保留维护字段。",
       "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/契约/对账页面清单",
       "writes": ["asset"],
@@ -573,7 +539,7 @@
       "kind": "cli",
       "plane": "external",
       "purpose": "dev",
-      "summary": "#uiform + UiPageManifest + 页面 prefab → UIPageCatalog.g.cs（PageDefinition 单源）+ PageIds.g.cs（页面 id 常量）。",
+      "summary": "#uiform + 页面 prefab → UIPageCatalog.g.cs（PageDefinition 单源）+ PageIds.g.cs（页面 id 常量）。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
       "command": ["python", "scripts/codegen/toolbox.py", "ui-page"],
       "args": [

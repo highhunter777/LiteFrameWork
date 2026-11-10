@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace LiteGame.Editor.UITools.Page
 {
@@ -13,6 +13,9 @@ namespace LiteGame.Editor.UITools.Page
         public string prefab;
         public int layer;
         public bool fullScreen;
+
+        /// <summary>`cache_strategy` 列的枚举名（词表真相＝`LiteFramework.UI.UICacheStrategy`；首个表单行的值）。</summary>
+        public string cache;
 
         /// <summary>`Assets/…` 形式的 prefab 路径（表里存的是相对 Assets 的路径）。</summary>
         public string PrefabPath => string.IsNullOrEmpty(prefab) ? string.Empty : "Assets/" + prefab;

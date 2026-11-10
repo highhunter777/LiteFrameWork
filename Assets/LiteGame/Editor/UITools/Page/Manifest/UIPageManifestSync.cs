@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using LiteGame.Editor.UITools.Contracts;
 
 namespace LiteGame.Editor.UITools.Page
 {
@@ -109,14 +108,12 @@ namespace LiteGame.Editor.UITools.Page
                         FullScreen = row.fullScreen,
                     })
                     .ToList();
-                if (!UIPageContract.IsValidCacheStrategy(entry.CacheStrategy))
+                if (!UIPageManifest.IsValidCacheStrategy(entry.CacheStrategy))
                 {
                     result.Manifest.Warnings.Add(
-                        $"{name}：cacheStrategy 缺失/非法（{entry.CacheStrategy ?? "null"}）→ {UIPageContract.DefaultCacheStrategy}");
-                    entry.CacheStrategy = UIPageContract.DefaultCacheStrategy;
+                        $"{name}：cacheStrategy 缺失/非法（{entry.CacheStrategy ?? "null"}）→ {UIPageManifest.DefaultCacheStrategy}");
+                    entry.CacheStrategy = UIPageManifest.DefaultCacheStrategy;
                 }
-                entry.ContractPath = UIContractPaths.ForPage(name);
-                entry.ContractPresent = File.Exists(UIPageManifestPaths.FullPath(entry.ContractPath));
 
                 if (string.IsNullOrWhiteSpace(entry.Owner)) entry.Owner = DefaultOwner;
                 if (!UIPageStatusRules.TryParse(entry.Status, out UIPageStatus parsed))
@@ -146,9 +143,6 @@ namespace LiteGame.Editor.UITools.Page
                 if (oldStatus != UIPageStatus.Draft)
                     result.Manifest.Warnings.Add($"{old.Name}：清单有但 tbuiform 无对应行（状态 {old.Status}）");
 
-                // 草稿页也要刷新契约存在性：草稿契约（formId=0）是登记门槛与漂移规则的输入。
-                old.ContractPath = Contracts.UIContractPaths.ForPage(old.Name);
-                old.ContractPresent = File.Exists(UIPageManifestPaths.FullPath(old.ContractPath));
                 byName.Add(old.Name);
                 pages.Add(old);
             }

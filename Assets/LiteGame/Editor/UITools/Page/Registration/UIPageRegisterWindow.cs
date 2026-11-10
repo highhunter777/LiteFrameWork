@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using LiteFramework.UI;
-using LiteGame.Editor.UITools.Contracts;
 using LiteGame.Editor.UITools.Validation;
 using UnityEditor;
 using UnityEngine;
@@ -11,8 +9,8 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Page
 {
     /// <summary>
-    /// 页面登记窗口（工程，`ui.page-register`）：选草稿页 → id/layer/全屏/缓存策略 → 契约门槛校验 →
-    /// 写表 + 代码生成链 + 清单状态 + 契约刷新。只做输入与结果呈现。
+    /// 页面登记窗口（工程，`ui.page-register`）：选草稿页 → id/layer/全屏/缓存策略 →
+    /// 写表 + 代码生成链 + 清单状态。只做输入与结果呈现。
     /// </summary>
     public sealed class UIPageRegisterWindow : EditorWindow
     {
@@ -89,7 +87,7 @@ namespace LiteGame.Editor.UITools.Page
             }
             if (_drafts.Count == 0)
             {
-                EditorGUILayout.HelpBox("没有草稿页——先在工作台「起页」并生成草稿契约。", MessageType.Info);
+                EditorGUILayout.HelpBox("没有草稿页——先在工作台「起页」。", MessageType.Info);
                 return;
             }
 
@@ -97,8 +95,6 @@ namespace LiteGame.Editor.UITools.Page
             _selected = EditorGUILayout.Popup("草稿页", _selected, labels);
             UIPageManifestEntry selected = _drafts[_selected];
             EditorGUILayout.LabelField("prefab", selected.PrefabPath, EditorStyles.miniLabel);
-            EditorGUILayout.LabelField("草稿契约", File.Exists(FullPath(UIContractPaths.ForPage(selected.Name))) ? "已存在" : "缺失（先跑 ui.contract）",
-                EditorStyles.miniLabel);
 
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -135,9 +131,5 @@ namespace LiteGame.Editor.UITools.Page
             foreach (string warning in _result.Warnings) EditorGUILayout.LabelField("告警 " + warning, EditorStyles.miniLabel);
             EditorGUILayout.EndScrollView();
         }
-
-        private static string FullPath(string assetPath)
-            => System.IO.Path.Combine(UIValidator.ProjectRoot,
-                assetPath.Replace('/', System.IO.Path.DirectorySeparatorChar));
     }
 }

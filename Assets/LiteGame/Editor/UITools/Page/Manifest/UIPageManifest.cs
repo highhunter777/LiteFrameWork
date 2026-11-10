@@ -1,5 +1,6 @@
+using System;
 using System.Collections.Generic;
-using LiteGame.Editor.UITools.Contracts;
+using LiteFramework.UI;
 using Newtonsoft.Json;
 
 namespace LiteGame.Editor.UITools.Page
@@ -10,6 +11,15 @@ namespace LiteGame.Editor.UITools.Page
     public sealed class UIPageManifest
     {
         public const string CurrentSchemaVersion = "1.0";
+
+        /// <summary>`cacheStrategy` 默认值（词表真相＝<see cref="UICacheStrategy"/>；表列与清单条目共用）。</summary>
+        public static readonly string DefaultCacheStrategy = UICacheStrategy.Lru.ToString();
+
+        /// <summary>缓存策略是否在词表内（词表真相＝<see cref="UICacheStrategy"/>）。</summary>
+        public static bool IsValidCacheStrategy(string cacheStrategy)
+            => !string.IsNullOrEmpty(cacheStrategy)
+               && Array.Exists(Enum.GetNames(typeof(UICacheStrategy)),
+                   value => string.Equals(value, cacheStrategy, StringComparison.Ordinal));
 
         [JsonProperty("schemaVersion", Order = 0)]
         public string SchemaVersion { get; set; } = CurrentSchemaVersion;
@@ -52,7 +62,7 @@ namespace LiteGame.Editor.UITools.Page
 
         /// <summary>缓存策略（per-form 缓存策略列；缺省 LRU）。</summary>
         [JsonProperty("cacheStrategy", Order = 4)]
-        public string CacheStrategy { get; set; } = UIPageContract.DefaultCacheStrategy;
+        public string CacheStrategy { get; set; } = UIPageManifest.DefaultCacheStrategy;
 
         [JsonProperty("owner", Order = 5)]
         public string Owner { get; set; } = "art.ui";
@@ -60,19 +70,13 @@ namespace LiteGame.Editor.UITools.Page
         [JsonProperty("status", Order = 6)]
         public string Status { get; set; } = nameof(UIPageStatus.Draft);
 
-        [JsonProperty("contractPath", Order = 7)]
-        public string ContractPath { get; set; }
-
-        [JsonProperty("contractPresent", Order = 8)]
-        public bool ContractPresent { get; set; }
-
-        [JsonProperty("designRef", Order = 9, NullValueHandling = NullValueHandling.Ignore)]
+        [JsonProperty("designRef", Order = 7, NullValueHandling = NullValueHandling.Ignore)]
         public string DesignRef { get; set; }
 
-        [JsonProperty("deviceProfiles", Order = 10)]
+        [JsonProperty("deviceProfiles", Order = 8)]
         public List<string> DeviceProfiles { get; set; } = new List<string>();
 
-        [JsonProperty("notes", Order = 11, NullValueHandling = NullValueHandling.Ignore)]
+        [JsonProperty("notes", Order = 9, NullValueHandling = NullValueHandling.Ignore)]
         public string Notes { get; set; }
     }
 

@@ -18,8 +18,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Page_ButtonDemo.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -35,8 +33,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Page_Lobby.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -52,8 +48,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Page_Login.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -69,8 +63,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Page_Records.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -86,8 +78,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Page_Result.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -103,8 +93,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Page_Room.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -120,8 +108,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Page_Settings.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -137,8 +123,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Tmp_BaselineA.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -154,8 +138,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Tmp_BaselineB.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -176,8 +158,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Tmp_Dialog.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -193,8 +173,6 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Tmp_Loading.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -210,11 +188,9 @@
       "cacheStrategy": "Lru",
       "owner": "art.ui",
       "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UITools/Contracts/Tmp_Toast.contract.json",
-      "contractPresent": true,
       "deviceProfiles": []
     }
   ],
   "warnings": [],
-  "sourceHash": "sha256:8ff1e740d56e16ddc5204d422793b54c7f8044e8e2b0f8893625c19e44f1b91d"
+  "sourceHash": "sha256:fbdcace6d5718a939ff987d9187f2bd088fb5e4d3cf1c0f83eeac3a98730080b"
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -31,6 +31,7 @@ namespace LiteGame.Editor.UITools.Page
                 public string prefab;
             public int layer;
             public bool fullScreen;
+            public string cache;
         }
 
         [Serializable]

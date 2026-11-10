@@ -40,12 +40,6 @@ namespace LiteGame.Editor.UITools.Workbench
         /// <summary>绑定代码生成（<c>ui.bind-generate</c> 目标 ID，P2-1 不实现生成器，仅门控位）。</summary>
         GenerateBinding,
 
-        /// <summary>生成页面契约（`ui.contract`）。</summary>
-        GenerateContract,
-
-        /// <summary>契约对账（`ui.contract-diff`）。</summary>
-        DiffContract,
-
         /// <summary>校验（含全量；增量归 P2-3）。</summary>
         Validate,
 
@@ -53,13 +47,12 @@ namespace LiteGame.Editor.UITools.Workbench
         Preview,
     }
 
-    /// <summary>透视标识（§2.2 七透视的 P2-1 子集：页面/控件库/绑定/契约/校验；样式与预览归 P2-3）。</summary>
+    /// <summary>透视标识（§2.2 的 P2-1 子集：页面/控件库/绑定/校验；样式与预览归 P2-3）。</summary>
     public enum UIWorkbenchPerspectiveId
     {
         Page,
         Widgets,
         Binding,
-        Contract,
         Validation,
     }
 }

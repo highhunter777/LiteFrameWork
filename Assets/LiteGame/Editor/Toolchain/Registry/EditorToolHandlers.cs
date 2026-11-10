@@ -4,7 +4,6 @@ using System.Linq;
 using LiteGame.Editor;
 using LiteGame.Editor.UITools.Binding;
 using LiteGame.Editor.UITools.Compose;
-using LiteGame.Editor.UITools.Contracts;
 using LiteGame.Editor.UITools.Page;
 using LiteGame.Editor.UITools.Preview;
 using LiteGame.Editor.UITools.Validation;
@@ -68,8 +67,6 @@ namespace LiteGame.Toolchain
             registry.RegisterWindow("ui.preview-matrix", UIPreviewMatrixWindow.Open);
 
             registry.RegisterAction("ui.validate", ValidateUI);
-            registry.RegisterAction("ui.contract", GenerateUIContracts);
-            registry.RegisterAction("ui.contract-diff", DiffUIContracts);
             registry.RegisterAction("ui.widget-manifest", GenerateUIWidgetManifest);
             registry.RegisterAction("ui.page-manifest", SyncUIPageManifest);
             registry.RegisterAction("ui.style.colors-refresh", ApplyUIColors);
@@ -122,25 +119,6 @@ namespace LiteGame.Toolchain
         {
             UIReport report = UIValidator.Run();
             return Report(report.ToString(), report.Passed);
-        }
-
-        private static ToolResult GenerateUIContracts()
-        {
-            UIContractBatchResult batch = UIContractBatch.Generate();
-            if (!batch.Ok) return ToolResult.Failed(batch.Summary, batch.ToReport());
-            return batch.Warnings.Count > 0
-                ? ToolResult.Warning(batch.Summary, batch.ToReport())
-                : ToolResult.Success(batch.Summary, batch.ToReport());
-        }
-
-        private static ToolResult DiffUIContracts()
-        {
-            UIContractBatchDiffResult diff = UIContractBatch.Diff();
-            if (!diff.Ok) return ToolResult.Failed(diff.Summary, diff.ToReport());
-            bool hasNotice = diff.ChangedCount > 0 || diff.MissingBaseline.Count > 0 || diff.Warnings.Count > 0;
-            return hasNotice
-                ? ToolResult.Warning(diff.Summary, diff.ToReport())
-                : ToolResult.Success(diff.Summary, diff.ToReport());
         }
 
         private static ToolResult GenerateUIWidgetManifest()

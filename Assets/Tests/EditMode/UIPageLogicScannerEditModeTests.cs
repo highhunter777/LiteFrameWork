@@ -66,22 +66,6 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void CSharp事件接线_方法组与lambda解析()
-        {
-            List<UIPageEventWiring> wiring = UIPageLogicScanner.ScanEventWiring(CSharpSample);
-
-            UIPageEventWiring go = wiring.Single(w => w.Name == "Btn_Go" && w.Api == "OnButtonClick");
-            Assert.AreEqual("Go", go.Handler, "方法组取末段");
-            Assert.AreEqual("onClick", go.Event);
-
-            UIPageEventWiring lambda = wiring.Single(w => w.Name == "Btn_Lambda");
-            Assert.AreEqual("anonymous", lambda.Handler, "lambda 记 anonymous");
-
-            UIPageEventWiring list = wiring.Single(w => w.Name == "VList_Rows");
-            Assert.AreEqual("onListClick", list.Event, "列表接线映射到 onListClick");
-        }
-
-        [Test]
         public void 实际页源_ButtonDemo可解析且唯一()
         {
             IReadOnlyList<string> files = UIPageLogicScanner.ListCSharpFiles("Page_ButtonDemo");
@@ -114,7 +98,7 @@ namespace LiteGame.Tests.EditMode
         private static string ManifestFor(string pageName, string prefabPath)
         {
             var manifest = new UIPageManifest();
-            var page = new UIPageManifestEntry { Name = pageName, PrefabPath = prefabPath, ContractPresent = false };
+            var page = new UIPageManifestEntry { Name = pageName, PrefabPath = prefabPath };
             page.Forms.Add(new UIPageFormEntry { FormId = 901, Layer = 0, FullScreen = true });
             manifest.Pages.Add(page);
 

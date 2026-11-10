@@ -30,22 +30,5 @@ namespace LiteGame.Editor.UITools.Validation
             "SetTab", "GetTab", "SetList", "Pulse", "Flash", "Slide",
             "GetControl", "HasControl", "UnbindTextKey", "ShowBubble",
         };
-
-        /// <summary>文本双写面（C#）：对节点名做动态文本写入的 API。</summary>
-        public static readonly IReadOnlyList<string> PageTextWriteApis = new[]
-        {
-            "SetText", "SetTextKey", "SetTextKeyPlural",
-        };
-
-        /// <summary>事件接线 API → 契约事件名（C# 页源；稳定排序单源）。</summary>
-        public static readonly IReadOnlyList<(string Api, string Event)> PageEventApis = new (string, string)[]
-        {
-            ("OnButtonClick", "onClick"),
-            ("OnListClick", "onListClick"),
-            ("OnToggleChanged", "onToggleChanged"),
-            ("OnSliderChanged", "onSliderChanged"),
-            ("OnDropdownChanged", "onDropdownChanged"),
-            ("OnTabChanged", "onTabChanged"),
-        };
     }
 }

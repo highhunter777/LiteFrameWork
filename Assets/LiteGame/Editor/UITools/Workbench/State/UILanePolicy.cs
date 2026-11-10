@@ -31,10 +31,6 @@ namespace LiteGame.Editor.UITools.Workbench
             Row(UIWorkbenchAction.EditBinding, All(), null),
             Row(UIWorkbenchAction.GenerateBinding, new[] { UIWorkbenchLane.Engineering },
                 "绑定代码生成是工程职责"),
-            Row(UIWorkbenchAction.GenerateContract, All(), null),
-            Row(UIWorkbenchAction.DiffContract,
-                new[] { UIWorkbenchLane.Technical, UIWorkbenchLane.Engineering },
-                "契约对账由 TA/工程评审触发；美术跑增量校验与预览"),
             Row(UIWorkbenchAction.Validate, All(), null),
             Row(UIWorkbenchAction.Preview, All(), null),
         };

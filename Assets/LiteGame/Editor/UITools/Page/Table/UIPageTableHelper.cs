@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace LiteGame.Editor.UITools.Page
@@ -136,6 +136,7 @@ namespace LiteGame.Editor.UITools.Page
                     prefab = item.prefab,
                     layer = item.layer,
                     fullScreen = item.fullScreen,
+                    cache = item.cache,
                 });
             }
 

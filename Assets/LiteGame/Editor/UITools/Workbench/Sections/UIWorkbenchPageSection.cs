@@ -133,8 +133,6 @@ namespace LiteGame.Editor.UITools.Workbench
                     if (GUILayout.Button(row.Name, EditorStyles.label, GUILayout.Width(170f))) Select(state, i);
                     EditorGUILayout.LabelField(row.Status, EditorStyles.miniLabel, GUILayout.Width(80f));
                     EditorGUILayout.LabelField(row.Owner, EditorStyles.miniLabel, GUILayout.Width(110f));
-                    EditorGUILayout.LabelField(row.ContractPresent ? "契约 ✓" : "契约 —", EditorStyles.miniLabel,
-                        GUILayout.Width(70f));
                     EditorGUILayout.LabelField("行 " + row.FormIds.Count, EditorStyles.miniLabel, GUILayout.Width(50f));
                 }
             }

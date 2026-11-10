@@ -287,7 +287,7 @@ namespace LiteGame.Modules.UI
         public PageDefinition Get(int id)
         {
             if (!ById.TryGetValue(id, out PageDefinition page))
-                throw new KeyNotFoundException("页面目录无此 Id：" + id + "——核对 #uiform/UIPageManifest 并重跑 gen-ui-page.py");
+                throw new KeyNotFoundException("页面目录无此 Id：" + id + "——核对 #uiform 并重跑 gen-ui-page.py");
             return page;
         }
     }

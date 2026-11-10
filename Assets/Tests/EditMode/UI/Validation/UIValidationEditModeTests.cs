@@ -206,9 +206,8 @@ namespace LiteGame.Tests.EditMode
                 || i.RuleId == UIRuleIds.TextPlaceholder || i.RuleId == UIRuleIds.TextLocaleColumn
                 || i.RuleId == UIRuleIds.TextRichText || i.RuleId == UIRuleIds.LayoutScaler
                 || i.RuleId == UIRuleIds.PerformanceRaycastTarget || i.RuleId == UIRuleIds.PerformanceLayoutDepth
-                || i.RuleId == UIRuleIds.PerformanceAnimator || i.RuleId == UIRuleIds.ContractDrift
-                || i.RuleId == UIRuleIds.ContractReference || i.RuleId == UIRuleIds.ContractTextDoubleWrite),
-                "文本/契约对账/布局/性能族真实面零问题：\n" + report.Render());
+                || i.RuleId == UIRuleIds.PerformanceAnimator),
+                "文本/布局/性能族真实面零问题：\n" + report.Render());
             Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == "ui.binding-naming" && i.Severity == UISeverity.Warning),
                 "UIMain 退役后不应再有根名存量 Warning");
             int colorDrift = report.Issues.Count(i => i.RuleId == UIRuleIds.StyleColorDrift);

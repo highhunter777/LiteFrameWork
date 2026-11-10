@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using LiteGame.Editor.UITools.Binding;
-using LiteGame.Editor.UITools.Contracts;
 using LiteGame.Editor.UITools.Validation;
 using UnityEditor;
 using UnityEngine;
@@ -15,11 +14,9 @@ namespace LiteGame.Editor.UITools.Page
     {
         None = 0,
         Validate,
-        Contract,
         WriteTable,
         Codegen,
         Manifest,
-        ContractRefresh,
         NotImplemented,
     }
 
@@ -47,12 +44,6 @@ namespace LiteGame.Editor.UITools.Page
         UIPageCodegenRun RefreshBuildHash();
     }
 
-    /// <summary>登记后刷新页面契约（真实 formId/layer/fullScreen/cacheStrategy）。</summary>
-    public interface IUIPageContractRefresher
-    {
-        bool TryRefresh(UIPageManifestEntry entry, out string error);
-    }
-
     /// <summary>登记请求（路径与端口可注入；默认值＝生产面）。</summary>
     public sealed class UIPageRegisterRequest
     {
@@ -60,10 +51,9 @@ namespace LiteGame.Editor.UITools.Page
         public int Id;
         public int Layer = 1;
         public bool FullScreen = true;
-        public string CacheStrategy = UIPageContract.DefaultCacheStrategy;
+        public string CacheStrategy = UIPageManifest.DefaultCacheStrategy;
 
         public string ManifestPath = UIPageManifestPaths.DefaultPath;
-        public string ContractPath;
         public string TablePath;
         public string BindManifestPath = Binding.UIBindGenerationHash.DefaultManifestPath;
 
@@ -72,9 +62,6 @@ namespace LiteGame.Editor.UITools.Page
 
         /// <summary>null＝生产表门面（<see cref="UIPageTableHelperPort"/>，表路径取 <see cref="TablePath"/>）。</summary>
         public IUIPageTablePort Table;
-
-        /// <summary>null＝默认刷新器（批量重生成 + 原子写盘）。</summary>
-        public IUIPageContractRefresher ContractRefresher;
     }
 
     /// <summary>登记结果（显式失败步 + 恢复信息）。</summary>
@@ -92,8 +79,8 @@ namespace LiteGame.Editor.UITools.Page
     }
 
     /// <summary>
-    /// 页面登记内核（《UI 编辑器工具链专项设计》§3.6）：契约门槛 → 写表 → Luban/BuildHash → 清单状态/缓存 →
-    /// 契约刷新 → 绑定 hash（仅路径 B）。窗口只做输入与呈现；失败显式、可核验、可恢复。
+    /// 页面登记内核（《UI 编辑器工具链专项设计》§3.6）：草稿门槛 → 写表 → Luban/BuildHash → 清单状态/缓存 →
+    /// 绑定 hash（仅路径 B）。窗口只做输入与呈现；失败显式、可核验、可恢复。
     /// </summary>
     public static class UIPageRegistration
     {
@@ -105,9 +92,6 @@ namespace LiteGame.Editor.UITools.Page
 
             string pageName = request.PageName ?? string.Empty;
             string prefabPath = UIValidator.ScreensDir + "/" + pageName + ".prefab";
-            string contractPath = string.IsNullOrEmpty(request.ContractPath)
-                ? UIContractPaths.ForPage(pageName)
-                : request.ContractPath;
             string manifestPath = string.IsNullOrEmpty(request.ManifestPath)
                 ? UIPageManifestPaths.DefaultPath
                 : request.ManifestPath;
@@ -126,7 +110,7 @@ namespace LiteGame.Editor.UITools.Page
                 return Fail(result, UIPageRegisterFailure.Validate, "id 必须为正整数");
             if (request.Layer < 0 || request.Layer > 3)
                 return Fail(result, UIPageRegisterFailure.Validate, "layer 必须在 0..3");
-            if (!UIPageContract.IsValidCacheStrategy(request.CacheStrategy))
+            if (!UIPageManifest.IsValidCacheStrategy(request.CacheStrategy))
                 return Fail(result, UIPageRegisterFailure.Validate, "缓存策略非法：" + request.CacheStrategy);
 
             // 2) 页面/清单/草稿状态
@@ -151,27 +135,6 @@ namespace LiteGame.Editor.UITools.Page
                 return Fail(result, UIPageRegisterFailure.Validate, "页面已登记（forms 非空），不重复登记：" + pageName);
             if (!UIPageStatusRules.TryParse(entry.Status, out UIPageStatus status) || status != UIPageStatus.Draft)
                 return Fail(result, UIPageRegisterFailure.Validate, "页面状态非 Draft：" + entry.Status);
-
-            // 3) 契约门槛（§3.5：无契约不交接）：草稿契约、同名、formId=0、guid 与当前 prefab 一致。
-            UIPageContract contract;
-            try
-            {
-                contract = UIContractStore.Load(contractPath);
-            }
-            catch (Exception exception)
-            {
-                return Fail(result, UIPageRegisterFailure.Contract,
-                    "草稿契约缺失/不可读（先跑 ui.contract）：" + exception.Message);
-            }
-            if (contract?.Page == null || !string.Equals(contract.Page.Name, pageName, StringComparison.Ordinal))
-                return Fail(result, UIPageRegisterFailure.Contract, "契约页面名不匹配：" + contractPath);
-            if (contract.Page.FormId != 0)
-                return Fail(result, UIPageRegisterFailure.Contract,
-                    "契约不是草稿（formId=" + contract.Page.FormId + "），该页可能已登记");
-            string guid = AssetDatabase.AssetPathToGUID(prefabPath);
-            if (!string.Equals(contract.Page.PrefabGuid, guid, StringComparison.Ordinal))
-                return Fail(result, UIPageRegisterFailure.Contract,
-                    "草稿契约与当前 prefab 不一致（guid 不符），重跑 ui.contract");
 
             // 4) 表写前校验（Python 单源：id 冲突/保留区/路径/layer）
             if (!table.Check(pageName, request.Id, request.Layer, request.FullScreen, out string tableError))
@@ -218,8 +181,6 @@ namespace LiteGame.Editor.UITools.Page
                 string.Equals(item.Name, pageName, StringComparison.Ordinal));
             if (registered == null)
                 return Fail(result, UIPageRegisterFailure.Manifest, "清单对账后缺该页条目（重跑 ui.page-manifest）");
-            registered.ContractPath = contractPath;
-            registered.ContractPresent = File.Exists(FullPath(contractPath));
             try
             {
                 UIPageManifestStore.Save(sync.Manifest, manifestPath);
@@ -234,15 +195,6 @@ namespace LiteGame.Editor.UITools.Page
             result.Status = registered.Status;
             result.CacheStrategy = registered.CacheStrategy;
             result.Log.Add("清单：" + manifestPath + "（" + registered.Status + "）");
-
-            // 9) 契约刷新（真实身份/维护字段）；失败显式报红，不回滚已完成的登记。
-            IUIPageContractRefresher refresher = request.ContractRefresher ?? new UIPageContractBatchRefresher();
-            if (!refresher.TryRefresh(registered, out string refreshError))
-            {
-                return Fail(result, UIPageRegisterFailure.ContractRefresh,
-                    "表单已登记但契约未刷新，重跑 ui.contract：" + refreshError);
-            }
-            result.Log.Add("契约已刷新：" + contractPath);
 
             // 10) 绑定 hash：仅路径 B（挂 BindRoot）记录；路径 A 不伪造。
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
@@ -327,8 +279,5 @@ namespace LiteGame.Editor.UITools.Page
             result.Log.Add("失败：" + error);
             return result;
         }
-
-        private static string FullPath(string assetPath)
-            => Path.Combine(UIValidator.ProjectRoot, assetPath.Replace('/', Path.DirectorySeparatorChar));
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,7 +15,6 @@ namespace LiteGame.Editor.UITools.Workbench
         public string Status;
         public string DesignRef;
         public string Notes;
-        public bool ContractPresent;
         public List<int> FormIds = new List<int>();
     }
 
@@ -72,7 +71,6 @@ namespace LiteGame.Editor.UITools.Workbench
                     Status = entry.Status,
                     DesignRef = entry.DesignRef,
                     Notes = entry.Notes,
-                    ContractPresent = entry.ContractPresent,
                     FormIds = (entry.Forms ?? new List<UIPageFormEntry>()).Select(form => form.FormId).ToList(),
                 });
             }

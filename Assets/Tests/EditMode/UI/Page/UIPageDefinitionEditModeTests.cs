@@ -1,26 +1,26 @@
 using System.Collections.Generic;
 using System.Linq;
 using LiteFramework.UI;
-using LiteGame.Editor.UITools.Contracts;
 using LiteGame.Editor.UITools.Page;
 using NUnit.Framework;
 using LiteGame.Modules.UI;
+using UnityEditor;
+using UnityEngine;
 
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// M3-3 页面单制品：生成目录必须与运行时三源（#uiform / UIPageManifest / 页面契约）
-    /// 逐行一致；运行时只读 PageDefinition，不再读表/清单/契约。
+    /// M3-3 页面单制品：生成目录必须与运行时两源（`#uiform` 表行 / 页面 prefab）逐行一致；
+    /// 运行时只读 PageDefinition，不再读表/清单。
     /// </summary>
     public sealed class UIPageDefinitionEditModeTests
     {
         [Test]
-        public void 生成目录_与表清单契约逐行一致()
+        public void 生成目录_与表与prefab逐行一致()
         {
             var port = new UIPageTableHelperPort();
             Assert.IsTrue(port.TryListPages(out List<UIPageTableRow> rows, out string error), error);
 
-            UIPageManifest manifest = UIPageManifestStore.Load();
             Assert.AreEqual(rows.Count, LiteGame.Modules.UI.UIPageCatalog.All.Length, "页面定义数 = tbuiform 行数（同一 prefab 多行各一条）");
             Assert.AreEqual(rows.Count, rows.Select(r => r.id).Distinct().Count(), "表主键唯一");
 
@@ -31,20 +31,11 @@ namespace LiteGame.Tests.EditMode
                 Assert.AreEqual(row.layer, page.Layer, "layer 单源");
                 Assert.AreEqual(row.fullScreen, page.FullScreen, "fullScreen 单源");
 
-                UIPageManifestEntry entry = manifest.Pages
-                    .Single(p => p.Forms.Any(f => f.FormId == row.id));
-                Assert.AreEqual(entry.Name, page.Name, "页面名来自清单");
-                StringAssert.AreEqualIgnoringCase(entry.CacheStrategy, page.CacheStrategy.ToString(),
-                    "缓存策略来自清单");
+                Assert.AreEqual(row.PageName, page.Name, "页面名＝prefab 文件名派生");
+                StringAssert.AreEqualIgnoringCase(row.cache, page.CacheStrategy.ToString(), "缓存策略来自表列");
 
-                if (entry.ContractPresent)
-                {
-                    UIPageContract contract = UIContractStore.Load(entry.ContractPath);
-                    Assert.IsNotNull(contract, entry.ContractPath);
-                    Assert.AreEqual(contract.Controls.Count, page.Controls.Count, "绑定表进入页面定义");
-                    Assert.AreEqual(contract.Text.Count, page.TextKeys.Count, "文案 key 进入页面定义");
-                    Assert.AreEqual(contract.Styles.Count, page.StyleRefs.Count, "样式引用进入页面定义");
-                }
+                Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<GameObject>(row.PrefabPath),
+                    "prefab 必须存在：" + row.PrefabPath);
             }
         }
 

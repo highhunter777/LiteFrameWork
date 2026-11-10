@@ -24,11 +24,10 @@ namespace LiteGame.Editor.UITools.Workbench
             Item(UIWorkbenchPerspectiveId.Page, "页面", 10, "page.list", "page.metadata", "page.scaffold", "page.register"),
             Item(UIWorkbenchPerspectiveId.Widgets, "控件库", 20, "widgets.insert", "widgets.properties"),
             Item(UIWorkbenchPerspectiveId.Binding, "绑定", 30, "binding.edit", "binding.generate", "binding.hash"),
-            Item(UIWorkbenchPerspectiveId.Contract, "契约", 40, "contract.generate", "contract.diff"),
             Item(UIWorkbenchPerspectiveId.Validation, "校验", 50, "validate.narrow", "validate.full"),
         };
 
-        /// <summary>全部透视（P2-1 五个；样式/预览由 P2-3 追加）。</summary>
+        /// <summary>全部透视（P2-1 四个；样式/预览由 P2-3 追加）。</summary>
         public static IReadOnlyList<UIWorkbenchPerspective> All => Items;
 
         /// <summary>按 id 查找；未知返回 null。</summary>

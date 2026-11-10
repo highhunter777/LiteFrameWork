@@ -26,25 +26,6 @@ namespace LiteGame.Editor.UITools.Reference
         public int Line;
     }
 
-    /// <summary>一次事件接线（On* 族）：契约 events[] 的对账数据。</summary>
-    public sealed class UIPageEventWiring
-    {
-        /// <summary>接线 API 名（如 `OnButtonClick`）。</summary>
-        public string Api;
-
-        /// <summary>契约事件名（与受控 API 同文，如 `onClick`；映射单源＝UIRuleThresholds.PageEventApis）。</summary>
-        public string Event;
-
-        /// <summary>控件名（bindName）。</summary>
-        public string Name;
-
-        /// <summary>handler 尽力解析：方法组取末段；lambda/调用记 `anonymous`。</summary>
-        public string Handler;
-
-        /// <summary>源码行号（1 基）。</summary>
-        public int Line;
-    }
-
     /// <summary>
     /// 页面逻辑源解析与扫描（《Lua 退出专项设计》§4.7）：页面逻辑＝prefab 自带 C# 组件（`Page_<Name>Logic.cs`）。
     /// </summary>
@@ -56,15 +37,6 @@ namespace LiteGame.Editor.UITools.Reference
         private static readonly Regex CSharpNameFirstCall = new Regex(
             @"\b(?<api>[A-Za-z_][A-Za-z0-9_]*)\s*(?:<[^<>()]*>)?\s*\(\s*""",
             RegexOptions.Compiled);
-
-        private static readonly Regex CSharpHandler = new Regex(
-            @",\s*(?<h>[A-Za-z_][A-Za-z0-9_.]*)", RegexOptions.Compiled);
-
-        private sealed class CSharpCall
-        {
-            public UIPageApiCall Call;
-            public string Handler;
-        }
 
         /// <summary>页逻辑件的候选路径（按名递归；多个＝重复实现，由页面逻辑规则报错）。</summary>
         public static IReadOnlyList<string> ListCSharpFiles(string pageName)
@@ -109,37 +81,16 @@ namespace LiteGame.Editor.UITools.Reference
         }
 
         /// <summary>提取受控名单内 API 的调用点（名字型首参必须是字符串字面量）。</summary>
-        public static List<UIPageApiCall> ScanApiCalls(string source)
-            => ScanCSharp(source).Select(item => item.Call).ToList();
-
-        /// <summary>提取事件接线点（On* 族 + handler 尽力解析）。</summary>
-        public static List<UIPageEventWiring> ScanEventWiring(string source)
-        {
-            var map = UIRuleThresholds.PageEventApis.ToDictionary(p => p.Api, p => p.Event, StringComparer.Ordinal);
-            var wiring = new List<UIPageEventWiring>();
-            foreach (CSharpCall item in ScanCSharp(source))
-            {
-                if (!map.TryGetValue(item.Call.Api, out string eventName)) continue;
-                wiring.Add(new UIPageEventWiring
-                {
-                    Api = item.Call.Api,
-                    Event = eventName,
-                    Name = item.Call.Name,
-                    Handler = item.Handler ?? "anonymous",
-                    Line = item.Call.Line,
-                });
-            }
-            return wiring;
-        }
+        public static List<UIPageApiCall> ScanApiCalls(string source) => ScanCSharp(source);
 
         /// <summary>名字字面量全文匹配。</summary>
         public static bool ContainsLiteral(string source, string name)
             => !string.IsNullOrEmpty(source) && !string.IsNullOrEmpty(name)
                && (source.Contains("\"" + name + "\"") || source.Contains("'" + name + "'"));
 
-        private static List<CSharpCall> ScanCSharp(string source)
+        private static List<UIPageApiCall> ScanCSharp(string source)
         {
-            var found = new List<CSharpCall>();
+            var found = new List<UIPageApiCall>();
             if (string.IsNullOrEmpty(source)) return found;
 
             var names = new HashSet<string>(UIRuleThresholds.PageNameFirstApis, StringComparer.Ordinal);
@@ -171,35 +122,18 @@ namespace LiteGame.Editor.UITools.Reference
                     if (end < 0) continue;                                      // 跨行调用不产出（单行口径）
 
                     List<string> args = LiteralsIn(line, open, end);
-                    found.Add(new CSharpCall
+                    found.Add(new UIPageApiCall
                     {
-                        Call = new UIPageApiCall
-                        {
-                            Api = api,
-                            Name = name,
-                            Args = args,
-                            ArgCount = TopLevelArgCount(line, open, end),
-                            Line = i + 1,
-                        },
-                        Handler = ResolveHandler(line, close + 1),
+                        Api = api,
+                        Name = name,
+                        Args = args,
+                        ArgCount = TopLevelArgCount(line, open, end),
+                        Line = i + 1,
                     });
                     searchFrom = end + 1;
                 }
             }
             return found;
-        }
-
-        /// <summary>方法组解析：首参之后的首个标识符；后随 `(` 视为调用/lambda＝non-method-group。</summary>
-        private static string ResolveHandler(string line, int from)
-        {
-            Match match = CSharpHandler.Match(line, from);
-            if (!match.Success) return null;
-            string candidate = match.Groups["h"].Value;
-            int after = match.Index + match.Length;
-            if (after < line.Length && line[after] == '(') return null;
-
-            int dot = candidate.LastIndexOf('.');
-            return dot >= 0 ? candidate.Substring(dot + 1) : candidate;
         }
 
         private static int FindQuoteEnd(string line, int openQuote)

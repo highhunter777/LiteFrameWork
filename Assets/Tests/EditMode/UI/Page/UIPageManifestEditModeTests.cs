@@ -86,8 +86,6 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual("Lru", alpha.CacheStrategy, "tbuiform 无缓存列 → 默认 Lru");
             Assert.AreEqual("art.ui", alpha.Owner);
             Assert.AreEqual("Registered", alpha.Status, "表行存在＝已登记");
-            Assert.AreEqual("Assets/LiteGame/Editor/UITools/Contracts/Page_Alpha.contract.json", alpha.ContractPath);
-            Assert.IsFalse(alpha.ContractPresent);
             StringAssert.StartsWith("sha256:", result.Manifest.SourceHash);
             Assert.AreEqual(0, result.Manifest.Warnings.Count);
         }

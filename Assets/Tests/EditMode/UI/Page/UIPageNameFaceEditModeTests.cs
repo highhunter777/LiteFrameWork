@@ -1,16 +1,18 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using LiteGame.Editor.UITools.Contracts;
-using LiteGame.Editor.UITools.Page;
 using LiteGame.Editor.UITools.Reference;
+using LiteGame.Editor.UITools.Validation;
 using LiteTesting;
 using NUnit.Framework;
+using UnityEditor;
+using UnityEngine;
 
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 页面 C# "名字面"守卫（契约族）：页逻辑里出现的名字形状字面量必须落在该页契约面 （<c>controls[].bindName</c> ∪ <c>text[]</c> 节点名 ∪ 页面自身名）。
+    /// 页面 C# "名字面"守卫：页逻辑里出现的名字形状字面量必须落在该页 **prefab 节点名**面 ∪ 页面自身名。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class UIPageNameFaceEditModeTests
@@ -22,55 +24,54 @@ namespace LiteGame.Tests.EditMode
         /// <summary>行注释先摘除：注释里提到的名字不该算引用（避免注释笔误变成用例失败）。</summary>
         private static readonly Regex LineComment = new Regex("//[^\n]*", RegexOptions.Compiled);
 
-        /// <summary>列表行字段名（.Text/.KeyText/.Field 的首参）：行协议字段，不属页面契约面。</summary>
+        /// <summary>列表行字段名（.Text/.KeyText/.Field 的首参）：行协议字段，不属页面节点面。</summary>
         private static readonly Regex RowFieldLiteral = new Regex(
             "\\b(?:KeyText|Text|Field)\\(\\s*\"([A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+)\"", RegexOptions.Compiled);
 
         [Test]
-        public void 页面CSharp的名字字面量必须落在契约面()
+        public void 页面CSharp的名字字面量必须落在prefab面()
         {
-            UIPageManifest manifest = UIPageManifestStore.Load();
-            var pageNames = new HashSet<string>(manifest.Pages.Where(p => p != null && !string.IsNullOrEmpty(p.Name))
-                .Select(p => p.Name));
+            var pageNames = new HashSet<string>(PagePrefabs().Select(path => Path.GetFileNameWithoutExtension(path)));
 
             var violations = new List<string>();
-            foreach (UIPageManifestEntry entry in manifest.Pages)
+            foreach (string source in UIPageLogicScanner.EnumerateSources(UIPageLogicScanner.LogicRoot))
             {
-                if (entry == null || !entry.ContractPresent || string.IsNullOrEmpty(entry.ContractPath)) continue;
+                string pageName = Path.GetFileName(source).Substring(0, Path.GetFileName(source).Length - "Logic.cs".Length);
+                string prefabPath = UIValidator.ScreensDir + "/" + pageName + ".prefab";
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                if (prefab == null) continue;                     // 载体缺失归页面逻辑规则告警
 
-                string source = UIPageLogicScanner.ReadSource(UIPageLogicScanner.ResolveFile(entry.Name));
-                if (source == null) continue;                        // 源缺失归引用对账规则告警
+                HashSet<string> face = NodeNames(prefab);
+                string code = UIPageLogicScanner.ReadSource(source);
+                if (code == null) continue;
 
-                HashSet<string> face = ContractFace(entry);
-                foreach (string literal in NameLiterals(source))
+                foreach (string literal in NameLiterals(code))
                 {
                     if (face.Contains(literal) || pageNames.Contains(literal)) continue;
-                    violations.Add($"{entry.Name}: \"{literal}\"");
+                    violations.Add($"{pageName}: \"{literal}\"");
                 }
             }
 
             Assert.IsEmpty(violations,
-                "页面 C# 出现契约面外的名字字面量（运行期 GetControl/OnButtonClick 按名寻址会 KeyNotFoundException/"
-                + "InvalidOperationException——改名或拼错后必须同步契约/prefab）:\n"
+                "页面 C# 出现 prefab 面外的名字字面量（运行期 GetControl/OnButtonClick 按名寻址会 KeyNotFoundException/"
+                + "InvalidOperationException——改名或拼错后必须同步 prefab）:\n"
                 + string.Join("\n", violations));
         }
 
-        /// <summary>契约面：控件绑定名 ∪ 静态文案节点名（与 ContractReferenceRule 同口径）。</summary>
-        private static HashSet<string> ContractFace(UIPageManifestEntry entry)
+        /// <summary>prefab 面：全部子节点名（含未激活件——绑定面按层级名寻址）。</summary>
+        private static HashSet<string> NodeNames(GameObject prefab)
         {
-            UIPageContract contract = UIContractStore.Load(entry.ContractPath);
             var face = new HashSet<string>();
-            foreach (UIContractControl control in contract.Controls)
-                if (!string.IsNullOrEmpty(control.BindName)) face.Add(control.BindName);
-            foreach (UIContractTextBinding text in contract.Text)
-            {
-                string nodePath = text.NodePath;
-                if (string.IsNullOrEmpty(nodePath)) continue;
-                int slash = nodePath.LastIndexOf('/');
-                face.Add(slash < 0 ? nodePath : nodePath.Substring(slash + 1));
-            }
+            foreach (Transform node in prefab.GetComponentsInChildren<Transform>(true))
+                if (node != null && !string.IsNullOrEmpty(node.name)) face.Add(node.name);
             return face;
         }
+
+        /// <summary>页面 prefab 目录（目录即清单，不再经清单投影）。</summary>
+        private static IEnumerable<string> PagePrefabs()
+            => AssetDatabase.FindAssets("t:Prefab", new[] { UIValidator.ScreensDir })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .OrderBy(path => path, System.StringComparer.Ordinal);
 
         private static IEnumerable<string> NameLiterals(string source)
         {
