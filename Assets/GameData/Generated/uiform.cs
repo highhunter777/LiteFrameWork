@@ -20,6 +20,7 @@ public sealed partial class uiform : Luban.BeanBase
         Prefab = _buf.ReadString();
         Layer = _buf.ReadInt();
         FullScreen = _buf.ReadBool();
+        CacheStrategy = _buf.ReadInt();
     }
 
     public static uiform Deserializeuiform(ByteBuf _buf)
@@ -43,6 +44,10 @@ public sealed partial class uiform : Luban.BeanBase
     /// 是否全屏
     /// </summary>
     public readonly bool FullScreen;
+    /// <summary>
+    /// 缓存策略(0=Lru,1=Resident,2=DestroyOnClose;对齐 UICacheStrategy)
+    /// </summary>
+    public readonly int CacheStrategy;
    
     public const int __ID__ = -845237928;
     public override int GetTypeId() => __ID__;
@@ -58,6 +63,7 @@ public sealed partial class uiform : Luban.BeanBase
         + "prefab:" + Prefab + ","
         + "layer:" + Layer + ","
         + "fullScreen:" + FullScreen + ","
+        + "cacheStrategy:" + CacheStrategy + ","
         + "}";
     }
 }

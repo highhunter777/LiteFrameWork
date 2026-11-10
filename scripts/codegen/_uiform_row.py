@@ -33,7 +33,11 @@ DEFAULT_TABLE = ROOT / "Luban" / "Data" / "#uiform.xlsx"
 DEFAULT_BACKUP_DIR = ROOT / "Temp" / "uiform-backups"
 SHEET = "Sheet"
 HEADER_ROWS = 3
-COL_ID, COL_PREFAB, COL_LAYER, COL_FULL = 2, 3, 4, 5
+COL_ID, COL_PREFAB, COL_LAYER, COL_FULL, COL_CACHE = 2, 3, 4, 5, 6
+COLUMNS = COL_CACHE
+# cache_strategy 列取 int 序数，逐个对齐 UICacheStrategy（Lru=0/Resident=1/DestroyOnClose=2，
+# 见 Packages/com.litegame.framework/Runtime/Services/UI/Layer/PageDefinition.cs）。
+CACHE_STRATEGIES = ("Lru", "Resident", "DestroyOnClose")
 RESERVED_IDS = {201, 202, 203, 204, 205, 206}
 PAGE_RE = re.compile(r"^Page_[A-Z][A-Za-z0-9]*$")
 PREFAB_RE = re.compile(r"^LiteGame/Modules/UI/Content/Screens/Page_[A-Z][A-Za-z0-9]*\.prefab$")
@@ -72,9 +76,23 @@ def load_workbook(table):
 
 def data_rows(ws):
     for row in range(HEADER_ROWS + 1, ws.max_row + 1):
-        values = [ws.cell(row=row, column=col).value for col in range(1, 6)]
+        values = [ws.cell(row=row, column=col).value for col in range(1, COLUMNS + 1)]
         if any(value is not None for value in values[1:]):
             yield row, values
+
+
+def cache_strategy_name(value):
+    """cache_strategy 列（int 序数）→ 枚举名；越界/非整数显式失败，不静默取默认。"""
+    if isinstance(value, bool) or value is None:
+        raise ValueError("cache_strategy 列不可为空（取值 0/1/2）")
+    try:
+        ordinal = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"cache_strategy 不是整数：{value!r}")
+    if ordinal < 0 or ordinal >= len(CACHE_STRATEGIES):
+        raise ValueError(
+            f"cache_strategy 越界：{ordinal}（取值 0..{len(CACHE_STRATEGIES) - 1}）")
+    return CACHE_STRATEGIES[ordinal]
 
 
 def existing(ws):
@@ -97,6 +115,9 @@ def validate(args, ws):
         raise ValueError(f"id {args.id} 属系统反馈面/静态先例保留区，不得复用")
     if args.layer < 0 or args.layer > 3:
         raise ValueError("layer 必须在 0..3")
+    if args.cache_strategy not in CACHE_STRATEGIES:
+        raise ValueError(
+            "cache_strategy 必须是 " + "/".join(CACHE_STRATEGIES) + f"：{args.cache_strategy}")
     prefab = f"LiteGame/Modules/UI/Content/Screens/{page}.prefab"
     if args.prefab and args.prefab != prefab:
         raise ValueError(f"prefab 与页面名不一致：{args.prefab} != {prefab}")
@@ -143,6 +164,7 @@ def main():
     parser.add_argument("--prefab", default="")
     parser.add_argument("--layer", type=int, default=0)
     parser.add_argument("--full-screen", type=lambda value: value.lower() == "true", default=True)
+    parser.add_argument("--cache-strategy", default=CACHE_STRATEGIES[0], choices=CACHE_STRATEGIES)
     parser.add_argument("--confirm", action="store_true")
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--suggest", action="store_true")
@@ -206,7 +228,8 @@ def main():
         if not args.page:
             raise ValueError("缺少 --page")
         prefab = validate(args, ws)
-        row = [None, args.id, prefab, args.layer, "true" if args.full_screen else "false"]
+        row = [None, args.id, prefab, args.layer, "true" if args.full_screen else "false",
+               CACHE_STRATEGIES.index(args.cache_strategy)]
         if not args.confirm:
             return emit(True, dryRun=True, row=row, table=str(table))
 

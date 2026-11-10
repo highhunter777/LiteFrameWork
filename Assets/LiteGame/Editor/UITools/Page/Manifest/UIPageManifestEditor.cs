@@ -115,8 +115,8 @@ namespace LiteGame.Editor.UITools.Page
         }
 
         /// <summary>
-        /// 缓存策略（维护字段；词表单源＝<see cref="LiteFramework.UI.UICacheStrategy"/>）。`tbuiform` 无该列，
-        /// 运行时暂不消费；对账保留本字段，契约生成投影同一值。
+        /// 缓存策略（词表单源＝<see cref="LiteFramework.UI.UICacheStrategy"/>）。生成源是 `tbuiform` 的
+        /// `cache_strategy` 列；本字段在迁移窗口内保留，不再作为生成输入。
         /// </summary>
         public static bool SetCacheStrategy(UIPageManifest manifest, string name, string cacheStrategy,
             out string error)

@@ -573,7 +573,7 @@
       "kind": "cli",
       "plane": "external",
       "purpose": "dev",
-      "summary": "#uiform + UiPageManifest + Contracts → UIPageCatalog.g.cs（PageDefinition 单源）+ PageIds.g.cs（页面 id 常量）。",
+      "summary": "#uiform + UiPageManifest + 页面 prefab → UIPageCatalog.g.cs（PageDefinition 单源）+ PageIds.g.cs（页面 id 常量）。",
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
       "command": ["python", "scripts/codegen/toolbox.py", "ui-page"],
       "args": [

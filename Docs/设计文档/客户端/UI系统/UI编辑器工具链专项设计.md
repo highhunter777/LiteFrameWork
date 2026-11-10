@@ -288,7 +288,7 @@
 - **过滤**：`Clone_` 子树、嵌套 `BindRoot` 子树不进页面接口面；根节点上的 `BindName` 仍可暴露（`nodePath` 为空串）。
 - **`kind` 初始推断**：交互/列表/进度类组件（Selectable、ScrollRect、VirtualList、SimpleListView、UIWidget、ProgressBar、Stepper、UIDropdownWrap）记 `Command`；其余记 `None`。`Bound` 需静态绑定标记出现后再产生，当前生成器不臆造。
 - **`required` 初始推断**：`Command` 记 `true`，`None` 记 `false`；后续引用对账可细化。
-- **`cacheStrategy`**：`tbuiform` 尚无缓存策略列；它是**页面清单维护字段**（默认 `Lru`，可在工作台/登记窗口选 `Resident`/`Lru`/`DestroyOnClose`），对账保留、契约投影同值，运行时暂不消费。
+- **`cacheStrategy`**：`tbuiform` 的 `cache_strategy` 列（`int`，0/1/2 逐个对齐 `UICacheStrategy`＝`Lru`/`Resident`/`DestroyOnClose`）是**页面元数据唯一来源**；`gen-ui-page.py` 与 id/prefab/layer/full_screen 同路径读表，投影为 `UIPageCatalog.g.cs` 的 `CacheStrategy`，运行时由 `UIService` 关闭路径消费（`DestroyOnClose` 关即销毁，其余入池）。清单同名字段在迁移窗口内保留但**不再作为生成输入**（与表不一致只告警，以表为准）。
 - **草稿契约**：未登记页（起页后、`tbuiform` 无行）可生成契约，`page.formId=0`、`layer/fullScreen` 取单源默认（`UIContractGenerator.DraftLayer=0`/`DraftFullScreen=true`）；登记后重生成填真实身份。`UIPageContract.schema.json` 的 `formId` 最小值为 0 即此义。
 - **批量与多行**：`ui.contract` 按 `tbuiform` 全量生成——表只读一次、按 prefab 去重、输出确定性。根名不在 `Page_/Hud_/Tmp_` 契约面的非常驻壳（若出现）显式跳过并告警，不计失败；同一 prefab 多行登记取**首行**，其余行由页面清单 `forms[]` 承担并告警。
 - **`LTextKeyRef`**：只存 `Key`；`text[]` 的 `args` 固定 0。参数/复数/富文本替换属于工程动态文案，不进静态契约。

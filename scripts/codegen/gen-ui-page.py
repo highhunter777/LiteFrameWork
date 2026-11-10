@@ -3,16 +3,19 @@
 """Generate the runtime page catalog (PageDefinition single artifact).
 
 Inputs:
-  - Luban/Data/#uiform.xlsx        (runtime directory source: id/prefab/layer/full_screen)
-  - Assets/LiteGame/Editor/UITools/UIPageManifest.json
-  - Assets/LiteGame/Editor/UITools/Contracts/*.contract.json
+  - Luban/Data/#uiform.xlsx        (runtime directory source: id/prefab/layer/full_screen/
+                                    cache_strategy —页面元数据唯一来源)
+  - Assets/LiteGame/Editor/UITools/UIPageManifest.json  (name)
+  - every page prefab registered by the manifest        (controls / text / styles,
+                                                         read by prefab_page_reader)
 
 Output:
   - Assets/LiteGame/Modules/UI/Generated/UIPageCatalog.g.cs
   - Assets/LiteGame/Modules/UI/Generated/PageIds.g.cs   (page id constants; same source, same run)
 
-The generated file is the only runtime page directory. Contracts/manifest/hash stay
-editor-side; runtime code reads PageDefinition via IPageCatalog.
+The generated file is the only runtime page directory. Manifest/hash stay
+editor-side; runtime code reads PageDefinition via IPageCatalog. Contracts are
+no longer read here (prefab_page_reader is the contract-free source).
 
 Usage:
   python scripts/codegen/toolbox.py ui-page [--check]     # supported entry
@@ -21,7 +24,6 @@ Usage:
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -33,12 +35,12 @@ from collections import Counter  # noqa: E402
 from _common import repo_root  # noqa: E402
 from _codegen import fail, info, input_digest, run_tool, signature, warn  # noqa: E402
 import _uiform_row  # noqa: E402
+import prefab_page_reader  # noqa: E402
 
 ROOT = Path(repo_root())
 TOOL = "ui-page"
 DEFAULT_TABLE = ROOT / "Luban" / "Data" / "#uiform.xlsx"
 DEFAULT_MANIFEST = ROOT / "Assets" / "LiteGame" / "Editor" / "UITools" / "UIPageManifest.json"
-DEFAULT_CONTRACTS = ROOT / "Assets" / "LiteGame" / "Editor" / "UITools" / "Contracts"
 DEFAULT_OUTPUT = ROOT / "Assets" / "LiteGame" / "Modules" / "UI" / "Generated" / "UIPageCatalog.g.cs"
 DEFAULT_IDS_OUTPUT = ROOT / "Assets" / "LiteGame" / "Modules" / "UI" / "Generated" / "PageIds.g.cs"
 
@@ -58,32 +60,46 @@ def _fingerprint_entry(path):
         return resolved.as_posix()
 
 
-def build_head(args):
-    """The uniform signature block; the fingerprint covers exactly the three
-    declared inputs (table rows + manifest + every contract file)."""
-    entries = [_fingerprint_entry(path) for path in (args.table, args.manifest, args.contracts)]
-    contracts = Path(args.contracts)
-    contract_count = sum(len(files) for _dirpath, _dirnames, files in os.walk(contracts))
-    label = "%s + %s + %s/ (%d contracts)" % (entries[0], entries[1], entries[2], contract_count)
+def build_head(args, prefab_paths):
+    """The uniform signature block; the fingerprint covers the table, the
+    manifest, the built-in component map and every page prefab actually read."""
+    entries = [
+        _fingerprint_entry(args.table),
+        _fingerprint_entry(args.manifest),
+        _fingerprint_entry(prefab_page_reader.BUILTIN_MAP_PATH),
+    ]
+    entries.extend(sorted(_fingerprint_entry(path) for path in prefab_paths))
+    label = "%s + %s + %s + %d page prefabs" % (
+        entries[0], entries[1], entries[2], len(prefab_paths))
     return signature("ui-page", label, input_digest(entries))
+
+
+def page_prefab_paths():
+    """Every prefab path registered by the manifest (the reader's real input set)."""
+    manifest = read_json(DEFAULT_MANIFEST)
+    return sorted({page.get("prefabPath") for page in manifest.get("pages", [])
+                   if page.get("prefabPath")})
 
 
 def path_report():
     """Declared inputs/output derived from the DEFAULT_* constants."""
-    return [
+    entries = [
         {"path": _rel(DEFAULT_TABLE), "kind": "input"},
         {"path": _rel(DEFAULT_MANIFEST), "kind": "input"},
-        {"path": _rel(DEFAULT_CONTRACTS), "kind": "input"},
+        {"path": _rel(prefab_page_reader.BUILTIN_MAP_PATH), "kind": "input"},
+    ]
+    entries.extend({"path": path, "kind": "input"} for path in page_prefab_paths())
+    entries.extend([
         {"path": _rel(DEFAULT_OUTPUT), "kind": "output"},
         {"path": _rel(DEFAULT_IDS_OUTPUT), "kind": "output"},
-    ]
+    ])
+    return entries
 
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Generate UIPageCatalog.g.cs")
     parser.add_argument("--table", default=str(DEFAULT_TABLE))
     parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST))
-    parser.add_argument("--contracts", default=str(DEFAULT_CONTRACTS))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     parser.add_argument("--ids-output", default="",
                         help="page id constants path (default: PageIds.g.cs next to --output)")
@@ -116,29 +132,6 @@ def load_pages(manifest_path):
     return by_form, by_prefab, manifest
 
 
-def load_contract(contracts_dir, page):
-    path = page.get("contractPath") if page else None
-    if not path:
-        return []
-    full = ROOT / path if not os.path.isabs(path) else Path(path)
-    if not full.is_file():
-        return []
-    contract = read_json(full)
-    return contract
-
-
-def controls_of(contract):
-    return contract.get("controls", []) if contract else []
-
-
-def text_keys_of(contract):
-    return contract.get("text", []) if contract else []
-
-
-def styles_of(contract):
-    return contract.get("styles", []) if contract else []
-
-
 def cache_enum(value):
     value = (value or "Lru").strip()
     if value not in ("Lru", "Resident", "DestroyOnClose"):
@@ -154,8 +147,10 @@ def cs_string(value):
 def build_definitions(args):
     wb, ws = _uiform_row.load_workbook(Path(args.table))
     by_form, by_prefab, manifest = load_pages(Path(args.manifest))
-    contracts_dir = Path(args.contracts)
+    reader = prefab_page_reader.PageReader(ROOT)
+    read_cache = {}
     definitions = []
+    prefab_paths = []
     warnings = []
 
     for _, values in _uiform_row.data_rows(ws):
@@ -165,15 +160,23 @@ def build_definitions(args):
         prefab = str(values[_uiform_row.COL_PREFAB - 1] or "").strip()
         layer = int(values[_uiform_row.COL_LAYER - 1] or 0)
         full_screen = parse_bool(values[_uiform_row.COL_FULL - 1])
+        cache = _uiform_row.cache_strategy_name(values[_uiform_row.COL_CACHE - 1])
         prefab_path = "Assets/" + prefab
         page = by_form.get(form_id) or by_prefab.get(prefab_path)
         if page is None:
             raise ValueError(f"tbuiform id={form_id} 未在 UIPageManifest 登记（prefab={prefab_path}）")
-        contract = load_contract(contracts_dir, page)
-        if page.get("contractPath") and not contract:
-            warnings.append(f"id={form_id} 契约缺失：{page.get('contractPath')}（按空绑定表生成）")
+        page_read = read_cache.get(prefab_path)
+        if page_read is None:
+            page_read = reader.read(str(ROOT / prefab_path))
+            read_cache[prefab_path] = page_read
+            prefab_paths.append(prefab_path)
         name = page.get("name") or Path(prefab).stem
-        cache = cache_enum(page.get("cacheStrategy"))
+        # 清单同名字段已退役（表＝唯一来源）：不一致只告警，生成以表为准。
+        manifest_cache = cache_enum(page.get("cacheStrategy"))
+        if manifest_cache != cache:
+            warnings.append(
+                "%s：UIPageManifest.json 的 cacheStrategy=%s 与 #uiform 的 %s 不一致，以表为准"
+                % (name, manifest_cache, cache))
         definitions.append({
             "id": form_id,
             "name": name,
@@ -181,9 +184,9 @@ def build_definitions(args):
             "layer": layer,
             "full": full_screen,
             "cache": cache,
-            "controls": controls_of(contract),
-            "text": text_keys_of(contract),
-            "styles": styles_of(contract),
+            "controls": page_read.controls,
+            "text": page_read.text,
+            "styles": page_read.styles,
         })
 
     # 清单中的每个已登记 form 必须能落成定义——防止清单/表单向漂移。
@@ -195,7 +198,7 @@ def build_definitions(args):
                 raise ValueError(f"UIPageManifest 的 formId={form_id} 不在 #uiform 表中（{page.get('name')}）")
 
     definitions.sort(key=lambda item: item["id"])
-    return definitions, warnings
+    return definitions, warnings, sorted(prefab_paths)
 
 
 def render_ids(definitions, head):
@@ -327,8 +330,8 @@ def render(definitions, head):
 def main(argv=None):
     args = parse_args(argv)
     try:
-        definitions, warnings = build_definitions(args)
-        head = build_head(args)
+        definitions, warnings, prefab_paths = build_definitions(args)
+        head = build_head(args, prefab_paths)
         text = render(definitions, head)
         ids_text = render_ids(definitions, head)
     except Exception as exc:  # noqa: BLE001 - CLI diagnosis
@@ -352,11 +355,20 @@ def main(argv=None):
         return 0
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(text, encoding="utf-8", newline="\n")
+    _write_preserving_eol(output, text)
     ids_output.parent.mkdir(parents=True, exist_ok=True)
-    ids_output.write_text(ids_text, encoding="utf-8", newline="\n")
+    _write_preserving_eol(ids_output, ids_text)
     info(TOOL, f"wrote {output} + {ids_output} ({len(definitions)} pages)")
     return 0
+
+
+def _write_preserving_eol(path, text):
+    """Keep the checkout's line endings (git autocrlf may hand us CRLF); a fresh
+    LF file stays LF, so regeneration is byte-stable on every platform."""
+    newline = "\n"
+    if path.is_file() and b"\r\n" in path.read_bytes():
+        newline = "\r\n"
+    path.write_text(text, encoding="utf-8", newline=newline)
 
 
 if __name__ == "__main__":

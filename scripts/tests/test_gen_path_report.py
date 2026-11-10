@@ -219,8 +219,12 @@ class PathSingleSourceTests(unittest.TestCase):
     def test_ui_page_inputs_and_output(self):
         module = load("path_report_ui_page", "gen-ui-page.py")
         entries = fetch_report(module, "ui-page")
-        for declared in (module.DEFAULT_TABLE, module.DEFAULT_MANIFEST, module.DEFAULT_CONTRACTS):
+        for declared in (module.DEFAULT_TABLE, module.DEFAULT_MANIFEST):
             self.assertIn(rel_of(declared), paths_of(entries, "input"))
+        prefabs = module.page_prefab_paths()
+        self.assertTrue(prefabs, "ui-page must declare the page prefabs it reads")
+        for prefab in prefabs:
+            self.assertIn(prefab, paths_of(entries, "input"))
         self.assertIn(rel_of(module.DEFAULT_OUTPUT), paths_of(entries, "output"))
 
     def test_ui_api_spec_and_outputs(self):

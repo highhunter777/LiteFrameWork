@@ -198,5 +198,38 @@ class UiFormRowTests(unittest.TestCase):
         self.assertEqual(sha256(REAL_TABLE), before, "真实 #uiform.xlsx 不得被测试改动")
 
 
+import re  # noqa: E402
+
+sys.path.insert(0, str(REPO / "scripts" / "codegen"))
+import _uiform_row  # noqa: E402
+
+
+class CacheStrategyOrdinalGuardTests(unittest.TestCase):
+    """表列序数 ↔ UICacheStrategy 枚举序数必须逐位一致（错位＝缓存策略静默失效）。"""
+
+    ENUM_SOURCE = (
+        REPO / "Packages" / "com.litegame.framework" / "Runtime" / "Services" / "UI"
+        / "Layer" / "PageDefinition.cs"
+    )
+
+    def _enum_by_ordinal(self):
+        text = self.ENUM_SOURCE.read_text(encoding="utf-8")
+        start = text.index("enum UICacheStrategy")
+        end = text.index("}", start)
+        pairs = re.findall(r"(\w+)\s*=\s*(\d+)", text[start:end])
+        return {int(value): name for name, value in pairs}
+
+    def test_ordinals_match_enum(self):
+        by_ordinal = self._enum_by_ordinal()
+        self.assertTrue(by_ordinal, "未从 PageDefinition.cs 解析到 UICacheStrategy 成员")
+        expected = [by_ordinal[i] for i in range(len(by_ordinal))]
+        self.assertEqual(
+            list(_uiform_row.CACHE_STRATEGIES),
+            expected,
+            "cache_strategy 列序数与 UICacheStrategy 枚举序数不一致："
+            "改枚举顺序时必须同步 #uiform.xlsx 的表头注释与已有行取值",
+        )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
