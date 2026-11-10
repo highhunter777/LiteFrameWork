@@ -14,7 +14,7 @@
 C# 页面 (PageLogicBase : UIBindBase) ──► UIBindIndex ──► 控件（按 BindName 寻址）
 C# 页面导航 (Ctx.Nav / Go / Replace / CloseSelf) ──► UINavigationController ──► UIService
 确认缝 (Ctx.Confirm) ──► IConfirmDialog
-设置页 (Ctx.Settings) ──► ISettingsPagePort（生产实现 ProductSettingsAdapter，住 App）
+设置页 (Services.Settings) ──► ISettingsPagePort（ProductSettings 直接实现，住 Settings 域）
 ```
 
 - 页面逻辑不直接操作 `GameObject`/`Transform`/组件；只经受控 API。
@@ -76,7 +76,7 @@ C# 页面导航 (Ctx.Nav / Go / Replace / CloseSelf) ──► UINavigationContr
 | `ShowToast(text)` | 文本 | 无 Toast 实例时记日志不抛 |
 | `ShowBubble(name, text, duration)` | 控件名/文本/时长 | 挂点旁气泡（时长缺省取 `UIFxDefaults`） |
 | `ShowFlyText(name, text)` | 控件名/文本 | 飘字（位置取控件 anchoredPosition） |
-| `Ctx.Confirm`（`IPageContext`） | 标题/正文/确认/取消 → `bool` | 确认缝；未装配/取消返回 false。`UIBindBase` **不提供** `ShowConfirm` |
+| `Services.Confirm`（`PageServices`） | 标题/正文/确认/取消 → `bool` | 确认缝；取消返回 false。`UIBindBase` **不提供** `ShowConfirm` |
 
 ### 3.4 输入控件
 
@@ -137,9 +137,9 @@ C# 页面导航 (Ctx.Nav / Go / Replace / CloseSelf) ──► UINavigationContr
 
 ## 5. 页面上下文与数据
 
-- `IPageContext`（`Ctx`）：`Meta`（`IMetaSession`）/`Room`（`IRoomView`）/`Maps`（`IMapCatalog`）/`Nav`（`UINavigationController`）/`UI`（`UIService`）/`Confirm`（`IConfirmDialog`）/`Settings`（`ISettingsPagePort`）。`Meta`/`Room`/`Settings` 允许为 null（未配置部署/未进房/未装配），页面按“能力缺失显性拒绝”处理。`PageLogicBase` 另给同名端口便捷口（`Nav`/`Meta`/`Maps`/`Room`/`Settings`，均经 `Ctx?.` 取值）。
+- `PageServices`（`Services`）：`Meta`（`IMetaSession`，Meta 域）/`Room`（`IRoomView`，会话域）/`Maps`（`IMapProvider`，选图行走 `Options`）/`Nav`（`UINavigationController`）/`UI`（`UIService`）/`Confirm`（`IConfirmDialog`）/`Settings`（`ISettingsPagePort`，设置域）。装配成功后成员非空；“未配置/未进房”由域对象状态表达。`PageLogicBase` 另给同名便捷口（`Nav`/`Meta`/`Maps`/`Room`/`Settings`/`Confirm`，未注入装配面时抛显性错）。
 - 页面数据走强类型 `IUIData`：`ResultPageData`/`SettingsPageData`/`RoomPageData` 等，经 `Go/Replace/ShowAsync` 传入；不传 table/dictionary。
-- 设置页只经 `Ctx.Settings`（`ISettingsPagePort`）读写：28 个原语成员（15 读 + 13 写/动作，写即生效、无 `Apply`），端口住 `Modules/UI/Abstractions`、实现 `ProductSettingsAdapter` 住 App；页面不认 `ProductSettings` 类型，UI 域不引 `LiteGame.Modules.Settings`。空端口时 `OnShow` 早退、12 个设置控件禁用、关闭可用。
+- 设置页只经 `Services.Settings`（`ISettingsPagePort`）读写：28 个原语成员（15 读 + 13 写/动作，写即生效、无 `Apply`），端口住 `Modules/Settings/Abstractions`、由 `ProductSettings` 直接实现；页面不认实现类。无装配面时 `OnShow` 早退、12 个设置控件禁用、关闭可用。
 
 ## 6. 列表行协议
 

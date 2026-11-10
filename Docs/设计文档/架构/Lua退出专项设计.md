@@ -97,11 +97,11 @@
 | 缝 | 承载 | 注入点 | 页面可见面 |
 |---|---|---|---|
 | 框架缝 | `IConfirmDialog`、`ILocalizationService` | `UIFormLogicBinder` 已有 `localeProvider`/`themeProvider` 同款（新增 `confirmProvider`），`UIForm` 上新增 `Confirm` 属性 | `UIBindBase.ShowConfirmAsync(title, message, ok, cancel)`、`UIBindBase.Locale`（`BindLocale` 时留存） |
-| 产品缝 | 联机门面、房会话、地图目录、导航 | `UIForm.PageContext`（`object`，框架不解释类型）由 `UIFormLogicBinder` 从 `Func<PageDefinition, object>` 取 | `PageLogicBase.Ctx`（`IPageContext`）上的 `Meta`/`Room`/`Maps`/`Nav` |
+| 产品缝 | 联机门面、房会话、地图目录、导航 | `UIForm.PageContext`（`object`，框架不解释类型）由 `UIFormLogicBinder` 从 `Func<PageDefinition, object>` 取 | `PageLogicBase.Services`（`PageServices`）上的 `Meta`/`Room`/`Maps`/`Nav` |
 
-- `IPageContext`（`Modules/UI/Abstractions/`）的成员**全部是端口或延迟工厂**，避免装配段顺序耦合（UI 段早于 Meta/Battle 段）：`Meta`、`Room` 允许为 null（未配置部署/未进房），页面按"能力缺失显性拒绝"处理，与现行 `Bridge.meta.IsConfigured()` 判据同口径。
+- `PageServices`（`Modules/UI/Pages/`）由组合根在全部段就绪后一次创建，成员为域自持类型且装配后非空；"未配置/未进房"由域对象状态表达（`IsConfigured`/空快照），页面按能力缺失显性拒绝。
 - `Bridge`、`MetaBridge`、`RoomBridge` 的 Lua 装订方法全部删除；`MetaBridge` 里的业务逻辑（异步收口、失败原因映射、地图名解析、时间格式化）**不删**，迁进 `IMetaSession` 的实现（`MetaLoginService` 侧的适配件），由页面直接 `await`——Lua 时代的"回调 + 恰一次"由 `UniTask` + `CancellationToken` 承接，页面 `OnHide` 取消在途请求。
-- 设置页经 `ISettingsPagePort`（实现 `ProductSettingsAdapter`）读取既有 `ProductSettings` 实例，不新增静态状态（红线 6：**不新增** `public static` 可变状态；`Bridge` 这类静态门面随本方案消失，不是新增）。
+- 设置页经 `ISettingsPagePort`（由既有 `ProductSettings` 实例直接实现）读取设置，不新增静态状态（红线 6：**不新增** `public static` 可变状态；`Bridge` 这类静态门面随本方案消失，不是新增）。
 
 ### 4.5 热更与内容面（D5）
 
@@ -188,7 +188,7 @@ HybridCLR 的 `code/` 已经是"代码候选"的落点。把 `lua/` 改名为 `s
 - **目录与守卫**：业务域子目录禁 `Logic`/`View`/`Presentation`/`Domain`（`DomainBoundaryTests`），单目录直接代码文件 ≤5（红线 15）。
 - **不删该页 `.lua`、不清 `lua_path`**：解析器「prefab 自带 C# 逻辑优先」，组件一挂即接管，旧 Lua 只是还注册着、不再被执行。反过来，清空键会打断**尚未迁移**的页面——它们仍在 `Bridge.ui.Show('UI.Page_X')` 形态的调用里按字符串跳转。页面 Lua 面的清理由 P2a 一次性完成（见下）。
 - **P1-0 前置**（第 1 页之前）：`PageIds.g.cs` 与 `PageFlow` 的 int 切换——**只切 C# 侧，不删 resolver**。
-- **P1-1 载体**（与第 1 页同批，避免「待接线」悬空——红线 10）：`PageLogicBase`＋`IPageContext`（4.4）、`UIListRowSet`（4.3）、`UIPageLogicScanner`＋`PageLogicRule`（4.7）。
+- **P1-1 载体**（与第 1 页同批，避免「待接线」悬空——红线 10）：`PageLogicBase`＋`PageServices`（4.4）、`UIListRowSet`（4.3）、`UIPageLogicScanner`＋`PageLogicRule`（4.7）。
 - **建议顺序（按依赖面由小到大）**：`Page_ButtonDemo`（0 依赖，验证载体）→ `Page_Result`（ui 1）→ `Page_Records`（meta 3）→ `Page_Login`（meta 5）→ `Page_Room`（room 12，接 `IRoomSessionFace` 事件）→ `Page_Lobby`（meta 8 + data 1，轮询 + 列表）→ `Page_Settings`（settings 37 + text 18，最大）。
 - **逐页验收点**（须与现状等价）：Login 游客登录三态与版本号；Lobby 房间轮询节拍/在途锁/建房下拉/气泡；Room 席位名单/房主开局/被拒 Toast；Result 名次表与本机摘要；Settings 五个页签/即改即生效/关闭落盘/对局中置灰/退场确认；Records 战绩列表与结束原因文案；ButtonDemo 纯演示。
 - **退出条件**：7 页全部 C# 且 `Assets/LiteGame/Lua/UI/` 为空；`Bridge.ui`/`Bridge.meta`/`Bridge.settings`/`Bridge.room` 在页面侧零引用；PlayMode 的"真 Lua 页"用例改写为"真 C# 页"用例（`LuaPagePlayModeTests` 4 例语义保留：冷开/复用不重跑 OnInit/Shutdown 释放租约/在途取消）。

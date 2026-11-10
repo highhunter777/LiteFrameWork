@@ -267,18 +267,6 @@ def invoke_doc_lint(project, profile, results, run_id):
     info("quality/test", "PASS: doc-lint + tool index + comment-lint completed.")
 
 
-def invoke_arch_check(project, profile, results, run_id):
-    info("quality/arch", "=== arch-check ===")
-    script = project / "scripts" / "gate" / "arch-check.py"
-    if not script.is_file():
-        raise RuntimeError(f"arch-check script missing: {script}")
-    try:
-        run_or_raise([sys.executable, str(script), "--check"], "arch-check", cwd=project)
-    except RuntimeError as exc:
-        write_summary(results, suite="L1", profile=profile, status="fail", run_id=run_id, error=str(exc))
-        raise
-
-
 def invoke_dir_flat_lint(project, profile, results, run_id):
     info("quality/dir-flat-lint", "=== dir-flat-lint ===")
     script = project / "scripts" / "gate" / "dir-flat-lint.py"
@@ -345,7 +333,6 @@ def main(argv=None):
 
     try:
         if args.suite in {"L1", "All"}:
-            invoke_arch_check(project, args.profile, results, run_id)
             invoke_dir_flat_lint(project, args.profile, results, run_id)
         if args.suite == "L1":
             invoke_dotnet_suite(

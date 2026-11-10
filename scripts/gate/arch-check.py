@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""架构单元模型门禁（B5 守卫单一化）。
+"""架构单元模型生成器（--write）与只读诊断，不是守卫。
+
+守卫见 AR1（namespace-path.py）/ AR2（change-unit.py）/ AR3（hot-boundary-check.py）；
+本脚本不在 L1 门禁里，失败只代表模型或投影过期，由改模型的人重跑 --write 处理。
+asmdef 边与域模型由 Tests/LiteFramework.Core.Tests 的 4 个 C# 测试直接读 arch/units.json 覆盖。
 
 单源：arch/units.json（模块/层/rank/tier/收集组/测试桶/owner/程序集边）。
-本脚本校验：
+`--check`（默认）只读诊断：
   1) 模型自身完整（id/路径/层号/tier/owner/测试桶/引用边/域边）；
   2) 客户端根下 asmdef 全部登记，且实际引用与模型逐条一致（边 ⊆ 模型，缺失也红）；
   3) 依赖方向严格递减（上层只能引 rank 更小的下层，同层/反向一律红）；
@@ -14,7 +18,7 @@
   8) scripts/content/module-tiers.json 是模型生成的只读镜像（旧表保留一个版本周期）。
 
 用法：
-  python scripts/gate/arch-check.py --check   # 默认；过期/漂移即红
+  python scripts/gate/arch-check.py --check   # 只读诊断；过期/漂移即红（不由门禁调用）
   python scripts/gate/arch-check.py --write   # 从 arch/units.json 重写两个投影
 """
 from __future__ import annotations
@@ -356,7 +360,7 @@ def validate_model(project: Path, model: dict) -> list[str]:
     for name in sorted(litegame_top - actual_litegame):
         errors.append(f"Assets/LiteGame 顶层登记了不存在的目录：{name}")
 
-    # 域清单与允许边（供 domain-matrix.py 读取）。
+    # 域清单与允许边：模型自检（无守卫消费者）。
     domains = model.get("domains") or []
     domain_ids = set()
     for domain in domains:
@@ -563,7 +567,7 @@ def summarize(model: dict) -> str:
 
 def main(argv=None) -> int:
     configure_stdio()
-    parser = argparse.ArgumentParser(description="架构单元模型门禁")
+    parser = argparse.ArgumentParser(description="架构单元模型生成器/只读诊断（非守卫）")
     parser.add_argument("--project-path", default=None)
     parser.add_argument("--write", action="store_true", help="从模型重写 C# 扫描根与旧表镜像")
     parser.add_argument("--check", action="store_true", help="校验模型与投影（默认行为）")

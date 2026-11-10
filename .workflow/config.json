@@ -35,15 +35,6 @@
       "timeout": 120
     },
     {
-      "name": "domain-matrix",
-      "cmd": [
-        "python",
-        "scripts/gate/domain-matrix.py",
-        "--check"
-      ],
-      "timeout": 120
-    },
-    {
       "name": "doc-lane",
       "cmd": [
         "python",
@@ -70,15 +61,6 @@
         "scripts/gate/hot-boundary-check.py"
       ],
       "timeout": 120
-    },
-    {
-      "name": "zero-use-edges",
-      "cmd": [
-        "python",
-        "scripts/gate/zero-use-edges.py",
-        "--check"
-      ],
-      "timeout": 300
     },
     {
       "name": "settings-playmode",
@@ -115,17 +97,6 @@
         "--nologo"
       ],
       "timeout": 600
-    },
-    {
-      "name": "zero-use-edges-red",
-      "cmd": [
-        "python",
-        "-m",
-        "unittest",
-        "scripts.tests.test_zero_use_edges",
-        "-v"
-      ],
-      "timeout": 300
     }
   ],
   "stages": [

@@ -1,0 +1,3365 @@
+{
+ "rule": "AR2 改动单元：目录 .cs <= 5、总行 <= 600、入口文件唯一且与目录同名；棘轮只减不增",
+ "guard": "python scripts/gate/change-unit.py",
+ "generator": "python scripts/gate/change-unit.py --update-baseline",
+ "version": 1,
+ "generatedAt": "2026-11-10T19:43:39+08:00",
+ "gitHead": "695a2c783096a9aab67ff4a8989d27827fe071a7",
+ "dirty": true,
+ "thresholds": {
+  "files": 5,
+  "lines": 600,
+  "entry": "同名 .cs 唯一"
+ },
+ "scope": [
+  "Assets/LiteGame",
+  "Assets/LiteCodeGen",
+  "Assets/LiteTesting",
+  "Assets/Tests",
+  "Packages/com.litegame.framework",
+  "Packages/com.litegame.sim",
+  "Packages/com.litegame.net",
+  "Packages/com.litegame.sync"
+ ],
+ "counts": {
+  "units": 407,
+  "violatingUnits": 407,
+  "files": 18,
+  "lines": 58,
+  "entry": 407
+ },
+ "units": {
+  "Assets/LiteCodeGen/Runtime": {
+   "files": 2,
+   "lines": 237,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev": {
+   "files": 1,
+   "lines": 42,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Assembly": {
+   "files": 3,
+   "lines": 207,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Battle": {
+   "files": 2,
+   "lines": 254,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Commands": {
+   "files": 1,
+   "lines": 94,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Debug/Console": {
+   "files": 3,
+   "lines": 58,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Debug/Diagnostics": {
+   "files": 1,
+   "lines": 168,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Debug/Kernel": {
+   "files": 4,
+   "lines": 761,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Debug/NetDebug": {
+   "files": 7,
+   "lines": 276,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Debug/Session": {
+   "files": 4,
+   "lines": 382,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Debug/Tunables": {
+   "files": 6,
+   "lines": 642,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Debug/WeakNet/Commands": {
+   "files": 2,
+   "lines": 37,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Debug/WeakNet/Profile": {
+   "files": 4,
+   "lines": 251,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Debug/WeakNet/Stats": {
+   "files": 3,
+   "lines": 185,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Debug/WeakNet/Transport": {
+   "files": 2,
+   "lines": 368,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Input": {
+   "files": 1,
+   "lines": 49,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/LocalServer": {
+   "files": 2,
+   "lines": 469,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Projection": {
+   "files": 7,
+   "lines": 2596,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Projection/Hud": {
+   "files": 7,
+   "lines": 1059,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Dev/Projection/Preview": {
+   "files": 6,
+   "lines": 332,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Luban": {
+   "files": 6,
+   "lines": 544,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Unity/Cinemachine": {
+   "files": 2,
+   "lines": 613,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Adapters/Unity/InputSystem": {
+   "files": 1,
+   "lines": 304,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/App": {
+   "files": 3,
+   "lines": 328,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/App/Probes": {
+   "files": 2,
+   "lines": 343,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Bootstrap": {
+   "files": 5,
+   "lines": 362,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Core/Dev": {
+   "files": 2,
+   "lines": 102,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Core/Feedback/DamageNumbers": {
+   "files": 4,
+   "lines": 497,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Core/Feedback/DamageNumbers/Abstractions": {
+   "files": 1,
+   "lines": 15,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Core/Feedback/HitFeedback": {
+   "files": 1,
+   "lines": 17,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Core/Flow": {
+   "files": 1,
+   "lines": 21,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Core/Input": {
+   "files": 3,
+   "lines": 238,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Core/Spatial": {
+   "files": 1,
+   "lines": 75,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Core/Strategy": {
+   "files": 2,
+   "lines": 113,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Core/UI": {
+   "files": 1,
+   "lines": 48,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor": {
+   "files": 2,
+   "lines": 123,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Baking/Body": {
+   "files": 2,
+   "lines": 354,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Baking/Map": {
+   "files": 2,
+   "lines": 948,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Baking/Targets": {
+   "files": 3,
+   "lines": 562,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Baking/Tooling": {
+   "files": 3,
+   "lines": 281,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Baking/Weapon": {
+   "files": 3,
+   "lines": 315,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/CollectRules": {
+   "files": 1,
+   "lines": 51,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Core": {
+   "files": 4,
+   "lines": 728,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Core/Style/Apply": {
+   "files": 2,
+   "lines": 265,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Core/Style/Model": {
+   "files": 3,
+   "lines": 278,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Core/Style/Theme": {
+   "files": 5,
+   "lines": 604,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Core/Style/Tool": {
+   "files": 2,
+   "lines": 594,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Gm": {
+   "files": 9,
+   "lines": 1837,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Resource": {
+   "files": 1,
+   "lines": 210,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Toolchain/Actions": {
+   "files": 3,
+   "lines": 138,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Toolchain/Contracts": {
+   "files": 3,
+   "lines": 350,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Toolchain/Pages": {
+   "files": 8,
+   "lines": 368,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Toolchain/Registry": {
+   "files": 4,
+   "lines": 560,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Toolchain/Utility": {
+   "files": 2,
+   "lines": 239,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/Toolchain/Window": {
+   "files": 1,
+   "lines": 419,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools": {
+   "files": 3,
+   "lines": 118,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Binding": {
+   "files": 6,
+   "lines": 1175,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Compose": {
+   "files": 9,
+   "lines": 743,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Contract": {
+   "files": 7,
+   "lines": 1394,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Naming": {
+   "files": 1,
+   "lines": 96,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Page/Manifest": {
+   "files": 6,
+   "lines": 678,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Page/Process": {
+   "files": 1,
+   "lines": 173,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Page/Registration": {
+   "files": 2,
+   "lines": 477,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Page/Scaffold": {
+   "files": 4,
+   "lines": 487,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Page/Table": {
+   "files": 6,
+   "lines": 258,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Preview": {
+   "files": 10,
+   "lines": 1513,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Reference": {
+   "files": 1,
+   "lines": 280,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Text": {
+   "files": 2,
+   "lines": 191,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Validation": {
+   "files": 8,
+   "lines": 744,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Validation/Rules/Copy": {
+   "files": 4,
+   "lines": 335,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Validation/Rules/Page": {
+   "files": 1,
+   "lines": 116,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Validation/Rules/Performance": {
+   "files": 3,
+   "lines": 151,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Validation/Rules/Structure": {
+   "files": 10,
+   "lines": 1037,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Validation/Rules/Visual": {
+   "files": 7,
+   "lines": 558,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Widgets": {
+   "files": 5,
+   "lines": 620,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Workbench/Pages": {
+   "files": 2,
+   "lines": 102,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Workbench/Sections": {
+   "files": 3,
+   "lines": 497,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Workbench/State": {
+   "files": 6,
+   "lines": 357,
+   "entry": "missing",
+   "violations": [
+    "files",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Editor/UITools/Workbench/Window": {
+   "files": 1,
+   "lines": 473,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle": {
+   "files": 4,
+   "lines": 153,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/Abstractions/Read": {
+   "files": 1,
+   "lines": 99,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/Abstractions/Run": {
+   "files": 5,
+   "lines": 163,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/Abstractions/Session": {
+   "files": 3,
+   "lines": 75,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/Abstractions/Settlement": {
+   "files": 2,
+   "lines": 39,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/Abstractions/View": {
+   "files": 4,
+   "lines": 93,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/Hosting/Client": {
+   "files": 3,
+   "lines": 204,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/Hosting/World": {
+   "files": 3,
+   "lines": 214,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/Shared": {
+   "files": 5,
+   "lines": 1058,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/AimSubModule": {
+   "files": 4,
+   "lines": 389,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/Catalog": {
+   "files": 2,
+   "lines": 179,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/Reconcile": {
+   "files": 3,
+   "lines": 396,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/RootMotion": {
+   "files": 4,
+   "lines": 376,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/View": {
+   "files": 4,
+   "lines": 425,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule": {
+   "files": 2,
+   "lines": 233,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule/Abstractions": {
+   "files": 1,
+   "lines": 17,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule/Combat/Aim": {
+   "files": 4,
+   "lines": 122,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule/Combat/Locomotion": {
+   "files": 3,
+   "lines": 124,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule/Combat/Machine": {
+   "files": 2,
+   "lines": 313,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule/Combat/State": {
+   "files": 2,
+   "lines": 155,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule/Drivers/Aim": {
+   "files": 3,
+   "lines": 694,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule/Drivers/Grip": {
+   "files": 3,
+   "lines": 150,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CharactersSubModule/Profiles": {
+   "files": 2,
+   "lines": 54,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CombatSubModule/Abstractions": {
+   "files": 2,
+   "lines": 36,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CombatSubModule/Damage": {
+   "files": 3,
+   "lines": 410,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CombatSubModule/Feedback": {
+   "files": 5,
+   "lines": 533,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CombatSubModule/Fx": {
+   "files": 4,
+   "lines": 356,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CombatSubModule/Weapon": {
+   "files": 2,
+   "lines": 50,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/CommandsSubModule": {
+   "files": 3,
+   "lines": 78,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/Abstractions": {
+   "files": 2,
+   "lines": 91,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/Crosshair": {
+   "files": 2,
+   "lines": 279,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/Drivers": {
+   "files": 5,
+   "lines": 718,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/HudSubModule/Model": {
+   "files": 3,
+   "lines": 480,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/SessionSubModule": {
+   "files": 5,
+   "lines": 362,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/SettlementSubModule": {
+   "files": 2,
+   "lines": 70,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Battle/SubModules/SetupSubModule": {
+   "files": 3,
+   "lines": 585,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Camera": {
+   "files": 4,
+   "lines": 165,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Camera/Abstractions": {
+   "files": 3,
+   "lines": 94,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Composition": {
+   "files": 1,
+   "lines": 11,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Composition/Segments/Content": {
+   "files": 1,
+   "lines": 125,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Composition/Segments/Infrastructure": {
+   "files": 4,
+   "lines": 133,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Composition/Segments/Session": {
+   "files": 2,
+   "lines": 68,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Config": {
+   "files": 2,
+   "lines": 41,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Config/Abstractions": {
+   "files": 2,
+   "lines": 52,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Config/Activation": {
+   "files": 3,
+   "lines": 205,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Config/DeploySubModule": {
+   "files": 1,
+   "lines": 102,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Config/Profile": {
+   "files": 2,
+   "lines": 165,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Config/Source": {
+   "files": 2,
+   "lines": 99,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Config/Table": {
+   "files": 4,
+   "lines": 363,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Dev": {
+   "files": 2,
+   "lines": 53,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Dev/Abstractions": {
+   "files": 2,
+   "lines": 60,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Dev/FallbacksSubModule": {
+   "files": 2,
+   "lines": 76,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Input": {
+   "files": 3,
+   "lines": 242,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Input/Abstractions": {
+   "files": 1,
+   "lines": 31,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Map": {
+   "files": 2,
+   "lines": 35,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Map/Abstractions": {
+   "files": 2,
+   "lines": 42,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Map/Scenes": {
+   "files": 3,
+   "lines": 137,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta": {
+   "files": 2,
+   "lines": 65,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/Abstractions": {
+   "files": 5,
+   "lines": 149,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/Abstractions/Account": {
+   "files": 3,
+   "lines": 56,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/Abstractions/Room": {
+   "files": 5,
+   "lines": 138,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/Abstractions/Session": {
+   "files": 4,
+   "lines": 88,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/Call": {
+   "files": 1,
+   "lines": 12,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/Client": {
+   "files": 1,
+   "lines": 121,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/Client/Account": {
+   "files": 5,
+   "lines": 342,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/Client/Session": {
+   "files": 1,
+   "lines": 152,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/Config": {
+   "files": 1,
+   "lines": 161,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/Wire": {
+   "files": 2,
+   "lines": 190,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/WireSubModule/Core": {
+   "files": 3,
+   "lines": 104,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/WireSubModule/Instance": {
+   "files": 2,
+   "lines": 29,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/WireSubModule/Join": {
+   "files": 1,
+   "lines": 10,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/WireSubModule/Lobby": {
+   "files": 4,
+   "lines": 69,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/WireSubModule/Login": {
+   "files": 2,
+   "lines": 21,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Meta/WireSubModule/Match": {
+   "files": 4,
+   "lines": 64,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Procedure": {
+   "files": 2,
+   "lines": 179,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Procedure/Flow": {
+   "files": 5,
+   "lines": 869,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Procedure/Shared": {
+   "files": 3,
+   "lines": 125,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Procedure/SubModules/LaunchSubModule": {
+   "files": 1,
+   "lines": 30,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Procedure/SubModules/RecoverySubModule": {
+   "files": 1,
+   "lines": 92,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Boot": {
+   "files": 3,
+   "lines": 183,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Flow": {
+   "files": 2,
+   "lines": 208,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Procedure/SubModules/StagesSubModule/Play": {
+   "files": 2,
+   "lines": 637,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Session": {
+   "files": 3,
+   "lines": 222,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Session/Abstractions": {
+   "files": 5,
+   "lines": 78,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Session/Abstractions/Room": {
+   "files": 2,
+   "lines": 39,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Session/Room": {
+   "files": 1,
+   "lines": 99,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Session/SubModules/MatchSubModule": {
+   "files": 1,
+   "lines": 36,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Session/Transport": {
+   "files": 2,
+   "lines": 117,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Settings": {
+   "files": 1,
+   "lines": 41,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Settings/Abstractions": {
+   "files": 2,
+   "lines": 60,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Settings/Apply": {
+   "files": 3,
+   "lines": 232,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Settings/LookSubModule": {
+   "files": 1,
+   "lines": 31,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Settings/Model": {
+   "files": 2,
+   "lines": 266,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Settings/Options": {
+   "files": 3,
+   "lines": 126,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/Shared": {
+   "files": 1,
+   "lines": 11,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/UI": {
+   "files": 3,
+   "lines": 182,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/UI/Abstractions": {
+   "files": 1,
+   "lines": 15,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/UI/Abstractions/Pages": {
+   "files": 2,
+   "lines": 72,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/UI/Bind": {
+   "files": 1,
+   "lines": 57,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/UI/Pages": {
+   "files": 2,
+   "lines": 116,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/UI/Pages/Screens/Auth": {
+   "files": 1,
+   "lines": 78,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/UI/Pages/Screens/Demo": {
+   "files": 1,
+   "lines": 28,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/UI/Pages/Screens/Hub": {
+   "files": 4,
+   "lines": 511,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/UI/Pages/Screens/Match": {
+   "files": 1,
+   "lines": 69,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteGame/Modules/UI/Pages/Screens/Settings": {
+   "files": 1,
+   "lines": 324,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteTesting/Core": {
+   "files": 5,
+   "lines": 442,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteTesting/Editor": {
+   "files": 2,
+   "lines": 136,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/LiteTesting/Runtime": {
+   "files": 2,
+   "lines": 152,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode": {
+   "files": 2,
+   "lines": 144,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Battle/Crosshair": {
+   "files": 2,
+   "lines": 385,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Battle/Fx": {
+   "files": 5,
+   "lines": 1382,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Battle/Hud": {
+   "files": 5,
+   "lines": 778,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Battle/Hud/Feed": {
+   "files": 4,
+   "lines": 919,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Battle/Net": {
+   "files": 2,
+   "lines": 370,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Battle/Session": {
+   "files": 3,
+   "lines": 743,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Battle/Tables": {
+   "files": 2,
+   "lines": 173,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Battle/Weapon": {
+   "files": 2,
+   "lines": 461,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Build": {
+   "files": 3,
+   "lines": 261,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Camera": {
+   "files": 2,
+   "lines": 181,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Camera/Tps/Aim": {
+   "files": 3,
+   "lines": 174,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Camera/Tps/Rig": {
+   "files": 3,
+   "lines": 300,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Character/Anim": {
+   "files": 3,
+   "lines": 2020,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Character/Assets": {
+   "files": 3,
+   "lines": 696,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Config": {
+   "files": 3,
+   "lines": 422,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Content/Activation": {
+   "files": 2,
+   "lines": 223,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Content/Candidate": {
+   "files": 3,
+   "lines": 482,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Content/Release": {
+   "files": 3,
+   "lines": 335,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Content/Runtime": {
+   "files": 2,
+   "lines": 725,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Debug": {
+   "files": 4,
+   "lines": 644,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Debug/Net": {
+   "files": 3,
+   "lines": 349,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Flow/RoomFlow": {
+   "files": 5,
+   "lines": 1070,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Flow/RoomFlow/Cleanup": {
+   "files": 5,
+   "lines": 800,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Flow/RoomFlow/Failure": {
+   "files": 2,
+   "lines": 322,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Framework/Presentation": {
+   "files": 2,
+   "lines": 496,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Map": {
+   "files": 2,
+   "lines": 159,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Meta": {
+   "files": 3,
+   "lines": 1251,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Platform": {
+   "files": 4,
+   "lines": 390,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Shared": {
+   "files": 3,
+   "lines": 233,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Sim": {
+   "files": 3,
+   "lines": 1055,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/Tooling": {
+   "files": 3,
+   "lines": 572,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Acceptance": {
+   "files": 1,
+   "lines": 609,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Api": {
+   "files": 1,
+   "lines": 39,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Binding": {
+   "files": 4,
+   "lines": 692,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Compose": {
+   "files": 2,
+   "lines": 236,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Contract": {
+   "files": 3,
+   "lines": 709,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Dialog": {
+   "files": 2,
+   "lines": 410,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Feedback": {
+   "files": 3,
+   "lines": 772,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/LText": {
+   "files": 3,
+   "lines": 533,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Layout": {
+   "files": 2,
+   "lines": 312,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Navigation": {
+   "files": 3,
+   "lines": 1037,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Page": {
+   "files": 5,
+   "lines": 1687,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Preview": {
+   "files": 3,
+   "lines": 412,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Retirement": {
+   "files": 1,
+   "lines": 182,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Style": {
+   "files": 5,
+   "lines": 936,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Text": {
+   "files": 4,
+   "lines": 858,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Theme": {
+   "files": 4,
+   "lines": 651,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Theme/Selectable": {
+   "files": 2,
+   "lines": 246,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Validation": {
+   "files": 3,
+   "lines": 745,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Visual": {
+   "files": 2,
+   "lines": 187,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Widget": {
+   "files": 5,
+   "lines": 739,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Widget/Runtime": {
+   "files": 2,
+   "lines": 286,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/EditMode/UI/Workbench": {
+   "files": 2,
+   "lines": 486,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/UI/PlayMode": {
+   "files": 1,
+   "lines": 36,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/UI/PlayMode/Battle": {
+   "files": 2,
+   "lines": 467,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/UI/PlayMode/Boot": {
+   "files": 1,
+   "lines": 78,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/UI/PlayMode/Presentation": {
+   "files": 4,
+   "lines": 1205,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/UI/PlayMode/UI": {
+   "files": 1,
+   "lines": 363,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/UI/PlayMode/UI/Page": {
+   "files": 2,
+   "lines": 360,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Assets/Tests/UI/PlayMode/UI/State": {
+   "files": 3,
+   "lines": 680,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Assets/Tests/UI/PlayMode/UI/Widget": {
+   "files": 3,
+   "lines": 594,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Editor": {
+   "files": 1,
+   "lines": 153,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Editor/EditorTools/Bind": {
+   "files": 5,
+   "lines": 776,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Editor/EditorTools/Codegen": {
+   "files": 3,
+   "lines": 530,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Editor/Inspectors": {
+   "files": 2,
+   "lines": 264,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Adapters/InputSystem/Input": {
+   "files": 1,
+   "lines": 88,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft": {
+   "files": 3,
+   "lines": 159,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Adapters/Unity/AnimationBackends/Animator": {
+   "files": 4,
+   "lines": 720,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Adapters/Unity/AnimationBackends/Channel": {
+   "files": 3,
+   "lines": 229,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Adapters/Unity/Async": {
+   "files": 1,
+   "lines": 16,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Adapters/Unity/IO": {
+   "files": 1,
+   "lines": 11,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Adapters/Unity/Logging": {
+   "files": 1,
+   "lines": 20,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Adapters/YooAsset": {
+   "files": 2,
+   "lines": 336,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Adapters/YooAsset/Scene": {
+   "files": 1,
+   "lines": 379,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core": {
+   "files": 1,
+   "lines": 5,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Clock": {
+   "files": 3,
+   "lines": 396,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Clock/Abstractions/Clock": {
+   "files": 2,
+   "lines": 32,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Clock/Abstractions/Scheduler": {
+   "files": 1,
+   "lines": 23,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Command": {
+   "files": 4,
+   "lines": 429,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Command/Abstractions": {
+   "files": 5,
+   "lines": 59,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/DI": {
+   "files": 2,
+   "lines": 172,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Diagnostics": {
+   "files": 4,
+   "lines": 554,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Errors": {
+   "files": 1,
+   "lines": 57,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Event": {
+   "files": 3,
+   "lines": 434,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Event/Abstractions": {
+   "files": 2,
+   "lines": 69,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Fsm/Abstractions": {
+   "files": 2,
+   "lines": 44,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Fsm/Machine": {
+   "files": 4,
+   "lines": 632,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Fsm/Spec": {
+   "files": 1,
+   "lines": 54,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/IO": {
+   "files": 2,
+   "lines": 381,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/IO/Abstractions": {
+   "files": 3,
+   "lines": 60,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Logging": {
+   "files": 4,
+   "lines": 400,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Logging/Abstractions": {
+   "files": 3,
+   "lines": 56,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Module": {
+   "files": 1,
+   "lines": 146,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Module/Abstractions": {
+   "files": 2,
+   "lines": 24,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Operations": {
+   "files": 1,
+   "lines": 242,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Pool": {
+   "files": 1,
+   "lines": 109,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Scope": {
+   "files": 1,
+   "lines": 124,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Serialization": {
+   "files": 1,
+   "lines": 18,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Serialization/Abstractions": {
+   "files": 2,
+   "lines": 56,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Threading": {
+   "files": 1,
+   "lines": 45,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Threading/Abstractions": {
+   "files": 1,
+   "lines": 11,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Core/Util": {
+   "files": 3,
+   "lines": 130,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Hosting/Abstractions": {
+   "files": 5,
+   "lines": 103,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Hosting/Diagnostics": {
+   "files": 2,
+   "lines": 142,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Hosting/Host": {
+   "files": 5,
+   "lines": 492,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Hosting/Host/Events": {
+   "files": 1,
+   "lines": 44,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Hosting/Host/Shutdown": {
+   "files": 1,
+   "lines": 198,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Hosting/Identity/Diagnostics": {
+   "files": 2,
+   "lines": 92,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Hosting/Identity/Ids": {
+   "files": 4,
+   "lines": 110,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Hosting/Recovery": {
+   "files": 3,
+   "lines": 289,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Hosting/Segment": {
+   "files": 5,
+   "lines": 473,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Hosting/Segment/Runtime": {
+   "files": 2,
+   "lines": 130,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services": {
+   "files": 2,
+   "lines": 44,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Animation/Abstractions": {
+   "files": 3,
+   "lines": 95,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Animation/Backend": {
+   "files": 2,
+   "lines": 456,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Animation/Blend": {
+   "files": 3,
+   "lines": 190,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Animation/Channel": {
+   "files": 3,
+   "lines": 43,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Animation/Definition": {
+   "files": 4,
+   "lines": 345,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Animation/Loading": {
+   "files": 3,
+   "lines": 143,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Animation/Playback": {
+   "files": 4,
+   "lines": 201,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Animation/Request": {
+   "files": 3,
+   "lines": 74,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Animation/Result": {
+   "files": 5,
+   "lines": 133,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Audio": {
+   "files": 1,
+   "lines": 376,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Config": {
+   "files": 1,
+   "lines": 49,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Abstractions/Activation": {
+   "files": 5,
+   "lines": 307,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Abstractions/Candidate": {
+   "files": 4,
+   "lines": 62,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Abstractions/Candidate/Models": {
+   "files": 4,
+   "lines": 224,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Abstractions/Health": {
+   "files": 4,
+   "lines": 82,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Abstractions/Health/Space": {
+   "files": 2,
+   "lines": 53,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Abstractions/Release": {
+   "files": 5,
+   "lines": 550,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Abstractions/Service": {
+   "files": 5,
+   "lines": 85,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Abstractions/Version": {
+   "files": 2,
+   "lines": 158,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Activation": {
+   "files": 5,
+   "lines": 782,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Candidate": {
+   "files": 4,
+   "lines": 201,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Candidate/Http": {
+   "files": 2,
+   "lines": 270,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Config": {
+   "files": 2,
+   "lines": 133,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Health": {
+   "files": 4,
+   "lines": 261,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Health/Space": {
+   "files": 2,
+   "lines": 70,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Loading": {
+   "files": 2,
+   "lines": 282,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Content/Release": {
+   "files": 4,
+   "lines": 196,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Entity": {
+   "files": 2,
+   "lines": 407,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Input": {
+   "files": 1,
+   "lines": 32,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Localization": {
+   "files": 2,
+   "lines": 282,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Localization/Abstractions": {
+   "files": 1,
+   "lines": 35,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Scene/Abstractions": {
+   "files": 1,
+   "lines": 45,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Settings": {
+   "files": 3,
+   "lines": 255,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Settings/Abstractions": {
+   "files": 1,
+   "lines": 15,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Abstractions/Form": {
+   "files": 5,
+   "lines": 92,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Abstractions/Navigation": {
+   "files": 4,
+   "lines": 73,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Abstractions/Style": {
+   "files": 1,
+   "lines": 22,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Abstractions/Theme": {
+   "files": 4,
+   "lines": 49,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Abstractions/Widget": {
+   "files": 4,
+   "lines": 62,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Anim": {
+   "files": 5,
+   "lines": 317,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Index": {
+   "files": 4,
+   "lines": 469,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Bind/Runtime": {
+   "files": 4,
+   "lines": 446,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Dialog": {
+   "files": 3,
+   "lines": 269,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Feedback": {
+   "files": 3,
+   "lines": 503,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Form": {
+   "files": 5,
+   "lines": 499,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Form/Logic": {
+   "files": 2,
+   "lines": 82,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Hud": {
+   "files": 1,
+   "lines": 40,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Hud/Abstractions": {
+   "files": 2,
+   "lines": 25,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Input": {
+   "files": 1,
+   "lines": 32,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Layer": {
+   "files": 5,
+   "lines": 217,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Localization": {
+   "files": 2,
+   "lines": 108,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Navigation": {
+   "files": 5,
+   "lines": 648,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Service": {
+   "files": 4,
+   "lines": 716,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Spec": {
+   "files": 4,
+   "lines": 94,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Style": {
+   "files": 3,
+   "lines": 165,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Style/Theme": {
+   "files": 3,
+   "lines": 197,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Transition": {
+   "files": 4,
+   "lines": 472,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Transition/Stages": {
+   "files": 4,
+   "lines": 96,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Widgets/Bar": {
+   "files": 4,
+   "lines": 239,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Widgets/Core": {
+   "files": 3,
+   "lines": 135,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Widgets/Display": {
+   "files": 5,
+   "lines": 396,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Widgets/Input": {
+   "files": 5,
+   "lines": 304,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Widgets/List": {
+   "files": 2,
+   "lines": 312,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Widgets/Marker": {
+   "files": 2,
+   "lines": 48,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Widgets/Nav": {
+   "files": 3,
+   "lines": 168,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/UI/Widgets/Panel": {
+   "files": 3,
+   "lines": 213,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Vfx/Abstractions": {
+   "files": 2,
+   "lines": 52,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Vfx/Handle": {
+   "files": 4,
+   "lines": 497,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.framework/Runtime/Services/Vfx/Model": {
+   "files": 3,
+   "lines": 119,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.net/Adapters": {
+   "files": 2,
+   "lines": 144,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.net/Core/Client": {
+   "files": 2,
+   "lines": 111,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.net/Core/Diagnostics": {
+   "files": 1,
+   "lines": 170,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.net/Core/Protocol": {
+   "files": 4,
+   "lines": 209,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.net/Core/Transport": {
+   "files": 1,
+   "lines": 24,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.net/Core/Transport/Abstractions": {
+   "files": 3,
+   "lines": 75,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.net/Core/Transport/Security/Abstractions": {
+   "files": 1,
+   "lines": 14,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.net/Core/Transport/Security/Crypto": {
+   "files": 3,
+   "lines": 389,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.net/Core/Transport/Security/Envelope": {
+   "files": 4,
+   "lines": 772,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.net/Properties": {
+   "files": 1,
+   "lines": 6,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Diagnostics": {
+   "files": 4,
+   "lines": 693,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Editor": {
+   "files": 2,
+   "lines": 227,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Properties": {
+   "files": 1,
+   "lines": 5,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Config/Combat": {
+   "files": 5,
+   "lines": 319,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Config/Movement": {
+   "files": 2,
+   "lines": 105,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Config/Weapon": {
+   "files": 3,
+   "lines": 239,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Kernel": {
+   "files": 5,
+   "lines": 628,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Map/Map": {
+   "files": 4,
+   "lines": 288,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Map/Trig": {
+   "files": 1,
+   "lines": 153,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Pipeline/Frame": {
+   "files": 4,
+   "lines": 439,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Pipeline/Input": {
+   "files": 3,
+   "lines": 268,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Pipeline/Match": {
+   "files": 4,
+   "lines": 91,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Pipeline/Runtime": {
+   "files": 3,
+   "lines": 87,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/Rules": {
+   "files": 4,
+   "lines": 473,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/World/Combat": {
+   "files": 2,
+   "lines": 91,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/World/Entity": {
+   "files": 3,
+   "lines": 181,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/World/Frame": {
+   "files": 4,
+   "lines": 120,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Scripts/World/State": {
+   "files": 4,
+   "lines": 403,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Systems/Combat": {
+   "files": 3,
+   "lines": 477,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Systems/Match": {
+   "files": 3,
+   "lines": 139,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sim/Systems/Tick": {
+   "files": 3,
+   "lines": 248,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sync/Client/Session": {
+   "files": 5,
+   "lines": 648,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sync/Client/Wire": {
+   "files": 2,
+   "lines": 219,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sync/Events": {
+   "files": 1,
+   "lines": 68,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sync/Input": {
+   "files": 1,
+   "lines": 67,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sync/Shared": {
+   "files": 2,
+   "lines": 130,
+   "entry": "missing",
+   "violations": [
+    "entry"
+   ]
+  },
+  "Packages/com.litegame.sync/Snapshot": {
+   "files": 5,
+   "lines": 777,
+   "entry": "missing",
+   "violations": [
+    "lines",
+    "entry"
+   ]
+  }
+ }
+}

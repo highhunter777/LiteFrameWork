@@ -110,7 +110,7 @@ L5 Process      角色 / Lane / 交接 / 评审 / 度量 / CI
 
 依赖方向只能自上而下：**组合依赖组件，组件依赖基座；工具读取资产与运行时，不被运行时依赖**。反向依赖（组件引用具体页面、运行时引用编辑器程序集、release 引用调试类型）一律禁止。
 
-域边界：`LiteGame.Modules.UI` 不引 `LiteGame.Modules.Settings`；页面能力经 UI 域自持端口注入（`IPageContext` 及其 `Settings` 端口 `ISettingsPagePort`，实现住 App），页面逻辑不认设置模型类型。
+域边界：`LiteGame.Modules.UI` 只经域自持端口取能力（`PageServices` 的 `IMetaSession`/`IRoomView`/`IMapProvider`/`ISettingsPagePort`）；设置端口住 `Modules/Settings`、由 `ProductSettings` 直接实现，页面逻辑不认实现类。
 
 ### 3.2 三条产品轨
 
@@ -417,7 +417,7 @@ Page Logic (C#：PageLogicBase 派生 Page_<Name>Logic)
   - `Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIBindBase.Api.g.cs`——`UIBindBase` 的转发体（手写文件只留生命周期与索引装配）；
   - `Packages/com.litegame.framework/Runtime/Services/UI/Bind/Generated/UIApiManifest.g.cs`——`ApiVersion` 与方法名清单（`SpecMethods`/`GeneratedMethods`/`ManualMethods`/`IndexMethods`），供能力声明与守卫对账。
   - `Docs/设计文档/客户端/UI系统/UI逻辑API参考.md` 为手写导读，**不再由生成器覆盖**（方法签名以 `UIBindIndex.Api.g.cs` 为准）。
-- **手工例外**：`showConfirm`（异步确认——C# 侧不经受控 API，走 `IPageContext.Confirm`/`IConfirmDialog`）、`setList`/`onListClick`（`IUIListRows` 行转换）、`onButtonClick`（委托绑定）在 spec 标 `manual`；生成面只为其余 API 产出声明与转发，手工面不回写生成文件。
+- **手工例外**：`showConfirm`（异步确认——C# 侧不经受控 API，走 `PageServices.Confirm`/`IConfirmDialog`）、`setList`/`onListClick`（`IUIListRows` 行转换）、`onButtonClick`（委托绑定）在 spec 标 `manual`；生成面只为其余 API 产出声明与转发，手工面不回写生成文件。
 - **默认值单源**：动效/气泡缺省只认 `UIFxDefaults`——受控 API 的参数默认值直接取该常量；spec 不复制数值。
 - **版本**：构建身份 `BuildIdentity.BridgeApiVersion` 取生成的 `UIApiManifest.ApiVersion`（spec `apiVersion`），发布清单 `ReleaseManifest.BridgeApiVersion` 在准入时与本机比对；新增 API = 改 spec + 重生成 + 守卫下限同批抬升。
 - **守卫**：`UIApiSpecGuardTests` 对账清单/版本/声明与转发一致性；`toolbox.py ui-api --check` 挂工具链（`codegen.ui-api`）。

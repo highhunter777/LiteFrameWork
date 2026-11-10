@@ -20,7 +20,8 @@ class ArchCheckTests(unittest.TestCase):
             errors="replace",
         )
         self.assertEqual(result.returncode, 0, (result.stdout or "") + (result.stderr or ""))
-        self.assertIn("34 units", result.stdout)
+        # 单元数随 arch/units.json 变化；改模型时同批核对本断言。
+        self.assertIn("33 units", result.stdout)
 
     def test_generated_scan_targets_has_meta(self):
         generated = ROOT / "Assets" / "Tools" / "DisciplineScanner" / "Scripts" / "ScanTargets.Generated.cs"

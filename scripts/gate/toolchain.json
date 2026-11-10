@@ -2,14 +2,14 @@
   "$comment": "机器可读开发工具链清单（唯一工具注册源）。编辑器 Hub / scripts/toolchain.py / 生成工具索引 / 注册面检查都读取本文件；环境字段供 restore-check 使用。",
   "schemaVersion": 6,
   "name": "litegame-toolchain",
-  "updatedAt": "2026-10-25",
+  "updatedAt": "2026-11-10",
   "categories": [
     { "id": "baking", "title": "内容烘焙", "order": 10, "docs": "Docs/设计文档/游戏玩法/烘焙工具箱专项设计.md" },
     { "id": "ui", "title": "UI 工具", "order": 20, "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md" },
     { "id": "debug", "title": "调试与诊断", "order": 30, "docs": "Docs/设计文档/架构/GM与调试工具分层专项设计.md", "allowDocs": ["Docs/说明/11-构建与本地联测.md", "Docs/说明/13-调试面与排障.md"] },
     { "id": "codegen", "title": "代码生成", "order": 40, "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md", "allowDocs": ["Docs/说明/14-代码地图与根目录.md", "Docs/说明/11-构建与本地联测.md", "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md"] },
     { "id": "deploy", "title": "部署与云运维", "order": 45, "docs": "Docs/说明/12-云侧部署与联机测试.md", "allowDocs": ["Docs/说明/12-云侧部署与联机测试.md"] },
-    { "id": "quality", "title": "质量门禁", "order": 50, "docs": "Docs/说明/10-测试与门禁.md", "allowDocs": ["Docs/规范/03-领域查询表.md", "Docs/说明/15-工具链手册.md", "Docs/说明/18-域间引用矩阵.md"] },
+    { "id": "quality", "title": "质量门禁", "order": 50, "docs": "Docs/说明/10-测试与门禁.md", "allowDocs": ["Docs/规范/03-领域查询表.md", "Docs/说明/15-工具链手册.md"] },
     { "id": "build", "title": "构建", "order": 60, "docs": "Docs/说明/10-测试与门禁.md" },
     { "id": "content", "title": "内容发布", "order": 65, "docs": "Docs/设计文档/客户端/内容/资源收集目录专项设计.md" },
     { "id": "env", "title": "环境与索引", "order": 70, "docs": "Docs/说明/15-工具链手册.md", "allowDocs": ["Docs/说明/10-测试与门禁.md", "Docs/说明/16-环境复原与机器差异.md", "Docs/说明/11-构建与本地联测.md", "Docs/说明/15-工具链手册.md", "Docs/设计文档/测试与性能/调试与开发工具链演进路线图.md"] }
@@ -737,34 +737,6 @@
       "order": 20
     },
     {
-      "id": "quality.domain-matrix",
-      "title": "域间引用矩阵",
-      "category": "quality",
-      "kind": "gate",
-      "plane": "external",
-      "purpose": "delivery",
-      "summary": "Modules 顶层 12 域直引计数；--check 与 Docs/说明/18 不一致即红。",
-      "docs": "Docs/说明/18-域间引用矩阵.md",
-      "command": ["python", "scripts/gate/domain-matrix.py", "--check"],
-      "writes": ["none"],
-      "destructive": false,
-      "order": 25
-    },
-    {
-      "id": "quality.zero-use-edges",
-      "title": "零使用 asmdef 边",
-      "category": "quality",
-      "kind": "gate",
-      "plane": "external",
-      "purpose": "delivery",
-      "summary": "unit→unit asmdef 引用中目标顶层类型名出现 0 次的边；--check 只减不增。",
-      "docs": "Docs/说明/10-测试与门禁.md",
-      "command": ["python", "scripts/gate/zero-use-edges.py", "--check"],
-      "writes": ["none"],
-      "destructive": false,
-      "order": 26
-    },
-    {
       "id": "quality.l2",
       "title": "L2 Unity 门禁",
       "category": "quality",
@@ -865,12 +837,12 @@
     },
     {
       "id": "quality.hot-boundary",
-      "title": "热更边界守卫（H2）",
+      "title": "AR3 AOT 不引 hot 边界",
       "category": "quality",
       "kind": "gate",
       "plane": "external",
       "purpose": "dev",
-      "summary": "玩家 AOT 程序集不得引用 hot 程序集（H2）；读 ProjectSettings/HybridCLRSettings.asset 的 hot 清单。",
+      "summary": "AR3：AOT 程序集不得引用 hot 程序集（三类分区，精确名优先前缀兜底）；默认 warning，--strict 升 error。",
       "docs": "Docs/说明/10-测试与门禁.md",
       "command": ["python", "scripts/gate/hot-boundary-check.py"],
       "args": [
@@ -880,6 +852,89 @@
       "writes": ["none"],
       "destructive": false,
       "order": 75
+    },
+    {
+      "id": "quality.namespace-path",
+      "title": "AR1 路径=命名空间",
+      "category": "quality",
+      "kind": "gate",
+      "plane": "external",
+      "purpose": "delivery",
+      "summary": "AR1：代码目录路径逐段等于命名空间（客户端 + 共享包 8 根）；默认对基线棘轮，--all 普查。",
+      "docs": "Docs/说明/10-测试与门禁.md",
+      "command": ["python", "scripts/gate/namespace-path.py"],
+      "args": [
+        { "name": "all", "type": "bool", "description": "全量普查（报告模式，不红）" },
+        { "name": "strict", "type": "bool", "description": "配合 --all：有违规即红" },
+        { "name": "update-baseline", "type": "bool", "description": "按当前树收紧基线（只减不增）" },
+        { "name": "scope", "type": "string", "description": "只扫某个仓库相对子目录" },
+        { "name": "json", "type": "path", "description": "违规清单落盘路径" }
+      ],
+      "writes": ["none"],
+      "destructive": false,
+      "order": 21
+    },
+    {
+      "id": "quality.change-unit",
+      "title": "AR2 改动单元上限",
+      "category": "quality",
+      "kind": "gate",
+      "plane": "external",
+      "purpose": "delivery",
+      "summary": "AR2：一个目录=一个改动单元，<=5 文件 / <=600 行 / 入口同名唯一；作用域与 AR1 同一 CODE_ROOTS。",
+      "docs": "Docs/说明/10-测试与门禁.md",
+      "command": ["python", "scripts/gate/change-unit.py"],
+      "args": [
+        { "name": "all", "type": "bool", "description": "全量普查（报告模式，不红）" },
+        { "name": "strict", "type": "bool", "description": "配合 --all：有违规即红" },
+        { "name": "update-baseline", "type": "bool", "description": "按当前树收紧基线（只减不增）" },
+        { "name": "scope", "type": "string", "description": "只扫某个仓库相对子目录" },
+        { "name": "json", "type": "path", "description": "违规清单落盘路径" }
+      ],
+      "writes": ["none"],
+      "destructive": false,
+      "order": 22
+    },
+    {
+      "id": "quality.arch-model",
+      "title": "架构单元模型生成/诊断（非守卫）",
+      "category": "quality",
+      "kind": "cli",
+      "plane": "external",
+      "purpose": "dev",
+      "summary": "从 arch/units.json 生成 ScanTargets.Generated.cs 与 module-tiers.json（--write）；--check 只读诊断。守卫见 AR1/AR2/AR3。",
+      "docs": "Docs/说明/10-测试与门禁.md",
+      "command": ["python", "scripts/gate/arch-check.py"],
+      "args": [
+        { "name": "write", "type": "bool", "description": "从模型重写两个投影（维护模式）" },
+        { "name": "check", "type": "bool", "description": "只读诊断（默认行为）" },
+        { "name": "project-path", "type": "path", "description": "工程根路径" }
+      ],
+      "writes": ["generated"],
+      "outputs": [
+        { "path": "Assets/Tools/DisciplineScanner/Scripts/ScanTargets.Generated.cs", "kind": "generated" },
+        { "path": "scripts/content/module-tiers.json", "kind": "generated" }
+      ],
+      "destructive": false,
+      "order": 23
+    },
+    {
+      "id": "quality.coldstart-probe",
+      "title": "AR1/AR2 冷启动子代理探针",
+      "category": "quality",
+      "kind": "cli",
+      "plane": "external",
+      "purpose": "dev",
+      "summary": "生成域级 brief 并量一次施工的触碰面（<=2 文件达标）；用于 AR1/AR2 验收代理。",
+      "docs": "Docs/说明/10-测试与门禁.md",
+      "command": ["python", "scripts/arch/coldstart-probe.py"],
+      "args": [
+        { "name": "domain", "type": "string", "description": "域目录（生成 brief）" },
+        { "name": "copy", "type": "bool", "description": "把 brief 写入 .dsh-artifacts" }
+      ],
+      "writes": ["none"],
+      "destructive": false,
+      "order": 78
     },
     {
       "id": "build.hybridclr",

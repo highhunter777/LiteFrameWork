@@ -18,14 +18,14 @@
 
 <a id="ch1-迁移任务清单"></a>
 
-> 依据：[路线图 §5.3](../设计文档/架构/客户端架构重构演进路线图.md)（分界/身份/旧房/回滚）· [热更与内容发布专项设计 §3](../设计文档/客户端/内容/热更与内容发布专项设计.md)（范围与档位）。
+> 依据：[路线图 §2](../设计文档/架构/客户端架构重构演进路线图.md)（`AOT | hot` 分界）· [热更与内容发布专项设计 §3](../设计文档/客户端/内容/热更与内容发布专项设计.md)（范围与档位）· [本卷第2章 P0 设计裁决](#ch2-P0设计裁决落地)（身份/旧房/回滚）。
 > 范围：只做 P0–P3。P4（双端演练、Android 真机矩阵）与 P5（商业验收）不在本轮。
 
 | 阶段 | # | 任务 | 落点 | 退出判据 |
 | --- | ---: | --- | --- | --- |
-| **P0** | 1 | 热/AOT 边界定稿（hot＝`LiteSim`/`LiteSync`/`LiteGame.*`；AOT＝`LiteNet`/`Bootstrap`/框架/Unity 壳） | 路线图 §5.3.1 | 与 asmdef 引用图一致 |
-| **P0** | 2 | 双哈希身份（`BaseHash` + `KernelHash`，Join 要求 `KernelHash` 相等） | 路线图 §5.3.3 | 口径可判定，无"再议"项 |
-| **P0** | 3 | 旧房与回滚（房间级锁版本、排空、双槽 + 内置兜底） | 路线图 §5.3.8 | 三条路径（正常/版本不符/回滚）各有判据 |
+| **P0** | 1 | 热/AOT 边界定稿（hot＝`LiteSim`/`LiteSync`/`LiteGame`（`Core`/`Shared`/`Battle.Abstractions`/`Modules.*`/`Adapters.*`/`App`）；AOT＝`LiteNet`/`Bootstrap`（程序集名 `LiteGame.Bootstrap`，不在 hot 的 `LiteGame.*` 之内）/`LiteFramework.*`/Unity 壳） | [路线图 §2](../设计文档/架构/客户端架构重构演进路线图.md#2-边界) · [热更专项 §3.1](../设计文档/客户端/内容/热更与内容发布专项设计.md#ch-aot-hot-boundary) | 与 asmdef 引用图一致 |
+| **P0** | 2 | 双哈希身份（`BaseHash` + `KernelHash`，Join 要求 `KernelHash` 相等） | [热更专项 §3.1](../设计文档/客户端/内容/热更与内容发布专项设计.md#ch-aot-hot-boundary)（双哈希与准入） | 口径可判定，无"再议"项 |
+| **P0** | 3 | 旧房与回滚（房间级锁版本、排空、双槽 + 内置兜底） | [热更专项 §3.1](../设计文档/客户端/内容/热更与内容发布专项设计.md#ch-aot-hot-boundary)（分界/身份/旧房/回滚） | 三条路径（正常/版本不符/回滚）各有判据 |
 | **P0** | 4 | 旧裁决改判落点（热更专项、客户端总设计、待办 F） | 见第 2 章 | Doc 套件绿 |
 | **P1** | 1 | 内嵌 `Packages/com.code-philosophy.hybridclr` 9.0.3（MIT，LICENSE 随包） | `Packages/` | `toolchain.py check` 无新增 WARN；L0 绿 |
 | **P1** | 2 | il2cpp 安装与恢复检查（`Library/HybridCLR/LocalIl2CppData-*/il2cpp/libil2cpp/hybridclr` 存在性） | `scripts/gate/restore-check.py` | 缺失可诊断（BLOCKING/WARN 分档） |
@@ -62,7 +62,7 @@
 
 | 文档 | 改动 |
 | --- | --- |
-| [路线图 §5.3](../设计文档/架构/客户端架构重构演进路线图.md) | 由"条件设计/B6 不开工"改为**现行设计**；补 `LiteNet` 留 AOT、双哈希、旧房与回滚 |
+| [路线图 §2](../设计文档/架构/客户端架构重构演进路线图.md) | 由"条件设计/B6 不开工"改为**现行设计**（`AOT/hot` 唯一硬边界）；`LiteNet` 留 AOT、双哈希、旧房与回滚的接入细节归本卷 §2.1，路线图不再承载 |
 | [热更与内容发布专项设计 §3](../设计文档/客户端/内容/热更与内容发布专项设计.md) | 表格行与档位定义改为 HybridCLR hot 程序集；§14 结论段改判 |
 | [商业级通用客户端框架总设计](../设计文档/架构/商业级通用客户端框架总设计.md) | C# 热更手段裁决改判 |
 | [待办总览 §7.1 F 档](../待办总览.md) | 改为 P0–P3 施工中，旧「不用 HybridCLR」作废 |
@@ -132,5 +132,5 @@
 ### 4.3 未做
 
 - 候选发布→激活→回滚的实机演练（需要先 `install` + 出包 + 内容通道）：归 P4。
-- `requiredBaseHash` 的清单级强制：字段已在设计（路线图 §5.3.3），候选校验的完整实现在 P4 与发布脚本同批。
+- `requiredBaseHash` 的清单级强制：字段已在设计（[热更专项 §3.1.3](../设计文档/客户端/内容/热更与内容发布专项设计.md#ch-aot-hot-boundary)），候选校验的完整实现在 P4 与发布脚本同批。
 - Android StreamingAssets 读取（APK 内需 UnityWebRequest）：当前装载器按文件路径实现，P4 真机矩阵处理。
