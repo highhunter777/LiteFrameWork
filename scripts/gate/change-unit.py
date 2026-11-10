@@ -164,7 +164,11 @@ def git_state(root: Path):
     except OSError:
         return None, None
     sha = head.stdout.strip() if head.returncode == 0 else None
-    dirty = bool(status.stdout.strip()) if status.returncode == 0 else None
+    dirty = None
+    if status.returncode == 0:
+        # 基线文件自身的改动不代表源码变化：重采一份基线不应让另一份被记成脏树
+        changed = [ln for ln in status.stdout.splitlines() if "-baseline.json" not in ln]
+        dirty = bool(changed)
     return sha, dirty
 
 
