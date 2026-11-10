@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Services.UnityObjects;
 using UnityEngine;
 
 namespace LiteFramework.UI
@@ -427,12 +428,7 @@ namespace LiteFramework.UI
             // ⑤ 销毁 DDoL Root。
             if (_root != null)
             {
-#if UNITY_EDITOR
-                if (!Application.isPlaying) UnityEngine.Object.DestroyImmediate(_root.gameObject);
-                else UnityEngine.Object.Destroy(_root.gameObject);
-#else
-                UnityEngine.Object.Destroy(_root.gameObject);
-#endif
+                UnityObjects.Destroy(_root.gameObject);
             }
             Log.Info("UI Shutdown 完成：在途取消、全关、缓存销毁、租约归零、Root 销毁", LogTag.UI);
         }

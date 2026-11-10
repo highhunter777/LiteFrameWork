@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Services.UnityObjects;
 using LiteFramework;
 using LiteFramework.Animation;
 using UnityEngine;
@@ -96,8 +97,7 @@ namespace LiteGame
             // 已 Attach 的路径由 BattleHudAssembler.DisposeRoot 先销毁（Unity 伪空判等跳过，不会双杀）。
             if (HudInstance != null)
             {
-                if (Application.isPlaying) UnityEngine.Object.Destroy(HudInstance);
-                else UnityEngine.Object.DestroyImmediate(HudInstance);
+                UnityObjects.Destroy(HudInstance);
             }
             HudInstance = null;
             HudView = null;

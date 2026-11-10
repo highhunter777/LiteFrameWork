@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LiteFramework;
+using LiteFramework.Services.UnityObjects;
 using LiteSim;
 using UnityEngine;
 
@@ -121,14 +122,11 @@ namespace LiteGame
             return pool;
         }
 
-        /// <summary>销毁口径：Play 延迟（不打断当帧）/ 编辑器 Immediate（与 GameObjectPool/UIService 同口径）。</summary>
+        /// <summary>池件销毁（fake-null 早退：池中件可能已被外部销毁，交池 validateOnAcquire 转 create）。</summary>
         private static void DestroyView(GameObject go)
         {
             if (go == null) return;
-#if UNITY_EDITOR
-            if (!Application.isPlaying) { UnityEngine.Object.DestroyImmediate(go); return; }
-#endif
-            UnityEngine.Object.Destroy(go);
+            UnityObjects.Destroy(go);
         }
 
         private string ResolveLocation(in EntitySlot slot)

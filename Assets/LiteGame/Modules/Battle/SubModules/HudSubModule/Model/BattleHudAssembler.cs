@@ -1,5 +1,6 @@
 using System;
 using LiteFramework;
+using LiteFramework.Services.UnityObjects;
 using LiteFramework.UI;
 using LiteSim;
 using UnityEngine;
@@ -107,8 +108,7 @@ namespace LiteGame
                 if (View != null && View.SettingsButton != null && _menuClick != null)
                     View.SettingsButton.onClick.RemoveListener(_menuClick);   // 菜单钮监听随拆（存实例移除）
                 _menuClick = null;
-                if (Application.isPlaying) UnityEngine.Object.Destroy(_hudInstance);
-                else UnityEngine.Object.DestroyImmediate(_hudInstance);
+                UnityObjects.Destroy(_hudInstance);
                 _hudInstance = null;
             }
             Unbind();

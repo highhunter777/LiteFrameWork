@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Services.UnityObjects;
 using UnityEngine;
 
 namespace LiteFramework
@@ -100,7 +101,7 @@ namespace LiteFramework
         {
             _root = new GameObject("[Audio]").transform;
             // DontDestroyOnLoad 仅 Play mode 合法（编辑器脚本直调抛 InvalidOperationException）——
-            // 编辑态用例（EditMode 验收 / 工具脚本）跳过，与 Shutdown 的 Destroy/DestroyImmediate 分支同口径。
+            // 编辑态用例（EditMode 验收 / 工具脚本）跳过。
             if (Application.isPlaying)
                 UnityEngine.Object.DontDestroyOnLoad(_root.gameObject);
             AddGroup(Group.Effect, "Effect", effectProxies);
@@ -306,11 +307,9 @@ namespace LiteFramework
             _root = null;
             _groups.Clear();
             _voices.Clear();                                 // 同源绑定随代理表一并作废（关闭后不再接受播放）
-#if UNITY_EDITOR
-            if (!Application.isPlaying) { UnityEngine.Object.DestroyImmediate(go); return; }
-#endif
-            UnityEngine.Object.Destroy(go);
-            Log.Info("音频服务已关闭（全局停止 + 根销毁）", LogTag.Audio);
+            UnityObjects.Destroy(go);
+            // 编辑态原本由 #if 分支 return 提前退出、不打本条日志；此处保零行为变化，勿删守卫。
+            if (Application.isPlaying) Log.Info("音频服务已关闭（全局停止 + 根销毁）", LogTag.Audio);
         }
 
         public string StatsName => "Audio";

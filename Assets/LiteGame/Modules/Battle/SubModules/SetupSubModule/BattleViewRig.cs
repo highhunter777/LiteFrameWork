@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Services.UnityObjects;
 using LiteFramework.Animation;
 using LiteSim;
 using UnityEngine;
@@ -279,8 +280,7 @@ namespace LiteGame
             _viewAssembler.Detach();                     // 视图实例随视图根销毁
             if (_viewRootGo != null)
             {
-                if (Application.isPlaying) UnityEngine.Object.Destroy(_viewRootGo);
-                else UnityEngine.Object.DestroyImmediate(_viewRootGo);
+                UnityObjects.Destroy(_viewRootGo);
                 _viewRootGo = null;
             }
             _viewRoot = null;

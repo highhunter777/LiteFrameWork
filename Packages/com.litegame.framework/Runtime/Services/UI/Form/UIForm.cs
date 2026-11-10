@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using LiteFramework;
+using LiteFramework.Services.UnityObjects;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -195,14 +196,7 @@ namespace LiteFramework.UI
         {
             DropLogic();
             if (Root == null) return;
-#if UNITY_EDITOR
-            if (!Application.isPlaying)
-            {
-                UnityEngine.Object.DestroyImmediate(Root);    // EditMode 下 Destroy 只记 error 不生效
-                return;
-            }
-#endif
-            UnityEngine.Object.Destroy(Root);
+            UnityObjects.Destroy(Root);
         }
 
         internal void EnterPaused()
@@ -293,14 +287,7 @@ namespace LiteFramework.UI
             _displayScope = null;
             State = UIFormState.Disposed;
             if (Root == null) return;
-#if UNITY_EDITOR
-            if (!Application.isPlaying)
-            {
-                UnityEngine.Object.DestroyImmediate(Root);    // EditMode 下 Destroy 只记 error 不生效
-                return;
-            }
-#endif
-            UnityEngine.Object.Destroy(Root);
+            UnityObjects.Destroy(Root);
         }
 
         /// <summary>OnUpdate 派发（UIService.Tick，仅 Active 态会走到这里）。</summary>

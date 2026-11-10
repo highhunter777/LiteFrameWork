@@ -1,4 +1,5 @@
 using LiteFramework;
+using LiteFramework.Services.UnityObjects;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Cinemachine;
@@ -204,8 +205,7 @@ namespace LiteGame
             }
             if (_ownsTarget && _target != null && !ReferenceEquals(_target, null))
             {
-                if (Application.isPlaying) UnityEngine.Object.Destroy(_target.gameObject);
-                else UnityEngine.Object.DestroyImmediate(_target.gameObject);
+                UnityObjects.Destroy(_target.gameObject);
             }
             _vcam = null;
             _target = null;

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Services.UnityObjects;
 using UnityEngine;
 
 namespace LiteGame.Modules.Camera
@@ -46,8 +47,7 @@ namespace LiteGame.Modules.Camera
             _camera = null;
             if (_cameraHost != null)
             {
-                if (UnityEngine.Application.isPlaying) UnityEngine.Object.Destroy(_cameraHost);
-                else UnityEngine.Object.DestroyImmediate(_cameraHost);
+                UnityObjects.Destroy(_cameraHost);
                 _cameraHost = null;
             }
         }

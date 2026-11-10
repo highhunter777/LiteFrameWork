@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Services.UnityObjects;
 using UnityEngine;
 
 namespace LiteFramework
@@ -212,21 +213,12 @@ namespace LiteFramework
 
             if (_ownsWorldRoot && _worldRoot != null)
             {
-                DestroyWorldRoot(_worldRoot.gameObject);
+                UnityObjects.Destroy(_worldRoot.gameObject);
                 _worldRoot = null;
             }
 
             _lifetime.Dispose();
             Log.Info($"VFX 已关闭（回收 {ids.Count} 个活体，池已排空）", Tag);
-        }
-
-        /// <summary>销毁口径：Play mode 延迟销毁（不打断当帧）；编辑态立即销毁（与 GameObjectPool 同口径）。</summary>
-        private static void DestroyWorldRoot(GameObject go)
-        {
-#if UNITY_EDITOR
-            if (!Application.isPlaying) { UnityEngine.Object.DestroyImmediate(go); return; }
-#endif
-            UnityEngine.Object.Destroy(go);
         }
 
         // ---- ITickable ----。

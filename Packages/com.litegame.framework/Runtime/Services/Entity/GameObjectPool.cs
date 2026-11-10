@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LiteFramework.Services.UnityObjects;
 using UnityEngine;
 
 namespace LiteFramework
@@ -118,19 +119,9 @@ namespace LiteFramework
             Clear();
             if (_ownsRoot && _root != null)
             {
-                DestroyAtRuntime(_root.gameObject);
+                UnityObjects.Destroy(_root.gameObject);
                 _root = null;
             }
-        }
-
-        /// <summary>销毁口径：Play mode 走延迟销毁（不打断当帧），编辑态走立即销毁
-        /// （EditMode 无延迟销毁帧，<c>Destroy</c> 会报错——与 UIService/AudioService 同口径）。</summary>
-        private static void DestroyAtRuntime(GameObject go)
-        {
-#if UNITY_EDITOR
-            if (!Application.isPlaying) { UnityEngine.Object.DestroyImmediate(go); return; }
-#endif
-            UnityEngine.Object.Destroy(go);
         }
 
         private ObjectPool<GameObject> GetBucket(string key, Func<GameObject> create)
@@ -149,7 +140,7 @@ namespace LiteFramework
                     onDestroy: go =>
                     {
                         if (go != null) _keys.Remove(go);
-                        DestroyAtRuntime(go);
+                        UnityObjects.Destroy(go);
                     },
                     maxIdle: MaxIdlePerKey,
                     statsName: $"GameObjectPool.{key}",
