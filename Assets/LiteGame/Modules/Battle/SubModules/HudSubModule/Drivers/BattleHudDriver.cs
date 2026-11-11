@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Battle.Abstractions.Read;
 
 namespace LiteGame
 {

@@ -6,6 +6,7 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using LiteGame.Modules.Battle.Abstractions.Settlement;
 
 namespace LiteGame.Tests.EditMode
 {

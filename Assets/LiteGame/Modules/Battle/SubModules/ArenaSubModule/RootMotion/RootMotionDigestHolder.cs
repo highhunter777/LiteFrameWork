@@ -1,4 +1,5 @@
 using System.Threading;
+using LiteGame.Modules.Battle.Abstractions.View;
 
 namespace LiteGame.Modules.Battle.Arena
 {

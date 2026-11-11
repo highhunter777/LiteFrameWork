@@ -6,6 +6,7 @@ using LiteGame;
 using LiteNet;
 using LiteNet.Transport;
 using Xunit;
+using LiteGame.Modules.Battle.Abstractions.Run;
 
 namespace LiteNet.Tests
 {

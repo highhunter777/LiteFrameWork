@@ -1,4 +1,5 @@
 using System;
+using LiteGame.Modules.Battle.Abstractions.Session;
 
 namespace LiteGame
 {

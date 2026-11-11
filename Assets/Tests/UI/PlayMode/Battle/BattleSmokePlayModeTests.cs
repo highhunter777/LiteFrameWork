@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using LiteGame.Modules.Settings;
+using LiteGame.Modules.Battle.Abstractions.View;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

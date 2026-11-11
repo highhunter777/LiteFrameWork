@@ -14,6 +14,8 @@ using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
 
 using LiteSync.Client;
+using LiteGame.Modules.Battle.Abstractions.Run;
+using LiteGame.Modules.Battle.Abstractions.View;
 namespace LiteGame
 {
     /// <summary>

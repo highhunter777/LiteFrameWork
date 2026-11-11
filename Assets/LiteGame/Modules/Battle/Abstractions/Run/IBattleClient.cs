@@ -2,7 +2,7 @@ using System;
 using LiteNet;
 using LiteSync.Client;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.Run
 {
     /// <summary>
     /// 对局会话客户端端口（Battle 消费面）：BattleContext/BattleInputPipeline/ 房间会话门面只经本口驱动与观测会话——具体实现（KCP 传输 + RoomClient 相位机）归 Bat。

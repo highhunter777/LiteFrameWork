@@ -1,6 +1,7 @@
 using System;
 using LiteNet.Proto;
 using NUnit.Framework;
+using LiteGame.Modules.Battle.Abstractions.Session;
 
 using ProtoOwnerChanged = LiteNet.Proto.OwnerChanged;
 namespace LiteGame.Tests.EditMode

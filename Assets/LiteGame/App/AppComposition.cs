@@ -18,6 +18,7 @@ using LiteGame.Modules.Meta.Abstractions;
 using LiteGame.Modules.Meta.Abstractions.Account;
 using LiteGame.Modules.Meta.Client.Account;
 using LiteGame.Modules.Meta.Client.Session;
+using LiteGame.Modules.Battle.Abstractions.View;
 namespace LiteGame
 {
     /// <summary>

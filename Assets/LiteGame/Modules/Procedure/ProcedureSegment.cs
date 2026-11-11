@@ -14,6 +14,9 @@ using LiteGame.Modules.UI.Pages;
 using LiteSync.Client;
 using LiteGame.Modules.Meta.Abstractions;
 using LiteGame.Modules.Meta.Abstractions.Account;
+using LiteGame.Modules.Battle.Abstractions.Run;
+using LiteGame.Modules.Battle.Abstractions.View;
+using LiteGame.Modules.Battle.Abstractions.Settlement;
 namespace LiteGame
 {
     /// <summary>

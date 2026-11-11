@@ -4,6 +4,7 @@ using LiteFramework;
 using LiteNet.Proto;
 
 using LiteSync.Client;
+using LiteGame.Modules.Battle.Abstractions.Session;
 namespace LiteGame
 {
     /// <summary>

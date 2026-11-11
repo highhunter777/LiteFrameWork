@@ -2,7 +2,7 @@ using System;
 using LiteFramework;
 using LiteSim;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.View
 {
     /// <summary>
     /// 视图组工厂端口（装配根注入）：把"视图域依赖 + 每局 account 作用域/开发叠加层/传送分发"

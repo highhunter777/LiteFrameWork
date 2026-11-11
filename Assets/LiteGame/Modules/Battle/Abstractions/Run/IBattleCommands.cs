@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.Run
 {
     /// <summary>战斗命令端口（流程 → 战斗域）：流程只表达"要做什么"，命令类型与派发策略归战斗域。
     /// 这样流程段不再认识 <c>TeleportToAimCommand</c> 之类的战斗内部件。</summary>

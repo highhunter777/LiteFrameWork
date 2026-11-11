@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.View
 {
     /// <summary>
     /// 根位移内容摘要端口（战斗侧对身份面的唯一暴露）：当前已装载 `rootmotion.bin` 的整段字节 SHA-256。

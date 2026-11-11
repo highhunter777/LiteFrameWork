@@ -1,8 +1,9 @@
 using System;
 using LiteFramework;
 using LiteSim;
+using LiteGame.Modules.Battle.Abstractions.Run;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.Session
 {
     /// <summary>
     /// Match 运行时端口（Battle 对会话材料的**唯一消费口**）：对局运行只从这里取 Match 资源域、 Match 服务子域、会话客户端、本局规则与地图委托——不认 Match 域实现件（MatchSession）。

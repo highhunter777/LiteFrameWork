@@ -1,6 +1,6 @@
 using LiteSim;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.View
 {
     /// <summary>
     /// 表现视图端口（路线图 M0 接缝 1）：对局上下文只持本端口，不认识具体视图实现 （战斗表现 SimView 实现它）。

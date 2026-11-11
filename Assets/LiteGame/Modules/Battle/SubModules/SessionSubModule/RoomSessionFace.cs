@@ -2,6 +2,8 @@ using System;
 using LiteNet.Proto;
 
 using LiteSync.Client;
+using LiteGame.Modules.Battle.Abstractions.Run;
+using LiteGame.Modules.Battle.Abstractions.Session;
 namespace LiteGame
 {
     /// <summary>会话客户端端口 → 房间会话端口适配（四透传 + 事件透传；由 BattleSession 装配）。

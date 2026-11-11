@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.Settlement
 {
     /// <summary>
     /// 结算排行行（契约数据，零引擎）：页面侧取 Rank/Name/Kills/Deaths；PlayerId 供调用方定位本地行。

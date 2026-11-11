@@ -9,6 +9,9 @@ using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Settings;
+using LiteGame.Modules.Battle.Abstractions.Run;
+using LiteGame.Modules.Battle.Abstractions.View;
+using LiteGame.Modules.Battle.Abstractions.Settlement;
 
 namespace LiteGame
 {

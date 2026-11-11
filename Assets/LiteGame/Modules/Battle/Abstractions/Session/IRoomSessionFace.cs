@@ -2,7 +2,9 @@ using System;
 using LiteNet.Proto;
 
 using LiteSync.Client;
-namespace LiteGame
+using LiteGame.Modules.Battle.Abstractions.Run;
+
+namespace LiteGame.Modules.Battle.Abstractions.Session
 {
     /// <summary>房间会话端口（产品模块域——页面逻辑与流程只认本口；由 Battle 域适配
     /// <see cref="IBattleClient"/>，测试注 fake 即可直测门面语义）。</summary>

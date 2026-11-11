@@ -7,6 +7,7 @@ using LiteGame.Modules.Camera;
 using LiteGame.Modules.Shared;
 
 using LiteSync.Snapshot;
+using LiteGame.Modules.Battle.Abstractions.View;
 namespace LiteGame
 {
     /// <summary>

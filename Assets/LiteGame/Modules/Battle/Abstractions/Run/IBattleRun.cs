@@ -5,8 +5,10 @@ using Cysharp.Threading.Tasks;
 using LiteNet.Proto;
 using LiteSim;
 using LiteGame.Modules.Input;
+using LiteGame.Modules.Battle.Abstractions.Session;
+using LiteGame.Modules.Battle.Abstractions.View;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.Run
 {
     /// <summary>对局结束原因（流程段消费的端口事实；实现映射自战斗上下文）。</summary>
     public enum BattleRunOutcome

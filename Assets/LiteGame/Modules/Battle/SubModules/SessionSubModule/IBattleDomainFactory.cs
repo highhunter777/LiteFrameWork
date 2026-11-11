@@ -4,6 +4,7 @@ using LiteFramework.Diagnostics;
 using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Input;
+using LiteGame.Modules.Battle.Abstractions.Session;
 
 namespace LiteGame
 {

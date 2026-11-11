@@ -9,6 +9,7 @@ using LiteGame.Modules.Battle.Arena;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Settings;
+using LiteGame.Modules.Battle.Abstractions.View;
 
 namespace LiteGame
 {

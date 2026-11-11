@@ -1,4 +1,6 @@
-namespace LiteGame
+using LiteGame.Modules.Battle.Abstractions.Session;
+
+namespace LiteGame.Modules.Battle.Abstractions.Run
 {
     /// <summary>
     /// 对局运行工厂（Battle 域产物）：把账号运行时端口（<see cref="IMatchRuntime"/>）装配成流程可消费的

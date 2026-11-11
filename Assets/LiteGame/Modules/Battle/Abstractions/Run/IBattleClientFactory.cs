@@ -1,6 +1,6 @@
 using LiteNet.Transport;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.Run
 {
     /// <summary>
     /// 对局客户端工厂端口：会话域把"进房参数 + 已裁决的传输"交给它换回 IBattleClient。

@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.Read
 {
     /// <summary>本地玩家读取事实（HUD 血条/弹药）。</summary>
     public readonly struct BattleLocalPlayerFacts

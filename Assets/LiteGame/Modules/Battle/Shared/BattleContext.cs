@@ -11,6 +11,9 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;
+using LiteGame.Modules.Battle.Abstractions.Run;
+using LiteGame.Modules.Battle.Abstractions.View;
+using LiteGame.Modules.Battle.Abstractions.Session;
 
 namespace LiteGame
 {

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using LiteNet.Proto;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Abstractions.Settlement
 {
     /// <summary>
     /// 结算摘要端口（Battle 域产物）：冻结结果行 → 结算页排行行表。

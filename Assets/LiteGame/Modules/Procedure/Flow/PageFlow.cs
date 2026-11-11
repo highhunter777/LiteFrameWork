@@ -9,6 +9,7 @@ using LiteGame.Modules.UI.Pages.Screens.Settings;
 
 using LiteSync.Client;
 using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Battle.Abstractions.Settlement;
 namespace LiteGame
 {
     /// <summary>

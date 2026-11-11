@@ -1,6 +1,6 @@
 {
     "name": "LiteGame.Battle.Abstractions",
-    "rootNamespace": "LiteGame",
+    "rootNamespace": "LiteGame.Modules.Battle.Abstractions",
     "references": [
         "LiteGame.Core",
         "LiteFramework.Core",

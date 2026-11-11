@@ -11,6 +11,9 @@ using LiteSync.Client;
 using MetaWire;
 using LiteGame.Modules.Meta.Abstractions;
 using LiteGame.Modules.Meta.Abstractions.Room;
+using LiteGame.Modules.Battle.Abstractions.Run;
+using LiteGame.Modules.Battle.Abstractions.View;
+using LiteGame.Modules.Battle.Abstractions.Session;
 
 namespace LiteGame.Tests.EditMode
 {
