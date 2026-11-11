@@ -6,6 +6,8 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using LiteFramework.UI;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Model;
 
 namespace LiteGame.Tests.EditMode
 {

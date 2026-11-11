@@ -2,8 +2,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using LiteFramework.UI;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Model
 {
     /// <summary>
     /// 战斗 HUD 引用件（《战斗HUD层级设计》§3——序列化引用即契约）：挂在 Hud_Battle.prefab</code> 根上。

@@ -10,7 +10,7 @@ using LiteGame;
 using LiteGame.Modules.Battle.Abstractions.Read;
 using LiteGame.Modules.Battle.Shared;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers
 {
     /// <summary>
     /// 全局击杀提示驱动（击杀提示批）。

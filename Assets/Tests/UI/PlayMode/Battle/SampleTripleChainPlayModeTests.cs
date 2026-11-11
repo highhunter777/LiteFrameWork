@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using LiteFramework;
 using LiteFramework.Animation;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.Catalog;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

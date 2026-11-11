@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Grip
 {
     /// <summary>
     /// 持枪姿态约束（换弹上半身叠加期间的**姿态覆写器**）：把武器骨的局部变换按 WeaponGripCatalog（grip.bin 装载的跟随骨路径/偏移/幅度）跟随**持枪手**骨 （为什么跟随右手而非躯干——武器骨 。）。

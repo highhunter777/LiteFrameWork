@@ -8,8 +8,13 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Crosshair;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Model
 {
     /// <summary>
     /// 对局 **HUD 族装配器**：准心 / 血条弹药面板 / 局内排行榜 / 全局击杀提示 / 网络质量 / 死亡复活面板， 以及 HUD 根件销毁与菜单钮监听挂摘。

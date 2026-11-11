@@ -7,7 +7,7 @@ using LiteGame.Modules.Input;
 using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.Session;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.SessionSubModule
 {
 
     /// <summary>

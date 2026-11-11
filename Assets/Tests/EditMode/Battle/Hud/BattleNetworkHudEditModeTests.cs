@@ -4,6 +4,7 @@ using NUnit.Framework;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers;
 
 namespace LiteGame.Tests.EditMode
 {

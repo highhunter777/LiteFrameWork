@@ -12,6 +12,9 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using LiteFramework;
 using LiteFramework.UI;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Aim;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

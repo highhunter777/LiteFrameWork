@@ -4,7 +4,7 @@ using LiteFramework;
 using LiteSim;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CommandsSubModule
 {
     /// <summary>
     /// 传送处理器（dev 专用，GmOnly 注册）：Execute = 解析准心点 → 记录出发位 → 交权威侧分发 （本地服宿主钩子，见 ILocalTestHooks.TeleportDispatch）。

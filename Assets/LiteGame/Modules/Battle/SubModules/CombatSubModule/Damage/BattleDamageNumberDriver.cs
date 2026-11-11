@@ -8,8 +8,11 @@ using UnityEngine;
 using LiteFramework;
 using LiteGame;
 using LiteGame.Feedback;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Damage
 {
     /// <summary>
     /// 伤害数字渲染驱动（《命中反馈与伤害数字专项设计》§4.3）——BattleLaserDriver 同款纪律： sealed、IDisposable、只读 Sim 事实、不改 Sim。
@@ -30,7 +33,7 @@ namespace LiteGame
         private readonly IDamageNumberStyleResolver _style;
         private readonly DamageNumberMotionProfile _motion;   // 轨道参数（表驱动；缺省 = 代码常量档）
         private readonly DamageNumberMaterialSet _materials;   // 逐档材质（null = 不换材质——底件默认档；测试/降级形态）
-        private readonly Func<Camera> _cameraOf;         // **对局渲染相机**（billboard 面——不是 Camera.main，见下）
+        private readonly Func<UnityEngine.Camera> _cameraOf;         // **对局渲染相机**（billboard 面——不是 Camera.main，见下）
         private readonly IDevSession _dev;               // 开发会话端口（飘字开关；null = 测试装配 = 恒显）
         private readonly ObjectPool<GameObject> _pool;
         private readonly DamageNumberAggregator _aggregator;   // 合并窗/寿命随表驱动轨道参数
@@ -65,7 +68,7 @@ namespace LiteGame
         }
 
         public BattleDamageNumberDriver(SimView view, Func<TextMeshPro> factory, IWorldClock clock,
-            IDamageNumberStyleResolver style = null, Func<Camera> cameraOf = null,
+            IDamageNumberStyleResolver style = null, Func<UnityEngine.Camera> cameraOf = null,
             DamageNumberMaterialSet materials = null, IDevSession dev = null,
             DamageNumberMotionProfile? motion = null)
         {
@@ -196,7 +199,7 @@ namespace LiteGame
 
             // ② 视觉推进：轨道数学 → 位形/透明度；跟随槽位视图（消失 → 冻结最后锚点）
             // 相机解析**每帧一次**并复用：billboard 朝向与 camScale 都以它为基准。
-            Camera cam = _cameraOf != null ? _cameraOf() : Camera.main;
+            UnityEngine.Camera cam = _cameraOf != null ? _cameraOf() : UnityEngine.Camera.main;
 
             _tickKeys.Clear();
             foreach (var key in _active.Keys) _tickKeys.Add(key);   // 收集段：纯 Add，无外部调用——无重入窗口

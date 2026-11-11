@@ -8,6 +8,11 @@ using LiteFramework;
 using LiteFramework.Animation;
 using UnityEngine;
 using LiteFramework.UI;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Damage;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Model;
 
 namespace LiteGame.Modules.Battle.Shared
 {

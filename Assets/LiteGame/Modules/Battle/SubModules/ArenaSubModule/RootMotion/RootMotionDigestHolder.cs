@@ -1,7 +1,7 @@
 using System.Threading;
 using LiteGame.Modules.Battle.Abstractions.View;
 
-namespace LiteGame.Modules.Battle.Arena
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.RootMotion
 {
     /// <summary>
     /// 根位移内容摘要的持有者（IRootMotionContentDigest 的战斗域实现）：容器装配期注册， 对局装载 RootMotionCatalog 成功后由视图装配件写入摘要。

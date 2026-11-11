@@ -3,8 +3,10 @@ using LiteSim;
 using UnityEngine;
 using LiteFramework;
 using LiteGame.Feedback;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Fx
 {
     /// <summary>
     /// 命中特效驱动（帧事件路由 HitFeedbackDispatcher 的消费者）： **本地造成的 Hit/Crit → 受击点世界位播放 `fx_impact_enemy`**（PlayAt——打哪留哪， 不跟随实体）。

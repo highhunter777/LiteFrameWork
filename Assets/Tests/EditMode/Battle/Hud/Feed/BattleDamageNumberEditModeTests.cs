@@ -8,6 +8,9 @@ using NUnit.Framework;
 using TMPro;
 using UnityEngine;
 using LiteGame.Feedback;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Damage;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
 
 namespace LiteGame.Tests.EditMode
 {

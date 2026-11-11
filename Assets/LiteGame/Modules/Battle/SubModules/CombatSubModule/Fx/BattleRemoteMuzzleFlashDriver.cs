@@ -4,8 +4,10 @@ using LiteSim;
 using UnityEngine;
 using LiteFramework.UI;
 using LiteGame.Modules.Battle.Shared;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Weapon;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Fx
 {
     /// <summary>
     /// 远端开火火光驱动（帧事件之外的**公共事件面**消费者）：把 PublicCombatFeed 的开火队列 逐条落到开火者的武器挂点——播放 `fx_muzzle_flash`（与本地火光同件同参数。）。

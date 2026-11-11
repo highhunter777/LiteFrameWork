@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using LiteFramework;
 using LiteGame;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Weapon
 {
     /// <summary>
     /// 武器瞄准激光的支持策略（客户端表现开关——纯 View，不上双端表/不进 digest）。

@@ -4,6 +4,8 @@ using UnityEngine;
 using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Input;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
 
 namespace LiteGame
 {

@@ -6,6 +6,8 @@ using NUnit.Framework;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Model;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -37,7 +39,7 @@ namespace LiteGame.Tests.EditMode
         private static BattleHudDriver BuildDriver(SimWorldState world, long selfId,
             CanvasGroup panel, HpBar bar, TextMeshProUGUI ammo, GameObject reload,
             TextMeshProUGUI reserveAmmo = null, GameObject slash = null)
-            => new BattleHudDriver(new LiteGame.BattleReadModel(() => world, () => selfId),
+            => new BattleHudDriver(new BattleReadModel(() => world, () => selfId),
                 panel, bar, ammo, reload, reserveAmmo, slash);
 
         [Test]

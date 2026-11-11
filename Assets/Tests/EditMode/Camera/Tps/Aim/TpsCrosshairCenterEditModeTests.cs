@@ -3,6 +3,8 @@ using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Crosshair;
 
 namespace LiteGame.Tests.EditMode
 {

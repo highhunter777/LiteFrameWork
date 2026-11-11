@@ -1,8 +1,10 @@
 using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.State
 {
     /// <summary>
     /// 死亡叶：死亡期间保持 Death 末帧。

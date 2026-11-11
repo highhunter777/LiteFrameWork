@@ -8,8 +8,10 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Feedback;
 using LiteGame.Modules.Battle.Abstractions.Read;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers
 {
     /// <summary>
     /// 死亡/复活 HUD 驱动（阵亡批）：**中央复活倒计时** ＋ **阵亡归属** ＋ **保护期角标**。

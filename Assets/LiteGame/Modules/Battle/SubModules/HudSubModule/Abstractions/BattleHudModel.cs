@@ -4,7 +4,7 @@ using LiteSim;
 using LiteGame.Modules.Battle.Abstractions.Read;
 using LiteGame.Modules.Battle.Shared;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Abstractions
 {
     /// <summary>
     /// 战斗 HUD 族只读数据模型：把装配点构造的读模型、公共事件面、质量探针与本地 Id 绑定口收成一处。

@@ -11,6 +11,9 @@ using LiteGame;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;
 using LiteGame.Feedback;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Crosshair;
 
 namespace LiteGame.Tests.EditMode
 {

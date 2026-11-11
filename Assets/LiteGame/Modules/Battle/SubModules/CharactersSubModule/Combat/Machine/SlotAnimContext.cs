@@ -1,8 +1,9 @@
 using System;
 using LiteFramework.Animation;
 using LiteSim;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine
 {
     /// <summary>
     /// 驱动器每帧喂入的跨层事实（不可变值——**唯一写入入口** SlotAnimContext.Feed）。

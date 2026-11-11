@@ -7,6 +7,9 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
 using LiteGame.Feedback;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
 
 namespace LiteGame.Tests.EditMode
 {

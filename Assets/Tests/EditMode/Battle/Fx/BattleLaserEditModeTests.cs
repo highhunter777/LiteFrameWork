@@ -6,6 +6,8 @@ using UnityEngine;
 using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Input;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Fx;
 
 namespace LiteGame.Tests.EditMode
 {

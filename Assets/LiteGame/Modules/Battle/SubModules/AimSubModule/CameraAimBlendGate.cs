@@ -1,4 +1,4 @@
-﻿﻿namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.AimSubModule
 {
     /// <summary>
     /// 相机瞄准混合门（最小保持宽度）：喂"玩家原始瞄准位"与帧间隔，输出**相机混合位**。

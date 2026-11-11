@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
 
 namespace LiteGame.Tests.EditMode
 {

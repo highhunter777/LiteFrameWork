@@ -3,6 +3,7 @@ using LiteGame;
 using NUnit.Framework;
 using UnityEngine;
 using LiteGame.Modules.Camera;
+using LiteGame.Modules.Battle.SubModules.AimSubModule;
 
 namespace LiteGame.Tests.EditMode
 {

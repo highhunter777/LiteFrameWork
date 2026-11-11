@@ -6,7 +6,7 @@ using LiteGame;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Battle.Abstractions.Session;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.SessionSubModule
 {
     /// <summary>
     /// Match 域会话工厂（《客户端依赖注入专项设计》§6）：从账号运行时端口（IMatchRuntime） 建立局内服务域（Match 子域）与 BattleContext（**类型化工厂**—— 进房参数/输入服务经。）。

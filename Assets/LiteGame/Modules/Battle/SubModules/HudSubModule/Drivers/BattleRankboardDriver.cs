@@ -8,7 +8,7 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Battle.Abstractions.Read;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers
 {
     /// <summary>
     /// 局内排行榜驱动（排行榜批）。

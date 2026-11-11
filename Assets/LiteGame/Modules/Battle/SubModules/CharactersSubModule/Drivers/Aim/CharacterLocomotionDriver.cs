@@ -7,7 +7,13 @@ using UnityEngine;
 using LiteGame.Modules.Config;
 
 using LiteSync.Snapshot;
-namespace LiteGame
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Grip;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
+
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Aim
 {
     /// <summary>
     /// 角色动画驱动器（单机双根：形态裁决收进 CombatAnimMachine，本类负责事实喂入、事件路由与槽位生命周期）。

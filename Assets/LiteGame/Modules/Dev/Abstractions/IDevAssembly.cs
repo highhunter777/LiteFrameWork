@@ -6,6 +6,7 @@ using LiteGame;
 using LiteGame.Modules.Battle;
 using LiteGame.Modules.Input;
 using LiteNet.Transport;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
 
 namespace LiteGame.Modules.Dev
 {

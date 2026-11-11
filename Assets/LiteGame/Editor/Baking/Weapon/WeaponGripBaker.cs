@@ -3,6 +3,7 @@ using System.Globalization;
 using LiteGame.Toolchain;
 using UnityEditor;
 using UnityEngine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule;
 
 namespace LiteGame.EditorTools
 {

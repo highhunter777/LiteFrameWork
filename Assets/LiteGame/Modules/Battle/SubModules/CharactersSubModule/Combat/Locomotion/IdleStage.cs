@@ -1,7 +1,8 @@
 using LiteFramework;
 using LiteFramework.Animation;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Locomotion
 {
     /// <summary>移动根·静止叶（形态归移动根——本叶只做迟滞轴迁移）。</summary>
     internal sealed class IdleStage : IStage<CharacterAnimId, CombatAnimReq>

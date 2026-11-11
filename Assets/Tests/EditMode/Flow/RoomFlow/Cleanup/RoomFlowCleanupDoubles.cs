@@ -8,6 +8,7 @@ using LiteTesting.Unity;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using LiteGame.Modules.Battle.SubModules.SettlementSubModule;
 
 namespace LiteGame.Tests.EditMode
 {

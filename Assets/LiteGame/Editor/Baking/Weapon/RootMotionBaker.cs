@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using LiteGame.Modules.Battle.Arena;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.RootMotion;
 using LiteGame.Toolchain;
 using LiteSim;
 using UnityEditor;

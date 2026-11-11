@@ -9,14 +9,22 @@ using UnityEngine;
 using LiteFramework.UI;
 using LiteGame;
 using LiteGame.Modules.Battle;
-using LiteGame.Modules.Battle.Arena;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.RootMotion;
 using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Settings;
 using LiteGame.Modules.Battle.Abstractions.View;
+using LiteGame.Modules.Battle.SubModules.AimSubModule;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
+using LiteGame.Modules.Battle.SubModules.CommandsSubModule;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Crosshair;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Model;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.SetupSubModule
 {
     /// <summary>
     /// 对局视图装配件（ProcedureBattle 的视图域，一处收口全部表现件接线）。
@@ -245,7 +253,7 @@ namespace LiteGame
             if (_camera is IRenderCameraSource cameraSource && _input.Source is IAimCameraSink aimCamera)
             {
                 cameraSource.EnsureCamera();                       // 视图未建时 Follow 还没跑过——先解析 vcam
-                Camera renderCamera = cameraSource.TryGetRenderCamera();
+                UnityEngine.Camera renderCamera = cameraSource.TryGetRenderCamera();
                 if (renderCamera != null) aimCamera.SetAimCamera(renderCamera);
                 else Log.Warning("对局渲染相机未解析到——瞄准/移动继续用设备源现持相机", LogTag.Battle);
             }

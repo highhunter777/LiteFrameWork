@@ -12,7 +12,7 @@ using LiteSync.Client;
 using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.View;
 using LiteGame.Modules.Battle.Abstractions.Session;
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.SessionSubModule
 {
     /// <summary>
     /// 对局聚合（路线图 M0 接缝 4 / M2）：Match 域的唯一持有点——持有 BattleDomain （服务域 + BattleContext）。

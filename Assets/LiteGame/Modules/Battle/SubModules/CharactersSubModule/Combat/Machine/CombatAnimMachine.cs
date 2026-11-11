@@ -3,8 +3,11 @@ using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
 using UnityEngine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Aim;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Locomotion;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.State;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine
 {
     /// <summary>
     /// 角色动画层次机的阶段 id（**TId 枚举一统**：

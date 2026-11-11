@@ -8,7 +8,10 @@ using LiteGame.Modules.Shared;
 
 using LiteSync.Snapshot;
 using LiteGame.Modules.Battle.Abstractions.View;
-namespace LiteGame
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.Catalog;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.Reconcile;
+
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.View
 {
     /// <summary>
     /// 战斗表现视图门面：槽位镜像、远端插值、本地和解衰减、事件静默。

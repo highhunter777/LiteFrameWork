@@ -7,8 +7,10 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Weapon;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Fx
 {
     /// <summary>
     /// 武器瞄准激光驱动（**激光器装在武器上**：束实例挂到武器挂载点、沿枪管方向出射， 端点只由枪口前向决定——不追鼠标，也不收敛到准心/AimPoint）。

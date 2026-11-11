@@ -4,7 +4,7 @@ using LiteNet.Proto;
 using LiteSync.Client;
 using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.Session;
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.SessionSubModule
 {
     /// <summary>会话客户端端口 → 房间会话端口适配（四透传 + 事件透传；由 BattleSession 装配）。
     /// 只经 <see cref="IBattleClient"/> 端口读写——不认具体客户端实现（A1 解耦）。</summary>

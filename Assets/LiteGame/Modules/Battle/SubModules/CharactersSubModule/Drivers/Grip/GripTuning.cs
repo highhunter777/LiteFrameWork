@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Grip
 {
     /// <summary>
     /// 换弹持枪幅度的**实时调参面**：烘焙值来自 grip.bin（WeaponGripCatalog.TorsoWeight， 0 = 不约束、1 = 完全跟随持枪手），对局内经 GM 面板滑杆实时覆写观感。

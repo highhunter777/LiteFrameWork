@@ -6,7 +6,7 @@ using TMPro;
 using UnityEngine;
 
 using LiteSync.Client;
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers
 {
     /// <summary>
     /// 网络质量 HUD 驱动（ping/丢包批）：显示会话探针（NetworkQuality）推断的 **RTT / 丢包千分比**——48ms / 0.3% 一行。

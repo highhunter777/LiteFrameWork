@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.AimSubModule
 {
     /// <summary>
     /// 视角手感的**实时调参面**（CrosshairTuning 同族——GM 面板「视角调参」滑杆实时覆写， 不落盘、不进任何判定/快照面）：覆写优先于机制常量，复位（&lt）。

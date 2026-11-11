@@ -3,8 +3,9 @@ using LiteFramework;
 using LiteSim;
 using UnityEngine;
 using LiteGame.Modules.Battle.Shared;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback
 {
     /// <summary>
     /// 权威命中/击杀事件 → 表现反馈：PublicCombatFeed 的命中/阵亡队列（含他人命中/击杀） 交给 HitFeedbackDispatcher——命中数字/受击特效/命中音效/阵亡归属不再依赖 "本地预测的帧。

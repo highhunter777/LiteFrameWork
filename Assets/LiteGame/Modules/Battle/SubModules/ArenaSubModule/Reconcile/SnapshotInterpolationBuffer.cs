@@ -3,7 +3,7 @@ using LiteSim;
 using UnityEngine;
 using LiteGame.Spatial;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.Reconcile
 {
     /// <summary>
     /// 远端快照 jitter buffer 与渲染帧推进（《状态同步专项设计》§6.2）： 快照按帧号有序入缓冲，渲染帧按 tick 频率匀速前进并封顶"最新快照 − 渲染延迟"。

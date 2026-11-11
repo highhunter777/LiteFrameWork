@@ -7,6 +7,9 @@ using TMPro;
 using UnityEngine;
 using LiteFramework.UI;
 using LiteGame.Feedback;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Model;
 
 namespace LiteGame.Tests.EditMode
 {

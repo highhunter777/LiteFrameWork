@@ -3,7 +3,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using LiteGame.Modules.Battle.Arena;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.RootMotion;
 using NUnit.Framework;
 
 namespace LiteGame.Tests.EditMode

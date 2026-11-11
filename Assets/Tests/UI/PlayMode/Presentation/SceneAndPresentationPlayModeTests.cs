@@ -10,6 +10,8 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using LiteFramework;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.Catalog;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

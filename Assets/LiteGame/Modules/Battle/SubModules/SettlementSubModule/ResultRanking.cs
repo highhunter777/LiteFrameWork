@@ -3,7 +3,7 @@ using LiteNet.Proto;
 using LiteGame.Modules.Battle.Abstractions.Settlement;
 using LiteGame.Modules.Battle.Shared;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.SettlementSubModule
 {
     /// <summary>
     /// 结算页排行投影（**冻结结果 → 行表**）。

@@ -1,6 +1,6 @@
 using LiteFramework.Animation;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles
 {
     /// <summary>
     /// 角色动画语义 ID（§4"游戏层定义语义，框架只处理类型化 ID"）。

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using LiteNet.Proto;
 using LiteGame.Modules.Battle.Abstractions.Settlement;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.SettlementSubModule
 {
     /// <summary>
     /// 结算摘要实现（Battle 域）：委托 ResultRanking（全序/名次/占位名**单源**， 与局内排行榜共用 BattleRankPolicy），对外只暴露契约行 MatchSettlementRow。

@@ -16,6 +16,7 @@ using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.View;
 using LiteGame.Modules.Battle.Hosting.Client;
 using LiteGame.Modules.Battle.Shared;
+using LiteGame.Modules.Battle.SubModules.SessionSubModule;
 
 namespace LiteGame.Tests.EditMode
 {

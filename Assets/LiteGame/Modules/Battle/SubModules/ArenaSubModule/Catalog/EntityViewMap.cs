@@ -4,8 +4,9 @@ using LiteFramework;
 using LiteFramework.Services.UnityObjects;
 using LiteSim;
 using UnityEngine;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.Catalog
 {
     /// <summary>
     /// 槽位 → 视图对象的映射与池。

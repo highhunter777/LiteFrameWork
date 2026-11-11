@@ -5,6 +5,8 @@ using NUnit.Framework;
 using TMPro;
 using UnityEngine;
 using LiteGame.Modules.Battle.Shared;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Model;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -49,7 +51,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         private static BattleRankboardDriver BuildDriver(Board board, SimWorldState world, long selfId)
-            => new BattleRankboardDriver(new LiteGame.BattleReadModel(() => world, () => selfId),
+            => new BattleRankboardDriver(new BattleReadModel(() => world, () => selfId),
                 () => selfId, board.CellRoots, board.Names, board.Kills, board.Highlights, board.TeamScore);
 
         /// <summary>生成一个参赛玩家（<see cref="EntityFlags.Player"/>），返回实体 Id（生成序 = Id 升序）。</summary>

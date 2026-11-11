@@ -8,6 +8,8 @@ using UnityEngine;
 using LiteFramework;
 using LiteGame.Modules.Camera;
 using LiteGame.Spatial;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.Catalog;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
 
 namespace LiteGame.Tests.EditMode
 {

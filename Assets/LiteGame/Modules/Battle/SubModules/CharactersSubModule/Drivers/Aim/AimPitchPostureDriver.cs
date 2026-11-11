@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Aim
 {
     /// <summary>
     /// 俯仰瞄准姿态（第三人称自由视角的**姿态覆写器**）：把上半身（人形 HumanBodyBones.Chest 骨）按相机 pitch 前俯/后仰。

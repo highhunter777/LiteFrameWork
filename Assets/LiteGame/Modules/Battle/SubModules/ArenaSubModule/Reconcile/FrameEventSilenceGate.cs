@@ -2,7 +2,7 @@ using System;
 using LiteFramework;
 using LiteSim;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.Reconcile
 {
     /// <summary>
     /// 帧事件静默门（回滚重放/和解去重）：帧号 ≤ <see cref="SilenceUntilFrame"/> 的事件丢弃，

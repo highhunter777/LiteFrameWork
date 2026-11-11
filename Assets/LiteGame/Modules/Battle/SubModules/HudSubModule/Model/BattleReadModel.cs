@@ -6,7 +6,7 @@ using LiteGame;
 using LiteGame.Modules.Battle.Abstractions.Read;
 using LiteGame.Modules.Battle.Shared;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Model
 {
     /// <summary>
     /// 对局只读事实端口的实现（适配器）：把 SimWorldState 的槽位/武器数组翻译成 IBattleReadModel 事实——本类是**唯一**把 Sim 布局暴露给表现层驱动的翻译点。

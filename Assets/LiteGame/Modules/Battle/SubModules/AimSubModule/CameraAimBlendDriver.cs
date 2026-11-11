@@ -1,6 +1,6 @@
 ﻿using LiteGame.Modules.Camera;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.AimSubModule
 {
     /// <summary>
     /// 相机瞄准混合驱动：把"原始瞄准位 + 帧间隔"翻译成 ICameraService.SetAiming 调用。

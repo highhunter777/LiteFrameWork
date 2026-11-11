@@ -9,6 +9,8 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using LiteGame.Modules.Settings;
 using LiteGame.Modules.Battle.Abstractions.View;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.SetupSubModule;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

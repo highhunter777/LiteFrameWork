@@ -2,7 +2,7 @@ using System;
 using LiteSim;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Damage
 {
     /// <summary>
     /// 出生保护壳驱动（FX 域）。

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using LiteFramework;
 using LiteGame.Modules.Config;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Crosshair
 {
     /// <summary>
     /// 准心手感参数（tbcrosshair 表行的运行时投影——纯 View 表现域：不进判定面摘要、不进 BuildHash 闭包，单端热更不换联机身份）：静态满张倍率 + 连发临时张开（每发增量/总上限）+ 每发后坐冲量。

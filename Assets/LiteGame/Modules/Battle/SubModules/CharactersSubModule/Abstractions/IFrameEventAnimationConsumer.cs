@@ -1,7 +1,7 @@
 using LiteFramework.Animation;
 using LiteSim;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Abstractions
 {
     /// <summary>
     /// 帧事件 → 角色动画请求的**接缝**（《动画模块专项设计》§8"表现事件"）。

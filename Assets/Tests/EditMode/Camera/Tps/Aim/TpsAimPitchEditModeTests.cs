@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule;
 
 namespace LiteGame.Tests.EditMode
 {

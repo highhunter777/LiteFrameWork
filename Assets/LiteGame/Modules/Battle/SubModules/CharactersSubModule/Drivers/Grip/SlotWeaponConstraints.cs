@@ -1,7 +1,8 @@
 using LiteFramework;
 using UnityEngine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Aim;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Grip
 {
     /// <summary>
     /// 单个槽位的武器相关约束三件套（持枪 / 俯仰 / 枪口对齐）。

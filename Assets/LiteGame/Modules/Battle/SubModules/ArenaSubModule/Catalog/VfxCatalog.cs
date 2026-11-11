@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.Catalog
 {
     /// <summary>
     /// 名 → 定义（《VFX服务实施指导》§1 决策 3：**命名即引用、不做 Luban 表**）： `fx_hit` → `{Root}fx_hit.prefab`。

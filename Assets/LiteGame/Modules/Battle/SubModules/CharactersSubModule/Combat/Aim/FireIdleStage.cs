@@ -1,6 +1,9 @@
 using LiteFramework;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Locomotion;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Aim
 {
     /// <summary>
     /// 开火·静止（"窗内保持 clip"）：进态即持 AimIdle 循环——**开火不播专用射击片段** （包内 `AimIdle_Shoot` 后坐节奏与射速表节拍对不上）。

@@ -3,7 +3,7 @@ using LiteGame.Modules.Battle;
 using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.Session;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.SessionSubModule
 {
     /// <summary>默认对局运行工厂：Battle 域持有 Match 域工厂与开发会话端口，流程只拿端口。</summary>
     public sealed class BattleRunFactory : IBattleRunFactory

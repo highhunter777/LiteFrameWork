@@ -9,6 +9,10 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Aim;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
 
 namespace LiteGame.Tests.EditMode
 {

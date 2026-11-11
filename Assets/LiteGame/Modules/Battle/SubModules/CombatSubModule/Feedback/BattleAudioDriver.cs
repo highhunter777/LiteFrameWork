@@ -4,8 +4,9 @@ using LiteFramework;
 using LiteSim;
 using UnityEngine;
 using LiteGame.Feedback;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback
 {
     /// <summary>
     /// 对局音效驱动（帧事件路由 HitFeedbackDispatcher 的消费者——VFX/飘字同族先例）： Fire：本地造成 = 2D 满音量（自己的枪不空间化）。

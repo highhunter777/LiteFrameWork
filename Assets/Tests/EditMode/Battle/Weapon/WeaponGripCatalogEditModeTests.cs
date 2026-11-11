@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using NUnit.Framework;
 using UnityEngine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule;
 
 namespace LiteGame.Tests.EditMode
 {

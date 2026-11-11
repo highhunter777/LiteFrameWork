@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Aim
 {
     /// <summary>
     /// 瞄准枪口对齐（TPS **ADS / 腰射**的上半身姿态修正）：把枪口前向指向准心世界点， 但**旋转施加在胸腔 + 根级枪骨这一对刚体上**——手是胸腔子骨，跟着一起转。

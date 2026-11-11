@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.Animation;
 using LiteFramework.UI;
-using LiteGame.Modules.Battle.Arena;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.RootMotion;
 using LiteGame.Modules.Battle.Hosting.Client;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
@@ -13,6 +13,13 @@ using LiteGame.Modules.Settings;
 using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.View;
 using LiteGame.Modules.Battle.Abstractions.Settlement;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.Catalog;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CommandsSubModule;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Crosshair;
+using LiteGame.Modules.Battle.SubModules.SessionSubModule;
+using LiteGame.Modules.Battle.SubModules.SettlementSubModule;
+using LiteGame.Modules.Battle.SubModules.SetupSubModule;
 
 namespace LiteGame.Modules.Battle
 {

@@ -6,8 +6,11 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Input;
 using LiteGame.Feedback;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Crosshair
 {
     /// <summary>
     /// 对局准心驱动（战斗 HUD 第一件）。

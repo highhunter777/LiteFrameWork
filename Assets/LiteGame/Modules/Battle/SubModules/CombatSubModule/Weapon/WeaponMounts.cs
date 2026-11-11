@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Weapon
 {
     /// <summary>
     /// 武器挂载点解析（激光/枪口火光等"装在武器上"的表现件共用——`Weapon_Rifle/Muzzle`： 美术锚点单源，见《固定斜视角射击方案专项设计》§6 激光行）。

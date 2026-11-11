@@ -1,7 +1,7 @@
 using LiteSim;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.View
 {
     /// <summary>Sim 位姿 → 视图 Transform 的落位数学（位置 1:1，Yaw 恒差 90°）。</summary>
     internal static class SimViewMath

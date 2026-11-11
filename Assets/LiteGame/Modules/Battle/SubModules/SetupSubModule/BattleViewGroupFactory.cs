@@ -6,14 +6,16 @@ using LiteFramework.Animation;
 using LiteFramework.UI;
 using LiteSim;
 using LiteGame.Modules.Battle;
-using LiteGame.Modules.Battle.Arena;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.RootMotion;
 using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Settings;
 using LiteGame.Modules.Battle.Abstractions.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Crosshair;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.SetupSubModule
 {
     /// <summary>
     /// 对局视图组工厂（战斗域装配点）：把视图域全部依赖（内容/输入/相机/VFX/世界钟/音频/命令/ 准心手感/主题/开发会话/视角偏好）留在本域。

@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using LiteSim;
 
-namespace LiteGame.Modules.Battle.Arena
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.RootMotion
 {
     /// <summary>
     /// 根位移数据产物（`rootmotion.bin`）的只读装载结果：逐动作的烘焙位移增量（契约见 RootMotionEntry）。

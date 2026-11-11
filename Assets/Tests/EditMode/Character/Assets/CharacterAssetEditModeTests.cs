@@ -7,6 +7,7 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 using LiteFramework.Animation;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
 
 namespace LiteGame.Tests.EditMode
 {

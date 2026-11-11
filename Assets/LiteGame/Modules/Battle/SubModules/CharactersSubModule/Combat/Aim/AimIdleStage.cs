@@ -1,6 +1,9 @@
 using LiteFramework;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Locomotion;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Aim
 {
     /// <summary>瞄准·静止：AimIdle 单片段循环（Override 覆盖；窗无涉——活跃判据只 IsAiming）。</summary>
     internal sealed class AimIdleStage : IStage<CharacterAnimId, CombatAnimReq>

@@ -1,4 +1,4 @@
-namespace LiteGame.Modules.Battle.Arena
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.RootMotion
 {
     /// <summary>根位移方向策略（《联机动画与根位移专项设计》§3 DeltaYaw / DirectionPolicy）。
     /// 起始锁定 = 动作全程按发起朝向旋转局部增量（逐帧 yaw 数组恒零）；

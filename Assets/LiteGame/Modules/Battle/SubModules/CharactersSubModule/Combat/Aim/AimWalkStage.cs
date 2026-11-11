@@ -1,6 +1,9 @@
 using LiteFramework;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Locomotion;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.State;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Aim
 {
     /// <summary>瞄准·移动：AimMoveBlend 四向混合 + 步频倍率（限速走路档 ⇒ 倍率恒≈1）。</summary>
     internal sealed class AimWalkStage : IStage<CharacterAnimId, CombatAnimReq>

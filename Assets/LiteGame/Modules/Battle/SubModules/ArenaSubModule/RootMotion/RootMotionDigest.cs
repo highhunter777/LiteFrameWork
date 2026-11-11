@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace LiteGame.Modules.Battle.Arena
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.RootMotion
 {
     /// <summary>
     /// 根位移样本摘要（烘焙侧确定性校验工具）——规范化文本与 CombatConfigDigest 同纪律： 字段序固定、InvariantCulture、'\n' 分隔、无空白填充。

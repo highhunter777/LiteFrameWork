@@ -1,6 +1,9 @@
 using LiteFramework;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Locomotion;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.State;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Aim
 {
     /// <summary>
     /// 开火·移动（"firewalk 也一样"——同窗规则）：AimMoveBlend 四向**循环**即其保持 clip

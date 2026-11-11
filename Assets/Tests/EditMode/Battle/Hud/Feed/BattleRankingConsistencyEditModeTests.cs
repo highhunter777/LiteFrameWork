@@ -8,6 +8,9 @@ using TMPro;
 using UnityEngine;
 using LiteGame.Modules.Battle.Abstractions.Settlement;
 using LiteGame.Modules.Battle.Shared;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Model;
+using LiteGame.Modules.Battle.SubModules.SettlementSubModule;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -84,7 +87,7 @@ namespace LiteGame.Tests.EditMode
             SpawnPlayer(world, 5);                     // 第一
             SpawnPlayer(world, 1);                     // 末位
             Board board = BuildBoard();
-            var driver = new BattleRankboardDriver(new LiteGame.BattleReadModel(() => world, () => localId),
+            var driver = new BattleRankboardDriver(new BattleReadModel(() => world, () => localId),
                 () => localId, board.CellRoots, board.Names, board.Kills, board.Highlights);
 
             driver.Tick();

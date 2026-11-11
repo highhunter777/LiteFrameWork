@@ -9,6 +9,7 @@ using NUnit.Framework;
 using LiteGame.Modules.Battle.Hosting.Client;
 using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Map;
+using LiteGame.Modules.Battle.SubModules.SessionSubModule;
 
 namespace LiteGame.Tests.EditMode
 {

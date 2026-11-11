@@ -4,8 +4,10 @@ using LiteFramework;
 using LiteSim;
 using UnityEngine;
 using LiteGame.Feedback;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback
 {
     /// <summary>
     /// 命中分发器（《命中反馈与伤害数字专项设计》§4.1）：帧事件 → 命中反馈消费者的**编排方接线件**。

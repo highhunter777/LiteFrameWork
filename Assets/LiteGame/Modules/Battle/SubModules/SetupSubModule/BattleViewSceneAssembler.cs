@@ -9,8 +9,14 @@ using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Aim;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Damage;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Fx;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.SetupSubModule
 {
     /// <summary>
     /// 对局**视图本体装配器**：SimView（镜像/插值/静默门/相机服务）→ 移动动画驱动 → 瞄准激光 → 出生保护壳。

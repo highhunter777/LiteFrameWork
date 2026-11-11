@@ -1,4 +1,6 @@
-namespace LiteGame
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
+
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions
 {
     /// <summary>
     /// 命中反馈消费者（分发器注册面）：伤害数字为首个消费者。

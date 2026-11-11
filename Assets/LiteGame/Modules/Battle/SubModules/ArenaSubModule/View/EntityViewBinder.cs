@@ -1,7 +1,9 @@
 using LiteSim;
 using UnityEngine;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.Catalog;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.Reconcile;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.ArenaSubModule.View
 {
     /// <summary>
     /// 槽位视图生命周期与远端落位：活体建视图、死亡回收、远端按快照插值写 Transform。

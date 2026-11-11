@@ -2,7 +2,7 @@ using System;
 using LiteGame.Feedback.DamageNumbers;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Damage
 {
     /// <summary>
     /// 伤害数字逐档材质调色板（《命中反馈与伤害数字专项设计》§4.4 批C）：DamageNumberTier 四档 → 材质（黑描边 + 软影 + 按档光晕）。

@@ -6,6 +6,7 @@ using LiteFramework;
 using NUnit.Framework;
 using UnityEngine;
 using LiteGame.Modules.Battle.Shared;
+using LiteGame.Modules.Battle.SubModules.HudSubModule.Model;
 
 namespace LiteGame.Tests.EditMode
 {

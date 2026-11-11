@@ -5,7 +5,7 @@ using LiteGame;
 using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions
 {
     /// <summary>
     /// 对局开发叠加层端口（M3-6b 3b）：爆头区域常驻绘制 + 爆头自动验证件（替换输入源）。

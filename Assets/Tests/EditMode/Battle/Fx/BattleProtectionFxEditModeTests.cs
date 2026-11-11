@@ -4,6 +4,7 @@ using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Damage;
 
 namespace LiteGame.Tests.EditMode
 {

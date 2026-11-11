@@ -2,8 +2,12 @@ using System;
 using LiteSim;
 using UnityEngine;
 using LiteFramework;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Weapon;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Fx
 {
     /// <summary>
     /// 枪口火光驱动（《动作与特效专项设计》表现件）。

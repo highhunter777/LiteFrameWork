@@ -7,8 +7,9 @@ using LiteGame;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Settings;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.AimSubModule
 {
     /// <summary>
     /// 对局**视角/指针输入控制器**：鼠标增量 → 相机 yaw/pitch（含 ADS 灵敏度收敛与 GM 调参覆写）、 相机瞄准混合门（含复活复位）、瞄准点注入。

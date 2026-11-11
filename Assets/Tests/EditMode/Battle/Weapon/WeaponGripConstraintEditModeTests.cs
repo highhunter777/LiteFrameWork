@@ -5,6 +5,10 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Aim;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Grip;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
 
 namespace LiteGame.Tests.EditMode
 {

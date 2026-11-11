@@ -1,7 +1,8 @@
 using LiteFramework;
 using LiteFramework.Animation;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Locomotion
 {
     /// <summary>移动根·移动叶（同上——Idle↔Moving 同形态 MoveBlend，跨越不重提交）。</summary>
     internal sealed class MovingStage : IStage<CharacterAnimId, CombatAnimReq>

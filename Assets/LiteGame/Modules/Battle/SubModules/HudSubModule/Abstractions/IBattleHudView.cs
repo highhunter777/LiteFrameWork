@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Abstractions
 {
     /// <summary>
     /// 战斗 HUD 视图引用契约（序列化引用即契约）：装配器只依赖本接口，`BattleHudView` 实现。

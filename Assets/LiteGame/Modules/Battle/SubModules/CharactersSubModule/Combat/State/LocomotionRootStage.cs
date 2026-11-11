@@ -3,8 +3,11 @@ using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
 using UnityEngine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Locomotion;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.Machine;
+using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Profiles;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CharactersSubModule.Combat.State
 {
     /// <summary>
     /// 移动根复合态（下层）：MoveBlend 独占 Base 通道——进根提交（按当前速度权重）、 每帧就地调权重（同形态连续，不换句柄）、离根收口（覆盖开始：先停 Base 再让战斗根开 Override）。

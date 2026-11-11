@@ -7,8 +7,12 @@ using LiteGame;
 using LiteGame.Feedback.DamageNumbers;
 using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Camera;
+using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Damage;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Fx;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback
 {
     /// <summary>
     /// 对局**战斗反馈装配器**：命中分发器 + 伤害数字 / 枪口火光 / 敌人命中特效 / 远端开火火光 / 对局音效 / 权威命中反馈。
@@ -192,10 +196,10 @@ namespace LiteGame
         /// <summary>
         /// 对局**渲染相机**解析（伤害飘字 billboard 面用）：Cinemachine brain 的 OutputCamera—— **不走 Camera.main**（叠加开发形态下 boot 相机不随场景销毁且带 。）。
         /// </summary>
-        private Func<Camera> RenderCameraOf()
+        private Func<UnityEngine.Camera> RenderCameraOf()
             => _camera is IRenderCameraSource cameraSource
-                ? new Func<Camera>(cameraSource.TryGetRenderCamera)
-                : (Func<Camera>)null;
+                ? new Func<UnityEngine.Camera>(cameraSource.TryGetRenderCamera)
+                : (Func<UnityEngine.Camera>)null;
 
         /// <summary>飘字实例工厂（驱动池的 create 回调）：底件实例化挂视图根，随离场拆。</summary>
         private TMPro.TextMeshPro NewDamageNumber()

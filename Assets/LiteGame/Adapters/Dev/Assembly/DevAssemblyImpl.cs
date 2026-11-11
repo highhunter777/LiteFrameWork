@@ -9,6 +9,8 @@ using LiteNet.Transport;
 
 using LiteGame.Adapters.Dev;
 using LiteGame.Adapters.Dev.Debug.WeakNet;
+using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+
 namespace LiteGame
 {
     /// <summary>

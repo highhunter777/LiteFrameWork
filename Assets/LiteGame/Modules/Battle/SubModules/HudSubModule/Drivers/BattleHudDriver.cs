@@ -8,7 +8,7 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Battle.Abstractions.Read;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Drivers
 {
     /// <summary>
     /// 对局 HUD 面板驱动（战斗 HUD 第二件：血条/弹药/技能栏——prefab Hud_Battle， 血条走 HpBar 控件模板 Tmp_HpBar）。
