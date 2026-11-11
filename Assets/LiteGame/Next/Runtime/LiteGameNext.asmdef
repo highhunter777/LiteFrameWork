@@ -4,6 +4,8 @@
     "references": [
         "LiteFrameworkNext",
         "LiteGame.MetaWire",
+        "LiteNet",
+        "LiteSync",
         "UniTask",
         "UnityEngine.UI",
         "Unity.TextMeshPro",

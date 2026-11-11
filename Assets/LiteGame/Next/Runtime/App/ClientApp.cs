@@ -3,7 +3,9 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
 using LiteGameNext.Features.Account;
+using LiteGameNext.Features.Battle;
 using LiteGameNext.Features.Matchmaking;
+using LiteGameNext.Features.Result;
 using LiteGameNext.Platform.Meta;
 using LiteGameNext.Platform.Ui;
 using UnityEngine;
@@ -18,6 +20,8 @@ namespace LiteGameNext
         private readonly MetaClient _meta;
         private readonly AccountFeature _account;
         private readonly MatchmakingFeature _matchmaking;
+        private readonly BattleFeature _battle;
+        private readonly ResultFeature _result;
         private readonly AppFlow _flow;
         private readonly Lifetime _lifetime = new Lifetime();
 
@@ -30,10 +34,14 @@ namespace LiteGameNext
             _meta = CreateMetaClient();
             _account = new AccountFeature(_ui, _meta, () => SystemInfo.deviceUniqueIdentifier);
             _matchmaking = _meta == null ? null : new MatchmakingFeature(_ui, _account, _meta);
-            _flow = new AppFlow(_ui, _account, _matchmaking);
+            _result = new ResultFeature(_ui);
+            _battle = _meta == null ? null : new BattleFeature(_ui, RunRoomSessionAsync);
+            _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result);
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
             if (_matchmaking != null) _lifetime.Add(_matchmaking);
+            if (_battle != null) _lifetime.Add(_battle);
+            _lifetime.Add(_result);
         }
 
         /// <summary>UI 运行时（只读观察面：启动链与用例据此看栈顶页面）。</summary>
@@ -85,6 +93,32 @@ namespace LiteGameNext
                 return "未接入（P0 仅编辑器装载）";
 #endif
             }
+        }
+
+        /// <summary>真实房间会话：解析 MatchInfo 地址 → RoomSession（KCP/安全信封）。地址非法直接失败，不静默降级。</summary>
+        private static async UniTask<BattleResult> RunRoomSessionAsync(MatchInfo match,
+            CancellationToken cancellationToken)
+        {
+            if (!TryParseEndpoint(match.Address, out string host, out int port))
+                return BattleResult.Failed("房间地址无效：" + match.Address);
+            using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue()))
+                return await session.RunAsync(cancellationToken);
+        }
+
+        private static bool TryParseEndpoint(string address, out string host, out int port)
+        {
+            host = string.Empty;
+            port = 0;
+            if (string.IsNullOrWhiteSpace(address)) return false;
+            int separator = address.LastIndexOf(':');
+            if (separator <= 0 || separator >= address.Length - 1) return false;
+            host = address.Substring(0, separator);
+            return int.TryParse(address.Substring(separator + 1), out port) && port > 0 && port <= 65535;
+        }
+
+        private static string BuildHashValue()
+        {
+            return LiteNet.BuildHash.Value;
         }
 
         /// <summary>Meta 基址由 env `LITEGAME_META_URL` 显式给出；未配置则不建客户端，账号回退 P0 假登录（不硬编码地址）。</summary>

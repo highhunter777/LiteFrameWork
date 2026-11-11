@@ -6,7 +6,9 @@ using Cysharp.Threading.Tasks;
 using LiteGameNext;
 using LiteGameNext.Features.Account;
 using LiteGameNext.Features.Account.Content;
+using LiteGameNext.Features.Battle;
 using LiteGameNext.Features.Matchmaking;
+using LiteGameNext.Features.Result;
 using LiteGameNext.Platform.Meta;
 using LiteGameNext.Platform.Ui;
 using NUnit.Framework;
@@ -111,6 +113,47 @@ namespace LiteGame.Tests.EditMode
             finally
             {
                 feature.Dispose();
+                ui.Shutdown();
+            }
+        }
+
+        [Test]
+        public void 建房后_流程进入房间_结算_回到大厅()
+        {
+            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            ui.Initialize();
+            var transport = new FakeTransport();
+            transport.Enqueue(200, "{\"accountId\":\"acc\",\"accessToken\":\"tok\",\"tokenType\":\"Bearer\",\"expiresAtMs\":1}");
+            transport.Enqueue(200, "{\"rooms\":[]}");
+            transport.Enqueue(200, "{\"instanceId\":\"i\",\"address\":\"127.0.0.1:7777\",\"roomId\":\"r\",\"ticket\":\"t\",\"expiresAtMs\":9}");
+            var account = new AccountFeature(ui, new MetaClient(transport));
+            var matchmaking = new MatchmakingFeature(ui, account, new MetaClient(transport));
+            var battle = new BattleFeature(ui, (match, ct) =>
+                UniTask.FromResult(BattleResult.Completed("p1")));
+            var result = new ResultFeature(ui);
+            using var cts = new CancellationTokenSource();
+            UniTask run = new AppFlow(ui, account, matchmaking, battle, result).RunAsync(cts.Token);
+            try
+            {
+                FindButton(ui.Top.Page, "Btn_GuestLogin").onClick.Invoke();
+                Assert.IsInstanceOf<LobbyPage>(ui.Top.Page);
+
+                matchmaking.CreateRoomAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+                Assert.IsInstanceOf<ResultPage>(ui.Top.Page, "建房后应进入房间→结算页");
+                PageHandle resultPage = ui.Top;
+                resultPage.CloseAsync().GetAwaiter().GetResult();
+                Assert.IsInstanceOf<LobbyPage>(ui.Top.Page, "结算关闭后应回到大厅");
+
+                cts.Cancel();
+                Assert.AreEqual(UniTaskStatus.Succeeded, run.Status);
+                run.GetAwaiter().GetResult();
+            }
+            finally
+            {
+                battle.Dispose();
+                result.Dispose();
+                matchmaking.Dispose();
                 ui.Shutdown();
             }
         }

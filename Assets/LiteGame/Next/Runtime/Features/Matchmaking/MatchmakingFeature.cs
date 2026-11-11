@@ -39,6 +39,7 @@ namespace LiteGameNext.Features.Matchmaking
         private readonly UiRuntime _ui;
         private readonly AccountFeature _account;
         private readonly MetaClient _meta;
+        private UniTaskCompletionSource<MatchInfo> _matchCompletion = new UniTaskCompletionSource<MatchInfo>();
 
         public MatchmakingFeature(UiRuntime ui, AccountFeature account, MetaClient meta)
         {
@@ -56,8 +57,19 @@ namespace LiteGameNext.Features.Matchmaking
         public bool IsBusy { get; private set; }
 
         /// <summary>打开大厅页并绑定；页面关闭后功能仍保留最近房间/结果，供调用方读取。</summary>
-        public UniTask OpenAsync(CancellationToken cancellationToken)
+        public UniTask<PageHandle> OpenAsync(CancellationToken cancellationToken)
             => _ui.OpenAsync<LobbyPage>(LobbyPage.Spec, page => page.Bind(this), cancellationToken);
+
+        /// <summary>等一次建房/进房结果；流程消费后可 <see cref="ResetMatch"/> 再等下一局。</summary>
+        public UniTask<MatchInfo> WaitForMatchAsync(CancellationToken cancellationToken)
+            => _matchCompletion.Task.AttachExternalCancellation(cancellationToken);
+
+        /// <summary>清空已消费的匹配结果，准备下一轮等待。</summary>
+        public void ResetMatch()
+        {
+            CurrentMatch = null;
+            _matchCompletion = new UniTaskCompletionSource<MatchInfo>();
+        }
 
         /// <summary>刷新公开房间列表；失败保留旧列表并写 Status。</summary>
         public async UniTask<bool> RefreshAsync(CancellationToken cancellationToken)
@@ -104,6 +116,7 @@ namespace LiteGameNext.Features.Matchmaking
                 }
 
                 CurrentMatch = ToMatch(result.Value);
+                _matchCompletion.TrySetResult(CurrentMatch);
                 Status = "已建房：" + CurrentMatch.RoomId;
                 return true;
             }
@@ -139,6 +152,7 @@ namespace LiteGameNext.Features.Matchmaking
                 }
 
                 CurrentMatch = ToMatch(result.Value);
+                _matchCompletion.TrySetResult(CurrentMatch);
                 Status = "已进入房间：" + CurrentMatch.RoomId;
                 return true;
             }
@@ -152,6 +166,7 @@ namespace LiteGameNext.Features.Matchmaking
 
         public void Dispose()
         {
+            _matchCompletion.TrySetCanceled();
             CurrentMatch = null;
             Rooms = Array.Empty<LobbyInstanceView>();
         }
