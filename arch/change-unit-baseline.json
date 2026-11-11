@@ -3,8 +3,8 @@
  "guard": "python scripts/gate/change-unit.py",
  "generator": "python scripts/gate/change-unit.py --update-baseline",
  "version": 1,
- "generatedAt": "2026-11-10T20:19:17+08:00",
- "gitHead": "a21a3e9b013079a89b90f61da597ca016cce02a4",
+ "generatedAt": "2026-11-11T14:03:28+08:00",
+ "gitHead": "c4877847c9d840ffb11c633cd26ac6c212acf158",
  "dirty": false,
  "thresholds": {
   "files": 5,
@@ -22,11 +22,11 @@
   "Packages/com.litegame.sync"
  ],
  "counts": {
-  "units": 407,
-  "violatingUnits": 407,
-  "files": 18,
-  "lines": 58,
-  "entry": 407
+  "units": 404,
+  "violatingUnits": 403,
+  "files": 17,
+  "lines": 56,
+  "entry": 403
  },
  "units": {
   "Assets/LiteCodeGen/Runtime": {
@@ -200,7 +200,7 @@
   },
   "Assets/LiteGame/Adapters/Luban": {
    "files": 6,
-   "lines": 544,
+   "lines": 542,
    "entry": "missing",
    "violations": [
     "files",
@@ -226,7 +226,7 @@
   },
   "Assets/LiteGame/App": {
    "files": 3,
-   "lines": 328,
+   "lines": 329,
    "entry": "missing",
    "violations": [
     "entry"
@@ -464,7 +464,7 @@
   },
   "Assets/LiteGame/Editor/Toolchain/Registry": {
    "files": 4,
-   "lines": 560,
+   "lines": 538,
    "entry": "missing",
    "violations": [
     "entry"
@@ -514,16 +514,6 @@
     "entry"
    ]
   },
-  "Assets/LiteGame/Editor/UITools/Contract": {
-   "files": 7,
-   "lines": 1394,
-   "entry": "missing",
-   "violations": [
-    "files",
-    "lines",
-    "entry"
-   ]
-  },
   "Assets/LiteGame/Editor/UITools/Naming": {
    "files": 1,
    "lines": 96,
@@ -534,7 +524,7 @@
   },
   "Assets/LiteGame/Editor/UITools/Page/Manifest": {
    "files": 6,
-   "lines": 678,
+   "lines": 671,
    "entry": "missing",
    "violations": [
     "files",
@@ -544,7 +534,7 @@
   },
   "Assets/LiteGame/Editor/UITools/Page/Process": {
    "files": 1,
-   "lines": 173,
+   "lines": 174,
    "entry": "missing",
    "violations": [
     "entry"
@@ -552,15 +542,15 @@
   },
   "Assets/LiteGame/Editor/UITools/Page/Registration": {
    "files": 2,
-   "lines": 477,
+   "lines": 418,
    "entry": "missing",
    "violations": [
     "entry"
    ]
   },
   "Assets/LiteGame/Editor/UITools/Page/Scaffold": {
-   "files": 4,
-   "lines": 487,
+   "files": 3,
+   "lines": 455,
    "entry": "missing",
    "violations": [
     "entry"
@@ -568,7 +558,7 @@
   },
   "Assets/LiteGame/Editor/UITools/Page/Table": {
    "files": 6,
-   "lines": 258,
+   "lines": 262,
    "entry": "missing",
    "violations": [
     "files",
@@ -587,7 +577,7 @@
   },
   "Assets/LiteGame/Editor/UITools/Reference": {
    "files": 1,
-   "lines": 280,
+   "lines": 214,
    "entry": "missing",
    "violations": [
     "entry"
@@ -603,7 +593,7 @@
   },
   "Assets/LiteGame/Editor/UITools/Validation": {
    "files": 8,
-   "lines": 744,
+   "lines": 715,
    "entry": "missing",
    "violations": [
     "files",
@@ -636,8 +626,8 @@
    ]
   },
   "Assets/LiteGame/Editor/UITools/Validation/Rules/Structure": {
-   "files": 10,
-   "lines": 1037,
+   "files": 7,
+   "lines": 712,
    "entry": "missing",
    "violations": [
     "files",
@@ -665,15 +655,15 @@
   },
   "Assets/LiteGame/Editor/UITools/Workbench/Pages": {
    "files": 2,
-   "lines": 102,
+   "lines": 100,
    "entry": "missing",
    "violations": [
     "entry"
    ]
   },
   "Assets/LiteGame/Editor/UITools/Workbench/Sections": {
-   "files": 3,
-   "lines": 497,
+   "files": 1,
+   "lines": 364,
    "entry": "missing",
    "violations": [
     "entry"
@@ -681,7 +671,7 @@
   },
   "Assets/LiteGame/Editor/UITools/Workbench/State": {
    "files": 6,
-   "lines": 357,
+   "lines": 345,
    "entry": "missing",
    "violations": [
     "files",
@@ -690,7 +680,7 @@
   },
   "Assets/LiteGame/Editor/UITools/Workbench/Window": {
    "files": 1,
-   "lines": 473,
+   "lines": 470,
    "entry": "missing",
    "violations": [
     "entry"
@@ -779,7 +769,7 @@
   },
   "Assets/LiteGame/Modules/Battle/SubModules/ArenaSubModule/Catalog": {
    "files": 2,
-   "lines": 179,
+   "lines": 177,
    "entry": "missing",
    "violations": [
     "entry"
@@ -1293,7 +1283,7 @@
   },
   "Assets/LiteGame/Modules/Procedure": {
    "files": 2,
-   "lines": 179,
+   "lines": 180,
    "entry": "missing",
    "violations": [
     "entry"
@@ -1301,7 +1291,7 @@
   },
   "Assets/LiteGame/Modules/Procedure/Flow": {
    "files": 5,
-   "lines": 869,
+   "lines": 871,
    "entry": "missing",
    "violations": [
     "lines",
@@ -1463,23 +1453,7 @@
   },
   "Assets/LiteGame/Modules/UI": {
    "files": 3,
-   "lines": 182,
-   "entry": "missing",
-   "violations": [
-    "entry"
-   ]
-  },
-  "Assets/LiteGame/Modules/UI/Abstractions": {
-   "files": 1,
-   "lines": 15,
-   "entry": "missing",
-   "violations": [
-    "entry"
-   ]
-  },
-  "Assets/LiteGame/Modules/UI/Abstractions/Pages": {
-   "files": 2,
-   "lines": 72,
+   "lines": 184,
    "entry": "missing",
    "violations": [
     "entry"
@@ -1494,8 +1468,8 @@
    ]
   },
   "Assets/LiteGame/Modules/UI/Pages": {
-   "files": 2,
-   "lines": 116,
+   "files": 3,
+   "lines": 131,
    "entry": "missing",
    "violations": [
     "entry"
@@ -1519,23 +1493,23 @@
   },
   "Assets/LiteGame/Modules/UI/Pages/Screens/Hub": {
    "files": 4,
-   "lines": 511,
+   "lines": 514,
    "entry": "missing",
    "violations": [
     "entry"
    ]
   },
   "Assets/LiteGame/Modules/UI/Pages/Screens/Match": {
-   "files": 1,
-   "lines": 69,
+   "files": 2,
+   "lines": 125,
    "entry": "missing",
    "violations": [
     "entry"
    ]
   },
   "Assets/LiteGame/Modules/UI/Pages/Screens/Settings": {
-   "files": 1,
-   "lines": 324,
+   "files": 2,
+   "lines": 341,
    "entry": "missing",
    "violations": [
     "entry"
@@ -1567,7 +1541,7 @@
   },
   "Assets/Tests/EditMode": {
    "files": 2,
-   "lines": 144,
+   "lines": 128,
    "entry": "missing",
    "violations": [
     "entry"
@@ -1827,7 +1801,7 @@
   },
   "Assets/Tests/EditMode/Tooling": {
    "files": 3,
-   "lines": 572,
+   "lines": 427,
    "entry": "missing",
    "violations": [
     "entry"
@@ -1864,15 +1838,6 @@
    "lines": 236,
    "entry": "missing",
    "violations": [
-    "entry"
-   ]
-  },
-  "Assets/Tests/EditMode/UI/Contract": {
-   "files": 3,
-   "lines": 709,
-   "entry": "missing",
-   "violations": [
-    "lines",
     "entry"
    ]
   },
@@ -1920,7 +1885,7 @@
   },
   "Assets/Tests/EditMode/UI/Page": {
    "files": 5,
-   "lines": 1687,
+   "lines": 1416,
    "entry": "missing",
    "violations": [
     "lines",
@@ -1980,7 +1945,7 @@
   },
   "Assets/Tests/EditMode/UI/Validation": {
    "files": 3,
-   "lines": 745,
+   "lines": 744,
    "entry": "missing",
    "violations": [
     "lines",
@@ -2014,7 +1979,7 @@
   },
   "Assets/Tests/EditMode/UI/Workbench": {
    "files": 2,
-   "lines": 486,
+   "lines": 398,
    "entry": "missing",
    "violations": [
     "entry"
@@ -2055,7 +2020,7 @@
   },
   "Assets/Tests/UI/PlayMode/UI": {
    "files": 1,
-   "lines": 363,
+   "lines": 365,
    "entry": "missing",
    "violations": [
     "entry"
@@ -2579,7 +2544,7 @@
   },
   "Packages/com.litegame.framework/Runtime/Services/Audio": {
    "files": 1,
-   "lines": 376,
+   "lines": 375,
    "entry": "missing",
    "violations": [
     "entry"
@@ -2668,7 +2633,7 @@
   },
   "Packages/com.litegame.framework/Runtime/Services/Content/Candidate": {
    "files": 4,
-   "lines": 201,
+   "lines": 197,
    "entry": "missing",
    "violations": [
     "entry"
@@ -2676,7 +2641,7 @@
   },
   "Packages/com.litegame.framework/Runtime/Services/Content/Candidate/Http": {
    "files": 2,
-   "lines": 270,
+   "lines": 268,
    "entry": "missing",
    "violations": [
     "entry"
@@ -2692,7 +2657,7 @@
   },
   "Packages/com.litegame.framework/Runtime/Services/Content/Health": {
    "files": 4,
-   "lines": 261,
+   "lines": 257,
    "entry": "missing",
    "violations": [
     "entry"
@@ -2716,7 +2681,7 @@
   },
   "Packages/com.litegame.framework/Runtime/Services/Content/Release": {
    "files": 4,
-   "lines": 196,
+   "lines": 204,
    "entry": "missing",
    "violations": [
     "entry"
@@ -2724,7 +2689,7 @@
   },
   "Packages/com.litegame.framework/Runtime/Services/Entity": {
    "files": 2,
-   "lines": 407,
+   "lines": 398,
    "entry": "missing",
    "violations": [
     "entry"
@@ -2860,7 +2825,7 @@
   },
   "Packages/com.litegame.framework/Runtime/Services/UI/Form": {
    "files": 5,
-   "lines": 499,
+   "lines": 486,
    "entry": "missing",
    "violations": [
     "entry"
@@ -2925,7 +2890,7 @@
   },
   "Packages/com.litegame.framework/Runtime/Services/UI/Service": {
    "files": 4,
-   "lines": 716,
+   "lines": 712,
    "entry": "missing",
    "violations": [
     "lines",
@@ -3046,7 +3011,7 @@
   },
   "Packages/com.litegame.framework/Runtime/Services/Vfx/Handle": {
    "files": 4,
-   "lines": 497,
+   "lines": 489,
    "entry": "missing",
    "violations": [
     "entry"

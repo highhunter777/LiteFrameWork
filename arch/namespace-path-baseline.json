@@ -3,8 +3,8 @@
  "guard": "python scripts/gate/namespace-path.py",
  "generator": "python scripts/gate/namespace-path.py --update-baseline",
  "version": 1,
- "generatedAt": "2026-11-10T20:19:16+08:00",
- "gitHead": "a21a3e9b013079a89b90f61da597ca016cce02a4",
+ "generatedAt": "2026-11-11T14:03:28+08:00",
+ "gitHead": "c4877847c9d840ffb11c633cd26ac6c212acf158",
  "dirty": false,
  "scope": [
   "Assets/LiteGame",
@@ -21,14 +21,14 @@
  ],
  "noIntentReportOnly": {
   "Core": 123,
-  "Services": 219
+  "Services": 220
  },
  "counts": {
-  "filesScanned": 1168,
-  "total": 1114,
-  "namespace": 1061,
+  "filesScanned": 1153,
+  "total": 1099,
+  "namespace": 1047,
   "no-namespace": 16,
-  "dir-name": 37,
+  "dir-name": 36,
   "path-segment": 0
  },
  "items": [
@@ -125,12 +125,6 @@
   {
    "kind": "dir-name",
    "file": "Assets/LiteGame/Modules/Settings/Abstractions",
-   "expected": "（目录名不得为技术层名）",
-   "actual": "Abstractions"
-  },
-  {
-   "kind": "dir-name",
-   "file": "Assets/LiteGame/Modules/UI/Abstractions",
    "expected": "（目录名不得为技术层名）",
    "actual": "Abstractions"
   },
@@ -2893,90 +2887,6 @@
    "file": "Assets/LiteGame/Modules/Settings/Options/GraphicsOptions.cs",
    "expected": "LiteGame.Modules.Settings.Options",
    "actual": "LiteGame.Modules.Settings"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Abstractions/IPageDirectory.cs",
-   "expected": "LiteGame.Modules.UI.Abstractions",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Abstractions/Pages/ResultPageData.cs",
-   "expected": "LiteGame.Modules.UI.Abstractions.Pages",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Abstractions/Pages/SettingsPageData.cs",
-   "expected": "LiteGame.Modules.UI.Abstractions.Pages",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Bind/UIListRowSet.cs",
-   "expected": "LiteGame.Modules.UI.Bind",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Pages/PageLogicBase.cs",
-   "expected": "LiteGame.Modules.UI.Pages",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Pages/PageServices.cs",
-   "expected": "LiteGame.Modules.UI.Pages",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Auth/Page_LoginLogic.cs",
-   "expected": "LiteGame.Modules.UI.Pages.Screens.Auth",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Demo/Page_ButtonDemoLogic.cs",
-   "expected": "LiteGame.Modules.UI.Pages.Screens.Demo",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_LobbyLogic.cs",
-   "expected": "LiteGame.Modules.UI.Pages.Screens.Hub",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_RecordsLogic.cs",
-   "expected": "LiteGame.Modules.UI.Pages.Screens.Hub",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/Page_RoomLogic.cs",
-   "expected": "LiteGame.Modules.UI.Pages.Screens.Hub",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Hub/RoomPageData.cs",
-   "expected": "LiteGame.Modules.UI.Pages.Screens.Hub",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Match/Page_ResultLogic.cs",
-   "expected": "LiteGame.Modules.UI.Pages.Screens.Match",
-   "actual": "LiteGame.Modules.UI"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/UI/Pages/Screens/Settings/Page_SettingsLogic.cs",
-   "expected": "LiteGame.Modules.UI.Pages.Screens.Settings",
-   "actual": "LiteGame.Modules.UI"
   },
   {
    "kind": "namespace",
