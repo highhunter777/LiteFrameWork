@@ -71,6 +71,12 @@ namespace LiteGameNext.Features.Battle
 
         public bool IsJoined { get; private set; }
 
+        public int SentInputs { get; private set; }
+
+        public int LastInputFrame { get; private set; }
+
+        public int LastAckInput => _client.LastAckSnapshot;
+
         public int ExpectedPlayers { get; private set; }
 
         public long LocalEntityId => _localEntityId;
@@ -138,6 +144,8 @@ namespace LiteGameNext.Features.Battle
                         _inputAccumulator -= 1f / 60f;
                         BattleInputState state = _input != null ? _input.Read() : default;
                         _frame++;
+                        LastInputFrame = _frame;
+                        SentInputs++;
                         _client.SendInput(_frame, BattleInputFrame.Build(state, _localEntityId),
                             Math.Max(0, _client.LastSnapshotFrame));
                     }
