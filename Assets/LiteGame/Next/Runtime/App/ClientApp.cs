@@ -3,7 +3,9 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
 using LiteGameNext.Features.Account;
+using LiteGameNext.Platform.Meta;
 using LiteGameNext.Platform.Ui;
+using UnityEngine;
 
 namespace LiteGameNext
 {
@@ -22,7 +24,7 @@ namespace LiteGameNext
         {
             _platform = platform ?? throw new ArgumentNullException(nameof(platform));
             _ui = new UiRuntime(CreatePageAsync);
-            _account = new AccountFeature(_ui);
+            _account = new AccountFeature(_ui, CreateMetaClient(), () => SystemInfo.deviceUniqueIdentifier);
             _flow = new AppFlow(_ui, _account);
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
@@ -77,6 +79,13 @@ namespace LiteGameNext
                 return "未接入（P0 仅编辑器装载）";
 #endif
             }
+        }
+
+        /// <summary>Meta 基址由 env `LITEGAME_META_URL` 显式给出；未配置则不建客户端，账号回退 P0 假登录（不硬编码地址）。</summary>
+        private static MetaClient CreateMetaClient()
+        {
+            string url = Environment.GetEnvironmentVariable("LITEGAME_META_URL");
+            return string.IsNullOrWhiteSpace(url) ? null : new MetaClient(new UnityMetaTransport(url));
         }
 
         /// <summary>页面工厂：编辑器按 prefab 资源路径装载；Player 侧 P1 换 YooAsset，当前先告警并抛（不静默造空页）。</summary>

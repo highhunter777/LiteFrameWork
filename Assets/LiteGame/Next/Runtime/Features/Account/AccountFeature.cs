@@ -3,32 +3,43 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
 using LiteGameNext.Features.Account.Content;
+using LiteGameNext.Platform.Meta;
 using LiteGameNext.Platform.Ui;
+using MetaWire;
 
 namespace LiteGameNext.Features.Account
 {
-    /// <summary>账号功能入口（P0 假账号）：持登录态与登录页；游客登录只置状态，P1 由 MetaClient 真实登录替换。</summary>
+    /// <summary>账号功能：登录态/令牌/登录页；有 MetaClient 走真实游客登录，无则保留 P0 假账号。</summary>
     public sealed class AccountFeature : IDisposable
     {
         private readonly UiRuntime _ui;
+        private readonly MetaClient _meta;
+        private readonly Func<string> _deviceId;
         private UniTaskCompletionSource _loginCompletion;
 
-        /// <summary>构造：账号功能只依赖 UI 运行时（P1 再加 Meta 客户端与设置切片）。</summary>
-        public AccountFeature(UiRuntime ui)
+        public AccountFeature(UiRuntime ui, MetaClient meta = null, Func<string> deviceId = null)
         {
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
+            _meta = meta;
+            _deviceId = deviceId ?? (() => string.Empty);
         }
 
-        /// <summary>登录态：游客登录成功后为 true，关闭功能时复位。</summary>
         public bool IsSignedIn { get; private set; }
+
+        /// <summary>登录失败原因（空 = 无失败）；仅用于页面展示，不参与判定。</summary>
+        public string LastError { get; private set; } = string.Empty;
+
+        public string AccessToken { get; private set; } = string.Empty;
+
+        public string AccountId { get; private set; } = string.Empty;
 
         /// <summary>初始化功能；重复调用幂等。</summary>
         public void Initialize()
         {
-            Log.Info("AccountFeature 就绪（P0 假账号，ui=" + _ui.IsInitialized + "）");
+            Log.Info("AccountFeature 就绪（meta=" + (_meta != null) + "，ui=" + _ui.IsInitialized + "）");
         }
 
-        /// <summary>打开登录页并等游客登录完成；登录页被关闭返回 false（调用方回登录），App 取消抛 OperationCanceledException。</summary>
+        /// <summary>打开登录页并等登录完成；登录页被关闭返回 false，App 取消抛 OperationCanceledException。</summary>
         public async UniTask<bool> ShowLoginAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -45,7 +56,7 @@ namespace LiteGameNext.Features.Account
                     await _loginCompletion.Task.AttachExternalCancellation(linked.Token);
                 }
 
-                Log.Info("游客登录完成：IsSignedIn=" + IsSignedIn);
+                Log.Info("登录完成：IsSignedIn=" + IsSignedIn);
                 return true;
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && handle.IsClosed)
@@ -60,7 +71,34 @@ namespace LiteGameNext.Features.Account
             }
         }
 
-        /// <summary>P0 假游客登录：置登录态、刷新页面回调并完成等待中的登录流程（P1 换 MetaClient）。</summary>
+        /// <summary>真实游客登录：有 MetaClient 走 HTTP；无则回退 P0 假账号；失败保留 LastError 供页面重试。</summary>
+        public async UniTask<bool> SignInAsync(CancellationToken cancellationToken = default)
+        {
+            if (IsSignedIn) return true;
+            if (_meta == null)
+            {
+                SignInAsGuest();
+                return true;
+            }
+
+            LastError = string.Empty;
+            MetaCallResult<GuestLoginInfo> result = await _meta.GuestLoginAsync(_deviceId(), cancellationToken);
+            if (!result.Success)
+            {
+                LastError = result.Error.Message;
+                Log.Warning("游客登录失败：" + result.Error);
+                return false;
+            }
+
+            AccessToken = result.Value.AccessToken ?? string.Empty;
+            AccountId = result.Value.AccountId ?? string.Empty;
+            IsSignedIn = true;
+            Log.Info("游客登录成功：account=" + AccountId);
+            _loginCompletion?.TrySetResult();
+            return true;
+        }
+
+        /// <summary>P0 假游客登录（测试/离线）：置状态并完成等待中的登录流程。</summary>
         public void SignInAsGuest(Action onSignedIn = null)
         {
             if (!IsSignedIn)
@@ -77,10 +115,12 @@ namespace LiteGameNext.Features.Account
         public void Shutdown()
         {
             IsSignedIn = false;
+            AccessToken = string.Empty;
+            AccountId = string.Empty;
+            LastError = string.Empty;
             _loginCompletion = null;
         }
 
-        /// <summary>为 Lifetime 逆序释放提供入口。</summary>
         public void Dispose() => Shutdown();
     }
 }
