@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -151,7 +151,7 @@ namespace LiteSim.Tests
         [Fact]
         public void UT10_TableLayout_ContainsCombatGeom()
         {
-            string text = ReadRepoText("Assets/LiteGame/Modules/Config/Table/TableLayout.cs");
+            string text = ReadRepoText("Packages/com.litegame.shared/Runtime/Config/TableLayout.cs");
             Assert.Contains("Combat/tbcombatgeom", text);
         }
 
@@ -160,7 +160,7 @@ namespace LiteSim.Tests
         [Fact]
         public void UT11_SimConfigMapper_HasCombatGeomParameter()
         {
-            string text = ReadRepoText("Assets/LiteGame/Modules/Config/Table/SimConfigMapper.cs");
+            string text = ReadRepoText("Packages/com.litegame.shared/Runtime/Config/SimConfigMapper.cs");
             Match signature = Regex.Match(text,
                 @"public\s+static\s+CombatValues\s+BuildCombatValues\s*\((?<params>[^)]*)\)",
                 RegexOptions.CultureInvariant);

@@ -3,6 +3,7 @@
     "rootNamespace": "LiteGame",
     "references": [
         "LiteGame.Modules.Config",
+        "LiteGame.SimConfig",
         "LiteFramework.Core",
         "LiteFramework.Services",
         "LiteFramework.Adapters",

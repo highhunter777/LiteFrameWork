@@ -22,14 +22,12 @@ namespace LiteFramework.Core.Tests
             ["DevHooks"] = "Dev 开发装配钩子（Composition/Session 消费；开发面例外）",
             ["IBattleDevDiagnostics"] = "Battle 开发诊断端口（Dev 消费；住 Battle 根，开发面例外）",
             ["LTextCatalog"] = "Config 文案目录（UI 消费；表装载件）",
-            ["MapTableProjection"] = "Config 地图表投影（Map 消费；表装载件）",
             ["MetaEntryConfig"] = "Meta 部署配置（Session 消费；联机部署件）",
             ["NullDevSession"] = "Dev 空实现回退件（Composition/Procedure 消费；发布形态占位）",
             ["NullLocalTestHooks"] = "Dev 空实现回退件（Session 消费；发布形态占位）",
             ["SimParamsActivation"] = "Config 判定参数激活面（Session 消费；进房单点）",
             ["SimParamsGate"] = "Config 判定参数门（Session 消费；进房单点）",
             ["SimParamsOverrides"] = "Config 判定参数覆写（Session 消费；调参面）",
-            ["TableLayout"] = "Config 表清单/领域布局单源（Map 消费；表装载件）",
         };
 
         private static readonly Regex TypeDeclaration = new Regex(

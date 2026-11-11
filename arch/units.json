@@ -252,6 +252,31 @@
       "notes": "Meta HTTP 线形状 DTO（客户端编译 + 服务端源链接共编；命名空间 MetaWire 不变，P1a 迁出旧树）"
     },
     {
+      "id": "LiteGame.SimConfig",
+      "assembly": "LiteGame.SimConfig",
+      "path": "Packages/com.litegame.shared/Runtime/Config",
+      "asmdef": "Packages/com.litegame.shared/Runtime/Config/LiteGame.SimConfig.asmdef",
+      "layer": "kernel",
+      "rank": 6,
+      "owner": "shared",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "framework-core",
+        "editmode"
+      ],
+      "noEngine": true,
+      "defineConstraints": [],
+      "references": [
+        "LiteSim",
+        "Luban.Tables",
+        "Luban.Runtime"
+      ],
+      "notes": "表 → Sim 数值/地图/策略的共享投影（客户端编译 + RoomServer 源链接共编；P3a1 迁出旧树）"
+    },
+    {
       "id": "LiteFramework.Editor",
       "assembly": "LiteFramework.Editor",
       "path": "Packages/com.litegame.framework/Editor",
@@ -568,6 +593,7 @@
         "LiteFramework.Services",
         "LiteFramework.Hosting",
         "Luban.Tables",
+        "LiteGame.SimConfig",
         "LiteSim",
         "Luban.Runtime"
       ],
@@ -685,6 +711,7 @@
         "LiteFramework.Hosting",
         "LiteGame.Core",
         "LiteGame.Modules.Config",
+        "LiteGame.SimConfig",
         "LiteNet",
         "LiteSync",
         "LiteSim",
@@ -775,6 +802,7 @@
         "LiteFramework.Adapters",
         "LiteFramework.Hosting",
         "LiteGame.Modules.Config",
+        "LiteGame.SimConfig",
         "LiteGame.Core",
         "LiteSim",
         "Luban.Runtime",
@@ -1248,6 +1276,7 @@
       "defineConstraints": [],
       "references": [
         "LiteGame.Modules.Config",
+        "LiteGame.SimConfig",
         "LiteFramework.Core",
         "LiteFramework.Services",
         "LiteFramework.Adapters",
@@ -1283,6 +1312,7 @@
       "references": [
         "LiteGame.Adapters.Luban",
         "LiteGame.Modules.Config",
+        "LiteGame.SimConfig",
         "LiteGame.MetaWire",
         "LiteGame.Modules.Settings",
         "LiteGame.Modules.Input",
