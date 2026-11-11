@@ -3,8 +3,8 @@
  "guard": "python scripts/gate/namespace-path.py",
  "generator": "python scripts/gate/namespace-path.py --update-baseline",
  "version": 1,
- "generatedAt": "2026-11-11T14:03:28+08:00",
- "gitHead": "c4877847c9d840ffb11c633cd26ac6c212acf158",
+ "generatedAt": "2026-11-11T17:40:39+08:00",
+ "gitHead": "51ffd34c0df4226ab28c945d13ee5f7238da915a",
  "dirty": false,
  "scope": [
   "Assets/LiteGame",
@@ -25,8 +25,8 @@
  },
  "counts": {
   "filesScanned": 1153,
-  "total": 1099,
-  "namespace": 1047,
+  "total": 1071,
+  "namespace": 1019,
   "no-namespace": 16,
   "dir-name": 36,
   "path-segment": 0
@@ -2368,177 +2368,9 @@
   },
   {
    "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Account/AccountCloseReason.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Account",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Account/IAccountDomain.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Account",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Account/IMetaAccountSession.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Account",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/IAccountLoginControl.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/IMetaClient.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/IMetaConfigFacts.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/IRoomFlow.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/IRoomTicketSource.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
    "file": "Assets/LiteGame/Modules/Meta/Abstractions/Room/JoinTicketInfo.cs",
    "expected": "LiteGame.Modules.Meta.Abstractions.Room",
    "actual": "MetaWire"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Room/MetaCall.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Room",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Room/MetaFailure.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Room",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Room/MetaFailureKind.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Room",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Room/RoomEndpoint.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Room",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Session/IMetaSession.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Session",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Session/MetaRecordRow.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Session",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Session/MetaResult.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Session",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Abstractions/Session/MetaRoomRow.cs",
-   "expected": "LiteGame.Modules.Meta.Abstractions.Session",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Call/MetaErrorCodes.cs",
-   "expected": "LiteGame.Modules.Meta.Call",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Client/Account/AccountContext.cs",
-   "expected": "LiteGame.Modules.Meta.Client.Account",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Client/Account/AccountDomain.cs",
-   "expected": "LiteGame.Modules.Meta.Client.Account",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Client/Account/AccountTicketSource.cs",
-   "expected": "LiteGame.Modules.Meta.Client.Account",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Client/Account/MetaAccountSession.cs",
-   "expected": "LiteGame.Modules.Meta.Client.Account",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Client/Account/MetaLoginService.cs",
-   "expected": "LiteGame.Modules.Meta.Client.Account",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Client/Session/MetaSession.cs",
-   "expected": "LiteGame.Modules.Meta.Client.Session",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Client/UnityMetaClient.cs",
-   "expected": "LiteGame.Modules.Meta.Client",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Config/MetaDeployConfig.cs",
-   "expected": "LiteGame.Modules.Meta.Config",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/MetaSegment.cs",
-   "expected": "LiteGame.Modules.Meta",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Wire/MetaJson.cs",
-   "expected": "LiteGame.Modules.Meta.Wire",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Meta/Wire/MetaWireValidator.cs",
-   "expected": "LiteGame.Modules.Meta.Wire",
-   "actual": "LiteGame"
   },
   {
    "kind": "namespace",
