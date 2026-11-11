@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.TextCore.Text;
 using UnityEngine.UIElements;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Hud
 {
     /// <summary>
     /// DevHud 的 UI Toolkit 渲染后端（无资产：运行时创建 `PanelSettings`，内联样式）。

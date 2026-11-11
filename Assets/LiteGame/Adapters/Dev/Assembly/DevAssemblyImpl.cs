@@ -10,8 +10,18 @@ using LiteNet.Transport;
 using LiteGame.Adapters.Dev;
 using LiteGame.Adapters.Dev.Debug.WeakNet;
 using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Adapters.Dev.Commands;
+using LiteGame.Adapters.Dev.Debug.Diagnostics;
+using LiteGame.Adapters.Dev.Debug.Kernel;
+using LiteGame.Adapters.Dev.Debug.NetDebug;
+using LiteGame.Adapters.Dev.Debug.Session;
+using LiteGame.Adapters.Dev.Debug.Tunables;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Commands;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Profile;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Transport;
+using LiteGame.Modules.Dev.Abstractions;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Assembly
 {
     /// <summary>
     /// 开发装配实现（M3-6b 3b）：产品程序集经 DevHooks 只认端口，本类在开发程序集内落地 "会话实现 / 容器装饰（GM 命令 + 弱网 + 调试内核）/ 传输包装 / 诊断登记 / 对局叠加层"。
@@ -69,7 +79,7 @@ namespace LiteGame
             services.Context.Put(_weakNet);
 
             // 网络调试组件（读模型 + 断线/重连动作）：会话上下文是流程私有件，经诊断静态读口取件。
-            var networkDebug = new NetworkDebug(_weakNet, () => LiteGame.BattleDiagnostics.Current);
+            var networkDebug = new NetworkDebug(_weakNet, () => LiteGame.Adapters.Dev.Debug.Diagnostics.BattleDiagnostics.Current);
             services.Context.Put(networkDebug);
 
             IDisposable weakCmd = services.Commands.Register(new SetWeakNetPresetHandler(_weakNet),

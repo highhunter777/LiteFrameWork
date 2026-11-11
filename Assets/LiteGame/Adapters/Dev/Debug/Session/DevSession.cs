@@ -4,7 +4,7 @@ using LiteSim;
 using LiteFramework;
 using LiteGame;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Session
 {
     /// <summary>
     /// 开发会话端口实现（适配器）：转发 TestModeRuntime 静态快照。

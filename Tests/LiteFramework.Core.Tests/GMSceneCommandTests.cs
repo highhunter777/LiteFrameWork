@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame;
 using Xunit;
+using LiteGame.Adapters.Dev.Commands;
 
 namespace LiteFramework.Tests
 {

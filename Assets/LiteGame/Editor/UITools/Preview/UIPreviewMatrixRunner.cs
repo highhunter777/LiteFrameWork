@@ -8,6 +8,8 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using LiteGame.Adapters.Dev.Projection;
+using LiteGame.Adapters.Dev.Projection.Preview;
 
 namespace LiteGame.Editor.UITools.Preview
 {

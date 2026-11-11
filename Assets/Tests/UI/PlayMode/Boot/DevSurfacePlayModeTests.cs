@@ -8,6 +8,7 @@ using UnityEngine.TestTools;
 using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Dev;
+using LiteGame.Adapters.Dev.Projection;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

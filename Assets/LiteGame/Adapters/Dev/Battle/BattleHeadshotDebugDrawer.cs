@@ -1,8 +1,10 @@
 using LiteSim;
 using UnityEngine;
+using LiteGame.Adapters.Dev.Debug.Session;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Battle
 {
+    using Debug = UnityEngine.Debug;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
     /// <summary>
     /// **服务端身位碰撞体常驻可视化**（测试模式诊断件，release 整段剥离）。

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Commands
 {
     /// <summary>GM 场景命令·单场景加载（带参：location = 场景名/路径）。</summary>
     public sealed class GMLoadSingleSceneCommand : ICommand { public string Location; }

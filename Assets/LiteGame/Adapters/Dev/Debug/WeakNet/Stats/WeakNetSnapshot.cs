@@ -1,8 +1,9 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System.Text;
 using LiteNet.Diagnostics;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Profile;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.WeakNet.Stats
 {
     /// <summary>弱网注入只读快照（HUD/测试共用；不参与判定）。</summary>
     public readonly struct WeakNetSnapshot

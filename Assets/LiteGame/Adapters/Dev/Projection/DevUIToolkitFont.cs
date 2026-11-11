@@ -3,7 +3,7 @@ using System;
 using UnityEngine;
 using UnityEngine.TextCore.Text;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection
 {
     /// <summary>运行期 dev 覆盖件的系统 SDF 字体单源：DevHud 与控制台共用同一候选链。
     /// 无字体文件可用时返回 null，由宿主决定降级方式（不在此抛）。</summary>

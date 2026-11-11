@@ -6,7 +6,7 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Hud
 {
     /// <summary>F6 导出的入参（DevHud 采样结果 + 过滤态），导出器不反向读宿主。</summary>
     internal sealed class DevHudExportContext

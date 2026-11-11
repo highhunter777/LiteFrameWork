@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Preview
 {
     /// <summary>
     /// 布局档静态文案的作者原串快照（P2-3 B3）：切回「作者文本」或退出预览时把 LTextKeyRef 目标

@@ -1,8 +1,9 @@
 using LiteFramework;
 using LiteGame.Modules.Battle;
 using LiteGame.Modules.Battle.Shared;
+using LiteGame.Adapters.Dev.Debug.Diagnostics;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Assembly
 {
     /// <summary>对局诊断登记的开发实现：转发静态读口 <see cref="BattleDiagnostics"/>（DevHud/GM 页只读）。</summary>
     public sealed class DevBattleDiagnostics : IBattleDevDiagnostics

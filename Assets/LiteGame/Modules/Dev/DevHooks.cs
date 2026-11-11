@@ -5,6 +5,7 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Battle;
 using LiteGame.Modules.Input;
+using LiteGame.Modules.Dev.Abstractions;
 
 namespace LiteGame.Modules.Dev
 {

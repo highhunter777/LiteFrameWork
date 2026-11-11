@@ -3,6 +3,7 @@ using LiteFramework;
 using NUnit.Framework;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
+using LiteGame.Adapters.Dev.Input;
 
 namespace LiteGame.Tests.EditMode
 {

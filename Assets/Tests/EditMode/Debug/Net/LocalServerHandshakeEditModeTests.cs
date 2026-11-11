@@ -6,6 +6,7 @@ using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using RoomServer.Runtime;
+using LiteGame.Adapters.Dev.LocalServer;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -35,7 +36,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 本地服进房回执_字段面与真服一致()
         {
-            var transport = LiteGame.LocalServerTransport.ForRoom("Contract", expectedPlayers: 3, map: GreyboxMap());
+            var transport = LocalServerTransport.ForRoom("Contract", expectedPlayers: 3, map: GreyboxMap());
             using (transport)
             {
                 JoinAck ack = null;
@@ -78,7 +79,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 本地服对局终局_客户端收MatchEnded带结果()
         {
-            var transport = LiteGame.LocalServerTransport.ForRoom("Contract-End", expectedPlayers: 3, map: GreyboxMap());
+            var transport = LocalServerTransport.ForRoom("Contract-End", expectedPlayers: 3, map: GreyboxMap());
             using (transport)
             {
                 StartGame start = null;
@@ -116,7 +117,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 本地服未开局收尾_客户端收MatchEnded无结果散场()
         {
-            var transport = LiteGame.LocalServerTransport.ForRoom("Contract-Abort", expectedPlayers: 2, map: GreyboxMap());
+            var transport = LocalServerTransport.ForRoom("Contract-Abort", expectedPlayers: 2, map: GreyboxMap());
             using (transport)
             {
                 MatchEnded ended = null;

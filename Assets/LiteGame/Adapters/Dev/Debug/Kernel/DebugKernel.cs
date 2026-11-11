@@ -12,7 +12,14 @@ using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 
 using LiteGame.Adapters.Dev.Debug.WeakNet;
-namespace LiteGame
+using LiteGame.Adapters.Dev.Debug.Diagnostics;
+using LiteGame.Adapters.Dev.Debug.NetDebug;
+using LiteGame.Adapters.Dev.Debug.Session;
+using LiteGame.Adapters.Dev.Debug.Tunables;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Commands;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Profile;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Stats;
+namespace LiteGame.Adapters.Dev.Debug.Kernel
 {
     /// <summary>
     /// 调试内核（《GM 与调试工具分层专项设计》§7）：读模型、动作模型与发现协议的唯一门面。

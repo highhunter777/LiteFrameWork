@@ -1,8 +1,9 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using LiteFramework;
 using LiteGame.Adapters.Dev.Debug.WeakNet;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Profile;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.WeakNet.Commands
 {
     public sealed class SetWeakNetPresetHandler : ICommandHandler<SetWeakNetPresetCommand>
     {

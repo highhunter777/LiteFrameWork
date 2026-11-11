@@ -3,7 +3,7 @@ using LiteNet.Transport;
 using LiteSim;
 using LiteGame.Modules.Map;
 
-namespace LiteGame.Modules.Dev
+namespace LiteGame.Modules.Dev.Abstractions
 {
     /// <summary>
     /// 本地（开发）传输工厂端口：消费方经 <c>IDevAssembly.LocalTransport</c> 取件（发布形态为 null）。

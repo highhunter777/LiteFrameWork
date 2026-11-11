@@ -2,6 +2,7 @@ using LiteFramework;
 using LiteGame;
 using NUnit.Framework;
 using UnityEngine;
+using LiteGame.Adapters.Dev.Projection.Preview;
 
 namespace LiteGame.Tests.EditMode
 {

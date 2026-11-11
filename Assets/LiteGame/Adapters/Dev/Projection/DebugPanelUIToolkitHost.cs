@@ -5,8 +5,10 @@ using LiteFramework;
 using UnityEngine;
 using UnityEngine.TextCore.Text;
 using UnityEngine.UIElements;
+using LiteGame.Adapters.Dev.Debug.Session;
+using LiteGame.Adapters.Dev.Debug.Tunables;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection
 {
     /// <summary>
     /// 开发面板的 UI Toolkit 渲染后端（无资产：运行时 PanelSettings + 内联样式）。

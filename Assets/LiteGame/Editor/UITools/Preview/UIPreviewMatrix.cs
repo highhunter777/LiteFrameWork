@@ -5,6 +5,7 @@ using System.Linq;
 using LiteGame;
 using LiteGame.Editor.UITools;
 using Newtonsoft.Json;
+using LiteGame.Adapters.Dev.Projection.Preview;
 
 namespace LiteGame.Editor.UITools.Preview
 {

@@ -1,7 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Console
 {
     /// <summary>
     /// 控制台命令行的纯词法解析：空白切分、verb 小写；命令名与参数均不含空格，不做引号语法。

@@ -10,6 +10,8 @@ using LiteGame.Modules.Battle.Hosting.Client;
 using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.Battle.SubModules.SessionSubModule;
+using LiteGame.Adapters.Dev.Assembly;
+using LiteGame.Adapters.Dev.Debug.Diagnostics;
 
 namespace LiteGame.Tests.EditMode
 {

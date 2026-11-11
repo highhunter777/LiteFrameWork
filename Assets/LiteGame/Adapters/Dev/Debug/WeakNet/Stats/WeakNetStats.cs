@@ -1,5 +1,5 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-namespace LiteNet.Diagnostics
+namespace LiteGame.Adapters.Dev.Debug.WeakNet.Stats
 {
     /// <summary>注入统计只读快照（HUD/测试共用；不参与判定）。</summary>
     public readonly struct WeakNetStats

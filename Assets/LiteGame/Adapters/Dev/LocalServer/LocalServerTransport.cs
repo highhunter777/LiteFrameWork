@@ -17,7 +17,7 @@ using LiteSync.Client;
 // 开发面剥离：与 DevHud/DevStartupConfig 同款三宏 #if（release Player 中本件整体不编译；
 // asmdef 层不设约束）。
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.LocalServer
 {
     /// <summary>
     /// **进程内本地服务器**（离线隔离开发）：实现 IClientTransport， 在同一进程里跑**真的**房间内核 RoomRuntime 与**真的** SnapshotPipeline （两者与服务端宿主编译同一。）。

@@ -1,7 +1,8 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Stats;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Hud
 {
     /// <summary>投影薄适配：窗口/节流/降采样逻辑在 App 层 NetHistory（可测）。</summary>
     internal sealed class DevHudNetHistory

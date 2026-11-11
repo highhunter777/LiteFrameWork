@@ -3,7 +3,8 @@ using System;
 using LiteNet.Transport;
 
 using LiteGame.Adapters.Dev.Debug.WeakNet;
-namespace LiteGame
+using LiteGame.Adapters.Dev.Debug.WeakNet.Profile;
+namespace LiteGame.Adapters.Dev.Debug.WeakNet.Transport
 {
     /// <summary>传输工厂包装：只包真 KCP 形态，本地测试房（进程内服）不包。</summary>
     public static class WeakNetWiring

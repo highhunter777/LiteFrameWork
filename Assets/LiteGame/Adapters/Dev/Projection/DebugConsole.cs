@@ -6,9 +6,15 @@ using LiteFramework;
 using LiteFramework;
 using LiteNet.Diagnostics;
 using UnityEngine;
+using LiteGame.Adapters.Dev.Assembly;
+using LiteGame.Adapters.Dev.Debug.Console;
+using LiteGame.Adapters.Dev.Debug.Kernel;
+using LiteGame.Adapters.Dev.Debug.Session;
+using LiteGame.Adapters.Dev.Debug.Tunables;
+using LiteGame.Adapters.Dev.Input;
 using Object = UnityEngine.Object;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection
 {
     /// <summary>
     /// 运行期操控投影（《GM 与调试工具分层专项设计》§7）：F3 文本控制台，开发页退役后的唯一运行期开发入口。

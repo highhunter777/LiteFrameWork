@@ -5,9 +5,15 @@ using System.Text;
 using LiteFramework;
 using LiteFramework;
 using UnityEngine;
+using LiteGame.Adapters.Dev.Assembly;
+using LiteGame.Adapters.Dev.Debug.Kernel;
+using LiteGame.Adapters.Dev.Debug.NetDebug;
+using LiteGame.Adapters.Dev.Debug.Session;
+using LiteGame.Adapters.Dev.Debug.Tunables;
+using LiteGame.Adapters.Dev.Input;
 using Object = UnityEngine.Object;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection
 {
     /// <summary>
     /// 常用调试面板（F2，UI Toolkit）：控制台之外的轻量投影——本地测试模式进入/退出/传送 + TestModeOptions 的 Live 开关。

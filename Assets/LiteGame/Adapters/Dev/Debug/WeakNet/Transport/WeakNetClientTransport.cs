@@ -2,8 +2,10 @@
 using System;
 using System.Collections.Generic;
 using LiteNet.Transport;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Profile;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Stats;
 
-namespace LiteNet.Diagnostics
+namespace LiteGame.Adapters.Dev.Debug.WeakNet.Transport
 {
     /// <summary>
     /// 客户端弱网注入装饰器：可靠帧只做固定延迟且严格保序；不可靠帧做延迟/抖动/丢包/重复/乱序。

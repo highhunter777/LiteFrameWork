@@ -8,6 +8,7 @@ using LiteGame;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
 using LiteGame.Modules.Battle.SubModules.CombatSubModule.Fx;
+using LiteGame.Adapters.Dev.Debug.Session;
 
 namespace LiteGame.Tests.EditMode
 {

@@ -8,8 +8,9 @@ using LiteGame.Modules.Battle.SubModules.AimSubModule;
 using LiteGame.Modules.Battle.SubModules.CharactersSubModule;
 using LiteGame.Modules.Battle.SubModules.CharactersSubModule.Drivers.Grip;
 using LiteGame.Modules.Battle.SubModules.HudSubModule.Crosshair;
+using LiteGame.Adapters.Dev.Debug.Session;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Tunables
 {
     /// <summary>
     /// 现有手写调参面的统一描述（开发三宏内）：爆头区 / 持枪幅度 / 准心 / 视角。

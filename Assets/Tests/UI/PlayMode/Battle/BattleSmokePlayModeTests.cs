@@ -11,6 +11,7 @@ using LiteGame.Modules.Settings;
 using LiteGame.Modules.Battle.Abstractions.View;
 using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
 using LiteGame.Modules.Battle.SubModules.SetupSubModule;
+using LiteGame.Adapters.Dev.Debug.Session;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

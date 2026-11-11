@@ -7,7 +7,7 @@ using LiteNet;
 using LiteSync.Client;
 using LiteGame.Modules.Battle.Shared;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Diagnostics
 {
     /// <summary>
     /// 对局诊断读口（联机诊断 HUD 批）：当前对局 BattleContext 的 dev-only 单点登记 ＋只读描述单源。

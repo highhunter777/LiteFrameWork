@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Hud
 {
     /// <summary>
     /// HUD 过滤词（`@tag` OR + 文本子串 AND）。解析/匹配/裁剪都在这里，

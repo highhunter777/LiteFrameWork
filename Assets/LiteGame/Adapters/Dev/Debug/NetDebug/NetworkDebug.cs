@@ -8,7 +8,10 @@ using LiteNet.Diagnostics;
 using LiteGame.Adapters.Dev.Debug.WeakNet;
 using LiteGame.Modules.Battle.Shared;
 using LiteSync.Client;
-namespace LiteGame
+using LiteGame.Adapters.Dev.Debug.Diagnostics;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Profile;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Stats;
+namespace LiteGame.Adapters.Dev.Debug.NetDebug
 {
     /// <summary>
     /// 网络调试组件（调试内核 DebugKernel.Network 持有）：把**读数**（会话相位 / RTT / 丢包 / 弱网注入）与**动作**（强制断线 / 无状态重连 / 抑制自动重连）收在一处。

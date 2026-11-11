@@ -14,6 +14,8 @@ using RoomServer.Runtime;
 using Xunit;
 
 using LiteSync.Client;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Profile;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Transport;
 namespace LiteNet.Tests
 {
     /// <summary>

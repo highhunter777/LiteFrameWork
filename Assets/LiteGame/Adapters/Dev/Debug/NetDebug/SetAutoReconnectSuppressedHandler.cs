@@ -1,7 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.NetDebug
 {
     public sealed class SetAutoReconnectSuppressedHandler : ICommandHandler<SetAutoReconnectSuppressedCommand>
     {

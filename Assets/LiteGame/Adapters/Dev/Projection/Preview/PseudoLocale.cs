@@ -3,7 +3,7 @@ using System;
 using System.Text;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Preview
 {
     /// <summary>
     /// 伪本地化装饰器（P2-3 B3）。

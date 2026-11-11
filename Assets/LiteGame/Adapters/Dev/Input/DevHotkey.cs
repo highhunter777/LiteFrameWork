@@ -1,6 +1,6 @@
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Input
 {
     /// <summary>DevHud 用到的功能键（不暴露 KeyCode，便于输入后端切换）。</summary>
     public enum DevKey

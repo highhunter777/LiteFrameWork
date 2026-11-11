@@ -8,7 +8,7 @@ using LiteGame.Modules.Input;
 using LiteNet.Transport;
 using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
 
-namespace LiteGame.Modules.Dev
+namespace LiteGame.Modules.Dev.Abstractions
 {
     /// <summary>
     /// 开发装配端口（由 `LiteGame.Dev` 实现；产品程序集只认本接口，不引用开发程序集）。

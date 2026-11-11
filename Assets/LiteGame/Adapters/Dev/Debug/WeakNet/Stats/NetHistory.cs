@@ -2,7 +2,7 @@
 using System;
 using System.Text;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.WeakNet.Stats
 {
     /// <summary>
     /// 联机读数环形窗（纯逻辑）：按 250ms 节流（4Hz）采 RTT/丢包，240 样本≈60s；

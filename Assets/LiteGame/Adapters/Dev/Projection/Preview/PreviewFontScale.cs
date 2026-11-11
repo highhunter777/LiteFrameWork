@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using TMPro;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Preview
 {
     /// <summary>
     /// 预览字体缩放（P2-3 B3；总设计 §7.5 钦定档 1.0/1.15/1.3）：对页面内全部 TMP 的 fontSize 施加乘数，

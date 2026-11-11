@@ -3,7 +3,7 @@ using LiteSim;
 using LiteFramework;
 using LiteGame;
 
-namespace LiteGame.Modules.Dev
+namespace LiteGame.Modules.Dev.FallbacksSubModule
 {
     /// <summary>
     /// 发布形态的开发会话（全关空实现）：release 不编译开发静态，端口必须有可注入实现，

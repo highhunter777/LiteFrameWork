@@ -6,6 +6,9 @@ using LiteSim;
 using UnityEngine;
 using LiteGame.Modules.Dev;
 using LiteGame.Modules.Map;
+using LiteGame.Adapters.Dev.Debug.Session;
+using LiteGame.Adapters.Dev.LocalServer;
+using LiteGame.Modules.Dev.Abstractions;
 
 namespace LiteGame.Adapters.Dev
 {

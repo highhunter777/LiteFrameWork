@@ -2,7 +2,7 @@
 using System;
 using Unity.Profiling;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Kernel
 {
     /// <summary>帧间隔统计快照（环窗内均值 FPS/最差帧/p50/p95/p99/长帧计数）。</summary>
     public readonly struct PerfSnapshot

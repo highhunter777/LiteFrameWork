@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Kernel
 {
     /// <summary>
     /// 调试读模型的模块统计发现面：容器注册件 + 场景组件型合并去重、剔除销毁件、按名称排序。

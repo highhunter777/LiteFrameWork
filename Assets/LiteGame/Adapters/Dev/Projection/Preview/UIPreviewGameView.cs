@@ -4,7 +4,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Preview
 {
     /// <summary>
     /// GameView 分辨率切换（P2-3 B3 / D2 用户裁决：反射内部 SetCustomResolution＋容错降级）。

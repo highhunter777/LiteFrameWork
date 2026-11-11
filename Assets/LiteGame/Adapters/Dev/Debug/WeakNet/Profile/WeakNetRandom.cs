@@ -1,5 +1,5 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-namespace LiteNet.Diagnostics
+namespace LiteGame.Adapters.Dev.Debug.WeakNet.Profile
 {
     /// <summary>确定性随机源：固定种子下决策序列可复现（上下行各持一实例）。</summary>
     public sealed class WeakNetRandom

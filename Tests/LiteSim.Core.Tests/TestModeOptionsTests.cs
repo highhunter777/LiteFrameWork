@@ -3,6 +3,7 @@ using System.Linq;
 using LiteGame;        // TestModeOptions/TestModeRuntime：源链接纳入 L1（链接组注释见 LiteSim.Core.Tests.csproj）
 using LiteSim;
 using Xunit;
+using LiteGame.Adapters.Dev.Debug.Session;
 
 namespace LiteSim.Tests
 {

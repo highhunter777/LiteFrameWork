@@ -5,8 +5,9 @@ using LiteSim;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Adapters.Dev.Debug.Session;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Tunables
 {
     /// <summary>
     /// 武器试验参数（开发三宏内）：单发伤害/射速的运行态覆写——判定面数值，覆写走 MatchTestRules 实例字段（R13：机制不读静态），默认值来自武器表（未装载回落内置默认步枪，同值同源由 L1 守卫钉住）。

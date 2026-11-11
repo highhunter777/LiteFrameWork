@@ -5,8 +5,10 @@ using LiteGame;
 using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
+using LiteGame.Adapters.Dev.Battle;
+using LiteGame.Adapters.Dev.Debug.Session;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Assembly
 {
     /// <summary>
     /// 对局开发叠加层实现：爆头区域常驻绘制（只读预测态）+ 爆头自动验证件（替换输入源，验端到端链路）。

@@ -4,7 +4,7 @@ using RoomServer.Runtime;
 using LiteFramework;
 using LiteGame;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.LocalServer
 {
     /// <summary>
     /// 本地服宿主钩子执行件（开发面）：bot 冻结/传送分发/无限生命/重置假人。

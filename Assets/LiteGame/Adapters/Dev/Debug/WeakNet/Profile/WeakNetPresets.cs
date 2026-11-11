@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using LiteNet.Diagnostics;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.WeakNet.Profile
 {
     /// <summary>只读弱网预设表（关闭 / 局域网 / 移动 / 高丢包）。</summary>
     public static class WeakNetPresets

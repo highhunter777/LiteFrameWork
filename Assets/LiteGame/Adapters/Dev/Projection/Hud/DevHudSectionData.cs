@@ -1,7 +1,8 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System.Collections.Generic;
+using LiteGame.Adapters.Dev.Debug.Session;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Hud
 {
     /// <summary>HUD 行色调（与渲染后端无关；IMGUI 回退时统一白色）。</summary>
     internal enum HudTone

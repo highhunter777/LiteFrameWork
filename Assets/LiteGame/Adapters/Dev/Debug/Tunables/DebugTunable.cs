@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Tunables
 {
     /// <summary>调试参数的公开范围（只影响展示/定档口径，不改变 release 剥离）。</summary>
     public enum DebugTunableScope

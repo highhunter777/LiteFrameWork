@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using System.Reflection;
 using LiteFramework;
 using NUnit.Framework;
+using LiteGame.Adapters.Dev.Debug.Console;
+using LiteGame.Adapters.Dev.Debug.Diagnostics;
+using LiteGame.Adapters.Dev.Debug.Kernel;
+using LiteGame.Adapters.Dev.Debug.Session;
+using LiteGame.Adapters.Dev.Debug.Tunables;
 
 namespace LiteGame.Tests.EditMode
 {

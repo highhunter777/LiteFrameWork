@@ -2,7 +2,7 @@
 using LiteFramework.UI;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Preview
 {
     /// <summary>
     /// 预览安全区模拟策略（P2-3 B3）。

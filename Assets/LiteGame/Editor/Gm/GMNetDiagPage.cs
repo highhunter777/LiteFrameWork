@@ -1,6 +1,10 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using LiteGame.Adapters.Dev.Debug.Kernel;
+using LiteGame.Adapters.Dev.Debug.NetDebug;
+using LiteGame.Adapters.Dev.Debug.Session;
+using LiteGame.Adapters.Dev.Projection;
 
 namespace LiteGame.Editor
 {

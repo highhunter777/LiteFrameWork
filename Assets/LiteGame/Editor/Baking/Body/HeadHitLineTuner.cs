@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Adapters.Dev.Debug.Session;
 
 namespace LiteGame.EditorTools
 {

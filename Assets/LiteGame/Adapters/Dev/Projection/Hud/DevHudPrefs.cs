@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Hud
 {
     /// <summary>
     /// DevHud 的会话间记忆（宽度/字号/位置/缩放/折叠段/过滤词）。

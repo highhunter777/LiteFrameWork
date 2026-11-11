@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using LiteGame.Modules.Config;
 using LiteSim;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Tunables
 {
     /// <summary>
     /// 判定参数调参面（`#combatgeom` 13 列）：把 SimParamsOverrides 实例暴露成滑杆 （Group = 判定参数）。

@@ -9,9 +9,15 @@ using LiteFramework.Diagnostics;
 using LiteNet.Diagnostics;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using LiteGame.Adapters.Dev.Assembly;
+using LiteGame.Adapters.Dev.Debug.Diagnostics;
+using LiteGame.Adapters.Dev.Debug.Kernel;
+using LiteGame.Adapters.Dev.Debug.Session;
+using LiteGame.Adapters.Dev.Input;
+using LiteGame.Adapters.Dev.Projection.Hud;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection
 {
     /// <summary>
     /// 开发 HUD（只读快照展示）。

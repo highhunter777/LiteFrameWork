@@ -4,6 +4,8 @@ using System.Linq;
 using LiteNet.Diagnostics;
 using LiteNet.Transport;
 using Xunit;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Profile;
+using LiteGame.Adapters.Dev.Debug.WeakNet.Transport;
 
 namespace LiteNet.Tests
 {

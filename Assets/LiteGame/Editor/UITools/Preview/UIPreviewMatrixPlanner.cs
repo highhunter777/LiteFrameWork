@@ -6,6 +6,7 @@ using LiteGame;
 using LiteGame.Editor.UITools.Validation;
 using UnityEditor;
 using UnityEngine;
+using LiteGame.Adapters.Dev.Projection.Preview;
 
 namespace LiteGame.Editor.UITools.Preview
 {

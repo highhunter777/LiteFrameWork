@@ -1,6 +1,8 @@
 using System;
 using UnityEditor;
 using UnityEngine;
+using LiteGame.Adapters.Dev.Debug.Kernel;
+using LiteGame.Adapters.Dev.Debug.Tunables;
 
 namespace LiteGame.Editor
 {

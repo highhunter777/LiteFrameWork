@@ -5,6 +5,7 @@ using LiteGame.Editor.UITools.Preview;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using LiteGame.Adapters.Dev.Projection.Preview;
 
 namespace LiteGame.Tests.EditMode
 {

@@ -1,7 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System;
 
-namespace LiteNet.Diagnostics
+namespace LiteGame.Adapters.Dev.Debug.WeakNet.Profile
 {
     /// <summary>弱网注入参数快照（开发面专用；release 不编译）。</summary>
     public readonly struct WeakNetProfile

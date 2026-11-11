@@ -6,7 +6,7 @@ using LiteFramework;
 using LiteFramework;
 using LiteGame.Modules.Config;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Preview
 {
     /// <summary>
     /// 预览语言构建器（P2-3 B3）：tbltext **文件直载**（`TableLayout.Files` 含 `UI/tbltext`。）。

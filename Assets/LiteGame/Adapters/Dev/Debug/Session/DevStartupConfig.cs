@@ -2,7 +2,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Session
 {
     /// <summary>DevHud 内建段的身份位（启动布局选择用；每段一位，段定义侧逐一登记）。</summary>
     [Flags]

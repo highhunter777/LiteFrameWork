@@ -7,6 +7,7 @@ using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Dev;
 using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Dev.FallbacksSubModule;
 
 namespace LiteGame
 {

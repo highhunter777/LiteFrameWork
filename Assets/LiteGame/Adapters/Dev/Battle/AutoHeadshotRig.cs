@@ -7,8 +7,9 @@ using LiteGame.Modules.Input;
 using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
 using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Battle
 {
+    using Debug = UnityEngine.Debug;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
     /// <summary>
     /// **爆头链路自动验证件**（测试模式诊断，release 整段剥离）。

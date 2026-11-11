@@ -13,6 +13,9 @@ using LiteGame.Modules.Meta.Abstractions.Account;
 using LiteGame.Modules.Meta.Abstractions.Room;
 using LiteGame.Modules.Meta.Client.Account;
 using LiteGame.Modules.Meta.Config;
+using LiteGame.Adapters.Dev.Debug.Kernel;
+using LiteGame.Adapters.Dev.Debug.Session;
+using LiteGame.Adapters.Dev.Debug.Tunables;
 
 namespace LiteGame.Editor
 {

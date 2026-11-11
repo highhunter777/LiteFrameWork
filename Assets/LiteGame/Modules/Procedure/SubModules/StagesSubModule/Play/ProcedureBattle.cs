@@ -16,6 +16,7 @@ using LiteGame.Modules.Map;
 using LiteSync.Client;
 using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.View;
+using LiteGame.Modules.Dev.FallbacksSubModule;
 namespace LiteGame
 {
     /// <summary>

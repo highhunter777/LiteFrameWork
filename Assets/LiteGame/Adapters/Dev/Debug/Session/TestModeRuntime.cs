@@ -2,7 +2,7 @@
 using LiteSim;
 using LiteGame;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Session
 {
     /// <summary>
     /// 本地测试模式（Room-Test）的运行时快照与控制桥（开发/编辑器/开发包专用）。

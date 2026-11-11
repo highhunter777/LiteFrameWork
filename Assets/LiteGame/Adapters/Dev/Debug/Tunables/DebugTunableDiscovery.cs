@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Tunables
 {
     /// <summary>
     /// 调参描述发现面：容器 provider + 场景组件 provider 合并、按 Id 去重、按 Group/Label 排序，

@@ -1,7 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System.Globalization;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Tunables
 {
     /// <summary>调参文本格式/解析单源：控制台与运行期面板共用，Bool 用 on/off，Float 用 InvariantCulture。</summary>
     public static class DebugTunableText

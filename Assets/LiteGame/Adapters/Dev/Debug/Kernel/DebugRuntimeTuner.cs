@@ -3,8 +3,10 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
+using LiteGame.Adapters.Dev.Debug.Console;
+using LiteGame.Adapters.Dev.Debug.Tunables;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Kernel
 {
     /// <summary>运行态调试旋钮：世界时钟（时停/变速）、UI 时钟、事件中心 StrictMode。
     /// 连续旋钮不命令化；GM「重置时钟」经命令总线派发，处理器持有本件。

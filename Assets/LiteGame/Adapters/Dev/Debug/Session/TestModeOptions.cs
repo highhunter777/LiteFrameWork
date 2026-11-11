@@ -1,5 +1,5 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Debug.Session
 {
     /// <summary>
     /// 本地测试模式开关的**统一描述表**（开发/编辑器/开发包专用）。

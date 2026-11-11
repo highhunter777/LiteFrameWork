@@ -9,8 +9,11 @@ using LiteFramework;
 using LiteFramework.Diagnostics;
 using LiteNet.Diagnostics;
 using UnityEngine;
+using LiteGame.Adapters.Dev.Debug.Diagnostics;
+using LiteGame.Adapters.Dev.Debug.Kernel;
+using LiteGame.Adapters.Dev.Debug.Session;
 
-namespace LiteGame
+namespace LiteGame.Adapters.Dev.Projection.Hud
 {
     /// <summary>段构建所需的开关/过滤参数（DevHud 每次采样前刷新，避免段件反向读宿主 public 字段）。</summary>
     internal sealed class DevHudSectionOptions
