@@ -1,0 +1,8 @@
+{
+  "name": "com.litegame.shared",
+  "version": "0.1.0",
+  "displayName": "LiteGame Shared",
+  "description": "客户端与服务端共编的共享契约源（Luban 表投影、Meta 线形状 DTO）：两端编译同一份源码，物理上不可能漂移。",
+  "unity": "2022.3",
+  "dependencies": {}
+}

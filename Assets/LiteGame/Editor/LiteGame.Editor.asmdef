@@ -37,6 +37,7 @@
         "LiteGame.Modules.UI",
         "LiteGame.Modules.Procedure",
         "LiteGame.Modules.Meta",
+        "LiteGame.MetaWire",
         "LiteGame.Modules.Session",
         "LiteGame.Modules.Map",
         "LiteGame.Modules.Dev"

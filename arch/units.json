@@ -227,6 +227,27 @@
       "notes": "确定性判定（双轨共享包）"
     },
     {
+      "id": "LiteGame.MetaWire",
+      "assembly": "LiteGame.MetaWire",
+      "path": "Packages/com.litegame.shared/Runtime/MetaWire",
+      "asmdef": "Packages/com.litegame.shared/Runtime/MetaWire/LiteGame.MetaWire.asmdef",
+      "layer": "kernel",
+      "rank": 6,
+      "owner": "shared",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "framework-core",
+        "editmode"
+      ],
+      "noEngine": true,
+      "defineConstraints": [],
+      "references": [],
+      "notes": "Meta HTTP 线形状 DTO（客户端编译 + 服务端源链接共编；命名空间 MetaWire 不变，P1a 迁出旧树）"
+    },
+    {
       "id": "LiteFramework.Editor",
       "assembly": "LiteFramework.Editor",
       "path": "Packages/com.litegame.framework/Editor",
@@ -908,6 +929,7 @@
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
         "LiteGame.Modules.Config",
+        "LiteGame.MetaWire",
         "LiteNet",
         "LiteSync",
         "LiteSim",
@@ -1048,6 +1070,7 @@
         "LiteGame.Modules.Input",
         "LiteGame.Modules.Map",
         "LiteGame.Modules.Meta",
+        "LiteGame.MetaWire",
         "LiteGame.Modules.Session",
         "LiteGame.Modules.UI",
         "LiteNet",
@@ -1254,6 +1277,7 @@
       "references": [
         "LiteGame.Adapters.Luban",
         "LiteGame.Modules.Config",
+        "LiteGame.MetaWire",
         "LiteGame.Modules.Settings",
         "LiteGame.Modules.Input",
         "LiteGame.Modules.Camera",
@@ -1597,6 +1621,12 @@
     },
     {
       "root": "Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft",
+      "rules": "GameRules",
+      "exclude": null,
+      "includeEditor": false
+    },
+    {
+      "root": "Packages/com.litegame.shared",
       "rules": "GameRules",
       "exclude": null,
       "includeEditor": false

@@ -8,6 +8,7 @@
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
         "LiteGame.Modules.Config",
+        "LiteGame.MetaWire",
         "LiteNet",
         "LiteSync",
         "LiteSim",

@@ -101,25 +101,25 @@ META_EXTRA_FILES = [
     'Assets/RoomServer/Core/MatchStateMachine.cs',
     # Meta HTTP 契约线形状与序列化行为（客户端编译、MetaServer/RoomServer 源链接共编）：
     # 改字段名/口径 = 协议变更，Meta 构建身份必须跟着变。
-    # 注：JoinTicketInfo 的**实体定义**在 Abstractions/Room/（WireSubModule/Join/ 下只有
-    # JoinTicketRequest.cs）——2026-11-11 修正此前误记到 WireSubModule/Join/ 的路径。
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Core/MetaError.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Login/GuestLoginRequest.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Login/GuestLoginInfo.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Join/JoinTicketRequest.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/CreateRoomRequest.cs',
-    'Assets/LiteGame/Modules/Meta/Abstractions/Room/JoinTicketInfo.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/RoomsResponse.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/LobbyInstanceView.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/LobbyRoomEntry.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Match/MatchesResponse.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Match/MatchRecordInfo.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Instance/InstanceRegisterRequest.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Instance/InstanceRegisterResponse.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Match/MatchResultSubmission.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Match/PlayerResultEntry.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Core/MetaWireEndpoints.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Core/MetaWireLimits.cs',
+    # 2026-11-12 P1a：MetaWire 共享源已迁出到 Packages/com.litegame.shared/Runtime/MetaWire/
+    # （UPM 包 LiteGame.MetaWire，命名空间不变）——Meta 构建身份仍按本清单取源。
+    'Packages/com.litegame.shared/Runtime/MetaWire/Core/MetaError.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Login/GuestLoginRequest.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Login/GuestLoginInfo.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Join/JoinTicketRequest.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Lobby/CreateRoomRequest.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/JoinTicketInfo.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Lobby/RoomsResponse.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Lobby/LobbyInstanceView.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Lobby/LobbyRoomEntry.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Match/MatchesResponse.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Match/MatchRecordInfo.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Instance/InstanceRegisterRequest.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Instance/InstanceRegisterResponse.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Match/MatchResultSubmission.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Match/PlayerResultEntry.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Core/MetaWireEndpoints.cs',
+    'Packages/com.litegame.shared/Runtime/MetaWire/Core/MetaWireLimits.cs',
     'Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft/WireJsonSettings.cs',
 ]
 SHARED_OUT_REL = 'Packages/com.litegame.net/Core/Protocol/BuildHash.g.cs'

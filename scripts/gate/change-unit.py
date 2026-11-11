@@ -90,7 +90,7 @@ def load_next_roots(root: Path) -> list[str]:
         data = json.loads(path.read_text(encoding="utf-8-sig"))
     except (OSError, ValueError, TypeError):
         return []
-    roots = [data.get("nextRoot"), data.get("frameworkNextRoot")]
+    roots = [data.get("nextRoot"), data.get("frameworkNextRoot"), data.get("sharedRoot")]
     roots.extend(data.get("nextTests") or [])
     return [str(item).strip("/") for item in roots if item]
 

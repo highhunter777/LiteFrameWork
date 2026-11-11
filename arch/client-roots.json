@@ -5,6 +5,7 @@
   "nextRuntime": "Assets/LiteGame/Next/Runtime",
   "nextBootstrap": "Assets/LiteGame/Next/Bootstrap",
   "frameworkNextRoot": "Packages/com.litegame.framework/Next",
+  "sharedRoot": "Packages/com.litegame.shared",
   "finalRoot": "Assets/LiteGame",
   "nextTests": [
     "Assets/Tests/EditMode/ClientNext",

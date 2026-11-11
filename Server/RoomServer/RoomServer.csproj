@@ -54,22 +54,22 @@
       Meta HTTP 契约的线形状单源（与客户端 LiteGame.App、MetaServer 编译同一份）：
       注册心跳载荷与房间明细不再在本工程手写镜像 DTO。
     -->
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Core\MetaError.cs" Link="Shared\MetaWire\MetaError.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Login\GuestLoginRequest.cs" Link="Shared\MetaWire\GuestLoginRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Login\GuestLoginInfo.cs" Link="Shared\MetaWire\GuestLoginInfo.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Join\JoinTicketRequest.cs" Link="Shared\MetaWire\JoinTicketRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\CreateRoomRequest.cs" Link="Shared\MetaWire\CreateRoomRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Abstractions\Room\JoinTicketInfo.cs" Link="Shared\MetaWire\JoinTicketInfo.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\RoomsResponse.cs" Link="Shared\MetaWire\RoomsResponse.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\LobbyInstanceView.cs" Link="Shared\MetaWire\LobbyInstanceView.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Lobby\LobbyRoomEntry.cs" Link="Shared\MetaWire\LobbyRoomEntry.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\MatchesResponse.cs" Link="Shared\MetaWire\MatchesResponse.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\MatchRecordInfo.cs" Link="Shared\MetaWire\MatchRecordInfo.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Instance\InstanceRegisterRequest.cs" Link="Shared\MetaWire\InstanceRegisterRequest.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Instance\InstanceRegisterResponse.cs" Link="Shared\MetaWire\InstanceRegisterResponse.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\MatchResultSubmission.cs" Link="Shared\MetaWire\MatchResultSubmission.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Match\PlayerResultEntry.cs" Link="Shared\MetaWire\PlayerResultEntry.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\WireSubModule\Core\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Core\MetaError.cs" Link="Shared\MetaWire\MetaError.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Login\GuestLoginRequest.cs" Link="Shared\MetaWire\GuestLoginRequest.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Login\GuestLoginInfo.cs" Link="Shared\MetaWire\GuestLoginInfo.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Join\JoinTicketRequest.cs" Link="Shared\MetaWire\JoinTicketRequest.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Lobby\CreateRoomRequest.cs" Link="Shared\MetaWire\CreateRoomRequest.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\JoinTicketInfo.cs" Link="Shared\MetaWire\JoinTicketInfo.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Lobby\RoomsResponse.cs" Link="Shared\MetaWire\RoomsResponse.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Lobby\LobbyInstanceView.cs" Link="Shared\MetaWire\LobbyInstanceView.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Lobby\LobbyRoomEntry.cs" Link="Shared\MetaWire\LobbyRoomEntry.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Match\MatchesResponse.cs" Link="Shared\MetaWire\MatchesResponse.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Match\MatchRecordInfo.cs" Link="Shared\MetaWire\MatchRecordInfo.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Instance\InstanceRegisterRequest.cs" Link="Shared\MetaWire\InstanceRegisterRequest.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Instance\InstanceRegisterResponse.cs" Link="Shared\MetaWire\InstanceRegisterResponse.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Match\MatchResultSubmission.cs" Link="Shared\MetaWire\MatchResultSubmission.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Match\PlayerResultEntry.cs" Link="Shared\MetaWire\PlayerResultEntry.cs" />
+    <Compile Include="..\..\Packages\com.litegame.shared\Runtime\MetaWire\Core\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
   </ItemGroup>
 
   <ItemGroup>

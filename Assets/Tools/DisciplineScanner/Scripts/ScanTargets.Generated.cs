@@ -33,6 +33,7 @@ namespace Tools.DisciplineScan
             new Entry("Packages/com.litegame.framework/Runtime/Adapters/YooAsset", "GameRules", null, false),
             new Entry("Packages/com.litegame.framework/Runtime/Adapters/InputSystem", "GameRules", null, false),
             new Entry("Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft", "GameRules", null, false),
+            new Entry("Packages/com.litegame.shared", "GameRules", null, false),
             new Entry("Assets/LiteGame", "GameRules", null, false),
             new Entry("Packages/com.litegame.framework/Runtime/Services/UI", "UILayerRules", null, false),
             new Entry("Assets/RoomServer/Core", "RuntimePurityRules", null, false),

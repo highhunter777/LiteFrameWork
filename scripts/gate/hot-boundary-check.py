@@ -98,6 +98,8 @@ PARTITION = {
             "Assets/GameData/Generated/",
             "Packages/com.litegame.sim/",
             "Packages/com.litegame.sync/",
+            # 两端共编的共享契约包（hot 件，P1a 迁出旧树）：
+            "Packages/com.litegame.shared/",
         ),
     },
     # 非玩家侧：服务端 / 工具 / 测试 / 代码生成。不参与 AOT|hot 判定（裁决：不报边）。

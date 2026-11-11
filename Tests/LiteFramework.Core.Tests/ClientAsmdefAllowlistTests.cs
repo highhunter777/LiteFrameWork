@@ -51,6 +51,7 @@ namespace LiteFramework.Core.Tests
             "Packages/com.litegame.sim",
             "Packages/com.litegame.net",
             "Packages/com.litegame.sync",
+            "Packages/com.litegame.shared",
             "Assets/LiteCodeGen",
         };
 
