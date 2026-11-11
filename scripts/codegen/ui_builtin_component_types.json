@@ -4,8 +4,8 @@
     "com.unity.textmeshpro@3.0.7",
     "com.unity.ugui@1.0.0"
   ],
-  "_regenerate": "python scripts/codegen/prefab_page_reader.py --builtin-map-out scripts/codegen/ui_builtin_component_types.json",
-  "_note": "components = script guid -> C# type; bases = measured class bases (interfaces excluded). prefab_page_reader.py resolves repo .cs.meta first, then this map, then fails; no default is guessed.",
+  "_regenerate": "python scripts/codegen/_prefab_page_reader.py --builtin-map-out scripts/codegen/ui_builtin_component_types.json",
+  "_note": "components = script guid -> C# type; bases = measured class bases (interfaces excluded). _prefab_page_reader.py resolves repo .cs.meta first, then this map, then fails; no default is guessed.",
   "components": {
     "0cd44c1031e13a943bb63640046fad76": "UnityEngine.UI.CanvasScaler",
     "0d0b652f32a2cc243917e4028fa0f046": "UnityEngine.UI.Dropdown",

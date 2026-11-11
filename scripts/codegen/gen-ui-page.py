@@ -6,7 +6,7 @@ Inputs:
   - Luban/Data/#uiform.xlsx        (runtime directory source: id/prefab/layer/full_screen/
                                     cache_strategy —页面元数据唯一来源)
   - every page prefab the table lists (controls / text / styles, read by
-                                    prefab_page_reader; the page name is that
+                                    _prefab_page_reader.py; the page name is that
                                     prefab's file stem)
 
 Output:
@@ -15,7 +15,7 @@ Output:
 
 The generated file is the only runtime page directory; runtime code reads
 PageDefinition via IPageCatalog. Neither UIPageManifest.json nor the contracts
-are read here: the table is the only metadata source and prefab_page_reader is
+are read here: the table is the only metadata source and _prefab_page_reader.py is
 the contract-free bind-surface reader.
 
 Usage:
@@ -36,7 +36,7 @@ from collections import Counter  # noqa: E402
 from _common import repo_root  # noqa: E402
 from _codegen import fail, info, input_digest, run_tool, signature  # noqa: E402
 import _uiform_row  # noqa: E402
-import prefab_page_reader  # noqa: E402
+import _prefab_page_reader  # noqa: E402
 
 ROOT = Path(repo_root())
 TOOL = "ui-page"
@@ -68,7 +68,7 @@ def build_head(args, prefab_paths):
     component map and every page prefab actually read."""
     entries = [
         _fingerprint_entry(args.table),
-        _fingerprint_entry(prefab_page_reader.BUILTIN_MAP_PATH),
+        _fingerprint_entry(_prefab_page_reader.BUILTIN_MAP_PATH),
     ]
     entries.extend(sorted(_fingerprint_entry(path) for path in prefab_paths))
     label = "%s + %s + %d page prefabs" % (entries[0], entries[1], len(prefab_paths))
@@ -103,7 +103,7 @@ def path_report():
     """Declared inputs/output derived from the DEFAULT_* constants."""
     entries = [
         {"path": _rel(DEFAULT_TABLE), "kind": "input"},
-        {"path": _rel(prefab_page_reader.BUILTIN_MAP_PATH), "kind": "input"},
+        {"path": _rel(_prefab_page_reader.BUILTIN_MAP_PATH), "kind": "input"},
     ]
     entries.extend({"path": path, "kind": "input"} for path in page_prefab_paths())
     entries.extend([
@@ -135,7 +135,7 @@ def cs_string(value):
 
 
 def build_definitions(args):
-    reader = prefab_page_reader.PageReader(ROOT)
+    reader = _prefab_page_reader.PageReader(ROOT)
     read_cache = {}
     definitions = []
     prefab_paths = []

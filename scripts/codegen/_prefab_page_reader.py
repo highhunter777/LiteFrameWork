@@ -32,7 +32,7 @@ TEXT_KEY_REF_META = "Packages/com.litegame.framework/Runtime/Services/UI/Localiz
 TEXT_STYLE_REF_META = "Packages/com.litegame.framework/Runtime/Services/UI/Style/UITextStyleRef.cs.meta"
 
 BUILTIN_MAP_PATH = Path(__file__).resolve().with_name("ui_builtin_component_types.json")
-BUILTIN_MAP_REGEN = ("python scripts/codegen/prefab_page_reader.py "
+BUILTIN_MAP_REGEN = ("python scripts/codegen/_prefab_page_reader.py "
                      "--builtin-map-out scripts/codegen/ui_builtin_component_types.json")
 BUILTIN_CONTENT_ROOTS = (
     "Assets/LiteGame/Modules/UI/Content",
@@ -622,7 +622,7 @@ def write_builtin_map(path, repo_root=None):
         "_packages": measured["package_roots"],
         "_regenerate": BUILTIN_MAP_REGEN,
         "_note": "components = script guid -> C# type; bases = measured class bases "
-                 "(interfaces excluded). prefab_page_reader.py resolves repo .cs.meta "
+                 "(interfaces excluded). _prefab_page_reader.py resolves repo .cs.meta "
                  "first, then this map, then fails; no default is guessed.",
         "components": dict(sorted(measured["components"].items())),
         "bases": {name: measured["bases"][name] for name in sorted(measured["bases"])},
