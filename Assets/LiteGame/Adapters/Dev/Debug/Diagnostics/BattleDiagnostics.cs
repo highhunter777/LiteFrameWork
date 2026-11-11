@@ -50,6 +50,8 @@ namespace LiteGame.Adapters.Dev.Debug.Diagnostics
             public readonly int InputLeadFrames;
             /// <summary>视图帧落后最近快照帧的帧数（-1 = 无快照）。</summary>
             public readonly int SnapshotAgeFrames;
+            /// <summary>自动重连抑制位（调试口当前值；false = 产品行为）。</summary>
+            public readonly bool SuppressAutoReconnect;
             /// <summary>现场包身份（BuildHash/AppVersion/Platform）。</summary>
             public readonly DiagnosticIdentity Identity;
 
@@ -68,7 +70,7 @@ namespace LiteGame.Adapters.Dev.Debug.Diagnostics
             public Snapshot(ClientSessionPhase phase, NetworkQuality quality, long reconcileCount,
                 string matchId, int frame, int playerId, long localEntityId, uint configDigest,
                 int rollbackCount, int deferredRollbacks, int inputLeadFrames, int snapshotAgeFrames,
-                DiagnosticIdentity? identity = null)
+                DiagnosticIdentity? identity = null, bool suppressAutoReconnect = false)
             {
                 Phase = phase;
                 Quality = quality;
@@ -82,11 +84,12 @@ namespace LiteGame.Adapters.Dev.Debug.Diagnostics
                 DeferredRollbacks = deferredRollbacks;
                 InputLeadFrames = inputLeadFrames;
                 SnapshotAgeFrames = snapshotAgeFrames;
+                SuppressAutoReconnect = suppressAutoReconnect;
                 Identity = identity ?? DiagnosticIdentity.Unknown;
             }
         }
 
-        /// <summary>从对局上下文取快照（身份面与显示面同一次读）。</summary>
+        /// <summary>从对局上下文取快照（身份面与显示面同一次读；**Dev 读数的唯一取数点**）。</summary>
         public static Snapshot Take(BattleContext context)
         {
             int lastSnapshot = context.LastSnapshotFrame;
@@ -95,8 +98,24 @@ namespace LiteGame.Adapters.Dev.Debug.Diagnostics
                 context.MatchId, context.ViewRenderFrame, context.PlayerId, context.LocalEntityId, context.ConfigDigest,
                 context.Sim != null ? context.Sim.RollbackCount : 0,
                 context.Sim != null ? context.Sim.DeferredRollbacks : 0,
-                BattleContext.InputLeadFrames, snapshotAge, context.DiagnosticsIdentity);
+                BattleContext.InputLeadFrames, snapshotAge, context.DiagnosticsIdentity,
+                context.DebugPort.SuppressAutoReconnect);
         }
+
+        /// <summary>取指定对局快照（null = false——消费方按空态隐藏，不抛）。</summary>
+        public static bool TryTake(BattleContext context, out Snapshot snapshot)
+        {
+            if (context == null)
+            {
+                snapshot = default;
+                return false;
+            }
+            snapshot = Take(context);
+            return true;
+        }
+
+        /// <summary>取当前登记对局的快照（无对局 = false）。</summary>
+        public static bool TryTake(out Snapshot snapshot) => TryTake(Current, out snapshot);
 
         /// <summary>当前对局的诊断行（无对局 = null——消费方按空态隐藏，不显示陈旧值）。</summary>
         public static string[] DescribeCurrent()

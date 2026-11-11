@@ -50,7 +50,6 @@ namespace LiteGame.Modules.Battle.Shared
         public EndReason? EndedReason { get; private set; }
 
         public ClientSessionPhase SessionPhase => _battle.Phase;
-        public bool Connected => _battle.Connected;
         public int PlayerId => _battle.Client.PlayerId;
         /// <summary>本局标识（StartGame.MatchId；空 = 未开局）——日志关联/现场包共用。</summary>
         public string MatchId => _matchId;
@@ -105,9 +104,8 @@ namespace LiteGame.Modules.Battle.Shared
         /// 投影不直调（《GM 与调试工具分层专项设计》§7"投影不另写动作"）。发布形态无写入者。</summary>
         public IBattleClient DebugBattle => _battle;
 
-        /// <summary>调试开关（开发装配消费）：true = <see cref="ClientSessionPhase.SuspectedLost"/> 时**不自动重连**，
-        /// 停在断线态等待手动重连（验证失败/等待窗口/手动恢复路径）。默认 false＝产品行为（发布无写入者）。</summary>
-        public bool DebugSuppressAutoReconnect { get; set; }
+        /// <summary>调试口（开发装配消费的开关面；发布形态无写入者，默认值＝产品行为）。</summary>
+        public BattleDebugPort DebugPort { get; } = new BattleDebugPort();
 
         private readonly IBattleClient _battle;
         private readonly ClientScope _matchScope;
@@ -454,7 +452,7 @@ namespace LiteGame.Modules.Battle.Shared
             switch (to)
             {
                 case ClientSessionPhase.SuspectedLost:
-                    if (DebugSuppressAutoReconnect) break;   // 调试：停在断线态，等待手动重连（发布无写入者 = 恒 false）
+                    if (DebugPort.SuppressAutoReconnect) break;   // 调试：停在断线态，等待手动重连（发布无写入者 = 恒 false）
                     _battle.BeginReconnect();            // false = 无票据（内部已转 Failed，下一事件收口）
                     break;
                 case ClientSessionPhase.Failed:
@@ -488,5 +486,13 @@ namespace LiteGame.Modules.Battle.Shared
             _mirror.Reset();
             _matchScope.Dispose();                        // 订阅退订经 Scope 登记面执行（含 DisposeFailures 聚合）
         }
+    }
+
+    /// <summary>对局调试口：开发装配的开关面（与 <see cref="BattleContext"/> 同文件——同一变化原因，不引新单元）。
+    /// 发布形态无写入者，开关恒默认值＝产品行为。</summary>
+    public sealed class BattleDebugPort
+    {
+        /// <summary>true = <see cref="ClientSessionPhase.SuspectedLost"/> 时不自动重连（停在断线态等手动恢复）。</summary>
+        public bool SuppressAutoReconnect { get; set; }
     }
 }

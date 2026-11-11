@@ -8,7 +8,6 @@ using LiteFramework.Diagnostics;
 using LiteNet.Diagnostics;
 using LiteFramework;
 using LiteGame;
-using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 
 using LiteGame.Adapters.Dev.Debug.WeakNet;
@@ -243,16 +242,7 @@ namespace LiteGame.Adapters.Dev.Debug.Kernel
         }
 
         public bool TryTakeBattleSnapshot(out BattleDiagnostics.Snapshot snapshot)
-        {
-            BattleContext context = BattleDiagnostics.Current;
-            if (context == null)
-            {
-                snapshot = default;
-                return false;
-            }
-            snapshot = BattleDiagnostics.Take(context);
-            return true;
-        }
+            => BattleDiagnostics.TryTake(out snapshot);
 
         public bool AppendExtendedBattle(StringBuilder into) => BattleDiagnostics.AppendExtendedCurrent(into);
 

@@ -34,47 +34,23 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
 
         /// <summary>当前会话相位（无对局 = Idle）。</summary>
         public ClientSessionPhase Phase
-        {
-            get
-            {
-                BattleContext context = Battle;
-                return context != null ? context.SessionPhase : ClientSessionPhase.Idle;
-            }
-        }
+            => TryPeek(out BattleDiagnostics.Snapshot snapshot) ? snapshot.Phase : ClientSessionPhase.Idle;
 
         /// <summary>网络质量（探针推断的 RTT/丢包；无对局 = 无样本）。</summary>
         public NetworkQuality Quality
-        {
-            get
-            {
-                BattleContext context = Battle;
-                return context != null ? context.NetworkQuality : NetworkQuality.None;
-            }
-        }
+            => TryPeek(out BattleDiagnostics.Snapshot snapshot) ? snapshot.Quality : NetworkQuality.None;
 
         /// <summary>弱网注入只读快照（未装配 = 未启用）。</summary>
         public WeakNetSnapshot WeakNet => _weakNet != null ? _weakNet.TakeSnapshot() : default;
 
         /// <summary>本局标识（空 = 无对局/未开局）——现场包与日志关联用。</summary>
         public string MatchId
-        {
-            get
-            {
-                BattleContext context = Battle;
-                return context != null ? context.MatchId : string.Empty;
-            }
-        }
+            => TryPeek(out BattleDiagnostics.Snapshot snapshot) ? snapshot.MatchId : string.Empty;
 
         /// <summary>自动重连抑制（调试开关；无对局恒 false）：true 时断线停在 SuspectedLost，
         /// 由 <see cref="TryBeginReconnect"/> 手动恢复。默认 false＝产品行为（断线自动重连）。</summary>
         public bool SuppressAutoReconnect
-        {
-            get
-            {
-                BattleContext context = Battle;
-                return context != null && context.DebugSuppressAutoReconnect;
-            }
-        }
+            => TryPeek(out BattleDiagnostics.Snapshot snapshot) && snapshot.SuppressAutoReconnect;
 
         /// <summary>设置自动重连抑制（无对局如实拒绝）。</summary>
         public bool TrySetSuppressAutoReconnect(bool suppressed, out string error)
@@ -86,7 +62,7 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
                 return false;
             }
 
-            context.DebugSuppressAutoReconnect = suppressed;
+            context.DebugPort.SuppressAutoReconnect = suppressed;
             error = null;
             return true;
         }
@@ -116,13 +92,13 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
         public bool TryForceDisconnect(out string error)
         {
             BattleContext context = Battle;
-            if (context == null)
+            if (!BattleDiagnostics.TryTake(context, out BattleDiagnostics.Snapshot snapshot))
             {
                 error = "无对局（未进房）";
                 return false;
             }
 
-            ClientSessionPhase phase = context.SessionPhase;
+            ClientSessionPhase phase = snapshot.Phase;
             if (!CanForceDisconnect(phase))
             {
                 error = $"相位 {phase} 不可断线（仅 Connected/Restoring）";
@@ -141,13 +117,13 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
         public bool TryBeginReconnect(out string error)
         {
             BattleContext context = Battle;
-            if (context == null)
+            if (!BattleDiagnostics.TryTake(context, out BattleDiagnostics.Snapshot snapshot))
             {
                 error = "无对局（未进房）";
                 return false;
             }
 
-            ClientSessionPhase phase = context.SessionPhase;
+            ClientSessionPhase phase = snapshot.Phase;
             if (!CanBeginReconnect(phase))
             {
                 error = $"相位 {phase} 不可重连（仅 SuspectedLost；Connected 下断线会自动重连）";
@@ -173,6 +149,10 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
             => phase == ClientSessionPhase.SuspectedLost;
 
         private BattleContext Battle => _battle != null ? _battle() : null;
+
+        /// <summary>当前对局快照（读数一律经快照，不逐个抓上下文属性；无对局 = false）。</summary>
+        private bool TryPeek(out BattleDiagnostics.Snapshot snapshot)
+            => BattleDiagnostics.TryTake(Battle, out snapshot);
     }
 }
 #endif
