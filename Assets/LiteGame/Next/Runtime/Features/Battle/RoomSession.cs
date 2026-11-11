@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
@@ -25,7 +26,9 @@ namespace LiteGameNext.Features.Battle
         private readonly string _buildHash;
         private readonly BattleHudModel _hud;
         private readonly BattleWorldView _world;
-        private readonly IBattleInput _input;
+        private IBattleInput _input;
+        private readonly bool _autoStart;
+        private readonly Dictionary<long, Vector3> _positions = new Dictionary<long, Vector3>();
         private readonly UniTaskCompletionSource<BattleResult> _completion =
             new UniTaskCompletionSource<BattleResult>();
         private bool _disposed;
@@ -36,7 +39,7 @@ namespace LiteGameNext.Features.Battle
 
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
             IClientTransport transport = null, BattleHudModel hud = null, BattleWorldView world = null,
-            IBattleInput input = null)
+            IBattleInput input = null, bool autoStart = true)
         {
             if (string.IsNullOrWhiteSpace(host)) throw new ArgumentException("房间主机必填", nameof(host));
             if (port <= 0 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port));
@@ -46,6 +49,7 @@ namespace LiteGameNext.Features.Battle
             _hud = hud;
             _world = world;
             _input = input;
+            _autoStart = autoStart;
             _transport = transport ?? new SecureEnvelopeClientTransport(
                 new KcpTransportClient(), SecureEnvelopeOptions.FromEnvironment());
             _client = new RoomClient(_transport);
@@ -64,7 +68,25 @@ namespace LiteGameNext.Features.Battle
 
         public bool Connected => _client.Connected;
 
+        public bool IsJoined { get; private set; }
+
+        public int ExpectedPlayers { get; private set; }
+
+        public long LocalEntityId => _localEntityId;
+
         public int PlayerId => _client.PlayerId;
+
+        public bool TryGetEntityPosition(long entityId, out Vector3 position)
+            => _positions.TryGetValue(entityId, out position);
+
+        /// <summary>替换输入源（房间页/测试在开局前后切换）；null = 停止上行。</summary>
+        public void SetInput(IBattleInput input) => _input = input;
+
+        /// <summary>房主开局（测试/房间页按钮）；非房主 no-op。</summary>
+        public void StartMatch()
+        {
+            if (_client.IsOwner) _client.SendStartMatchRequest();
+        }
 
         /// <summary>跑会话直到 MatchEnded/失败/取消；房间页关闭或超时也返回失败结果。</summary>
         public async UniTask<BattleResult> RunAsync(CancellationToken cancellationToken)
@@ -120,8 +142,12 @@ namespace LiteGameNext.Features.Battle
 
         private void OnJoinAck(LiteNet.Proto.JoinAck ack)
         {
+            IsJoined = true;
+            ExpectedPlayers = ack.ExpectedPlayers;
             Status = "已进房，等待开局…";
-            if (_client.IsOwner) _client.SendStartMatchRequest();
+            if (_autoStart && _client.IsOwner
+                && (ack.ExpectedPlayers <= 1 || ack.Members.Count >= ack.ExpectedPlayers))
+                _client.SendStartMatchRequest();
         }
 
         private void OnStartGame(LiteNet.Proto.StartGame start)
@@ -140,8 +166,7 @@ namespace LiteGameNext.Features.Battle
             for (int index = 0; index < snapshot.Slots.Count; index++)
             {
                 LiteNet.Proto.SlotDelta slot = snapshot.Slots[index];
-                if (slot.Id != _localEntityId) continue;
-                break;
+                _positions[slot.Id] = new Vector3(slot.PosX, slot.PosY, slot.PosZ);
             }
 
             if (_hud == null) return;
