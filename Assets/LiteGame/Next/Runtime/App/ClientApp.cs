@@ -103,7 +103,7 @@ namespace LiteGameNext
         {
             if (!TryParseEndpoint(match.Address, out string host, out int port))
                 return BattleResult.Failed("房间地址无效：" + match.Address);
-            // 输入 tick 未对齐（P2b2c 未验收）：先不注入，避免向服务器发错误帧/假意图。
+            // 输入帧窗口仍未通过服务器验收（acc=0），生产不注入。
             using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue(),
                        hud: hud, world: world))
                 return await session.RunAsync(cancellationToken);

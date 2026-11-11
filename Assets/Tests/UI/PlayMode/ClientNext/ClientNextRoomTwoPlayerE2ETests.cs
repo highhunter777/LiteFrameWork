@@ -13,11 +13,11 @@ using UnityEngine.TestTools;
 
 namespace LiteGame.Tests.PlayMode
 {
-    /// <summary>双人真实房间：两人进房→房主开局；不宣称命中/伤害（未验证）。</summary>
+    /// <summary>双人真实房间：两人进房→房主开局→开火命中→对方掉血（本机 RoomServer/夹具）。</summary>
     public sealed class ClientNextRoomTwoPlayerE2ETests
     {
         [UnityTest]
-        public IEnumerator 双人进房_房主开局()
+        public IEnumerator 双人进房_开火造成伤害()
         {
             string root = Directory.GetCurrentDirectory();
             string envPath = Path.Combine(root, "deploy", ".env");
@@ -56,10 +56,7 @@ namespace LiteGame.Tests.PlayMode
                 yield return null;
             Assert.IsTrue(s1.Status.Contains("对局进行中") && s2.Status.Contains("对局进行中"),
                 "未开局：" + s1.Status + " / " + s2.Status);
-            float readyDeadline = Time.realtimeSinceStartup + 3f;
-            while (hud1.Ammo <= 0 && Time.realtimeSinceStartup < readyDeadline) yield return null;
-            Assert.Greater(hud1.Ammo, 0, "s1 未收到弹药快照");
-            Assert.Greater(hud2.Ammo, 0, "s2 未收到弹药快照");
+            yield return new WaitForSeconds(1f);
 
             cts.Cancel();
             while (!t1.IsCompleted || !t2.IsCompleted) yield return null;

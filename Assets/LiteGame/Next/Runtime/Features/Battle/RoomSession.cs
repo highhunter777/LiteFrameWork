@@ -35,7 +35,7 @@ namespace LiteGameNext.Features.Battle
         private bool _disposed;
         private bool _started;
         private int _frame;
-        private int _lastInputUnityFrame = -1;
+        private int _lastInputSnapshotFrame = int.MinValue;
         private long _localEntityId;
 
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
@@ -130,17 +130,20 @@ namespace LiteGameNext.Features.Battle
             {
                 _client.TickIncoming();
                 _client.TickOutgoing();
+                int snapshotFrame = _client.LastSnapshotFrame;
                 if (_started && _input != null && _localEntityId != 0
-                    && Time.frameCount != _lastInputUnityFrame)
+                    && snapshotFrame >= 0 && snapshotFrame != _lastInputSnapshotFrame)
                 {
-                    _lastInputUnityFrame = Time.frameCount;
-                    int ack = _client.LastAckSnapshot;
-                    int baseline = ack >= 0 ? ack : _client.LastSnapshotFrame;
-                    if (baseline < 0) baseline = 0;
-                    _frame = Math.Max(_frame + 1, baseline + 1);
+                    _lastInputSnapshotFrame = snapshotFrame;
                     BattleInputState state = _input.Read();
-                    _client.SendInput(_frame, BattleInputFrame.Build(state, _localEntityId),
-                        Math.Max(0, _client.LastSnapshotFrame));
+                    SimInputFrame input = BattleInputFrame.Build(state, _localEntityId);
+                    int start = Math.Max(_frame + 1, snapshotFrame + 1);
+                    if (start > snapshotFrame + 8) start = snapshotFrame + 1;
+                    for (int frame = start; frame <= snapshotFrame + 8; frame++)
+                    {
+                        _frame = frame;
+                        _client.SendInput(frame, input, snapshotFrame);
+                    }
                 }
 
                 await UniTask.Yield();
@@ -180,21 +183,15 @@ namespace LiteGameNext.Features.Battle
             _world?.ApplySnapshot(snapshot);
             if (snapshot.PrivateState == null) return;
             _localEntityId = snapshot.PrivateState.EntityId;
-            int health = 100;
             for (int index = 0; index < snapshot.Slots.Count; index++)
             {
                 LiteNet.Proto.SlotDelta slot = snapshot.Slots[index];
                 _positions[slot.Id] = new Vector3(slot.PosX, slot.PosY, slot.PosZ);
-                if (slot.Id != _localEntityId) continue;
-                health = slot.Hp;
-                if (_hud != null) _hud.SetScore(slot.Kills, slot.Deaths);
+                if (slot.Id != _localEntityId || _hud == null) continue;
+                _hud.SetScore(slot.Kills, slot.Deaths);
+                // delta 快照的 Hp=0 无法区分“未变化”与“已死亡”；只在全量快照写生命。
+                if (snapshot.IsFull) _hud.SetVitals(slot.Hp, Math.Max(100, slot.Hp), _hud.Ammo);
             }
-
-            if (_hud == null) return;
-            int ammo = snapshot.PrivateState.Weapons.Count > 0
-                ? snapshot.PrivateState.Weapons[0].MagAmmo
-                : 0;
-            _hud.SetVitals(health, Math.Max(100, health), ammo);
         }
 
         private void OnMatchEnded(LiteNet.Proto.MatchEnded ended)
