@@ -3,8 +3,8 @@
  "guard": "python scripts/gate/namespace-path.py",
  "generator": "python scripts/gate/namespace-path.py --update-baseline",
  "version": 1,
- "generatedAt": "2026-11-11T18:16:32+08:00",
- "gitHead": "6bee4e1d75b9d6a3300e88ac5896ee415474e4b8",
+ "generatedAt": "2026-11-11T18:47:17+08:00",
+ "gitHead": "7115ae3fe10290e15ba6f20a61d2ad8028665d67",
  "dirty": false,
  "scope": [
   "Assets/LiteGame",
@@ -25,8 +25,8 @@
  },
  "counts": {
   "filesScanned": 1153,
-  "total": 1056,
-  "namespace": 1004,
+  "total": 1042,
+  "namespace": 990,
   "no-namespace": 16,
   "dir-name": 36,
   "path-segment": 0
@@ -1513,90 +1513,6 @@
    "file": "Assets/LiteGame/Editor/UITools/Workbench/Window/UIWorkbenchWindow.cs",
    "expected": "LiteGame.Editor.UITools.Workbench.Window",
    "actual": "LiteGame.Editor.UITools.Workbench"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/BattleSegment.cs",
-   "expected": "LiteGame.Modules.Battle",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Hosting/Client/BattleClient.cs",
-   "expected": "LiteGame.Modules.Battle.Hosting.Client",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Hosting/Client/BattleClientFactory.cs",
-   "expected": "LiteGame.Modules.Battle.Hosting.Client",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Hosting/Client/BattleDiagnosticsRecorder.cs",
-   "expected": "LiteGame.Modules.Battle.Hosting.Client",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Hosting/World/BattleInputPipeline.cs",
-   "expected": "LiteGame.Modules.Battle.Hosting.World",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Hosting/World/BattleSnapshotMirror.cs",
-   "expected": "LiteGame.Modules.Battle.Hosting.World",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Hosting/World/MatchWorldFactory.cs",
-   "expected": "LiteGame.Modules.Battle.Hosting.World",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/IBattleDevDiagnostics.cs",
-   "expected": "LiteGame.Modules.Battle",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/IBattleViewAttachment.cs",
-   "expected": "LiteGame.Modules.Battle",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Shared/BattleContext.cs",
-   "expected": "LiteGame.Modules.Battle.Shared",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Shared/BattleViewAssets.cs",
-   "expected": "LiteGame.Modules.Battle.Shared",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Shared/GameplayMatchIdentity.cs",
-   "expected": "LiteGame.Modules.Battle.Shared",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Shared/PlayerIdentity.cs",
-   "expected": "LiteGame.Modules.Battle.Shared",
-   "actual": "LiteGame"
-  },
-  {
-   "kind": "namespace",
-   "file": "Assets/LiteGame/Modules/Battle/Shared/PublicCombatFeed.cs",
-   "expected": "LiteGame.Modules.Battle.Shared",
-   "actual": "LiteGame"
   },
   {
    "kind": "namespace",
