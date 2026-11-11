@@ -16,7 +16,7 @@ namespace LiteGame.Tests.EditMode
         {
             var ui = new UiRuntime(EditorPageFactory.CreateAsync);
             ui.Initialize();
-            var feature = new BattleFeature(ui, (match, hud, ct) =>
+            var feature = new BattleFeature(ui, (match, hud, world, ct) =>
                 UniTask.FromResult(BattleResult.Completed("p1")));
             try
             {
@@ -37,7 +37,7 @@ namespace LiteGame.Tests.EditMode
         {
             var ui = new UiRuntime(EditorPageFactory.CreateAsync);
             ui.Initialize();
-            var feature = new BattleFeature(ui, (match, hud, ct) =>
+            var feature = new BattleFeature(ui, (match, hud, world, ct) =>
                 UniTask.FromResult(BattleResult.Failed("connect refused")));
             try
             {
@@ -58,7 +58,7 @@ namespace LiteGame.Tests.EditMode
         {
             var ui = new UiRuntime(EditorPageFactory.CreateAsync);
             ui.Initialize();
-            var feature = new BattleFeature(ui, (match, hud, ct) =>
+            var feature = new BattleFeature(ui, (match, hud, world, ct) =>
                 throw new OperationCanceledException(ct));
             using var cts = new CancellationTokenSource();
             cts.Cancel();

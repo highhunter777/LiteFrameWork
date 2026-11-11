@@ -8,10 +8,12 @@ namespace LiteGameNext.Features.Battle.Input
     public sealed class UnityBattleInput : IBattleInput
     {
         private readonly Func<Vector3> _position;
+        private readonly Func<Vector3> _aim;
 
-        public UnityBattleInput(Func<Vector3> position = null)
+        public UnityBattleInput(Func<Vector3> position = null, Func<Vector3> aim = null)
         {
             _position = position ?? (() => Vector3.zero);
+            _aim = aim;
         }
 
         public BattleInputState Read()
@@ -25,7 +27,7 @@ namespace LiteGameNext.Features.Battle.Input
             Vector2 move = Vector2.ClampMagnitude(new Vector2(x, z), 1f);
             bool fire = mouse != null && mouse.leftButton.isPressed;
             bool aim = mouse != null && mouse.rightButton.isPressed;
-            Vector3 aimPoint = _position() + new Vector3(0f, 1.2f, 10f);
+            Vector3 aimPoint = _aim != null ? _aim() : _position() + new Vector3(0f, 1.2f, 10f);
             return new BattleInputState(move.x, move.y, fire, aim, aimPoint);
         }
     }

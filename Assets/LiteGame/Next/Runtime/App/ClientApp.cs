@@ -6,6 +6,7 @@ using LiteGameNext.Features.Account;
 using LiteGameNext.Features.Battle;
 using LiteGameNext.Features.Battle.Hud;
 using LiteGameNext.Features.Battle.Input;
+using LiteGameNext.Features.Battle.World;
 using LiteGameNext.Features.Matchmaking;
 using LiteGameNext.Features.Result;
 using LiteGameNext.Platform.Meta;
@@ -37,7 +38,7 @@ namespace LiteGameNext
             _account = new AccountFeature(_ui, _meta, () => SystemInfo.deviceUniqueIdentifier);
             _matchmaking = _meta == null ? null : new MatchmakingFeature(_ui, _account, _meta);
             _result = new ResultFeature(_ui);
-            _battle = _meta == null ? null : new BattleFeature(_ui, RunRoomSessionAsync);
+            _battle = _meta == null ? null : new BattleFeature(_ui, RunRoomSessionAsync, BattleWorldFactory.Create);
             _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result);
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
@@ -99,12 +100,15 @@ namespace LiteGameNext
 
         /// <summary>真实房间会话：解析 MatchInfo 地址 → RoomSession（KCP/安全信封）。地址非法直接失败，不静默降级。</summary>
         private static async UniTask<BattleResult> RunRoomSessionAsync(MatchInfo match, BattleHudModel hud,
-            CancellationToken cancellationToken)
+            BattleWorldView world, CancellationToken cancellationToken)
         {
             if (!TryParseEndpoint(match.Address, out string host, out int port))
                 return BattleResult.Failed("房间地址无效：" + match.Address);
+            var input = new UnityBattleInput(
+                () => world == null ? Vector3.zero : world.LocalPosition,
+                () => world == null ? Vector3.zero : world.AimPoint);
             using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue(),
-                       hud: hud, input: new UnityBattleInput()))
+                       hud: hud, world: world, input: input))
                 return await session.RunAsync(cancellationToken);
         }
 

@@ -128,7 +128,7 @@ namespace LiteGame.Tests.EditMode
             transport.Enqueue(200, "{\"instanceId\":\"i\",\"address\":\"127.0.0.1:7777\",\"roomId\":\"r\",\"ticket\":\"t\",\"expiresAtMs\":9}");
             var account = new AccountFeature(ui, new MetaClient(transport));
             var matchmaking = new MatchmakingFeature(ui, account, new MetaClient(transport));
-            var battle = new BattleFeature(ui, (match, hud, ct) =>
+            var battle = new BattleFeature(ui, (match, hud, world, ct) =>
                 UniTask.FromResult(BattleResult.Completed("p1")));
             var result = new ResultFeature(ui);
             using var cts = new CancellationTokenSource();

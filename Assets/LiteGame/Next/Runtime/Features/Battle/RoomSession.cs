@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
 using LiteGameNext.Features.Battle.Hud;
 using LiteGameNext.Features.Battle.Input;
+using LiteGameNext.Features.Battle.World;
 using LiteGameNext.Features.Matchmaking;
 using LiteNet.Transport;
 using LiteSim;
@@ -23,6 +24,7 @@ namespace LiteGameNext.Features.Battle
         private readonly string _ticket;
         private readonly string _buildHash;
         private readonly BattleHudModel _hud;
+        private readonly BattleWorldView _world;
         private readonly IBattleInput _input;
         private readonly UniTaskCompletionSource<BattleResult> _completion =
             new UniTaskCompletionSource<BattleResult>();
@@ -32,7 +34,8 @@ namespace LiteGameNext.Features.Battle
         private long _localEntityId;
 
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
-            IClientTransport transport = null, BattleHudModel hud = null, IBattleInput input = null)
+            IClientTransport transport = null, BattleHudModel hud = null, BattleWorldView world = null,
+            IBattleInput input = null)
         {
             if (string.IsNullOrWhiteSpace(host)) throw new ArgumentException("房间主机必填", nameof(host));
             if (port <= 0 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port));
@@ -40,6 +43,7 @@ namespace LiteGameNext.Features.Battle
             _ticket = ticket ?? string.Empty;
             _buildHash = buildHash ?? string.Empty;
             _hud = hud;
+            _world = world;
             _input = input;
             _transport = transport ?? new SecureEnvelopeClientTransport(
                 new KcpTransportClient(), SecureEnvelopeOptions.FromEnvironment());
@@ -127,6 +131,7 @@ namespace LiteGameNext.Features.Battle
         /// <summary>私有状态里的 HP/弹匣喂 HUD；只做展示，不参与判定。</summary>
         private void OnSnapshot(LiteNet.Proto.StateSnapshot snapshot)
         {
+            _world?.ApplySnapshot(snapshot);
             if (snapshot.PrivateState == null) return;
             _localEntityId = snapshot.PrivateState.EntityId;
             for (int index = 0; index < snapshot.Slots.Count; index++)

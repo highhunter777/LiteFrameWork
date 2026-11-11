@@ -3,36 +3,42 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
 using LiteGameNext.Features.Battle.Hud;
+using LiteGameNext.Features.Battle.World;
 using LiteGameNext.Features.Matchmaking;
 using LiteGameNext.Platform.Ui;
+using UnityEngine;
 
 namespace LiteGameNext.Features.Battle
 {
-    /// <summary>战斗边界：RoomPage + HUD + 一局会话；唯一出口 BattleResult，不泄漏连接/世界/视图。</summary>
+    /// <summary>战斗边界：房间页 + HUD + 世界视图 + 一局会话；唯一出口 BattleResult。</summary>
     public sealed class BattleFeature : IDisposable
     {
         private readonly UiRuntime _ui;
-        private readonly Func<MatchInfo, BattleHudModel, CancellationToken, UniTask<BattleResult>> _session;
+        private readonly Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken, UniTask<BattleResult>> _session;
+        private readonly Func<BattleWorldView> _worldFactory;
 
         public BattleFeature(UiRuntime ui,
-            Func<MatchInfo, BattleHudModel, CancellationToken, UniTask<BattleResult>> session)
+            Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken, UniTask<BattleResult>> session,
+            Func<BattleWorldView> worldFactory = null)
         {
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _session = session ?? throw new ArgumentNullException(nameof(session));
+            _worldFactory = worldFactory;
         }
 
-        /// <summary>跑一局：房间页 + HUD → 会话 → 必然关闭两个页面；取消原样传播，页面仍清理。</summary>
+        /// <summary>跑一局：房间页/HUD/世界 → 会话 → 必然清理页面与世界；取消仍清理。</summary>
         public async UniTask<BattleResult> RunAsync(MatchInfo match, CancellationToken cancellationToken)
         {
             if (match == null) throw new ArgumentNullException(nameof(match));
             var hud = new BattleHudModel();
+            BattleWorldView world = _worldFactory?.Invoke();
             PageHandle room = await _ui.OpenAsync<RoomPage>(
                 RoomPage.Spec, page => page.Bind(match), cancellationToken);
             PageHandle hudPage = await _ui.OpenAsync<BattleHudView>(
                 BattleHudView.Spec, page => page.Bind(hud), cancellationToken);
             try
             {
-                BattleResult result = await _session(match, hud, cancellationToken);
+                BattleResult result = await _session(match, hud, world, cancellationToken);
                 Log.Info("对局结束：" + result.Outcome + " reason=" + result.Reason);
                 return result;
             }
@@ -40,6 +46,7 @@ namespace LiteGameNext.Features.Battle
             {
                 if (!hudPage.IsClosed) await _ui.CloseAsync(hudPage);
                 if (!room.IsClosed) await _ui.CloseAsync(room);
+                if (world != null) UnityEngine.Object.Destroy(world.gameObject);
             }
         }
 
