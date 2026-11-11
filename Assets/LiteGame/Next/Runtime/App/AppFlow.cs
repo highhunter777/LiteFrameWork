@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
 using LiteGameNext.Features.Account;
+using LiteGameNext.Features.Matchmaking;
 using LiteGameNext.Platform.Ui;
 using LiteGameNext.Platform.Ui.Content;
 
@@ -15,12 +16,14 @@ namespace LiteGameNext
 
         private readonly UiRuntime _ui;
         private readonly AccountFeature _account;
+        private readonly MatchmakingFeature _matchmaking;
 
-        /// <summary>构造：只注入流程用到的 UI 运行时与账号功能（不持平台聚合体/容器）。</summary>
-        public AppFlow(UiRuntime ui, AccountFeature account)
+        /// <summary>构造：只注入流程用到的 UI/账号/匹配；匹配为空时保留 P0 占位页路径。</summary>
+        public AppFlow(UiRuntime ui, AccountFeature account, MatchmakingFeature matchmaking = null)
         {
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _account = account ?? throw new ArgumentNullException(nameof(account));
+            _matchmaking = matchmaking;
         }
 
         /// <summary>执行顶层流程：App 取消 → 静默返回；其他异常 → 打开错误页并等关闭。</summary>
@@ -50,10 +53,18 @@ namespace LiteGameNext
                 Log.Info("登录被取消（登录页已关闭）：回到登录页");
             }
 
-            PageHandle handle = await _ui.OpenAsync<PlaceholderPage>(
-                PlaceholderPage.Spec, null, cancellationToken);
-            Log.Info("占位页已打开：address=" + handle.Spec.Address
-                + " generation=" + handle.DisplayGeneration);
+            if (_matchmaking != null)
+            {
+                await _matchmaking.OpenAsync(cancellationToken);
+                Log.Info("大厅已打开");
+            }
+            else
+            {
+                PageHandle handle = await _ui.OpenAsync<PlaceholderPage>(
+                    PlaceholderPage.Spec, null, cancellationToken);
+                Log.Info("占位页已打开：address=" + handle.Spec.Address
+                    + " generation=" + handle.DisplayGeneration);
+            }
 
             // 用 CancellationToken awaitable 而非 UniTask.WaitUntilCanceled：后者依赖 PlayerLoop 帧推进，
             // EditMode 用例无法驱动；两者语义相同（取消即返回）。

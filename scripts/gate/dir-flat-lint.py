@@ -47,28 +47,30 @@ EXCLUDE_DIRS = re.compile(r"/(Adapters/kcp2k|ThirdParty|Plugins|\.git)(/|$)", re
 GENERATED = re.compile(r"/Generated/|\.g\.cs$|\.Generated\.cs$|\.Designer\.cs$", re.IGNORECASE)
 
 
-def load_next_root(root: Path) -> str:
-    """读 arch/client-roots.json 的 nextRoot：新架构已废除 AR2，Next 由 G2/G3 管。"""
+def load_next_roots(root: Path) -> list[str]:
+    """读 arch/client-roots.json 的 Next 相关根：新架构已废除 AR2，Next 由 G2/G3 管。"""
     path = root / "arch" / "client-roots.json"
     if not path.is_file():
-        return ""
+        return []
     try:
         data = json.loads(path.read_text(encoding="utf-8-sig"))
-        return str(data.get("nextRoot") or "").strip("/")
     except (OSError, ValueError, TypeError):
-        return ""
+        return []
+    roots = [data.get("nextRoot"), data.get("frameworkNextRoot"), data.get("sharedRoot")]
+    roots.extend(data.get("nextTests") or [])
+    return [str(item).strip("/") for item in roots if item]
 
 
 def scan_counts(root: Path) -> dict[str, int]:
     counts: dict[str, int] = {}
-    next_root = load_next_root(root)
+    next_roots = load_next_roots(root)
     for scope in SCOPE_ROOTS:
         base = root / scope
         if not base.is_dir():
             continue
         for dirpath, dirnames, filenames in os.walk(base):
             rel_dir = Path(dirpath).relative_to(root).as_posix()
-            if next_root and (rel_dir == next_root or rel_dir.startswith(next_root + "/")):
+            if any(rel_dir == item or rel_dir.startswith(item + "/") for item in next_roots):
                 dirnames[:] = []
                 continue
             dirnames[:] = [d for d in dirnames

@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
 using LiteGameNext.Features.Account;
+using LiteGameNext.Features.Matchmaking;
 using LiteGameNext.Platform.Meta;
 using LiteGameNext.Platform.Ui;
 using UnityEngine;
@@ -14,7 +15,9 @@ namespace LiteGameNext
     {
         private readonly LiteFrameworkNext.Platform _platform;
         private readonly UiRuntime _ui;
+        private readonly MetaClient _meta;
         private readonly AccountFeature _account;
+        private readonly MatchmakingFeature _matchmaking;
         private readonly AppFlow _flow;
         private readonly Lifetime _lifetime = new Lifetime();
 
@@ -24,10 +27,13 @@ namespace LiteGameNext
         {
             _platform = platform ?? throw new ArgumentNullException(nameof(platform));
             _ui = new UiRuntime(CreatePageAsync);
-            _account = new AccountFeature(_ui, CreateMetaClient(), () => SystemInfo.deviceUniqueIdentifier);
-            _flow = new AppFlow(_ui, _account);
+            _meta = CreateMetaClient();
+            _account = new AccountFeature(_ui, _meta, () => SystemInfo.deviceUniqueIdentifier);
+            _matchmaking = _meta == null ? null : new MatchmakingFeature(_ui, _account, _meta);
+            _flow = new AppFlow(_ui, _account, _matchmaking);
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
+            if (_matchmaking != null) _lifetime.Add(_matchmaking);
         }
 
         /// <summary>UI 运行时（只读观察面：启动链与用例据此看栈顶页面）。</summary>
