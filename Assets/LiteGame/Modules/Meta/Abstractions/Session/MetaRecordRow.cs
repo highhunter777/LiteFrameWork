@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions.Session
 {
     /// <summary>战绩行（最近 N 局；时间已按本地时区格式化）。</summary>
     public sealed class MetaRecordRow

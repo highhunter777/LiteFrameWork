@@ -50,6 +50,8 @@ unity command run_tests --mode editor --filter MyFixture.MyTest
 > result instead of the failure details. Re-run a narrower `--filter`, or inspect the
 > editor's Test Runner / logs to get the real failure.
 
+> **Never probe `run_tests` without `--async_tests true`.** Sync mode holds the plugin's `m_ExecGate` semaphore until the run finishes; if the CLI call times out first (default 30s), the gate stays held and **every** subsequent gated command (`editor_status`, `test_status`, …) times out too, while the Editor itself looks healthy (heartbeat fresh, no dialog). Recovery needs a domain reload — touch a `.cs` so Unity recompiles (or reopen the Editor). Always `--async_tests true` + poll `test_status`; same reasoning applies to `recompile` (use `--timeout` generously instead of letting the default 30s expire).
+
 **Reading exit codes.** They separate "rewrite the invocation" from "the Editor failed", which
 is the distinction this loop depends on:
 

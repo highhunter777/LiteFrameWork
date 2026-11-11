@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Wire
 {
     /// <summary>
     /// Meta 契约编解码单源（请求构造 + 响应解析 + 错误体分类）。

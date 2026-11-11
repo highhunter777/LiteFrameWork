@@ -3,6 +3,8 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
 namespace LiteGame
 {

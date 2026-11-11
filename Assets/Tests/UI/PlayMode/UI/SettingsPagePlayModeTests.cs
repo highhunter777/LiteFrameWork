@@ -17,6 +17,7 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
+using LiteGame.Modules.Meta.Abstractions.Session;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

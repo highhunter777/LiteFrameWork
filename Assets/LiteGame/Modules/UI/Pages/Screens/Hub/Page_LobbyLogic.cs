@@ -7,6 +7,7 @@ using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.UI.Bind;
+using LiteGame.Modules.Meta.Abstractions.Session;
 
 namespace LiteGame.Modules.UI.Pages.Screens.Hub
 {

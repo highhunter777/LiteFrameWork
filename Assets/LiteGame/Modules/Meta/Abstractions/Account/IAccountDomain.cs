@@ -1,7 +1,7 @@
 using System;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions.Account
 {
     /// <summary>登录域（Meta 侧）：登录开、登出/401/宿主关闭关；持每账户会话与 Account 服务域。</summary>
     public interface IAccountDomain : IDisposable

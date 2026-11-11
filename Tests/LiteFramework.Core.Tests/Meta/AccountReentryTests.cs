@@ -6,6 +6,8 @@ using Cysharp.Threading.Tasks;
 using MetaWire;
 using LiteGame;
 using Xunit;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
 namespace LiteFramework.Core.Tests
 {

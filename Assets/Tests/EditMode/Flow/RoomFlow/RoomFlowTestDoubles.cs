@@ -9,6 +9,8 @@ using LiteNet.Proto;
 using LiteSim;
 using LiteSync.Client;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
 namespace LiteGame.Tests.EditMode
 {

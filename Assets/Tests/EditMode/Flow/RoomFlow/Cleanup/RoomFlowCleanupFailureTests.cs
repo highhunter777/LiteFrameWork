@@ -5,6 +5,7 @@ using LiteGame.Modules.UI;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine.TestTools;
+using LiteGame.Modules.Meta.Abstractions.Session;
 
 namespace LiteGame.Tests.EditMode
 {

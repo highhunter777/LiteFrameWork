@@ -2,6 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
+using LiteGame.Modules.Meta.Abstractions.Session;
 
 namespace LiteGame.Modules.UI.Pages.Screens.Auth
 {

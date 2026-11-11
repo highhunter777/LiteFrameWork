@@ -4,8 +4,11 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Account;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Client.Account
 {
     /// <summary>每账户 Meta 会话：令牌面调用；401 调度一次重入，自身不关域。</summary>
     public sealed class MetaAccountSession : IMetaAccountSession

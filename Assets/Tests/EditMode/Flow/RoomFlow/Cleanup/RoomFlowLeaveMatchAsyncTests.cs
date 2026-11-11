@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using NUnit.Framework;
 using UnityEngine.TestTools;
+using LiteGame.Modules.Meta.Abstractions;
 
 namespace LiteGame.Tests.EditMode
 {

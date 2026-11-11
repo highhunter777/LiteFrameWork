@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions.Session
 {
     /// <summary>
     /// 联机业务端口（页面消费面）：登录/房间列表/进出房/战绩/离场。

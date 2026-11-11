@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions.Session
 {
     /// <summary>Meta 调用结果：失败给稳定 reason 文本（消费方据此选文案键，不匹配原文）。</summary>
     public readonly struct MetaResult<T>

@@ -1,7 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions
 {
     /// <summary>
     /// 登录态控制端口（账号重入单点依赖它；生产实现 = <see cref="ProcedureFlow"/>）：

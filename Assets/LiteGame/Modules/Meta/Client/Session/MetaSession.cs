@@ -4,8 +4,13 @@ using System.Globalization;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Account;
+using LiteGame.Modules.Meta.Abstractions.Room;
+using LiteGame.Modules.Meta.Abstractions.Session;
+using LiteGame.Modules.Meta.Client.Account;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Client.Session
 {
     /// <summary>联机业务端口实现（Meta 域自持）：登录事实/账户令牌面/流程面三组路由；root 稳定单例。</summary>
     public sealed class MetaSession : IMetaSession

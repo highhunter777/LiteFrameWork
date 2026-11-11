@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions
 {
     /// <summary>联机配置事实（入口落点判据）：页面/流程只需要"配没配服务器"，不需要联机服务本体。</summary>
     public interface IMetaConfigFacts

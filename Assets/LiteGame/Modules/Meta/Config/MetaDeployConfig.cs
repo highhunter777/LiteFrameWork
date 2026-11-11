@@ -2,7 +2,7 @@
 using System.Globalization;
 using LiteGame.Modules.Config;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Config
 {
     /// <summary>
     /// 联机入口部署配置（《上云测试专项设计》§3 批C："服务器地址/端口与 PSK 可配（构建期注入）"）。

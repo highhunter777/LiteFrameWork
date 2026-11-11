@@ -7,6 +7,9 @@ using LiteFramework;
 using LiteGame;
 using MetaWire;
 using Xunit;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Account;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
 namespace LiteFramework.Core.Tests
 {

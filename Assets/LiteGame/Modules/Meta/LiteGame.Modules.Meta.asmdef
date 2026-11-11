@@ -1,6 +1,6 @@
 {
     "name": "LiteGame.Modules.Meta",
-    "rootNamespace": "LiteGame",
+    "rootNamespace": "LiteGame.Modules.Meta",
     "references": [
         "LiteFramework.Core",
         "LiteFramework.Services",

@@ -1,6 +1,6 @@
 using System;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions.Room
 {
     /// <summary>单次 Meta 调用的结果（Ok=true 时 Value 有效；否则 Failure 有效）。</summary>
     public sealed class MetaCall<T>

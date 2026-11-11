@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions.Room
 {
     /// <summary>
     /// Meta 契约的**客户端本地面**（线形状在 MetaWire，双端共用）。

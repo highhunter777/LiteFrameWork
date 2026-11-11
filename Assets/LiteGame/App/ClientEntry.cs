@@ -11,6 +11,7 @@ using LiteGame.Modules.Map;
 using LiteGame.Modules.Settings;
 using LiteGame.Modules.UI;
 using UnityEngine;
+using LiteGame.Modules.Meta;
 
 namespace LiteGame
 {

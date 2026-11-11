@@ -7,8 +7,11 @@ using LiteFramework;
 using UnityEngine.Networking;
 using LiteFramework.UI;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Room;
+using LiteGame.Modules.Meta.Wire;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Client
 {
     /// <summary>
     /// IMetaClient 的 UnityWebRequest 实现（《上云测试专项设计》§2：HTTPS/JSON + Bearer 访问令牌）。

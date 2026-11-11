@@ -7,6 +7,8 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine.TestTools;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions.Room;
+using LiteGame.Modules.Meta.Client;
 
 namespace LiteGame.Tests.EditMode
 {

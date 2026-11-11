@@ -9,6 +9,10 @@ using LiteGame.Modules.Config;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.UI;
 using NUnit.Framework;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Account;
+using LiteGame.Modules.Meta.Client.Account;
+using LiteGame.Modules.Meta.Client.Session;
 
 namespace LiteGame.Tests.EditMode
 {

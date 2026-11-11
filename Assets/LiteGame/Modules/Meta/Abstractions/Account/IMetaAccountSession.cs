@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions.Account
 {
     /// <summary>每登录账户的 Meta 会话（令牌面）：房间/取票/建房/战绩；不暴露令牌。</summary>
     public interface IMetaAccountSession

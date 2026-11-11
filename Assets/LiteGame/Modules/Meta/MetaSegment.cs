@@ -3,8 +3,13 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame.Modules.Config;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Account;
+using LiteGame.Modules.Meta.Client;
+using LiteGame.Modules.Meta.Client.Account;
+using LiteGame.Modules.Meta.Config;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta
 {
     /// <summary>⑮ 联机入口（局外业务）：部署快照 + 登录域 + 端口面（房间/登录/重入的上游）。</summary>
     public sealed class MetaSegment : IClientSegment, IClientSegmentGraph
@@ -37,7 +42,6 @@ namespace LiteGame
 
             _domain = new AccountDomain(context.RootScope, context.Services,
                 template: deploy.RoomTemplate, gmKey: deploy.RoomGmKey);
-            context.Put(_domain);
             context.Put<IAccountDomain>(_domain);
             context.RootScope.Register(_domain);
 

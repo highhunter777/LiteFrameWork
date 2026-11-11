@@ -5,6 +5,8 @@ using LiteGame.Modules.UI;
 using MetaWire;
 using NUnit.Framework;
 using UnityEngine.TestTools;
+using LiteGame.Modules.Meta.Abstractions.Room;
+using LiteGame.Modules.Meta.Abstractions.Session;
 
 namespace LiteGame.Tests.EditMode
 {

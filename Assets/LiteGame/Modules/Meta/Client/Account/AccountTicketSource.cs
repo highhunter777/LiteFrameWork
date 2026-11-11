@@ -2,8 +2,11 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Account;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Client.Account
 {
     /// <summary>root 票据源门面：转当前账户会话（无账户 = NotLoggedIn；未配置优先）。</summary>
     public sealed class AccountTicketSource : IRoomTicketSource

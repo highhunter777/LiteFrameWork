@@ -1,8 +1,9 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions
 {
     /// <summary>
     /// 页面/GM 的实质入场与离房动作口（实现住流程域）：负责占用、取票、取消与阶段移交，返回票据事实。

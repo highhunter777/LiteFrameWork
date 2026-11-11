@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions.Room
 {
     /// <summary>
     /// 房间服端点（票据/投影下发的 Address="host:port" 拆解）。

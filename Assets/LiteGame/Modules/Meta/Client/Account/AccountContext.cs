@@ -1,6 +1,6 @@
 using System;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Client.Account
 {
     /// <summary>账户事实（AccountId + 令牌）；令牌不出公开面，Dispose 幂等清空。</summary>
     internal sealed class AccountContext : IDisposable

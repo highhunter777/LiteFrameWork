@@ -5,6 +5,7 @@ using LiteGame.Modules.Dev;
 using LiteGame.Modules.Map;
 using LiteNet.Transport;
 using LiteSim;
+using LiteGame.Modules.Meta.Config;
 
 namespace LiteGame
 {

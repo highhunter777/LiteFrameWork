@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions.Session
 {
     /// <summary>大厅房间行（页面列表投影）。</summary>
     public sealed class MetaRoomRow

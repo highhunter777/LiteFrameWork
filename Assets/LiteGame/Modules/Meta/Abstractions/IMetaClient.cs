@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions
 {
     /// <summary>
     /// Meta 客户端端口（《上云测试专项设计》§2：HTTPS/JSON 四端点）。

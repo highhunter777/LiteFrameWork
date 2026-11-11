@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using LiteGame;
 using MetaWire;
 using Xunit;
+using LiteGame.Modules.Meta.Abstractions.Room;
+using LiteGame.Modules.Meta.Wire;
 
 namespace LiteFramework.Core.Tests.Meta
 {

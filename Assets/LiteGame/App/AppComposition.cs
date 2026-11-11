@@ -14,6 +14,10 @@ using LiteGame.Modules.UI.Pages;
 using LiteSim;
 
 using LiteSync.Client;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Account;
+using LiteGame.Modules.Meta.Client.Account;
+using LiteGame.Modules.Meta.Client.Session;
 namespace LiteGame
 {
     /// <summary>

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using MetaWire;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Wire
 {
     /// <summary>
     /// 响应必填校验（反射反序列化之后的一步）。

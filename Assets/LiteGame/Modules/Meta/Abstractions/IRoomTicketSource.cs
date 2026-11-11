@@ -1,8 +1,9 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions
 {
     /// <summary>
     /// 纯票据边界（流程域消费）：只提供登录态事实、登出与取票/建房取票，不解析地址、不推进流程、不暴露访问令牌。

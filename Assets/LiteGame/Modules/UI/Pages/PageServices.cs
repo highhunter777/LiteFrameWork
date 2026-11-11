@@ -2,6 +2,7 @@ using System;
 using LiteFramework.UI;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.Settings;
+using LiteGame.Modules.Meta.Abstractions.Session;
 
 namespace LiteGame.Modules.UI.Pages
 {

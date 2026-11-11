@@ -1,4 +1,4 @@
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Call
 {
     /// <summary>稳定错误码的单源（与服务端 <c>AuthErrorCodes</c> 同值；客户端只比对，不发明）。</summary>
     public static class MetaErrorCodes

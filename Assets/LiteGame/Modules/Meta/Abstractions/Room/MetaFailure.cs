@@ -1,6 +1,7 @@
 using System;
+using LiteGame.Modules.Meta.Call;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Abstractions.Room
 {
     /// <summary>失败载荷（Kind + 状态码 + 稳定错误码 + 诊断明细；不含敏感原文）。</summary>
     public sealed class MetaFailure

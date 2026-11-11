@@ -12,6 +12,15 @@ using LiteTesting.Unity;
 using MetaWire;
 using NUnit.Framework;
 using UnityEngine.TestTools;
+using LiteGame.Modules.Meta;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Account;
+using LiteGame.Modules.Meta.Abstractions.Room;
+using LiteGame.Modules.Meta.Abstractions.Session;
+using LiteGame.Modules.Meta.Call;
+using LiteGame.Modules.Meta.Client.Account;
+using LiteGame.Modules.Meta.Client.Session;
+using LiteGame.Modules.Meta.Config;
 
 namespace LiteGame.Tests.EditMode
 {

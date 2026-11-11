@@ -6,6 +6,10 @@ using LiteFramework;
 using LiteGame;
 using MetaWire;
 using NUnit.Framework;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Account;
+using LiteGame.Modules.Meta.Abstractions.Room;
+using LiteGame.Modules.Meta.Client.Account;
 
 namespace LiteGame.Tests.EditMode
 {

@@ -2,8 +2,10 @@ using System;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using MetaWire;
+using LiteGame.Modules.Meta.Abstractions;
+using LiteGame.Modules.Meta.Abstractions.Room;
 
-namespace LiteGame
+namespace LiteGame.Modules.Meta.Client.Account
 {
     /// <summary>root 登录入口：游客登录 + 部署事实；不持令牌。</summary>
     public sealed class MetaLoginService : IMetaConfigFacts
