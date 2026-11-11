@@ -5,6 +5,7 @@ using LiteFrameworkNext;
 using LiteGameNext.Features.Account;
 using LiteGameNext.Features.Battle;
 using LiteGameNext.Features.Battle.Hud;
+using LiteGameNext.Features.Battle.Input;
 using LiteGameNext.Features.Matchmaking;
 using LiteGameNext.Features.Result;
 using LiteGameNext.Platform.Meta;
@@ -103,7 +104,7 @@ namespace LiteGameNext
             if (!TryParseEndpoint(match.Address, out string host, out int port))
                 return BattleResult.Failed("房间地址无效：" + match.Address);
             using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue(),
-                       hud: hud))
+                       hud: hud, input: new UnityBattleInput()))
                 return await session.RunAsync(cancellationToken);
         }
 

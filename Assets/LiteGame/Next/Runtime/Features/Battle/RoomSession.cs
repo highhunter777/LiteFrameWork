@@ -1,11 +1,14 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
 using LiteGameNext.Features.Battle.Hud;
+using LiteGameNext.Features.Battle.Input;
 using LiteGameNext.Features.Matchmaking;
 using LiteNet.Transport;
+using LiteSim;
 using LiteSync.Client;
+using UnityEngine;
 
 namespace LiteGameNext.Features.Battle
 {
@@ -20,12 +23,16 @@ namespace LiteGameNext.Features.Battle
         private readonly string _ticket;
         private readonly string _buildHash;
         private readonly BattleHudModel _hud;
+        private readonly IBattleInput _input;
         private readonly UniTaskCompletionSource<BattleResult> _completion =
             new UniTaskCompletionSource<BattleResult>();
         private bool _disposed;
+        private bool _started;
+        private int _frame;
+        private long _localEntityId;
 
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
-            IClientTransport transport = null, BattleHudModel hud = null)
+            IClientTransport transport = null, BattleHudModel hud = null, IBattleInput input = null)
         {
             if (string.IsNullOrWhiteSpace(host)) throw new ArgumentException("房间主机必填", nameof(host));
             if (port <= 0 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port));
@@ -33,6 +40,7 @@ namespace LiteGameNext.Features.Battle
             _ticket = ticket ?? string.Empty;
             _buildHash = buildHash ?? string.Empty;
             _hud = hud;
+            _input = input;
             _transport = transport ?? new SecureEnvelopeClientTransport(
                 new KcpTransportClient(), SecureEnvelopeOptions.FromEnvironment());
             _client = new RoomClient(_transport);
@@ -82,6 +90,14 @@ namespace LiteGameNext.Features.Battle
             {
                 _client.TickIncoming();
                 _client.TickOutgoing();
+                if (_started && _input != null && _localEntityId != 0)
+                {
+                    _frame++;
+                    BattleInputState state = _input.Read();
+                    _client.SendInput(_frame, BattleInputFrame.Build(state, _localEntityId),
+                        Math.Max(0, _client.LastSnapshotFrame));
+                }
+
                 await UniTask.Yield();
             }
         }
@@ -104,12 +120,23 @@ namespace LiteGameNext.Features.Battle
         private void OnStartGame(LiteNet.Proto.StartGame start)
         {
             Status = "对局进行中…";
+            _frame = start.Frame;
+            _started = true;
         }
 
         /// <summary>私有状态里的 HP/弹匣喂 HUD；只做展示，不参与判定。</summary>
         private void OnSnapshot(LiteNet.Proto.StateSnapshot snapshot)
         {
-            if (_hud == null || snapshot.PrivateState == null) return;
+            if (snapshot.PrivateState == null) return;
+            _localEntityId = snapshot.PrivateState.EntityId;
+            for (int index = 0; index < snapshot.Slots.Count; index++)
+            {
+                LiteNet.Proto.SlotDelta slot = snapshot.Slots[index];
+                if (slot.Id != _localEntityId) continue;
+                break;
+            }
+
+            if (_hud == null) return;
             int health = snapshot.PrivateState.Resource;
             int ammo = snapshot.PrivateState.Weapons.Count > 0
                 ? snapshot.PrivateState.Weapons[0].MagAmmo
