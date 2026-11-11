@@ -69,18 +69,21 @@ class BuildPlanTests(unittest.TestCase):
         paths = {entry["path"] for entry in plan["manifestDrift"]}
         for registered in (
             "Assets/LiteGame/Modules/Config/Table/SimConfigMapper.cs",
+            "Assets/LiteGame/Modules/Config/Table/MapTableProjection.cs",
             "Assets/LiteGame/Modules/Config/Table/TableLayout.cs",
             "Assets/RoomServer/Modules/JoinTicketFormat.cs",
             "Assets/RoomServer/Modules/Base64Url.cs",
             "Assets/RoomServer/Core/MatchStateMachine.cs",
         ):
             self.assertNotIn(registered, paths)
-        self.assertTrue(any(path.endswith("MapTableProjection.cs") for path in paths))
+        self.assertEqual(paths, set(), plan["manifestDrift"])
 
     def test_human_output_renders_manifest_drift(self):
-        text = self.mod._render_text(self.plan([]))
-        self.assertIn("已知例外", text)
-        self.assertIn("MapTableProjection.cs", text)
+        plan = self.plan([])
+        plan["manifestDrift"] = [{"path": "Assets/Injected/Unregistered.cs"}]
+        text = self.mod._render_text(plan)
+        self.assertIn("未登记", text)
+        self.assertIn("Assets/Injected/Unregistered.cs", text)
 
     def test_actions_follow_semantic_order(self):
         plan = self.plan(["Luban/Data/weapons.xlsx"])
@@ -108,12 +111,12 @@ class BuildPlanTests(unittest.TestCase):
         plan = self.plan(["Assets/LiteGame/Modules/Config/Table/TableLayout.cs"])
         self.assertEqual(self.finding(plan, "Assets/LiteGame/Modules/Config/Table/TableLayout.cs")["area"], "shared")
 
-    def test_known_missing_shared_link_is_shared_with_warning(self):
+    def test_shared_projection_link_is_shared_without_drift_note(self):
         plan = self.plan(["Assets/LiteGame/Modules/Config/Table/MapTableProjection.cs"])
         item = self.finding(plan, "Assets/LiteGame/Modules/Config/Table/MapTableProjection.cs")
         self.assertEqual(item["area"], "shared")
         self.assertIn("rebuild_server_room", item["deliveryActions"])
-        self.assertTrue(any("MapTableProjection" in note for note in plan["notes"]), plan["notes"])
+        self.assertFalse(any("MapTableProjection" in note for note in plan["notes"]), plan["notes"])
 
     def test_proto(self):
         plan = self.plan(["Packages/com.litegame.net/Proto/Wire.proto"])
@@ -257,11 +260,11 @@ class BuildPlanTests(unittest.TestCase):
         meta_link = "../../Assets/RoomServer/Modules/JoinTicketFormat.cs"
         drift = self.mod.drift_for_links(
             [meta_link], ROOT, registered=set(build_hash.SHARED_LINK_FILES), wildcards=())
-        self.assertTrue(any(not entry["known"] for entry in drift), drift)
+        self.assertTrue(drift, drift)
         shared_link = "../../Assets/LiteGame/Modules/Config/Table/TableLayout.cs"
         drift = self.mod.drift_for_links(
             [shared_link], ROOT, registered=set(build_hash.META_EXTRA_FILES), wildcards=())
-        self.assertTrue(any(not entry["known"] for entry in drift), drift)
+        self.assertTrue(drift, drift)
         drift = self.mod.drift_for_links(
             ["../../Packages/com.code-philosophy.luban/Runtime/*.cs"], ROOT,
             registered=set(build_hash.SHARED_LINK_FILES), wildcards=self.mod.WILDCARD_WHITELIST)
@@ -339,13 +342,12 @@ class BuildPlanTests(unittest.TestCase):
 
     # ---- AC4 drift ----
 
-    def test_csproj_drift_known_exception(self):
+    def test_csproj_links_are_all_registered(self):
         text = (ROOT / "Server" / "RoomServer" / "RoomServer.csproj").read_text(encoding="utf-8")
         links = self.mod.parse_csproj(text)
         self.assertTrue(any(link.endswith("MapTableProjection.cs") for link in links), links)
         plan = self.mod.build_plan([], base="BASE", head="HEAD")
-        drift = {entry["path"]: entry["known"] for entry in plan["manifestDrift"]}
-        self.assertTrue(any(path.endswith("MapTableProjection.cs") and known for path, known in drift.items()), drift)
+        self.assertEqual(plan["manifestDrift"], [])
 
     def test_csproj_drift_injected_unknowns(self):
         text = (
@@ -354,8 +356,8 @@ class BuildPlanTests(unittest.TestCase):
         )
         links = self.mod.parse_csproj(text)
         drift = self.mod.drift_for_links(links, ROOT)
-        self.assertTrue(any(entry["path"].endswith("NewFile.cs") and not entry["known"] for entry in drift), drift)
-        self.assertTrue(any(not entry["known"] for entry in drift if "*" in entry["path"]), drift)
+        self.assertTrue(any(entry["path"].endswith("NewFile.cs") for entry in drift), drift)
+        self.assertTrue(any("*" in entry["path"] for entry in drift), drift)
 
     # ---- read-only CLI ----
 

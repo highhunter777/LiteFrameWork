@@ -10,6 +10,8 @@
 #                                       csproj 每加一条出树链接，这里必须同批加对应条目）
 #   注：Systems/ 与 Scripts/ 平级（2026-09-19 目录收纳的最终形态），同属判定源集，
 #       漏了会让两端 System 分叉不被握手校验出来，故必须显式列入 TARGETS。
+#   **清单与实际不符即 fail-fast**（2026-11-11）：extra_files 声明的文件不存在时直接失败，报出清单名 +
+#       缺失相对路径——静默跳过会让"清单写错/文件被重构掉"变成少算，且永不报错（缺口永远发现不了）。
 # 不覆盖：表现层/业务/UI（客户端差异不影响判定与协议）；**表数据**（2026-10-14 批 E 移出——
 #   判定数值走"表 bytes 双端发布 + 装载后运行期摘要校验"（`CombatConfigDigest` + 客户端校验点），
 #   数据可两端热更不出包；留在编译期闭包会与热更版数据互斥（改仓库数据 = 常量重录 + 全员握手换号），
@@ -49,7 +51,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _codegen import info, repo_root, run_tool, signature  # noqa: E402
+from _codegen import fail, info, repo_root, run_tool, signature  # noqa: E402
 
 TOOL = 'build-hash'
 ROOT = repo_root()
@@ -79,6 +81,7 @@ SHARED_LINK_FILES = [
     'Assets/LiteGame/Modules/Config/Table/SimConfigMapper.cs',   # 表 → CombatValues 投影（两端同链）
     'Assets/LiteGame/Modules/Config/Table/BattleStrategyTableReader.cs', # 战斗策略键/规则四值投影（两端同链）
     'Assets/LiteGame/Modules/Config/Table/TableLayout.cs',       # 表清单/判定面清单/取数键单源
+    'Assets/LiteGame/Modules/Config/Table/MapTableProjection.cs', # 地图 → 表投影（两端同链）
 ]
 # 第二目标（P1④）：**Meta 服务自身**的构建身份——"接真"取代原手写占位常量
 # （`Host/BuildHash.cs` 的 "meta-0.0.0-unwired"，该文件随本批删除）。
@@ -98,12 +101,14 @@ META_EXTRA_FILES = [
     'Assets/RoomServer/Core/MatchStateMachine.cs',
     # Meta HTTP 契约线形状与序列化行为（客户端编译、MetaServer/RoomServer 源链接共编）：
     # 改字段名/口径 = 协议变更，Meta 构建身份必须跟着变。
+    # 注：JoinTicketInfo 的**实体定义**在 Abstractions/Room/（WireSubModule/Join/ 下只有
+    # JoinTicketRequest.cs）——2026-11-11 修正此前误记到 WireSubModule/Join/ 的路径。
     'Assets/LiteGame/Modules/Meta/WireSubModule/Core/MetaError.cs',
     'Assets/LiteGame/Modules/Meta/WireSubModule/Login/GuestLoginRequest.cs',
     'Assets/LiteGame/Modules/Meta/WireSubModule/Login/GuestLoginInfo.cs',
     'Assets/LiteGame/Modules/Meta/WireSubModule/Join/JoinTicketRequest.cs',
     'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/CreateRoomRequest.cs',
-    'Assets/LiteGame/Modules/Meta/WireSubModule/Join/JoinTicketInfo.cs',
+    'Assets/LiteGame/Modules/Meta/Abstractions/Room/JoinTicketInfo.cs',
     'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/RoomsResponse.cs',
     'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/LobbyInstanceView.cs',
     'Assets/LiteGame/Modules/Meta/WireSubModule/Lobby/LobbyRoomEntry.cs',
@@ -140,7 +145,18 @@ SKIP_DIRS = {'bin', 'obj', '.dotnet', '__pycache__', 'Editor', '.vs'}
 # （例如给菜单加一行注释 → 所有客户端与服务器握手上全部拒绝进房）。hash 只覆盖**共同源集**。
 
 
-def collect(targets, extra_files=()):
+def collect(targets, extra_files=(), manifest='extra_files'):
+    """收集一个目标的源文件清单。``extra_files`` = 显式声明的源链接共编件（不在 targets 目录树内），
+    ``manifest`` 只用于失败信息。声明了却不存在 = 清单与实际不符，直接失败——绝不静默少算。"""
+    # 清单先校验：缺失即 fail-fast（报清单名 + 缺失相对路径，让"改共享件而 hash 不动"的缺口无处藏身）。
+    missing = [rel for rel in extra_files
+               if not os.path.isfile(os.path.join(ROOT, rel.replace('/', os.sep)))]
+    if missing:
+        raise SystemExit(fail(
+            TOOL,
+            'manifest mismatch: %s lists %d file(s) that do not exist: %s - the manifest no longer matches '
+            'the repo, fix %s in scripts/codegen/gen-build-hash.py first (never drop entries to make this pass)'
+            % (manifest, len(missing), ', '.join(missing), manifest)))
     files = []
     for target in targets:
         base = os.path.join(ROOT, target)
@@ -155,9 +171,7 @@ def collect(targets, extra_files=()):
                 rel = os.path.relpath(full, ROOT).replace('\\', '/')
                 files.append((rel, full))
     for rel in extra_files:                     # 显式列出的共编件（源链接——不在自身目录树内）
-        full = os.path.join(ROOT, rel.replace('/', os.sep))
-        if os.path.isfile(full):
-            files.append((rel, full))
+        files.append((rel, os.path.join(ROOT, rel.replace('/', os.sep))))
     files.sort(key=lambda x: x[0])          # Ordinal 排序（python 默认码点序，与 C# Ordinal 一致）
     return files
 
@@ -289,10 +303,13 @@ def read_baked_constant(path):
 
 
 def target_specs():
-    """(标签, 收集参数, 输出文件, 模板) —— 单一入口，生成与校验共用同一份定义。"""
+    """(标签, collect 参数, 输出文件, 模板) —— 单一入口，生成与校验共用同一份定义。
+    collect 参数带 ``manifest``：fail-fast 报错必须能说出缺的是哪份清单。"""
     return [
-        ('shared', (SHARED_TARGETS, SHARED_LINK_FILES), SHARED_OUT_FILE, SHARED_TEMPLATE),
-        ('meta', (META_TARGETS, META_EXTRA_FILES), META_OUT_FILE, META_TEMPLATE),
+        ('shared', dict(targets=SHARED_TARGETS, extra_files=SHARED_LINK_FILES,
+                        manifest='SHARED_LINK_FILES'), SHARED_OUT_FILE, SHARED_TEMPLATE),
+        ('meta', dict(targets=META_TARGETS, extra_files=META_EXTRA_FILES,
+                      manifest='META_EXTRA_FILES'), META_OUT_FILE, META_TEMPLATE),
     ]
 
 
@@ -331,7 +348,7 @@ def main(argv=None):
         for label, collect_args, out_file, _template in specs:
             if check_shared and label != 'shared':
                 continue
-            files = collect(*collect_args)
+            files = collect(**collect_args)
             value = compute(files)
             current = read_baked_constant(out_file)
             rel = os.path.relpath(out_file, ROOT).replace('\\', '/')
@@ -350,7 +367,7 @@ def main(argv=None):
         return 0
 
     for label, collect_args, out_file, template in specs:
-        files = collect(*collect_args)
+        files = collect(**collect_args)
         value = compute(files)
         # The head's fingerprint is the source-set digest itself (first 8 hex of
         # the 16 baked below); the head lives in a self-excluded file, so writing

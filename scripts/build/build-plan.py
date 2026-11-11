@@ -49,7 +49,6 @@ IGNORED_PREFIXES = (
     "__pycache__/",
 )
 
-KNOWN_MISSING_SHARED = "Assets/LiteGame/Modules/Config/Table/MapTableProjection.cs"
 CSProj_FILES = (
     "Server/RoomServer/RoomServer.csproj",
     "Server/MetaServer/MetaServer.csproj",
@@ -172,7 +171,7 @@ def normalize_path(path):
 
 
 def _is_shared_path(path, shared_files, shared_targets, shared_links):
-    if path in shared_files or path in shared_links or path == KNOWN_MISSING_SHARED:
+    if path in shared_files or path in shared_links:
         return True
     if path.startswith("Assets/LiteGame/Modules/Config/") and path.endswith(
             ("SimConfigMapper.cs", "TableLayout.cs", "MapTableProjection.cs")):
@@ -352,15 +351,14 @@ def drift_for_links(links, project, registered=None, wildcards=None):
             continue
         if resolved in registered_set:
             continue
-        known = resolved == KNOWN_MISSING_SHARED
-        drift.append({"path": resolved, "known": known})
+        drift.append({"path": resolved})
     return drift
 
 
 def classify(paths):
     build_hash = _load_build_hash()
-    shared_files = {rel for rel, _ in build_hash.collect(build_hash.SHARED_TARGETS, build_hash.SHARED_LINK_FILES)}
-    shared_files.add(KNOWN_MISSING_SHARED)
+    shared_files = {rel for rel, _ in build_hash.collect(
+        build_hash.SHARED_TARGETS, build_hash.SHARED_LINK_FILES, manifest='SHARED_LINK_FILES')}
     shared_targets = tuple(build_hash.SHARED_TARGETS)
     actual_shared, actual_meta = _actual_link_sets()
     shared_links = set(build_hash.SHARED_LINK_FILES) | actual_shared
@@ -397,14 +395,9 @@ def _merge_actions(findings, key):
 
 def _manifest_drift():
     build_hash = _load_build_hash()
-    registered = {
-        "Server/RoomServer/RoomServer.csproj": set(build_hash.SHARED_LINK_FILES),
-        "Server/MetaServer/MetaServer.csproj": set(build_hash.META_EXTRA_FILES),
-    }
-    wildcards = {
-        "Server/RoomServer/RoomServer.csproj": WILDCARD_WHITELIST,
-        "Server/MetaServer/MetaServer.csproj": (),
-    }
+    # 一条出树链接登记在**任一**闭包清单即算已登记：RoomServer 同时编译 Meta 线契约件
+    # （登记在 META_EXTRA_FILES——影响 Meta 构建身份，不进握手红线），按项目切分注册集会误报。
+    registered = set(build_hash.SHARED_LINK_FILES) | set(build_hash.META_EXTRA_FILES)
     drift = []
     seen = set()
     for rel in CSProj_FILES:
@@ -412,12 +405,11 @@ def _manifest_drift():
         if not path.is_file():
             continue
         links = parse_csproj(path.read_text(encoding="utf-8"))
-        for entry in drift_for_links(links, _repo_root(), registered=registered.get(rel),
-                                     wildcards=wildcards.get(rel, ())):
-            key = (entry["path"], entry["known"])
-            if key in seen:
+        wildcards = WILDCARD_WHITELIST if rel.endswith("RoomServer.csproj") else ()
+        for entry in drift_for_links(links, _repo_root(), registered=registered, wildcards=wildcards):
+            if entry["path"] in seen:
                 continue
-            seen.add(key)
+            seen.add(entry["path"])
             drift.append(entry)
     return drift
 
@@ -432,15 +424,12 @@ def build_plan(paths, base="", head="", ignored_count=0):
     notes = []
     if not findings:
         notes.append("无改动，不需要出包")
-    if any(item["path"] == KNOWN_MISSING_SHARED for item in findings):
-        notes.append("已知漂移：MapTableProjection.cs 被服务端源链接但未登记 SHARED_LINK_FILES；按共享件处理，补登记另批")
     if any(item["area"] == "content" for item in findings):
         notes.append("内容仍走内置包：内环无需出包；外环交付需重打包 Player")
     if any(item["area"] == "room_kernel" for item in findings):
         notes.append("房间内核不在握手闭包：交付只重建/发布服务端，客户端不动")
     for entry in drift:
-        if not entry["known"]:
-            notes.append(f"未登记源链接：{entry['path']}（保守提示）")
+        notes.append(f"未登记源链接：{entry['path']}（保守提示）")
     return {
         "schemaVersion": SCHEMA_VERSION,
         "base": base,
@@ -514,8 +503,7 @@ def _render_text(plan):
     if plan["manifestDrift"]:
         lines.append("源链接对账:")
         for entry in plan["manifestDrift"]:
-            state = "已知例外" if entry["known"] else "未登记"
-            lines.append(f"  {state}: {entry['path']}")
+            lines.append(f"  未登记: {entry['path']}")
     for note in plan["notes"]:
         lines.append(f"note: {note}")
     return "\n".join(lines)
