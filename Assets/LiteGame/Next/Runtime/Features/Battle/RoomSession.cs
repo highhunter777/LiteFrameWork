@@ -187,7 +187,8 @@ namespace LiteGameNext.Features.Battle
         {
             _world?.ApplySnapshot(snapshot);
             if (snapshot.PrivateState == null) return;
-            _localEntityId = snapshot.PrivateState.EntityId;
+            // PrivateState 的 EntityId 在 delta 快照可能缺省为 0；只在非 0 时更新，避免把本地实体清空。
+            if (snapshot.PrivateState.EntityId != 0) _localEntityId = snapshot.PrivateState.EntityId;
             for (int index = 0; index < snapshot.Slots.Count; index++)
             {
                 LiteNet.Proto.SlotDelta slot = snapshot.Slots[index];
