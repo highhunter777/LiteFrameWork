@@ -143,6 +143,8 @@ namespace LiteGameNext.Features.Battle
                     {
                         _inputAccumulator -= 1f / 60f;
                         BattleInputState state = _input != null ? _input.Read() : default;
+                        if (SentInputs == 0 && _frame < _client.LastSnapshotFrame)
+                            _frame = _client.LastSnapshotFrame; // 入房/本地实体就绪晚于服务器：首帧对齐当前快照
                         _frame++;
                         LastInputFrame = _frame;
                         SentInputs++;
