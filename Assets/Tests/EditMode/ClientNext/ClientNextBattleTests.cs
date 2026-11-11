@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteGameNext.Features.Battle;
@@ -16,7 +16,7 @@ namespace LiteGame.Tests.EditMode
         {
             var ui = new UiRuntime(EditorPageFactory.CreateAsync);
             ui.Initialize();
-            var feature = new BattleFeature(ui, (match, ct) =>
+            var feature = new BattleFeature(ui, (match, hud, ct) =>
                 UniTask.FromResult(BattleResult.Completed("p1")));
             try
             {
@@ -37,7 +37,7 @@ namespace LiteGame.Tests.EditMode
         {
             var ui = new UiRuntime(EditorPageFactory.CreateAsync);
             ui.Initialize();
-            var feature = new BattleFeature(ui, (match, ct) =>
+            var feature = new BattleFeature(ui, (match, hud, ct) =>
                 UniTask.FromResult(BattleResult.Failed("connect refused")));
             try
             {
@@ -58,7 +58,7 @@ namespace LiteGame.Tests.EditMode
         {
             var ui = new UiRuntime(EditorPageFactory.CreateAsync);
             ui.Initialize();
-            var feature = new BattleFeature(ui, (match, ct) =>
+            var feature = new BattleFeature(ui, (match, hud, ct) =>
                 throw new OperationCanceledException(ct));
             using var cts = new CancellationTokenSource();
             cts.Cancel();

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
+using LiteGameNext.Features.Battle.Hud;
 using LiteGameNext.Features.Matchmaking;
 using LiteNet.Transport;
 using LiteSync.Client;
@@ -18,18 +19,20 @@ namespace LiteGameNext.Features.Battle
         private readonly string _roomId;
         private readonly string _ticket;
         private readonly string _buildHash;
+        private readonly BattleHudModel _hud;
         private readonly UniTaskCompletionSource<BattleResult> _completion =
             new UniTaskCompletionSource<BattleResult>();
         private bool _disposed;
 
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
-            IClientTransport transport = null)
+            IClientTransport transport = null, BattleHudModel hud = null)
         {
             if (string.IsNullOrWhiteSpace(host)) throw new ArgumentException("房间主机必填", nameof(host));
             if (port <= 0 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port));
             _roomId = roomId ?? string.Empty;
             _ticket = ticket ?? string.Empty;
             _buildHash = buildHash ?? string.Empty;
+            _hud = hud;
             _transport = transport ?? new SecureEnvelopeClientTransport(
                 new KcpTransportClient(), SecureEnvelopeOptions.FromEnvironment());
             _client = new RoomClient(_transport);
@@ -37,6 +40,7 @@ namespace LiteGameNext.Features.Battle
             _transport.OnConnected += OnTransportConnected;
             _client.OnJoinAck += OnJoinAck;
             _client.OnStartGame += OnStartGame;
+            _client.OnSnapshot += OnSnapshot;
             _client.OnMatchEnded += OnMatchEnded;
             _client.OnPhaseChanged += OnPhaseChanged;
             _client.OnDisconnected += OnDisconnected;
@@ -102,9 +106,32 @@ namespace LiteGameNext.Features.Battle
             Status = "对局进行中…";
         }
 
+        /// <summary>私有状态里的 HP/弹匣喂 HUD；只做展示，不参与判定。</summary>
+        private void OnSnapshot(LiteNet.Proto.StateSnapshot snapshot)
+        {
+            if (_hud == null || snapshot.PrivateState == null) return;
+            int health = snapshot.PrivateState.Resource;
+            int ammo = snapshot.PrivateState.Weapons.Count > 0
+                ? snapshot.PrivateState.Weapons[0].MagAmmo
+                : 0;
+            _hud.SetVitals(health, Math.Max(100, health), ammo);
+        }
+
         private void OnMatchEnded(LiteNet.Proto.MatchEnded ended)
         {
             Status = "对局结束";
+            if (_hud != null)
+            {
+                int playerId = _client.PlayerId;
+                for (int index = 0; index < ended.Players.Count; index++)
+                {
+                    LiteNet.Proto.PlayerMatchResult row = ended.Players[index];
+                    if (row.PlayerId != playerId) continue;
+                    _hud.SetScore(row.Kills, row.Deaths);
+                    break;
+                }
+            }
+
             _completion.TrySetResult(BattleResult.Completed(_client.PlayerId.ToString()));
         }
 
@@ -127,6 +154,7 @@ namespace LiteGameNext.Features.Battle
             _transport.OnConnected -= OnTransportConnected;
             _client.OnJoinAck -= OnJoinAck;
             _client.OnStartGame -= OnStartGame;
+            _client.OnSnapshot -= OnSnapshot;
             _client.OnMatchEnded -= OnMatchEnded;
             _client.OnPhaseChanged -= OnPhaseChanged;
             _client.OnDisconnected -= OnDisconnected;

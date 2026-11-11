@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
 using LiteGameNext.Features.Account;
 using LiteGameNext.Features.Battle;
+using LiteGameNext.Features.Battle.Hud;
 using LiteGameNext.Features.Matchmaking;
 using LiteGameNext.Features.Result;
 using LiteGameNext.Platform.Meta;
@@ -96,12 +97,13 @@ namespace LiteGameNext
         }
 
         /// <summary>真实房间会话：解析 MatchInfo 地址 → RoomSession（KCP/安全信封）。地址非法直接失败，不静默降级。</summary>
-        private static async UniTask<BattleResult> RunRoomSessionAsync(MatchInfo match,
+        private static async UniTask<BattleResult> RunRoomSessionAsync(MatchInfo match, BattleHudModel hud,
             CancellationToken cancellationToken)
         {
             if (!TryParseEndpoint(match.Address, out string host, out int port))
                 return BattleResult.Failed("房间地址无效：" + match.Address);
-            using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue()))
+            using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue(),
+                       hud: hud))
                 return await session.RunAsync(cancellationToken);
         }
 
