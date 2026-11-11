@@ -13,11 +13,11 @@ using UnityEngine.TestTools;
 
 namespace LiteGame.Tests.PlayMode
 {
-    /// <summary>双人真实房间：两人进房→房主开局→开火命中→对方掉血（本机 RoomServer/夹具）。</summary>
+    /// <summary>双人真实房间：两人进房→房主开局（未验证命中/伤害）。</summary>
     public sealed class ClientNextRoomTwoPlayerE2ETests
     {
         [UnityTest]
-        public IEnumerator 双人进房_开火造成伤害()
+        public IEnumerator 双人进房_房主开局()
         {
             string root = Directory.GetCurrentDirectory();
             string envPath = Path.Combine(root, "deploy", ".env");

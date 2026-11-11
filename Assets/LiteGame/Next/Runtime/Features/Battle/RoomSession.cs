@@ -35,7 +35,7 @@ namespace LiteGameNext.Features.Battle
         private bool _disposed;
         private bool _started;
         private int _frame;
-        private int _lastInputSnapshotFrame = int.MinValue;
+        private float _inputAccumulator;
         private long _localEntityId;
 
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
@@ -130,19 +130,16 @@ namespace LiteGameNext.Features.Battle
             {
                 _client.TickIncoming();
                 _client.TickOutgoing();
-                int snapshotFrame = _client.LastSnapshotFrame;
-                if (_started && _input != null && _localEntityId != 0
-                    && snapshotFrame >= 0 && snapshotFrame != _lastInputSnapshotFrame)
+                if (_started && _input != null && _localEntityId != 0)
                 {
-                    _lastInputSnapshotFrame = snapshotFrame;
-                    BattleInputState state = _input.Read();
-                    SimInputFrame input = BattleInputFrame.Build(state, _localEntityId);
-                    int start = Math.Max(_frame + 1, snapshotFrame + 1);
-                    if (start > snapshotFrame + 8) start = snapshotFrame + 1;
-                    for (int frame = start; frame <= snapshotFrame + 8; frame++)
+                    _inputAccumulator = Math.Min(_inputAccumulator + Time.unscaledDeltaTime, 0.25f);
+                    while (_inputAccumulator >= 1f / 60f)
                     {
-                        _frame = frame;
-                        _client.SendInput(frame, input, snapshotFrame);
+                        _inputAccumulator -= 1f / 60f;
+                        BattleInputState state = _input != null ? _input.Read() : default;
+                        _frame++;
+                        _client.SendInput(_frame, BattleInputFrame.Build(state, _localEntityId),
+                            Math.Max(0, _client.LastSnapshotFrame));
                     }
                 }
 
@@ -192,6 +189,9 @@ namespace LiteGameNext.Features.Battle
                 // delta 快照的 Hp=0 无法区分“未变化”与“已死亡”；只在全量快照写生命。
                 if (snapshot.IsFull) _hud.SetVitals(slot.Hp, Math.Max(100, slot.Hp), _hud.Ammo);
             }
+
+            if (_hud != null && snapshot.PrivateState.Weapons.Count > 0)
+                _hud.SetAmmo(snapshot.PrivateState.Weapons[0].MagAmmo);
         }
 
         private void OnMatchEnded(LiteNet.Proto.MatchEnded ended)

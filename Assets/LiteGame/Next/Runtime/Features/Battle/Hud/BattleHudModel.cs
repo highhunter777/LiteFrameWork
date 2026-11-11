@@ -22,6 +22,8 @@ namespace LiteGameNext.Features.Battle.Hud
             Ammo = Math.Max(0, ammo);
         }
 
+        public void SetAmmo(int ammo) => Ammo = Math.Max(0, ammo);
+
         public void SetScore(int kills, int deaths)
         {
             Kills = Math.Max(0, kills);
