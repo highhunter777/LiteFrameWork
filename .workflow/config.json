@@ -97,6 +97,18 @@
         "--nologo"
       ],
       "timeout": 600
+    },
+    {
+      "name": "client-next-architecture-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~ClientNextArchitectureTests",
+        "--nologo"
+      ],
+      "timeout": 600
     }
   ],
   "stages": [

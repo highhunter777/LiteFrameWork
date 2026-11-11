@@ -138,14 +138,32 @@ def expected_namespace(rel_file: str, entry):
     return ".".join([entry["ns"]] + segments), None
 
 
+def load_next_roots(root: Path) -> list[str]:
+    """读 arch/client-roots.json 的 Next 相关根：新架构已废除 AR1，Next 由 G2/G3 管。"""
+    path = root / "arch" / "client-roots.json"
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError, TypeError):
+        return []
+    roots = [data.get("nextRoot"), data.get("frameworkNextRoot")]
+    roots.extend(data.get("nextTests") or [])
+    return [str(item).strip("/") for item in roots if item]
+
+
 def iter_code_files(root: Path):
     """产出 (abs_path, rel_file)。只走 CODE_ROOTS，按配置剪枝。"""
+    next_roots = load_next_roots(root)
     for entry in CODE_ROOTS:
         base = root / entry["path"]
         if not base.is_dir():
             continue
         for dirpath, dirnames, filenames in os.walk(base):
             rel_dir = rel_posix(Path(dirpath), root)
+            if any(rel_dir == item or rel_dir.startswith(item + "/") for item in next_roots):
+                dirnames[:] = []
+                continue
             dirnames[:] = [d for d in dirnames
                            if d not in SKIP_DIRS and not d.startswith(".")
                            and not any((rel_dir + "/" + d).startswith(p) or

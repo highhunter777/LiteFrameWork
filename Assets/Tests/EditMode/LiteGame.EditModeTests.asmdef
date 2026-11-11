@@ -45,7 +45,10 @@
         "LiteGame.Modules.Session",
         "LiteGame.Modules.Map",
         "LiteGame.Modules.Dev",
-        "LiteGame.Battle.Abstractions"
+        "LiteGame.Battle.Abstractions",
+        "LiteGameNext",
+        "LiteFrameworkNext",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

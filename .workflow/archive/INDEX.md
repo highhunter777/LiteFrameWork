@@ -38,3 +38,4 @@
 | 2026-11-09T00:30:15+08:00 | lobby-room-flow | 大厅进房离房链路样板简化 | 6/6 | PASS | [20261109-003015-lobby-room-flow](20261109-003015-lobby-room-flow/) |
 | 2026-11-09T04:42:58+08:00 | account-match-lifecycle | Account/Match 名称与生命周期纠偏（账户域/Meta 会话/401/Match/Battle） | 10/10 | PASS | [20261109-044258-account-match-lifecycle](20261109-044258-account-match-lifecycle/) |
 | 2026-11-09T18:02:21+08:00 | client-module-recut | 客户端按功能/行为重切模块（方案） | 9/9 | PASS | [20261109-180221-client-module-recut](20261109-180221-client-module-recut/) |
+| 2026-11-12T01:02:08+08:00 | client-rewrite-architecture | 客户端架构重写（不继承旧设计） | 6/6 | PASS | [20261112-010208-client-rewrite-architecture](20261112-010208-client-rewrite-architecture/) |

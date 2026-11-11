@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "slug": "client-rewrite-architecture",
+  "title": "客户端架构重写（不继承旧设计）",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-11-11T22:30:06+08:00",
+  "updated_at": "2026-11-12T01:02:08+08:00",
+  "completed_at": "2026-11-12T01:01:46+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-11-11T22:33:47+08:00"
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "completed_at": "2026-11-11T23:03:29+08:00"
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "completed_at": "2026-11-11T23:09:55+08:00",
+      "approved_by": "user"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-11-11T23:10:54+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "任务评审（本仓默认跳过：2026-11-09 用户裁决）",
+      "completed_at": "2026-11-11T23:10:54+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "子代理先写测试",
+      "completed_at": "2026-11-11T23:20:09+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "子代理正式施工",
+      "completed_at": "2026-11-12T00:59:26+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-11-12T01:01:27+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "主代理评审代码",
+      "completed_at": "2026-11-12T01:01:27+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-11-12T01:01:46+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-11-11T22:30:06+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-11-11T22:33:47+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-11T23:03:29+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-11T23:09:55+08:00",
+      "event": "advance",
+      "from": "confirm-acceptance",
+      "to": "breakdown",
+      "approved_by": "user"
+    },
+    {
+      "at": "2026-11-11T23:10:54+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-11T23:10:54+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-11T23:20:09+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-12T00:59:26+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-12T01:01:27+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-12T01:01:27+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-12T01:01:46+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-11-12T01:02:08+08:00",
+      "event": "archive",
+      "path": "20261112-010208-client-rewrite-architecture"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "架构设计文档与旧文档处置",
+      "description": "",
+      "acceptance": "Docs/设计文档/架构/客户端重写架构总设计.md 落地；设计索引登记；旧文档处置清单明确；独立评审 PASS；Doc 门禁通过",
+      "verify": "python scripts/gate/test.py --suite Doc",
+      "files": [
+        "Docs/设计文档/架构/客户端重写架构总设计.md",
+        "Docs/设计文档/README.md",
+        "Docs/归档记录/README.md"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "Docs/设计文档/架构/客户端重写架构总设计.md 落地；设计索引登记；旧文档状态行/处置清单；Doc 门禁 PASS（doc-lint/comment-lint OK）",
+      "status_reason": "",
+      "created_at": "2026-11-11T23:10:47+08:00",
+      "started_at": "2026-11-11T23:20:18+08:00",
+      "completed_at": "2026-11-11T23:29:35+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "Next 子树 + AOT/hot 程序集 + BootNext 启动骨架",
+      "description": "",
+      "acceptance": "Assets/LiteGame/Next 子树编译；GameEntryNext→ClientApp→占位页；静态扫描无旧机制；EditMode 启动用例通过",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter ClientNextBootTests",
+      "files": [
+        "Assets/LiteGame/Next/Bootstrap",
+        "Assets/LiteGame/Next/Runtime/App",
+        "Assets/LiteGame/Next/Runtime/Platform",
+        "Assets/Scenes/BootNext.unity",
+        "Packages/com.litegame.framework/Next",
+        "arch/units.json",
+        "arch/client-roots.json",
+        "scripts/gate/hot-boundary-check.py"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "Next 子树+3 asmdefs+BootNext 场景；Unity 编译 compilationFailed=false/0 console error；BootNext 实跑日志 Platform→ClientApp→UiRuntime 占位页；dotnet ClientNextArchitectureTests 9/9+ClientAsmdefAllowlist 14/14；L1 1895/0；hot-boundary --strict OK；BootNext 已入 Build Settings（Boot 仍 index 0）",
+      "status_reason": "",
+      "created_at": "2026-11-11T23:10:47+08:00",
+      "started_at": "2026-11-11T23:20:18+08:00",
+      "completed_at": "2026-11-11T23:43:37+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "UiRuntime + PageBase/PageSpec + 占位/Login/Error 页面",
+      "description": "",
+      "acceptance": "UiRuntime 打开/关闭/栈/模态/Back/缓存/输入阻断；PageBase 绑定；三个页面可用；EditMode 用例全绿",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter ClientNextUiRuntimeTests",
+      "files": [
+        "Assets/LiteGame/Next/Runtime/Platform/Ui",
+        "Assets/LiteGame/Next/Runtime/Features/Account",
+        "Assets/LiteGame/Next/Runtime/Platform/Ui/Content",
+        "Assets/Tests/EditMode/ClientNext"
+      ],
+      "deps": [
+        "T2"
+      ],
+      "status": "done",
+      "evidence": "UiRuntime/PageBase/PageSpec/PageHandle/BindName 实现；Placeholder/Login/Error 三页 prefab + EditorPageFactory；BootNext 实跑打开真实 PlaceholderPage（日志/截图）；ClientNextUiRuntimeTests 16/16；关闭后 SetActive(false) 缺陷已修并加断言；L1 1895/0",
+      "status_reason": "",
+      "created_at": "2026-11-11T23:10:47+08:00",
+      "started_at": "2026-11-11T23:43:55+08:00",
+      "completed_at": "2026-11-12T00:33:01+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "ClientApp/AppFlow/Lifetime + 最小 Platform + 假账号登录",
+      "description": "",
+      "acceptance": "ClientApp 显式构造；AppFlow 打开 Login/占位；取消/关闭；AppFlow/Lifetime 用例全绿",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter ClientNextAppFlowTests",
+      "files": [
+        "Assets/LiteGame/Next/Runtime/App",
+        "Assets/LiteGame/Next/Runtime/Platform/Content",
+        "Assets/LiteGame/Next/Runtime/Platform/Settings",
+        "Assets/LiteGame/Next/Runtime/Features/Account"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "AppFlow/ClientApp/AccountFeature 接线；BootNext EventSystem；ClientNextAppFlowTests 8/8、ClientNextBootTests EditMode 2/2 + PlayMode 1/1、ClientNextUiRuntimeTests 16/16；BootNext 真实 prefab 登录→占位页；Player 工厂/重试回调按 P0 限制记录",
+      "status_reason": "",
+      "created_at": "2026-11-11T23:10:47+08:00",
+      "started_at": "2026-11-12T00:33:08+08:00",
+      "completed_at": "2026-11-12T00:46:30+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "架构守卫 + 短链路测量 + 冷启动",
+      "description": "",
+      "acceptance": "静态守卫覆盖 Next 路径/旧 token/功能边界；S1-S4 触碰面记录；冷启动子代理 ≤2 文件 0 反问",
+      "verify": "python scripts/gate/test.py --suite L1 --profile PullRequest",
+      "files": [
+        "Tests/LiteFramework.Core.Tests/ClientNextArchitectureTests.cs",
+        "scripts/gate/client-next-change-budget.py",
+        "arch/client-roots.json"
+      ],
+      "deps": [
+        "T3",
+        "T4"
+      ],
+      "status": "done",
+      "evidence": "Next 路径单源豁免 AR1/AR2；dir-flat OK/namespace 893 baseline no growth/change-unit 404 no new unit；client-next-change-budget --check 1 feature/3 pages/3 prefabs/12 code/0 problems；冷启动补充需求后 2 代码+1 prefab 0 阻塞；L1 1895/0；S3/S4 记录为 P1/P2 待测",
+      "status_reason": "",
+      "created_at": "2026-11-11T23:10:47+08:00",
+      "started_at": "2026-11-12T00:46:30+08:00",
+      "completed_at": "2026-11-12T00:55:59+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "P0 验证与证据",
+      "description": "",
+      "acceptance": "编译、EditMode、PlayMode BootNext、静态扫描通过；证据写入 build-log",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter ClientNext",
+      "files": [
+        ".workflow/active/client-rewrite-architecture/build-log.md"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "Unity compile 0 error；EditMode ClientNext 26/26；PlayMode Boot 1/1；L1 1895/0；Doc PASS；dir-flat/namespace/change-unit/client-next-budget/hot-boundary/arch-check 全绿；AC1/AC2 通过、AC3 部分（S3/S4 待 P1/P2）",
+      "status_reason": "",
+      "created_at": "2026-11-11T23:10:47+08:00",
+      "started_at": "2026-11-12T00:55:59+08:00",
+      "completed_at": "2026-11-12T00:59:18+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-11-12T01:00:35+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "d02d256fd549ba57a4e35029f7f11254d2261d3477d1da65b25078f53f02fcfa",
+    "summary": {
+      "total": 7,
+      "passed": 7
+    }
+  },
+  "red_verification": {
+    "at": "2026-11-11T23:19:39+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "3d9b6d47eec2aa0646e692bae1a657f4dc0abdc5fde9d944d0154ba09e68beb5",
+    "summary": {
+      "total": 2,
+      "passed": 1
+    }
+  },
+  "archived_at": "2026-11-12T01:02:08+08:00"
+}

@@ -5,7 +5,8 @@
 规则（热更与内容发布专项设计「AOT/hot 分界」/ 规范 02 §1.14）：
   AR3-1 分区表三类：
         · AOT＝LiteFramework（含 Core/Services/Adapters/Hosting）+ LiteNet + Bootstrap
-          + LiteCodeGen.Runtime（被 LiteFramework.Services 编译期引用，只能是 AOT）；
+          + LiteCodeGen.Runtime（被 LiteFramework.Services 编译期引用，只能是 AOT）
+          + 迁移期 Next 两件（LiteFrameworkNext / LiteGameNext.Bootstrap；P3b2 合并回正式件）；
         · hot＝LiteGame（产品，含原 LiteGame.Core/Modules.*/Adapters.*/App）
           + LiteSim + LiteSync + Luban.Tables（表值可热更，显式登记）；
         · 不参与分区（非玩家侧）＝RoomServer*、MetaServer*、LiteTesting*、LiteCodeGen.Editor、
@@ -66,10 +67,17 @@ PARTITION = {
             "LiteNet",
             "LiteGame.Bootstrap",
             "LiteCodeGen.Runtime",
+            # 迁移期 Next 子树的两件 AOT（P3b2 合并回 LiteFramework/LiteGame.Bootstrap）。
+            "LiteFrameworkNext",
+            "LiteGameNext.Bootstrap",
         ),
         "assemblyPrefixes": (),
         "assemblySuffixes": (),
+        # AOT 路径必须先于 hot 的 `Assets/LiteGame/` 命中（partition_of 按 aot→outside→hot 求值）；
+        # `Assets/LiteGame/Next/Bootstrap/` 挂在该 hot 根之下，故显式前置。
         "paths": (
+            "Assets/LiteGame/Next/Bootstrap/",
+            "Packages/com.litegame.framework/Next/",
             "Packages/com.litegame.framework/",
             "Packages/com.litegame.net/",
             "Assets/LiteGame/Bootstrap/",
@@ -77,10 +85,15 @@ PARTITION = {
     },
     # 玩家侧热更面：产品 LiteGame 全域（Core/Modules.*/Adapters.*/App/Editor*）+ 共享包 + 表程序集。
     "hot": {
-        "assemblies": ("Luban.Tables",),
+        "assemblies": (
+            "Luban.Tables",
+            # 迁移期 Next 子树 hot 应用件（P3b2 合并回 LiteGame）；名字无 `LiteGame.` 前缀，必须点名。
+            "LiteGameNext",
+        ),
         "assemblyPrefixes": ("LiteGame.", "LiteSim", "LiteSync"),
         "assemblySuffixes": (),
         "paths": (
+            "Assets/LiteGame/Next/Runtime/",
             "Assets/LiteGame/",
             "Assets/GameData/Generated/",
             "Packages/com.litegame.sim/",

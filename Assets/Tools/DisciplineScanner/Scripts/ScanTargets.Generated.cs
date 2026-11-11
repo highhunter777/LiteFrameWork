@@ -52,6 +52,7 @@ namespace Tools.DisciplineScan
             "Core",
             "Editor",
             "Modules",
+            "Next",
         };
 
         internal static readonly string[] AssetsTopLevelDirs =

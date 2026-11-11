@@ -1,0 +1,19 @@
+{
+    "name": "LiteGameNext",
+    "rootNamespace": "LiteGameNext",
+    "references": [
+        "LiteFrameworkNext",
+        "UniTask",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

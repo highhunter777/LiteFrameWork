@@ -106,6 +106,10 @@
       "reason": "TextMeshPro 文本"
     },
     {
+      "name": "UnityEngine.UI",
+      "reason": "uGUI Button/Text/Selectable（Next 页面运行时）"
+    },
+    {
       "name": "YooAsset",
       "reason": "YooAsset 内容系统"
     },
@@ -365,6 +369,28 @@
       "notes": "框架第三方/平台适配"
     },
     {
+      "id": "LiteFrameworkNext",
+      "assembly": "LiteFrameworkNext",
+      "path": "Packages/com.litegame.framework/Next",
+      "asmdef": "Packages/com.litegame.framework/Next/LiteFrameworkNext.asmdef",
+      "layer": "framework",
+      "rank": 15,
+      "owner": "framework",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "UniTask"
+      ],
+      "notes": "迁移期 AOT 框架件（日志/生命周期/平台/热更契约；P3b2 合并回 LiteFramework）"
+    },
+    {
       "id": "LiteFramework.Hosting",
       "assembly": "LiteFramework.Hosting",
       "path": "Packages/com.litegame.framework/Runtime/Hosting",
@@ -413,6 +439,29 @@
         "UniTask"
       ],
       "notes": "AOT 进程壳：场景入口/入口装载/致命错误面"
+    },
+    {
+      "id": "LiteGameNext.Bootstrap",
+      "assembly": "LiteGameNext.Bootstrap",
+      "path": "Assets/LiteGame/Next/Bootstrap",
+      "asmdef": "Assets/LiteGame/Next/Bootstrap/LiteGameNext.Bootstrap.asmdef",
+      "layer": "shell",
+      "rank": 25,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFrameworkNext",
+        "UniTask"
+      ],
+      "notes": "迁移期 AOT 引导件（BootNext.unity 入口；P3b2 合并回 LiteGame.Bootstrap）"
     },
     {
       "id": "LiteGame.Editor.Core",
@@ -1022,6 +1071,31 @@
       "notes": "应用壳：流程/页面流/恢复"
     },
     {
+      "id": "LiteGameNext",
+      "assembly": "LiteGameNext",
+      "path": "Assets/LiteGame/Next/Runtime",
+      "asmdef": "Assets/LiteGame/Next/Runtime/LiteGameNext.asmdef",
+      "layer": "app",
+      "rank": 65,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFrameworkNext",
+        "UniTask",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro"
+      ],
+      "notes": "迁移期 hot 应用件（ClientApp/UiRuntime/Features；P3b2 合并回 LiteGame）"
+    },
+    {
       "id": "LiteGame.App",
       "assembly": "LiteGame.App",
       "path": "Assets/LiteGame/App",
@@ -1618,7 +1692,8 @@
       "Bootstrap",
       "Core",
       "Editor",
-      "Modules"
+      "Modules",
+      "Next"
     ]
   }
 }

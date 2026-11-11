@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "_doc": "客户端重写（原地 strangler）根的路径单源：测试与守卫脚本只读本文件，不得硬编码 Next 子树路径。P3b 切换时只改 finalRoot/nextRoot 的提升关系，不改测试。",
+  "nextRoot": "Assets/LiteGame/Next",
+  "nextRuntime": "Assets/LiteGame/Next/Runtime",
+  "nextBootstrap": "Assets/LiteGame/Next/Bootstrap",
+  "frameworkNextRoot": "Packages/com.litegame.framework/Next",
+  "finalRoot": "Assets/LiteGame",
+  "nextTests": [
+    "Assets/Tests/EditMode/ClientNext",
+    "Assets/Tests/UI/PlayMode/ClientNext"
+  ]
+}

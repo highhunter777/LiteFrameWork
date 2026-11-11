@@ -81,14 +81,32 @@ def in_scope(rel: str, scope: str) -> bool:
     return not scope or rel == scope or rel.startswith(scope + "/")
 
 
+def load_next_roots(root: Path) -> list[str]:
+    """读 arch/client-roots.json 的 Next 相关根：新架构已废除 AR2，Next 由 G2/G3 管。"""
+    path = root / "arch" / "client-roots.json"
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError, TypeError):
+        return []
+    roots = [data.get("nextRoot"), data.get("frameworkNextRoot")]
+    roots.extend(data.get("nextTests") or [])
+    return [str(item).strip("/") for item in roots if item]
+
+
 def iter_units(root: Path, scope: str = ""):
     """产出 (unit_rel, [(file_name, text)])；unit = 直接含 .cs 的目录。"""
+    next_roots = load_next_roots(root)
     for base_rel in UNIT_ROOTS:
         base = root / base_rel
         if not base.is_dir():
             continue
         for dirpath, dirnames, filenames in os.walk(base):
             rel_dir = rel_posix(Path(dirpath), root)
+            if any(rel_dir == item or rel_dir.startswith(item + "/") for item in next_roots):
+                dirnames[:] = []
+                continue
             dirnames[:] = [d for d in dirnames
                            if d not in SKIP_DIRS and not d.startswith(".")
                            and not any((rel_dir + "/" + d).startswith(p)
