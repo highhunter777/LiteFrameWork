@@ -31,10 +31,11 @@ namespace LiteGameNext.Features.Battle
         private readonly Dictionary<long, Vector3> _positions = new Dictionary<long, Vector3>();
         private readonly UniTaskCompletionSource<BattleResult> _completion =
             new UniTaskCompletionSource<BattleResult>();
+        private readonly UniTaskCompletionSource<bool> _joined = new UniTaskCompletionSource<bool>();
         private bool _disposed;
         private bool _started;
         private int _frame;
-        private int _lastInputUnityFrame = -1;
+        private int _lastInputSnapshotFrame = int.MinValue;
         private long _localEntityId;
 
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
@@ -95,10 +96,22 @@ namespace LiteGameNext.Features.Battle
             PumpAsync(linked.Token).Forget(ex => Log.Error("房间泵失败：" + ex));
             try
             {
-                UniTask timeout = UniTask.Delay(JoinTimeoutMs, DelayType.Realtime,
-                    cancellationToken: linked.Token);
-                (bool hasResult, BattleResult result) = await UniTask.WhenAny(_completion.Task, timeout);
-                return hasResult ? result : BattleResult.Failed("加入房间超时");
+                using CancellationTokenSource joinCts =
+                    CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
+                joinCts.CancelAfter(JoinTimeoutMs);
+                try
+                {
+                    (int winner, bool joined, BattleResult result) = await UniTask
+                        .WhenAny(_joined.Task, _completion.Task)
+                        .AttachExternalCancellation(joinCts.Token);
+                    if (winner == 1) return result;
+                }
+                catch (OperationCanceledException) when (!linked.IsCancellationRequested)
+                {
+                    return BattleResult.Failed("加入房间超时");
+                }
+
+                return await _completion.Task.AttachExternalCancellation(linked.Token);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -117,14 +130,15 @@ namespace LiteGameNext.Features.Battle
             {
                 _client.TickIncoming();
                 _client.TickOutgoing();
+                int snapshotFrame = _client.LastSnapshotFrame;
                 if (_started && _input != null && _localEntityId != 0
-                    && Time.frameCount != _lastInputUnityFrame)
+                    && snapshotFrame != _lastInputSnapshotFrame)
                 {
-                    _lastInputUnityFrame = Time.frameCount;
-                    _frame = Math.Max(_frame + 1, _client.LastSnapshotFrame + 1);
+                    _lastInputSnapshotFrame = snapshotFrame;
+                    _frame = snapshotFrame + 5;
                     BattleInputState state = _input.Read();
                     _client.SendInput(_frame, BattleInputFrame.Build(state, _localEntityId),
-                        Math.Max(0, _client.LastSnapshotFrame));
+                        Math.Max(0, snapshotFrame));
                 }
 
                 await UniTask.Yield();
@@ -143,6 +157,7 @@ namespace LiteGameNext.Features.Battle
         private void OnJoinAck(LiteNet.Proto.JoinAck ack)
         {
             IsJoined = true;
+            _joined.TrySetResult(true);
             ExpectedPlayers = ack.ExpectedPlayers;
             Status = "已进房，等待开局…";
             if (_autoStart && _client.IsOwner
@@ -163,15 +178,17 @@ namespace LiteGameNext.Features.Battle
             _world?.ApplySnapshot(snapshot);
             if (snapshot.PrivateState == null) return;
             _localEntityId = snapshot.PrivateState.EntityId;
+            int health = 100;
             for (int index = 0; index < snapshot.Slots.Count; index++)
             {
                 LiteNet.Proto.SlotDelta slot = snapshot.Slots[index];
                 _positions[slot.Id] = new Vector3(slot.PosX, slot.PosY, slot.PosZ);
-                if (slot.Id == _localEntityId && _hud != null) _hud.SetScore(slot.Kills, slot.Deaths);
+                if (slot.Id != _localEntityId) continue;
+                health = slot.Hp;
+                if (_hud != null) _hud.SetScore(slot.Kills, slot.Deaths);
             }
 
             if (_hud == null) return;
-            int health = snapshot.PrivateState.Resource;
             int ammo = snapshot.PrivateState.Weapons.Count > 0
                 ? snapshot.PrivateState.Weapons[0].MagAmmo
                 : 0;
