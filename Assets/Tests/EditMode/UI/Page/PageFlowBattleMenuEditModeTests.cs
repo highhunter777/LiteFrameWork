@@ -4,6 +4,7 @@ using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.Modules.Shared;
 using LiteGame.Modules.UI;
+using LiteGame.Modules.UI.Pages.Screens.Settings;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;

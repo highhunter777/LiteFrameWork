@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LiteFramework.UI;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages.Screens.Match
 {
     /// <summary>
     /// 结算页数据（强类型）：排行行 ＋ 本机摘要。本机行按 localPlayerId 从同一份行表定位，页面不重算。

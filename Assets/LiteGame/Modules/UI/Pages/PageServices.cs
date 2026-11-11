@@ -3,7 +3,7 @@ using LiteFramework.UI;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.Settings;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages
 {
     /// <summary>页面装配面：组合根唯一创建点；纯持有，不做映射（同程序集单实现，故不留接口）。</summary>
     public sealed class PageServices

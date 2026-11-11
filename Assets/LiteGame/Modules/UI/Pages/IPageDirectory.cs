@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using LiteFramework.UI;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages
 {
     /// <summary>
     /// 页面目录端口（UI 域产出，实现＝生成物 UIPageCatalog）：壳契约 IPageCatalog（按 id 取件）＋ 全量行。

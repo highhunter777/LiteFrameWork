@@ -1,6 +1,6 @@
 using LiteFramework.UI;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages.Screens.Demo
 {
     /// <summary>起页练习页：按钮点击计数（复用页计数复位）。</summary>
     public sealed class Page_ButtonDemoLogic : PageLogicBase

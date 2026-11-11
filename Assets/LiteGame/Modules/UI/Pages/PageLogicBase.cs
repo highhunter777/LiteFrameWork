@@ -5,7 +5,7 @@ using LiteFramework.UI;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.Settings;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages
 {
     /// <summary>
     /// 页面逻辑基类：UIBindBase ＋ 装配面（PageServices）＋ 关闭即统一解绑。

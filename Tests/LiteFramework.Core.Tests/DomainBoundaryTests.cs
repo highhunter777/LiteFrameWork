@@ -12,10 +12,10 @@ namespace LiteFramework.Core.Tests
     /// </summary>
     public sealed class DomainBoundaryTests
     {
-        /// <summary>业务域子目录里禁止出现的技术分层名（`Abstractions/` 是唯一保留的技术名）。</summary>
+        /// <summary>业务域子目录里禁止出现的技术分层名（`Abstractions` 等产品侧禁名见 `ModuleInterfaceOwnershipTests`／规范 02 §1.12）。</summary>
         private static readonly string[] ForbiddenDirectoryNames = { "View", "Presentation", "Domain", "Logic" };
 
-        /// <summary>8 个共享能力域（每个域一份命名空间；批 5 · A25）。</summary>
+        /// <summary>8 个共享能力域（每个域一份命名空间树，允许本域子命名空间；批 5 · A25）。</summary>
         private static readonly string[] SharedDomains =
         {
             "Composition", "UI", "Input", "Settings", "Config", "Camera", "Map", "Dev",
@@ -116,13 +116,18 @@ namespace LiteFramework.Core.Tests
                     // AssemblyInfo.cs 是程序集属性文件（\[assembly: ...\] 必须写在命名空间外）——不是域代码，跳过。
                     if (string.Equals(Path.GetFileName(file), "AssemblyInfo.cs", StringComparison.Ordinal)) continue;
                     string actual = FirstNamespace(file);
-                    if (!string.Equals(actual, expected, StringComparison.Ordinal))
-                        offenders.Add(Relative(root, file) + " → " + (actual ?? "(无)") + "，期望 " + expected);
+                    // 语义不变：文件仍必须属于本域命名空间树——等值或本域子命名空间（路径 = 命名空间，规范 02 §1.13）。
+                    if (actual != null
+                        && (string.Equals(actual, expected, StringComparison.Ordinal)
+                            || actual.StartsWith(expected + ".", StringComparison.Ordinal)))
+                        continue;
+                    offenders.Add(Relative(root, file) + " → " + (actual ?? "(无)") + "，期望 " + expected + " 或其子命名空间");
                 }
             }
 
             Assert.True(offenders.Count == 0,
-                "8 个共享域必须各自使用 LiteGame.Modules.<域> 命名空间（批 5 · A25）:" + string.Join(" | ", offenders));
+                "8 个共享域必须各自使用 LiteGame.Modules.<域> 或其子命名空间（批 5 · A25；规范 02 §1.13）:"
+                + string.Join(" | ", offenders));
         }
 
         /// <summary>

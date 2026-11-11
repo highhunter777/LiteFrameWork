@@ -8,6 +8,8 @@ using LiteFramework.UI;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.Settings;
 using LiteGame.Modules.UI;
+using LiteGame.Modules.UI.Pages;
+using LiteGame.Modules.UI.Pages.Screens.Settings;
 using LiteSim;
 using LiteTesting;
 using LiteTesting.Unity;

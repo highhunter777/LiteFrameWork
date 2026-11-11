@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using LiteFramework.UI;
+using LiteGame.Modules.UI.Bind;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages.Screens.Hub
 {
     /// <summary>房间页：房号展示、席位名单与等待人数、房主提前开局、离房回大厅。</summary>
     public sealed class Page_RoomLogic : PageLogicBase

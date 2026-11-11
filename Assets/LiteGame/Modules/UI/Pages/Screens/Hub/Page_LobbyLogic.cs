@@ -6,8 +6,9 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.Modules.Map;
+using LiteGame.Modules.UI.Bind;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages.Screens.Hub
 {
     /// <summary>大厅页：房间列表轮询、快速进入/选房/建房、战绩与设置入口、头像气泡。</summary>
     public sealed class Page_LobbyLogic : PageLogicBase

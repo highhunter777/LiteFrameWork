@@ -4,8 +4,9 @@ using System.Globalization;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
+using LiteGame.Modules.UI.Bind;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages.Screens.Hub
 {
     /// <summary>最近战绩页：进入即查最近 N 局（空表/未配置 = 空态），行点击无动作，返回大厅。</summary>
     public sealed class Page_RecordsLogic : PageLogicBase

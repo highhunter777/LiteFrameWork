@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using LiteFramework.UI;
+using LiteGame.Modules.UI.Pages;
 
 namespace LiteGame.Modules.UI
 {

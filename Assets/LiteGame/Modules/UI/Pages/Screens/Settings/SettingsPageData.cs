@@ -1,6 +1,6 @@
 using LiteFramework.UI;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages.Screens.Settings
 {
     /// <summary>设置页导航数据：对局中打开（battleExit）= 显示类置灰并给退场钮；exitKey 覆盖退场文案。</summary>
     public sealed class SettingsPageData : IUIData

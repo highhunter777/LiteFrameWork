@@ -4,7 +4,7 @@ using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.Modules.Settings;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages.Screens.Settings
 {
     /// <summary>设置页：五页签（音频/图形/显示/控制/常规），即改即生效、关闭落盘、对局中锁显示类。</summary>
     public sealed class Page_SettingsLogic : PageLogicBase

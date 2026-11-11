@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Globalization;
 using LiteFramework.UI;
+using LiteGame.Modules.UI.Bind;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages.Screens.Match
 {
     /// <summary>结算页：本机摘要 ＋ 玩家排行列表（名次口径在 C#，本页只做行投影）。</summary>
     public sealed class Page_ResultLogic : PageLogicBase

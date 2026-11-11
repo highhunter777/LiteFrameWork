@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Pages.Screens.Auth
 {
     /// <summary>登录页：游客一键登录（成功替换大厅、失败页内重试）、设置入口、构建版本号。</summary>
     public sealed class Page_LoginLogic : PageLogicBase

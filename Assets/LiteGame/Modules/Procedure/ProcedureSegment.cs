@@ -9,6 +9,7 @@ using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.UI;
+using LiteGame.Modules.UI.Pages;
 
 using LiteSync.Client;
 namespace LiteGame

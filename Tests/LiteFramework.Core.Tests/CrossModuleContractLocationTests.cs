@@ -8,11 +8,12 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// B2 契约可见性守卫：跨模块类型只认 Abstractions/（共享契约在 LiteGame.Core、共享常量在 Modules/Shared）。
+    /// 跨模块类型落点守卫：住所属模块内（任意子目录）或 `LiteGame.Core`；`Abstractions/` 已禁（规范 02 §1.12），
+    /// 非端口的跨模块类型仍须在 `Allowed` 声明理由（只减不增）。
     /// </summary>
     public sealed class CrossModuleContractLocationTests
     {
-        /// <summary>当前例外：跨模块可见但并非端口（实现件/部署件/回退件）。只减不增——新增必须迁 Abstractions/Core。</summary>
+        /// <summary>例外登记：跨模块可见但并非端口（实现件/部署件/回退件）。只减不增——新增须说明为何不是端口。</summary>
         private static readonly Dictionary<string, string> Allowed = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["AnimationProfileConfig"] = "Config 表层配置单源（Battle 读行；随 Config 域收口再评估）",
@@ -36,7 +37,7 @@ namespace LiteFramework.Core.Tests
             RegexOptions.Multiline);
 
         [Fact]
-        public void 跨模块类型必须住Abstractions或Core()
+        public void 跨模块类型必须住所属模块或Core()
         {
             string root = RepoRoot();
             string modulesRoot = Path.Combine(root, "Assets", "LiteGame", "Modules");
@@ -81,9 +82,9 @@ namespace LiteFramework.Core.Tests
                 crossModule.Add(type);
 
                 string relative = pair.Value.Relative.Replace('\\', '/');
-                if (relative.Contains("/Abstractions/", StringComparison.Ordinal)
-                    || relative.Contains("/Shared/", StringComparison.Ordinal)
-                    || relative.Contains("/Generated/", StringComparison.Ordinal))
+                // 落点谓词放宽（规范 02 §1.12）：住所属模块内任意子目录或 LiteGame.Core；Abstractions/ 不再作判据。
+                if (InOwnModule(relative, pair.Value.Module)
+                    || relative.StartsWith("Assets/LiteGame/Core/", StringComparison.Ordinal))
                     continue;
                 if (Allowed.ContainsKey(type)) continue;
 
@@ -95,8 +96,8 @@ namespace LiteFramework.Core.Tests
                 offenders.Add("allowlist 过期（已非跨模块类型，删除该行）：" + stale);
 
             Assert.True(offenders.Count == 0,
-                "跨模块类型必须住 Modules/<域>/Abstractions/ 或 LiteGame.Core（共享常量除外）；"
-                + "新增实现件例外须登记 allowlist 并说明去处：" + string.Join(" | ", offenders));
+                "跨模块类型必须住其所属模块内（任意子目录）或 LiteGame.Core；"
+                + "非端口的实现件例外须登记 Allowed 并说明理由（只减不增）：" + string.Join(" | ", offenders));
         }
 
         /// <summary>
@@ -129,6 +130,10 @@ namespace LiteFramework.Core.Tests
 
             Assert.True(offenders.Count == 0, "测试源码链接存在死链（迁移后未同步 csproj）：" + string.Join(" | ", offenders));
         }
+
+        /// <summary>该文件是否住在其所属模块目录内（任意子目录）。</summary>
+        private static bool InOwnModule(string relative, string module)
+            => relative.StartsWith("Assets/LiteGame/Modules/" + module + "/", StringComparison.Ordinal);
 
         private static string StripComments(string text)
         {

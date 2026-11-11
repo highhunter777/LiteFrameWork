@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LiteFramework.UI;
 
-namespace LiteGame.Modules.UI
+namespace LiteGame.Modules.UI.Bind
 {
     /// <summary>
     /// C# 行表构造：<c>Row(key).Text(节点, 值).KeyText(节点, 文案键, 参数…)</c>。

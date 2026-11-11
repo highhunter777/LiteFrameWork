@@ -10,6 +10,7 @@ using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
 using LiteGame.Modules.Settings;
 using LiteGame.Modules.UI;
+using LiteGame.Modules.UI.Pages;
 using LiteSim;
 
 using LiteSync.Client;
