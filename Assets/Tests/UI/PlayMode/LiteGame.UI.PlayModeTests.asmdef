@@ -36,6 +36,7 @@
         "LiteGame.Battle.Abstractions",
         "LiteGameNext",
         "LiteFrameworkNext",
+        "LiteNet",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],
