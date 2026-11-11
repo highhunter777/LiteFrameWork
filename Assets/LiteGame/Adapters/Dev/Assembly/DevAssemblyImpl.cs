@@ -79,7 +79,9 @@ namespace LiteGame.Adapters.Dev.Assembly
             services.Context.Put(_weakNet);
 
             // 网络调试组件（读模型 + 断线/重连动作）：会话上下文是流程私有件，经诊断静态读口取件。
-            var networkDebug = new NetworkDebug(_weakNet, () => LiteGame.Adapters.Dev.Debug.Diagnostics.BattleDiagnostics.Current);
+            var networkDebug = new NetworkDebug(_weakNet,
+                () => LiteGame.Adapters.Dev.Debug.Diagnostics.BattleDiagnostics.Current?.DebugPort,
+                () => LiteGame.Adapters.Dev.Debug.Diagnostics.BattleDiagnostics.Current?.DebugBattle);
             services.Context.Put(networkDebug);
 
             IDisposable weakCmd = services.Commands.Register(new SetWeakNetPresetHandler(_weakNet),

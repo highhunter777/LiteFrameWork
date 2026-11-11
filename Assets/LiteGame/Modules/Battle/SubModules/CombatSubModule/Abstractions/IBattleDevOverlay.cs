@@ -2,8 +2,8 @@ using System;
 using LiteFramework;
 using LiteFramework;
 using LiteGame;
-using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
+using LiteSim;
 
 namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions
 {
@@ -14,7 +14,8 @@ namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions
     public interface IBattleDevOverlay
     {
         /// <summary>进局装配（register = 命中反馈消费者登记口——自瞄验证件要吃命中事件）。</summary>
-        void Attach(BattleContext context, IInputService input, Action<IHitFeedbackConsumer> register);
+        void Attach(RollbackSim sim, long localEntityId, Func<MatchTestRules> rulesOf, IInputService input,
+            Action<IHitFeedbackConsumer> register);
 
         /// <summary>渲染帧采样**之前**的驱动（自瞄必须早于采样换源）。</summary>
         void TickPreSample();

@@ -5,6 +5,7 @@ using LiteSim;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Battle.Abstractions.View;
 using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
@@ -32,19 +33,21 @@ namespace LiteGame.Modules.Battle.SubModules.SetupSubModule
         public BattleLaserDriver Laser { get; private set; }
         public BattleProtectionFxDriver ProtectionFx { get; private set; }
 
-        /// <summary>建视图 + 挂上下文 + 移动动画驱动（须在 StartGame 之后调用）。</summary>
-        public void AttachCore(BattleContext context, Transform viewRoot, GameObject prefab,
-            ICameraService camera, AnimationClipManifest manifest, IAnimationBackendFactory backendFactory = null,
-            Func<Vector3?> aimPointOf = null, WeaponGripCatalog gripCatalog = null)
+        /// <summary>建视图 + 挂本局数据源 + 移动动画驱动（须在 StartGame 之后调用）。</summary>
+        /// <param name="attachView">视图端口挂载口（把建好的视图交给对局上下文接线；本件不认识上下文）。</param>
+        public void AttachCore(SimWorldState predictedState, IEventBus events, Action<IBattleView> attachView,
+            Transform viewRoot, GameObject prefab, ICameraService camera, AnimationClipManifest manifest,
+            IAnimationBackendFactory backendFactory = null, Func<Vector3?> aimPointOf = null,
+            WeaponGripCatalog gripCatalog = null)
         {
             _viewRoot = viewRoot;
             _prefab = prefab;
-            View = new SimView(context.Sim.State, viewRoot,
+            View = new SimView(predictedState, viewRoot,
                 factory: InstantiateView,
                 recycler: null,                                   // 自有池（EntityService 接线归表现域批）
                 camera: camera,
-                events: context.Events);                          // 帧事件唯一投递面（Match 作用域总线）
-            context.AttachView(View);
+                events: events);                                  // 帧事件唯一投递面（Match 作用域总线）
+            attachView?.Invoke(View);
 
             // 动画 Profile：表单源（读口行 → 按模型族装载——缺行/坏行在装配期显性失败）。
             var animationProfile = AnimationProfileLoader.FromRows(
@@ -58,11 +61,11 @@ namespace LiteGame.Modules.Battle.SubModules.SetupSubModule
         }
 
         /// <summary>挂瞄准激光（端点判定与显隐归驱动；本方法只装配）。</summary>
-        public void AttachLaser(BattleContext context, IInputService input, GameObject laserBeam,
-            LiteGame.IDevSession dev = null)
+        public void AttachLaser(IInputService input, GameObject laserBeam, RollbackSim sim, SimMapData map,
+            MatchTestRules rules, LiteGame.IDevSession dev = null)
         {
             if (laserBeam == null) return;                        // 资产缺失已在取件处降级（警告过）
-            if (context.Sim == null)
+            if (sim == null)
             {
                 Log.Warning("Sim 未建——瞄准激光本局降级（Attach 早于 StartGame 的装配序）", LogTag.Battle);
                 return;
@@ -74,7 +77,7 @@ namespace LiteGame.Modules.Battle.SubModules.SetupSubModule
                 return;
             }
             // 本局规则随装配注入（爆头带覆写随动；驱动不读 ILocalTestHooks 静态读口）。
-            Laser = new BattleLaserDriver(View, input, context.Sim, context.Map, line, context.MatchRules, dev);
+            Laser = new BattleLaserDriver(View, input, sim, map, line, rules, dev);
             Log.Info("laser-attached", LogTag.Battle);
         }
 

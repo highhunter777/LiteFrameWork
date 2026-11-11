@@ -190,7 +190,8 @@ namespace LiteGame.Modules.Battle.SubModules.SetupSubModule
             UnityEngine.Events.UnityAction menuClick =
                 openBattleMenu != null ? new UnityEngine.Events.UnityAction(openBattleMenu) : null;
 
-            _viewAssembler.AttachCore(_context, _viewRoot, _assets.Prefab, _camera,
+            _viewAssembler.AttachCore(_context.Sim.State, _context.Events, _context.AttachView,
+                _viewRoot, _assets.Prefab, _camera,
                 _assets.ClipManifestLease?.Asset, _backendFactory, aimPointOf: () => _lookController.AimPoint,
                 gripCatalog: _gripCatalog);
 
@@ -202,16 +203,17 @@ namespace LiteGame.Modules.Battle.SubModules.SetupSubModule
             var respawnFacts = new BattleReadModel(PublicFactState, localEntityIdOf, _viewAssembler.IsLocalDead);
             var hudModel = new BattleHudModel(predictedFacts, publicFacts, respawnFacts, localEntityIdOf,
                 () => _context.NetworkQuality, _context.CombatFeed);
-            _hudAssembler.Attach(_context, _viewAssembler.View, _input,
+            _hudAssembler.Attach(_viewAssembler.View, _input,
                 _assets.HudView, _assets.HudInstance, menuClick, dispatcher, hudModel);
 
-            _viewAssembler.AttachLaser(_context, _input, _assets.LaserBeam, _dev);
+            _viewAssembler.AttachLaser(_input, _assets.LaserBeam, _context.Sim, _context.Map, _context.MatchRules, _dev);
             _viewAssembler.AttachProtectionFx(_assets.ProtectionShellLease);
             _hudAssembler.AttachRespawnHud(dispatcher);
             _lookController.Attach(_viewAssembler.View);
-            _feedbackAssembler.AttachConsumers(_context, _viewAssembler.View);
+            _feedbackAssembler.AttachConsumers(_context.CombatFeed, _viewAssembler.View);
             // 开发叠加层（爆头区域常驻可视化 + 爆头自动验证件）：由 Dev 装配实现，发布形态 null = 零开销。
-            _devOverlay?.Attach(_context, _input, consumer => _feedbackAssembler.Register(consumer));
+            _devOverlay?.Attach(_context.Sim, _context.LocalEntityId, () => _context?.MatchRules, _input,
+                consumer => _feedbackAssembler.Register(consumer));
             AttachInputWiring();
             if (_commands != null && _teleportDispatch != null)
             {

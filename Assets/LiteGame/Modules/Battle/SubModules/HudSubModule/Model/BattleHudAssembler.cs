@@ -6,7 +6,6 @@ using LiteSim;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
-using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Battle.SubModules.ArenaSubModule.View;
 using LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback;
@@ -47,7 +46,7 @@ namespace LiteGame.Modules.Battle.SubModules.HudSubModule.Model
         internal GameObject Root => _hudInstance;
 
         /// <summary>建 HUD 族并接线（须在视图建立之后；HUD 件自身缺失时逐项静默降级）。</summary>
-        public void Attach(BattleContext context, SimView view, IInputService input,
+        public void Attach(SimView view, IInputService input,
             IBattleHudView hudView, GameObject hudInstance, UnityEngine.Events.UnityAction menuClick,
             HitFeedbackDispatcher dispatcher, BattleHudModel model)
         {

@@ -13,7 +13,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 无对局_断线与重连给稳定拒绝原因()
         {
-            var network = new NetworkDebug(null, null);
+            var network = new NetworkDebug(null, null, null);
 
             Assert.IsFalse(network.HasBattle, "无对局上下文");
             Assert.IsFalse(network.TryForceDisconnect(out string disconnectError));
@@ -40,7 +40,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 无对局_读数空态且弱网未启用()
         {
-            var network = new NetworkDebug(null, null);
+            var network = new NetworkDebug(null, null, null);
 
             Assert.AreEqual(ClientSessionPhase.Idle, network.Phase);
             Assert.IsFalse(network.Quality.HasSample, "无对局无 RTT/丢包样本");
@@ -51,7 +51,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 无对局_自动重连抑制开关给稳定拒绝原因()
         {
-            var network = new NetworkDebug(null, null);
+            var network = new NetworkDebug(null, null, null);
 
             Assert.IsFalse(network.SuppressAutoReconnect, "无对局 = 未抑制");
             Assert.IsFalse(network.TrySetSuppressAutoReconnect(true, out string error));

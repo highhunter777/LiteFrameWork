@@ -2,11 +2,11 @@ using System;
 using LiteFramework;
 using LiteFramework;
 using LiteGame;
-using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Battle.SubModules.CombatSubModule.Abstractions;
 using LiteGame.Adapters.Dev.Battle;
 using LiteGame.Adapters.Dev.Debug.Session;
+using LiteSim;
 
 namespace LiteGame.Adapters.Dev.Assembly
 {
@@ -20,11 +20,12 @@ namespace LiteGame.Adapters.Dev.Assembly
         private AutoHeadshotRig _autoHeadshot;
         private IInputService _input;
 
-        public void Attach(BattleContext context, IInputService input, Action<IHitFeedbackConsumer> register)
+        public void Attach(RollbackSim sim, long localEntityId, Func<MatchTestRules> rulesOf, IInputService input,
+            Action<IHitFeedbackConsumer> register)
         {
             _input = input;
-            _headshotDebug = new BattleHeadshotDebugDrawer(context.Sim, () => context.MatchRules);
-            _autoHeadshot = new AutoHeadshotRig(context.Sim.State, context.LocalEntityId);
+            _headshotDebug = new BattleHeadshotDebugDrawer(sim, rulesOf);
+            _autoHeadshot = new AutoHeadshotRig(sim.State, localEntityId);
             register?.Invoke(_autoHeadshot);
         }
 

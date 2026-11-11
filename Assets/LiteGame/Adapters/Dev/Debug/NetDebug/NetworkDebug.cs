@@ -6,6 +6,7 @@ using LiteNet;
 using LiteNet.Diagnostics;
 
 using LiteGame.Adapters.Dev.Debug.WeakNet;
+using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Shared;
 using LiteSync.Client;
 using LiteGame.Adapters.Dev.Debug.Diagnostics;
@@ -19,18 +20,22 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
     public sealed class NetworkDebug
     {
         private readonly WeakNetRuntime _weakNet;
-        private readonly Func<BattleContext> _battle;
+        private readonly Func<BattleDebugPort> _debugPort;
+        private readonly Func<IBattleClient> _battleClient;
 
         /// <param name="weakNet">弱网运行实例（可为 null——未装配时读模型显示"未启用"）。</param>
-        /// <param name="battle">当前对局上下文取件（通常 <c>() =&gt; BattleDiagnostics.Current</c>；null = 恒无对局）。</param>
-        public NetworkDebug(WeakNetRuntime weakNet, Func<BattleContext> battle)
+        /// <param name="debugPort">当前对局调试开关面取件（通常 <c>() =&gt; BattleDiagnostics.Current?.DebugPort</c>；null = 恒无对局）。</param>
+        /// <param name="battleClient">当前对局会话客户端取件（断线/重连动作口；null = 恒无对局）。</param>
+        public NetworkDebug(WeakNetRuntime weakNet, Func<BattleDebugPort> debugPort,
+            Func<IBattleClient> battleClient)
         {
             _weakNet = weakNet;
-            _battle = battle;
+            _debugPort = debugPort;
+            _battleClient = battleClient;
         }
 
         /// <summary>当前对局是否存在（无对局时动作一律拒绝、读数整组隐藏）。</summary>
-        public bool HasBattle => Battle != null;
+        public bool HasBattle => BattleClient != null;
 
         /// <summary>当前会话相位（无对局 = Idle）。</summary>
         public ClientSessionPhase Phase
@@ -55,14 +60,14 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
         /// <summary>设置自动重连抑制（无对局如实拒绝）。</summary>
         public bool TrySetSuppressAutoReconnect(bool suppressed, out string error)
         {
-            BattleContext context = Battle;
-            if (context == null)
+            BattleDebugPort port = DebugPort;
+            if (port == null)
             {
                 error = "无对局（未进房）";
                 return false;
             }
 
-            context.DebugPort.SuppressAutoReconnect = suppressed;
+            port.SuppressAutoReconnect = suppressed;
             error = null;
             return true;
         }
@@ -91,8 +96,8 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
         /// </summary>
         public bool TryForceDisconnect(out string error)
         {
-            BattleContext context = Battle;
-            if (!BattleDiagnostics.TryTake(context, out BattleDiagnostics.Snapshot snapshot))
+            IBattleClient client = BattleClient;
+            if (client == null || !BattleDiagnostics.TryTake(out BattleDiagnostics.Snapshot snapshot))
             {
                 error = "无对局（未进房）";
                 return false;
@@ -105,7 +110,7 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
                 return false;
             }
 
-            context.DebugBattle.Disconnect();
+            client.Disconnect();
             error = null;
             return true;
         }
@@ -116,8 +121,8 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
         /// </summary>
         public bool TryBeginReconnect(out string error)
         {
-            BattleContext context = Battle;
-            if (!BattleDiagnostics.TryTake(context, out BattleDiagnostics.Snapshot snapshot))
+            IBattleClient client = BattleClient;
+            if (client == null || !BattleDiagnostics.TryTake(out BattleDiagnostics.Snapshot snapshot))
             {
                 error = "无对局（未进房）";
                 return false;
@@ -130,7 +135,7 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
                 return false;
             }
 
-            if (!context.DebugBattle.BeginReconnect())
+            if (!client.BeginReconnect())
             {
                 error = "重连未发起（票据已耗尽或相位已变化）";
                 return false;
@@ -148,11 +153,13 @@ namespace LiteGame.Adapters.Dev.Debug.NetDebug
         public static bool CanBeginReconnect(ClientSessionPhase phase)
             => phase == ClientSessionPhase.SuspectedLost;
 
-        private BattleContext Battle => _battle != null ? _battle() : null;
+        private BattleDebugPort DebugPort => _debugPort != null ? _debugPort() : null;
+
+        private IBattleClient BattleClient => _battleClient != null ? _battleClient() : null;
 
         /// <summary>当前对局快照（读数一律经快照，不逐个抓上下文属性；无对局 = false）。</summary>
         private bool TryPeek(out BattleDiagnostics.Snapshot snapshot)
-            => BattleDiagnostics.TryTake(Battle, out snapshot);
+            => BattleDiagnostics.TryTake(out snapshot);
     }
 }
 #endif

@@ -67,13 +67,13 @@ namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback
         public void Register(IHitFeedbackConsumer consumer) => _dispatcher?.Register(consumer);
 
         /// <summary>建反馈消费者并接线（伤害数字 → 战斗特效 → 远端火光 → 对局音效 → 权威反馈）。</summary>
-        public void AttachConsumers(BattleContext context, SimView view)
+        public void AttachConsumers(PublicCombatFeed feed, SimView view)
         {
             AttachDamageNumbers(view);
             AttachCombatFx(view);
-            AttachRemoteFireFx(context, view);
+            AttachRemoteFireFx(feed, view);
             AttachAudio();
-            _authority = new AuthoritativeCombatFeedback(context.CombatFeed, view, _dispatcher);
+            _authority = new AuthoritativeCombatFeedback(feed, view, _dispatcher);
         }
 
         /// <summary>权威命中/击杀队列 → 分发器（先于 HUD/消费者）。</summary>
@@ -168,10 +168,10 @@ namespace LiteGame.Modules.Battle.SubModules.CombatSubModule.Feedback
         }
 
         /// <summary>挂远端开火火光：消费会话公共战斗事件面的开火队列，把他人开火落到其枪口挂点。</summary>
-        private void AttachRemoteFireFx(BattleContext context, SimView view)
+        private void AttachRemoteFireFx(PublicCombatFeed feed, SimView view)
         {
             if (_vfx == null) return;                      // VFX 已整体降级（AttachCombatFx 处已警告）
-            _remoteFire = new BattleRemoteMuzzleFlashDriver(view, context.CombatFeed, _vfx);
+            _remoteFire = new BattleRemoteMuzzleFlashDriver(view, feed, _vfx);
             Log.Info("remote-fire-attached", LogTag.Battle);
         }
 
