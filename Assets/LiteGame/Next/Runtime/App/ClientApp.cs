@@ -5,7 +5,6 @@ using LiteFrameworkNext;
 using LiteGameNext.Features.Account;
 using LiteGameNext.Features.Battle;
 using LiteGameNext.Features.Battle.Hud;
-using LiteGameNext.Features.Battle.Input;
 using LiteGameNext.Features.Battle.World;
 using LiteGameNext.Features.Matchmaking;
 using LiteGameNext.Features.Result;
@@ -104,11 +103,9 @@ namespace LiteGameNext
         {
             if (!TryParseEndpoint(match.Address, out string host, out int port))
                 return BattleResult.Failed("房间地址无效：" + match.Address);
-            var input = new UnityBattleInput(
-                () => world == null ? Vector3.zero : world.LocalPosition,
-                () => world == null ? Vector3.zero : world.AimPoint);
+            // 输入 tick 未对齐（P2b2c 未验收）：先不注入，避免向服务器发错误帧/假意图。
             using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue(),
-                       hud: hud, world: world, input: input))
+                       hud: hud, world: world))
                 return await session.RunAsync(cancellationToken);
         }
 

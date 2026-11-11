@@ -56,7 +56,8 @@ namespace LiteGame.Tests.PlayMode
                 yield return null;
             Assert.IsTrue(s1.Status.Contains("对局进行中") && s2.Status.Contains("对局进行中"),
                 "未开局：" + s1.Status + " / " + s2.Status);
-            yield return new WaitForSeconds(1f);
+            float readyDeadline = Time.realtimeSinceStartup + 3f;
+            while (hud1.Ammo <= 0 && Time.realtimeSinceStartup < readyDeadline) yield return null;
             Assert.Greater(hud1.Ammo, 0, "s1 未收到弹药快照");
             Assert.Greater(hud2.Ammo, 0, "s2 未收到弹药快照");
 

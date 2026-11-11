@@ -135,7 +135,7 @@ namespace LiteGameNext.Features.Battle
                     && snapshotFrame != _lastInputSnapshotFrame)
                 {
                     _lastInputSnapshotFrame = snapshotFrame;
-                    _frame = snapshotFrame + 5;
+                    _frame = Math.Max(_frame + 1, snapshotFrame);
                     BattleInputState state = _input.Read();
                     _client.SendInput(_frame, BattleInputFrame.Build(state, _localEntityId),
                         Math.Max(0, snapshotFrame));
