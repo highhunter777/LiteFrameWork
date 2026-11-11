@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using LiteGameNext.Features.Battle;
 using LiteGameNext.Features.Battle.Hud;
+using LiteGameNext.Features.Battle.Input;
 using LiteNet;
 using LiteNet.Transport;
 using NUnit.Framework;
@@ -40,6 +41,16 @@ namespace LiteGame.Tests.PlayMode
             if (run.IsFaulted) throw run.Exception;
             Assert.IsTrue(run.Result.Contains("对局进行中") || run.Result.Contains("对局结束"),
                 "未进房/开局：" + run.Result);
+            Assert.IsTrue(run.Result.Contains("ammo=0") || run.Result.Contains("ammo=1")
+                || run.Result.Contains("ammo=2") || run.Result.Contains("ammo=3")
+                || run.Result.Contains("ammo=4") || run.Result.Contains("ammo=5"),
+                "开火未消耗弹匣：" + run.Result);
+        }
+
+        private sealed class FixedFireInput : IBattleInput
+        {
+            public BattleInputState Read()
+                => new BattleInputState(0f, 0f, fire: true, aim: false, new Vector3(0f, 1.2f, 5f));
         }
 
         private static async Task<string> RunAsync(string envelope, string ticket)
@@ -49,7 +60,7 @@ namespace LiteGame.Tests.PlayMode
             var hud = new BattleHudModel();
             using var cts = new CancellationTokenSource(8000);
             using var session = new RoomSession("127.0.0.1", 17777, "lobby-default", ticket,
-                LiteNet.BuildHash.Value, transport, hud: hud);
+                LiteNet.BuildHash.Value, transport, hud: hud, input: new FixedFireInput());
             try
             {
                 BattleResult result = await session.RunAsync(cts.Token);
