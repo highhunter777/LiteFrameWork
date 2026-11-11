@@ -31,6 +31,7 @@ namespace LiteGameNext.Features.Battle
         private bool _disposed;
         private bool _started;
         private int _frame;
+        private int _lastInputUnityFrame = -1;
         private long _localEntityId;
 
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
@@ -94,9 +95,11 @@ namespace LiteGameNext.Features.Battle
             {
                 _client.TickIncoming();
                 _client.TickOutgoing();
-                if (_started && _input != null && _localEntityId != 0)
+                if (_started && _input != null && _localEntityId != 0
+                    && Time.frameCount != _lastInputUnityFrame)
                 {
-                    _frame++;
+                    _lastInputUnityFrame = Time.frameCount;
+                    _frame = Math.Max(_frame + 1, _client.LastSnapshotFrame + 1);
                     BattleInputState state = _input.Read();
                     _client.SendInput(_frame, BattleInputFrame.Build(state, _localEntityId),
                         Math.Max(0, _client.LastSnapshotFrame));
