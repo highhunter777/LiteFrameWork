@@ -167,6 +167,7 @@ namespace LiteGameNext.Features.Battle
             {
                 LiteNet.Proto.SlotDelta slot = snapshot.Slots[index];
                 _positions[slot.Id] = new Vector3(slot.PosX, slot.PosY, slot.PosZ);
+                if (slot.Id == _localEntityId && _hud != null) _hud.SetScore(slot.Kills, slot.Deaths);
             }
 
             if (_hud == null) return;

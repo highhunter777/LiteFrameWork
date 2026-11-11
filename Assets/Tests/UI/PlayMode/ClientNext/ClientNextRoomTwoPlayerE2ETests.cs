@@ -60,7 +60,7 @@ namespace LiteGame.Tests.PlayMode
                 "未开局：" + s1.Status + " / " + s2.Status);
             s1.SetInput(aim);
             yield return new WaitForSeconds(3f);
-            Assert.Less(hud2.Health, 100, "对方未掉血，hud=" + hud2.Health);
+            Assert.Less(hud2.Health, 100, "对方未掉血：hp=" + hud2.Health);
 
             cts.Cancel();
             while (!t1.IsCompleted || !t2.IsCompleted) yield return null;
