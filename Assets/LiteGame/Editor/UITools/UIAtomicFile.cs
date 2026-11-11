@@ -5,7 +5,7 @@ using System.Text;
 namespace LiteGame.Editor.UITools
 {
     /// <summary>
-    /// UI 工具生成物的整文件写入（清单/契约共用）：先写同目录临时件，再替换目标。
+    /// UI 工具生成物的整文件写入（页面清单写盘）：先写同目录临时件，再替换目标。
     /// </summary>
     public static class UIAtomicFile
     {

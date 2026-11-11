@@ -14,7 +14,7 @@ namespace LiteGame.Editor.UITools.Page
         InReview = 1,
         /// <summary>已登记：tbuiform 有行、C# 逻辑件已建。</summary>
         Registered = 2,
-        /// <summary>已接线：工程已按契约接线（导航/数据/反馈）。</summary>
+        /// <summary>已接线：工程已接线（导航/数据/反馈）。</summary>
         Wired = 3,
         /// <summary>冻结：基线冻结，破坏性变更需新基线。</summary>
         Frozen = 4,

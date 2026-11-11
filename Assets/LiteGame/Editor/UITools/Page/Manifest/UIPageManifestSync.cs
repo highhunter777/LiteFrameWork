@@ -19,7 +19,7 @@ namespace LiteGame.Editor.UITools.Page
     }
 
     /// <summary>
-    /// 页面清单对账（《UI 编辑器工具链专项设计》§8.5）：`tbuiform` 行 + 已有清单 + 契约存在性 → 清单。
+    /// 页面清单对账（《UI 编辑器工具链专项设计》§8.5）：`tbuiform` 行 + 已有清单 → 清单。
     /// </summary>
     public static class UIPageManifestSync
     {

@@ -12,7 +12,7 @@ namespace LiteGame.Tests.EditMode
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UIPreviewLocaleEditModeTests
     {
-        private const string SampleKey = "UI.Login.Title";      // 试点页真实 key（契约 text[3] 之一）
+        private const string SampleKey = "UI.Login.Title";      // 试点页真实 key（Page_LoginLogic.SetTextKey 之一）
 
         [Test]
         public void 直载_服务非空且中文可用()

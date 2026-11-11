@@ -7,7 +7,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UITools.Binding
 {
     /// <summary>
-    /// 绑定面遍历单源（hash/契约/校验域）：一次深度优先枚举页面/模板的全部节点，并标记绑定根、Clone_ 子树、 嵌套模板实例与模板内部件。
+    /// 绑定面遍历单源（绑定 hash/插槽发现）：一次深度优先枚举页面/模板的全部节点，并标记绑定根、Clone_ 子树、 嵌套模板实例与模板内部件。
     /// </summary>
     public sealed class UISurfaceNode
     {

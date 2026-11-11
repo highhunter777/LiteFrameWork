@@ -9,7 +9,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 绑定遍历统一（审计 L247 收口）：生成器域标记收集与 hash/契约/校验域共用同一「哪些节点属于本页/本模板」 语义——<c>Clone_</c> 子树、模板（prefab 实例）内部件不入本页 marks。
+    /// 绑定遍历统一（审计 L247 收口）：生成器域标记收集与 hash/校验域共用同一「哪些节点属于本页/本模板」 语义——<c>Clone_</c> 子树、模板（prefab 实例）内部件不入本页 marks。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class BindSearchUnificationEditModeTests

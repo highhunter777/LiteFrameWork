@@ -30,15 +30,15 @@ namespace LiteFramework.UI
         public bool FullScreen;
         /// <summary>per-form 缓存策略（§5.2）。</summary>
         public UICacheStrategy CacheStrategy = UICacheStrategy.Lru;
-        /// <summary>绑定表（契约 controls；运行时当前只读 Id/Location/Layer/FullScreen/CacheStrategy，工具/校验可用）。</summary>
+        /// <summary>绑定表（页面 prefab 绑定面投影；运行时当前只读 Id/Location/Layer/FullScreen/CacheStrategy，工具/校验可用）。</summary>
         public IReadOnlyList<PageControlDefinition> Controls = Array.Empty<PageControlDefinition>();
-        /// <summary>文案 key 表（契约 text；工具/校验可用）。</summary>
+        /// <summary>文案 key 表（页面 prefab `LTextKeyRef` 投影；工具/校验可用）。</summary>
         public IReadOnlyList<PageTextKeyDefinition> TextKeys = Array.Empty<PageTextKeyDefinition>();
-        /// <summary>样式引用表（契约 styles；工具/校验可用）。</summary>
+        /// <summary>样式引用表（页面 prefab `UIStyleRef` 投影；工具/校验可用）。</summary>
         public IReadOnlyList<PageStyleRefDefinition> StyleRefs = Array.Empty<PageStyleRefDefinition>();
     }
 
-    /// <summary>页面控件定义（契约 controls 的投影）。</summary>
+    /// <summary>页面控件定义（prefab 绑定面的一行）。</summary>
     public readonly struct PageControlDefinition
     {
         public string BindName { get; }
@@ -57,7 +57,7 @@ namespace LiteFramework.UI
         }
     }
 
-    /// <summary>页面样式引用（契约 styles 的投影）。</summary>
+    /// <summary>页面样式引用（prefab `UIStyleRef` 的一行）。</summary>
     public readonly struct PageStyleRefDefinition
     {
         public string NodePath { get; }
@@ -72,7 +72,7 @@ namespace LiteFramework.UI
         }
     }
 
-    /// <summary>页面文案 key（契约 text 的投影）。</summary>
+    /// <summary>页面文案 key（prefab `LTextKeyRef` 的一行）。</summary>
     public readonly struct PageTextKeyDefinition
     {
         public string NodePath { get; }

@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 namespace LiteGame.Editor.UITools
 {
     /// <summary>
-    /// UI 生成物（页面契约/控件清单等）的确定性 JSON 口径（单源）：固定缩进、字段序由 `JsonProperty(Order)` 决定、LF 换行、UTF-8 无 BOM（写盘侧负责编码）、无时间戳。
+    /// UI 工具 JSON（页面清单/控件清单/预览矩阵/设备档）的确定性 JSON 口径（单源）：固定缩进、字段序由 `JsonProperty(Order)` 决定、LF 换行、UTF-8 无 BOM（写盘侧负责编码）、无时间戳。
     /// </summary>
     public static class UIDeterministicJson
     {

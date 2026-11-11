@@ -16,7 +16,7 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// UI 工作台守卫（《UI 编辑器工具链专项设计》§2 工作台）：角色动作矩阵、透视清单、共享上下文、
-    /// 页面清单投影与确定性保存、契约报告投影、单一制作入口（ui.workbench 在册 / ui.compose 退役）。
+    /// 页面清单投影与确定性保存、单一制作入口（ui.workbench 在册 / ui.compose 退役）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class UIWorkbenchEditModeTests

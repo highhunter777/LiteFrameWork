@@ -6,13 +6,13 @@ namespace LiteGame.Editor.UITools.Workbench
     /// </summary>
     public enum UIWorkbenchLane
     {
-        /// <summary>美术：起页、控件库、布局、令牌、静态 key、暴露标记、契约生成、增量校验、预览。</summary>
+        /// <summary>美术：起页、控件库、布局、令牌、静态 key、暴露标记、增量校验、预览。</summary>
         Art,
 
         /// <summary>TA：令牌/字体/图集/控件模板、控件规范、性能预算、全量校验。</summary>
         Technical,
 
-        /// <summary>工程：页面登记、绑定生成、契约评审/消费、逻辑接线、全量校验、运行时调试。</summary>
+        /// <summary>工程：页面登记、绑定生成、逻辑接线、全量校验、运行时调试。</summary>
         Engineering,
     }
 

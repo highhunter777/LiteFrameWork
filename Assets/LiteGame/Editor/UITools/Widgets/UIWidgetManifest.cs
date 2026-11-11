@@ -81,7 +81,7 @@ namespace LiteGame.Editor.UITools.Widgets
         [JsonProperty("properties", Order = 12)]
         public List<UIWidgetPropertyEntry> Properties { get; set; } = new List<UIWidgetPropertyEntry>();
 
-        /// <summary>模板绑定面 hash（`UIBindGenerationHash`；用于契约 `templates[].bindingHash` 对账）。</summary>
+        /// <summary>模板绑定面 hash（`UIBindGenerationHash.ComputeHash`；计入清单 `sourceHash`）。</summary>
         [JsonProperty("bindingHash", Order = 13)]
         public string BindingHash { get; set; }
     }

@@ -63,7 +63,7 @@ namespace LiteGame.Editor.UITools.Binding
 
             if (prefabRoot != null)
             {
-                // 遍历单源（契约生成共用）：根自身不属绑定面（BindSearch 同口径），
+                // 遍历单源（绑定面指纹）：根自身不属绑定面（BindSearch 同口径），
                 // 嵌套生成根整棵子树跳过（独立生成单位）。
                 foreach (UISurfaceNode node in UIBindSurfaceWalker.Walk(prefabRoot))
                 {

@@ -9,7 +9,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// P1-3 页面清单：`tbuiform` 行 + 已有清单 + 契约存在性对账；条目按页面（prefab）唯一、
+    /// P1-3 页面清单：`tbuiform` 行 + 已有清单对账；条目按页面（prefab）唯一、
     /// `forms[]` 承载多行登记；维护字段保留、身份字段刷新；草稿与状态流转受迁移表约束。
     /// </summary>
     public sealed class UIPageManifestEditModeTests

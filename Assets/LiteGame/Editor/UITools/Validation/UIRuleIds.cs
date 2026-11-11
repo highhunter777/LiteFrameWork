@@ -9,13 +9,13 @@ namespace LiteGame.Editor.UITools.Validation
         /// <summary>结构：页面根契约（Canvas/CanvasScaler/GraphicRaycaster/CanvasGroup + SafeAreaReceiver）。</summary>
         public const string PageStructure = "ui.page-structure";
 
-        /// <summary>契约：控件模板必须声明 `WidgetSpec`。</summary>
+        /// <summary>契约（生成物与清单）：控件模板必须声明 `WidgetSpec`。</summary>
         public const string WidgetSpec = "ui.widget-spec";
 
-        /// <summary>契约：控件清单与磁盘生成物一致（漂移检查）。</summary>
+        /// <summary>契约（生成物与清单）：控件清单与磁盘生成物一致（漂移检查）。</summary>
         public const string WidgetManifest = "ui.widget-manifest";
 
-        /// <summary>契约：页面清单与 `tbuiform`/磁盘一致（漂移与对账检查）。</summary>
+        /// <summary>契约（生成物与清单）：页面清单与 `tbuiform`/磁盘一致（漂移与对账检查）。</summary>
         public const string PageManifest = "ui.page-manifest";
 
         /// <summary>文本：静态文案 key 必须在 tbltext（`LTextKeyRef` 与 C# `SetTextKey*` 两路）。</summary>
@@ -57,7 +57,7 @@ namespace LiteGame.Editor.UITools.Validation
         /// <summary>性能：页面根挂 Animator（Error，UI-PREFAB-03）；UI 子树任意 Animator（Warning）。</summary>
         public const string PerformanceAnimator = "ui.performance.animator";
 
-        /// <summary>契约：页面逻辑件与 prefab 载体对账（逻辑件存在 ⇒ 根挂 IUIFormLogic；重复实现报错）。</summary>
+        /// <summary>契约（生成物与清单）：页面逻辑件与 prefab 载体对账（逻辑件存在 ⇒ 根挂 IUIFormLogic；重复实现报错）。</summary>
         public const string PageLogic = "ui.page-logic";
 
         /// <summary>例外登记自身：条目字段非法。</summary>

@@ -8,7 +8,7 @@ namespace LiteGame.Editor.UITools.Widgets
 {
     /// <summary>
     /// WidgetSpec 的作者面引擎（《UI 系统总设计》§6.5 插槽容器约定）：从模板节点发现可声明的插槽，
-    /// 供 Inspector 一键填充。遍历复用 <see cref="UIBindSurfaceWalker"/>（与绑定 hash/契约同一归属口径）。
+    /// 供 Inspector 一键填充。遍历复用 <see cref="UIBindSurfaceWalker"/>（与绑定 hash 同一归属口径）。
     /// </summary>
     public static class WidgetSpecAuthoring
     {

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LiteGame.Editor.UITools.Page
 {
     /// <summary>
-    /// `#uiform.xlsx` 的读写唯一门面（《UI 编辑器工具链专项设计》§3.1/§3.6）：页面清单对账、契约生成、 校验与登记都只经这里读表。
+    /// `#uiform.xlsx` 的读写唯一门面（《UI 编辑器工具链专项设计》§3.1/§3.6）：页面清单对账、页面登记与校验都只经这里读表。
     /// </summary>
     public static class UIPageTableHelper
     {
