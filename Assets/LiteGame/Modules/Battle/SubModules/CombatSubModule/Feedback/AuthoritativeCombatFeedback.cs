@@ -2,6 +2,7 @@ using System;
 using LiteFramework;
 using LiteSim;
 using UnityEngine;
+using LiteGame.Modules.Battle.Shared;
 
 namespace LiteGame
 {

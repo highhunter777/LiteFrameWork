@@ -5,7 +5,7 @@ using LiteFramework;
 
 using LiteSync.Client;
 using LiteGame.Modules.Battle.Abstractions.Run;
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Hosting.Client
 {
     /// <summary>
     /// 对局客户端会话：**持有传输与 RoomClient**，负责装配与生命周期。

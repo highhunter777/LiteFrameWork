@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using LiteNet.Proto;
 using LiteGame.Modules.Battle.Abstractions.Settlement;
+using LiteGame.Modules.Battle.Shared;
 
 namespace LiteGame
 {

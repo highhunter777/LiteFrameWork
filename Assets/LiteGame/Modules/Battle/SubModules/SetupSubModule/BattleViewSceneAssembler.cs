@@ -5,6 +5,7 @@ using LiteSim;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;

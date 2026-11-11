@@ -6,6 +6,8 @@ using LiteNet;
 using LiteNet.Transport;
 using LiteSim;
 using NUnit.Framework;
+using LiteGame.Modules.Battle.Hosting.Client;
+using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Map;
 
 namespace LiteGame.Tests.EditMode

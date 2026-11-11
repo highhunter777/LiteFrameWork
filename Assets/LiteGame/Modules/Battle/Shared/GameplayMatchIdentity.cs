@@ -2,7 +2,7 @@ using LiteFramework;
 using LiteSim;
 using LiteGame.Modules.Battle.Abstractions.Session;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Shared
 {
     /// <summary>
     /// 本局玩法数据身份实现：基摘要来自本地装载产物，规则位按本局实例计算。

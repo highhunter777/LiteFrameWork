@@ -1,4 +1,6 @@
 using LiteFramework;
+using LiteGame.Modules.Battle;
+using LiteGame.Modules.Battle.Shared;
 
 namespace LiteGame
 {

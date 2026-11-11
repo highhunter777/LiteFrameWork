@@ -5,6 +5,8 @@ using LiteFramework.Diagnostics;
 using LiteNet;
 
 using LiteSync.Client;
+using LiteGame.Modules.Battle.Shared;
+
 namespace LiteGame
 {
     /// <summary>

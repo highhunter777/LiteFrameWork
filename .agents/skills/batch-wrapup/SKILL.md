@@ -12,6 +12,7 @@ description: 一批代码改动完成后的收尾验证与文档回写流程。�
 | 情况 | 必跑 |
 |---|---|
 | 一切改动的基线 | Unity recompile 0 错误 + `python scripts/gate/test.py --suite L1 --profile PullRequest` |
+| 改过 `Assets/` 下类型的**命名空间或类型名** | 核 `Tests/*.csproj` 的 `<Compile Include>` **源链接面** —— Unity 编译绿 ≠ dotnet 工程绿：被源链接进测试工程的类型改 ns 后会 `CS0246`，**只有 L1 暴露** |
 | 动过共享源集 / .proto / 表 | 按 `build-hash-sync` skill 重生成,再跑 L1(内含 BuildHash 守卫与表守卫) |
 | 目录搬动过 | 按 `directory-move-sync` skill 同步六面后跑 L1 |
 | 出包前 | `python scripts/codegen/toolbox.py build-hash --check` |

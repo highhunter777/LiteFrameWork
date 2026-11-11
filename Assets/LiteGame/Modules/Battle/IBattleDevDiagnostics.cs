@@ -1,6 +1,7 @@
 using LiteFramework;
+using LiteGame.Modules.Battle.Shared;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle
 {
     /// <summary>
     /// 对局诊断登记端口（M3-6b 3b）：开发装配实现把本局上下文登记到诊断读口（DevHud/GM 页只读），

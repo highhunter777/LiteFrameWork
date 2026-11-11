@@ -6,7 +6,7 @@ using LiteGame.Modules.Input;
 
 using LiteSync.Client;
 using LiteGame.Modules.Battle.Abstractions.Run;
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Hosting.World
 {
     /// <summary>
     /// 本地输入上行管线（《角色状态与动作专项设计》§3"输入三件"的落点，从对局上下文外提）： ① 本帧采样入史（RollbackSim.OnRealInput）——第 F 步用真实输入而非沿用。

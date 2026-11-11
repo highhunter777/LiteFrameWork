@@ -4,6 +4,7 @@ using LiteSim;
 using LiteFramework;
 using LiteGame;
 using LiteGame.Modules.Battle.Abstractions.Read;
+using LiteGame.Modules.Battle.Shared;
 
 namespace LiteGame
 {

@@ -7,6 +7,7 @@ using LiteNet;
 using LiteNet.Transport;
 using Xunit;
 using LiteGame.Modules.Battle.Abstractions.Run;
+using LiteGame.Modules.Battle.Hosting.Client;
 
 namespace LiteNet.Tests
 {

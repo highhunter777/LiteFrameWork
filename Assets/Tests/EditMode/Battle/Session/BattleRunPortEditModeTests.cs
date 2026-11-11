@@ -11,8 +11,11 @@ using LiteNet.Transport;
 using LiteSim;
 using LiteTesting;
 using NUnit.Framework;
+using LiteGame.Modules.Battle;
 using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.View;
+using LiteGame.Modules.Battle.Hosting.Client;
+using LiteGame.Modules.Battle.Shared;
 
 namespace LiteGame.Tests.EditMode
 {

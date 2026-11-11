@@ -4,6 +4,7 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using LiteGame.Modules.Battle.Shared;
 
 namespace LiteGame.Tests.EditMode
 {

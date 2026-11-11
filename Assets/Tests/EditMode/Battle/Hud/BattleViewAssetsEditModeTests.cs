@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using NUnit.Framework;
 using UnityEngine;
+using LiteGame.Modules.Battle.Shared;
 
 namespace LiteGame.Tests.EditMode
 {

@@ -1,6 +1,6 @@
 {
     "name": "LiteGame.Modules.Battle",
-    "rootNamespace": "LiteGame",
+    "rootNamespace": "LiteGame.Modules.Battle",
     "references": [
         "LiteGame.Modules.Config",
         "LiteGame.Modules.Settings",

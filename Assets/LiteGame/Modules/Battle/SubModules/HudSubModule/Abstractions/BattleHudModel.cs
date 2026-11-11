@@ -2,6 +2,7 @@ using System;
 using LiteNet;
 using LiteSim;
 using LiteGame.Modules.Battle.Abstractions.Read;
+using LiteGame.Modules.Battle.Shared;
 
 namespace LiteGame
 {

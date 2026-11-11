@@ -5,6 +5,7 @@ using LiteFramework;
 using LiteFramework.Animation;
 using LiteFramework.UI;
 using LiteGame.Modules.Battle.Arena;
+using LiteGame.Modules.Battle.Hosting.Client;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;
@@ -13,7 +14,7 @@ using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.View;
 using LiteGame.Modules.Battle.Abstractions.Settlement;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle
 {
     /// <summary>
     /// ⑫ 战斗域装配段：战斗自持的表现内核（租约缓存/实体/声音/世界 VFX）。

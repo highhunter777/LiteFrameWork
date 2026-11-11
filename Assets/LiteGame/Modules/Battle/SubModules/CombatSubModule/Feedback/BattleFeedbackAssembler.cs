@@ -5,6 +5,7 @@ using UnityEngine;
 using LiteFramework;
 using LiteGame;
 using LiteGame.Feedback.DamageNumbers;
+using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Camera;
 
 namespace LiteGame

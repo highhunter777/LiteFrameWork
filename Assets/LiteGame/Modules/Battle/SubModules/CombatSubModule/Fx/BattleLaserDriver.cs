@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 
 namespace LiteGame

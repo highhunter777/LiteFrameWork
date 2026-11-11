@@ -9,7 +9,7 @@ using LiteFramework.Animation;
 using UnityEngine;
 using LiteFramework.UI;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Shared
 {
     /// <summary>
     /// 对局视图的**资源取件域**：角色 prefab / 激光束 / HUD prefab / 出生保护壳 / 飘字底件与四档材质 / 片段清单 / 四组音效——全部经内容服务租约并登记视图作用域。

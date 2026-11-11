@@ -9,13 +9,15 @@ using LiteSync.Snapshot;
 using LiteSim;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Battle.Hosting.Client;
+using LiteGame.Modules.Battle.Hosting.World;
 using LiteGame.Modules.Config;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.View;
 using LiteGame.Modules.Battle.Abstractions.Session;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Shared
 {
     /// <summary>
     /// 对局上下文：一局对局的**运行态编排**——网络事件 → 持久镜像重建（协议单源 SnapshotReassembler）→ 预测/和解（RollbackSim）→ 表现视图（SimView/相机/动画）→ 输入上行。

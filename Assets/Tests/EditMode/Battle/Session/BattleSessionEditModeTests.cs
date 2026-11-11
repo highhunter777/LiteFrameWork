@@ -13,6 +13,8 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Battle.Hosting.Client;
+using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Map;
 

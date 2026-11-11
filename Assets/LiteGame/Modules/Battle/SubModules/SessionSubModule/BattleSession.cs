@@ -4,6 +4,8 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteNet.Proto;
 using LiteSim;
+using LiteGame.Modules.Battle;
+using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 
 using LiteSync.Client;

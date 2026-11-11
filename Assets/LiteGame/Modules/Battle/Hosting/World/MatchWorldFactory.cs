@@ -3,7 +3,7 @@ using LiteSync.Snapshot;
 using LiteSim;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Hosting.World
 {
     /// <summary>
     /// 对局世界构建：按服务器 seed/地图/房间规模重建同构 Sim 世界与输入模板。

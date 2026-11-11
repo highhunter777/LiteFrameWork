@@ -1,6 +1,8 @@
 using System;
 using LiteFramework;
 using LiteFramework.Diagnostics;
+using LiteGame.Modules.Battle.Hosting.Client;
+using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 using LiteGame.Modules.Battle.Abstractions.Run;
 using LiteGame.Modules.Battle.Abstractions.Session;

@@ -2,6 +2,7 @@ using System;
 using LiteFramework;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Battle.Shared;
 using LiteGame.Modules.Input;
 
 namespace LiteGame

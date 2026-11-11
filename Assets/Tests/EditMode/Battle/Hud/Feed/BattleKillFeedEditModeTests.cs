@@ -8,6 +8,7 @@ using NUnit.Framework;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using LiteGame.Modules.Battle.Shared;
 
 namespace LiteGame.Tests.EditMode
 {

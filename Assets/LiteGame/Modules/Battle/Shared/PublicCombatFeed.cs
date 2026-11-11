@@ -5,7 +5,7 @@ using LiteNet.Proto;
 using LiteSim;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Shared
 {
     /// <summary>
     /// 公共战斗事件面（《状态同步专项设计》§5.2 CombatEvent 面）：独立包 PacketType.CombatEvents 携带的窗口 → **去重后的分类队列**，供各表现驱动逐条取用。

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteGame.Modules.Battle;
 using LiteGame.Modules.Camera;
 using LiteGame.Modules.Composition;
 using LiteGame.Modules.Config;

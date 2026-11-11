@@ -3,6 +3,7 @@ using LiteFramework;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Battle;
 using LiteGame.Modules.Dev;
 using LiteNet.Transport;
 

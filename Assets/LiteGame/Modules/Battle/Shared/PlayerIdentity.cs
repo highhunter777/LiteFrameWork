@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using LiteNet.Proto;
 using LiteSim;
 
-namespace LiteGame
+namespace LiteGame.Modules.Battle.Shared
 {
     /// <summary>
     /// 参赛玩家**身份序号单源**（排行榜与阵亡归属的占位名单源共用——防两份序号逻辑漂移）。

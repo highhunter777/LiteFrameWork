@@ -3,6 +3,7 @@ using LiteFramework;
 using LiteSim;
 using UnityEngine;
 using LiteFramework.UI;
+using LiteGame.Modules.Battle.Shared;
 
 namespace LiteGame
 {
