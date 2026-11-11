@@ -110,6 +110,10 @@
       "reason": "uGUI Button/Text/Selectable（Next 页面运行时）"
     },
     {
+      "name": "Unity.Newtonsoft.Json",
+      "reason": "Meta HTTP JSON 编解码（Next MetaClient）"
+    },
+    {
       "name": "YooAsset",
       "reason": "YooAsset 内容系统"
     },
@@ -1112,9 +1116,11 @@
       "defineConstraints": [],
       "references": [
         "LiteFrameworkNext",
+        "LiteGame.MetaWire",
         "UniTask",
         "UnityEngine.UI",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.Newtonsoft.Json"
       ],
       "notes": "迁移期 hot 应用件（ClientApp/UiRuntime/Features；P3b2 合并回 LiteGame）"
     },

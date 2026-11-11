@@ -3,9 +3,11 @@
     "rootNamespace": "LiteGameNext",
     "references": [
         "LiteFrameworkNext",
+        "LiteGame.MetaWire",
         "UniTask",
         "UnityEngine.UI",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.Newtonsoft.Json"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

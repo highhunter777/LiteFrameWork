@@ -205,8 +205,12 @@ namespace Tools.DisciplineScan
             // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 UI 框架（LiteFramework.UI）的
             // 专属适配，住其 Anim 子目录（同 InputSystem 的 UI/Input 判例）
             ("DG.Tweening", new[] { "Packages/com.litegame.framework/Runtime/Services/UI/Anim/" }),
-            // Newtonsoft：JSON 序列化器（第三方）。
-            ("Newtonsoft", new[] { "Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft/" }),
+            // Newtonsoft：JSON 序列化器（第三方）；Next 的 Meta 平台适配是迁移期第二处边界。
+            ("Newtonsoft", new[]
+            {
+                "Packages/com.litegame.framework/Runtime/Adapters/Newtonsoft/",
+                "Assets/LiteGame/Next/Runtime/Platform/Meta/",
+            }),
         };
 
         /// <summary>
