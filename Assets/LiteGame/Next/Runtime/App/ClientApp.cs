@@ -41,6 +41,7 @@ namespace LiteGameNext
         private readonly RecordsFeature _records;
         private readonly IDevHooks _dev;
         private readonly ConfigService _config;
+        private System.Collections.Generic.Dictionary<int, LiteGameNext.Platform.Config.CrosshairFeel> _crosshairMap;
         private readonly AppFlow _flow;
         private readonly Lifetime _lifetime = new Lifetime();
 
@@ -74,7 +75,7 @@ namespace LiteGameNext
             _dev = devHooksOverride ?? CreateDevHooks();
             // Dev 本地服不依赖 Meta（进程内房间），故有 Dev 面时也建战斗功能。
             _battle = (_meta == null && (_dev == null || !_dev.Enabled)) ? null : new BattleFeature(_ui, RunRoomSessionAsync,
-                () => CreateWorld());
+                () => CreateWorld(), CrosshairOf);
             _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result, _settings, _records,
                 (_dev != null && _dev.Enabled) ? CreateLocalMatch : (Func<MatchInfo>)null);
             _lifetime.Add(_ui);
@@ -170,6 +171,14 @@ namespace LiteGameNext
                 return "NextContentService(YooAsset/Offline)";
 #endif
             }
+        }
+
+        /// <summary>按武器 id 取准心参数（表未装载回落中性值）。</summary>
+        private LiteGameNext.Platform.Config.CrosshairFeel CrosshairOf(int weaponId)
+        {
+            if (!_config.Loaded) return LiteGameNext.Platform.Config.CrosshairFeel.Neutral;
+            _crosshairMap ??= LiteGameNext.Platform.Config.CrosshairTableProjection.Project(_config.Tables);
+            return LiteGameNext.Platform.Config.CrosshairTableProjection.For(_crosshairMap, weaponId);
         }
 
         /// <summary>本局预期配置摘要（表未装载返回 null = 跳过校验，不误拒局）。</summary>

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using LiteGameNext.Platform.Config;
 using UnityEngine;
 
 namespace LiteGameNext.Features.Battle.World
@@ -12,9 +14,15 @@ namespace LiteGameNext.Features.Battle.World
         private const string ReloadParam = "Reload";
 
         private readonly Animator _animator;
+        private readonly IReadOnlyDictionary<string, AnimProfile> _profiles;
         private CharacterAnimState _current = CharacterAnimState.Idle;
 
-        public CharacterAnimPlayer(Animator animator) => _animator = animator;
+        /// <param name="profiles">`tbanimationprofile` 投影；null = 用内置速度阈值。</param>
+        public CharacterAnimPlayer(Animator animator, IReadOnlyDictionary<string, AnimProfile> profiles = null)
+        {
+            _animator = animator;
+            _profiles = profiles;
+        }
 
         /// <summary>当前动画态（诊断/测试）。</summary>
         public CharacterAnimState Current => _current;
@@ -25,7 +33,7 @@ namespace LiteGameNext.Features.Battle.World
         /// <summary>按事实推进动画；态变化时写参数。</summary>
         public void Apply(in CharacterAnimFacts facts)
         {
-            CharacterAnimState next = CharacterAnimSelector.Select(facts);
+            CharacterAnimState next = CharacterAnimSelector.Select(facts, _profiles);
             bool changed = next != _current;
             _current = next;
             if (_animator == null || !_animator.isActiveAndEnabled) return;

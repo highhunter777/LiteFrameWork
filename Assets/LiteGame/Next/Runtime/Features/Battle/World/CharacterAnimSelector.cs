@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using LiteGameNext.Platform.Config;
 using UnityEngine;
 
 namespace LiteGameNext.Features.Battle.World
@@ -46,34 +49,60 @@ namespace LiteGameNext.Features.Battle.World
         public float NowSeconds { get; }
     }
 
-    /// <summary>角色动画态选择：死亡/受击/换弹优先，其次瞄准（四向 strafe），否则移动混合（idle/walk/run）。</summary>
+    /// <summary>
+    /// 角色动画态选择：死亡/受击/换弹优先，其次瞄准（四向 strafe），否则移动混合。
+    /// 速度阈值可来自 `tbanimationprofile`（有档案表按表区间选）；无表回落内置阈值。
+    /// </summary>
     public static class CharacterAnimSelector
     {
         /// <summary>命中动画持续窗口（秒）。</summary>
         public const float HitWindowSeconds = 0.25f;
 
-        /// <summary>低于此速度视为静止。</summary>
+        /// <summary>低于此速度视为静止（无档案表时的兜底）。</summary>
         public const float IdleSpeedThreshold = 0.1f;
 
-        /// <summary>高于此速度用跑步动画。</summary>
+        /// <summary>高于此速度用跑步动画（无档案表时的兜底）。</summary>
         public const float RunSpeedThreshold = 3.5f;
 
         /// <summary>按事实选动画态；优先级：Dead &gt; Hit &gt; Reload &gt; Aim &gt; Move。</summary>
         public static CharacterAnimState Select(in CharacterAnimFacts facts)
+            => Select(in facts, null);
+
+        /// <summary>
+        /// 按事实选动画态；<paramref name="profiles"/> 提供速度区间（`Walk`/`Run` 档案），
+        /// 为 null 或缺失时回落内置阈值。
+        /// </summary>
+        public static CharacterAnimState Select(in CharacterAnimFacts facts,
+            IReadOnlyDictionary<string, AnimProfile> profiles)
         {
             if (facts.IsDead) return CharacterAnimState.Dead;
             if (facts.NowSeconds - facts.HitAtSeconds <= HitWindowSeconds) return CharacterAnimState.Hit;
             if (facts.IsReloading) return CharacterAnimState.Reload;
 
+            float idleThreshold = ResolveIdleThreshold(profiles);
             if (facts.IsAiming)
             {
-                if (facts.MoveSpeed < IdleSpeedThreshold) return CharacterAnimState.AimIdle;
+                if (facts.MoveSpeed < idleThreshold) return CharacterAnimState.AimIdle;
                 return AimWalkOf(facts.LocalVelocity);
             }
 
-            if (facts.MoveSpeed < IdleSpeedThreshold) return CharacterAnimState.Idle;
-            return facts.MoveSpeed >= RunSpeedThreshold ? CharacterAnimState.Run : CharacterAnimState.Walk;
+            if (facts.MoveSpeed < idleThreshold) return CharacterAnimState.Idle;
+            return facts.MoveSpeed >= ResolveRunThreshold(profiles)
+                ? CharacterAnimState.Run
+                : CharacterAnimState.Walk;
         }
+
+        /// <summary>从档案表取静止阈值（`Idle` 档案的 MaxSpeed）；缺表回落常量。</summary>
+        private static float ResolveIdleThreshold(IReadOnlyDictionary<string, AnimProfile> profiles)
+            => profiles != null && profiles.TryGetValue("Idle", out AnimProfile idle) && idle.MaxSpeed > idle.MinSpeed
+                ? idle.MaxSpeed
+                : IdleSpeedThreshold;
+
+        /// <summary>从档案表取跑步阈值（`Run` 档案的 MinSpeed）；缺表回落常量。</summary>
+        private static float ResolveRunThreshold(IReadOnlyDictionary<string, AnimProfile> profiles)
+            => profiles != null && profiles.TryGetValue("Run", out AnimProfile run) && run.MaxSpeed > run.MinSpeed
+                ? run.MinSpeed
+                : RunSpeedThreshold;
 
         /// <summary>瞄准移动四向：按速度最大轴选 strafe 片段。</summary>
         private static CharacterAnimState AimWalkOf(Vector3 velocity)

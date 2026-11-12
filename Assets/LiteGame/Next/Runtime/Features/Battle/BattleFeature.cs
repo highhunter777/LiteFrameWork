@@ -16,6 +16,7 @@ namespace LiteGameNext.Features.Battle
         private readonly UiRuntime _ui;
         private readonly Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken, UniTask<BattleResult>> _session;
         private readonly Func<BattleWorldView> _worldFactory;
+        private readonly Func<int, LiteGameNext.Platform.Config.CrosshairFeel> _crosshairOf;
         private BattleWorldView _activeWorld;
 
         /// <summary>逐帧驱动活动对局的世界视图（远端插值）；无活动对局或世界已销毁为 no-op。</summary>
@@ -28,11 +29,13 @@ namespace LiteGameNext.Features.Battle
 
         public BattleFeature(UiRuntime ui,
             Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken, UniTask<BattleResult>> session,
-            Func<BattleWorldView> worldFactory = null)
+            Func<BattleWorldView> worldFactory = null,
+            Func<int, LiteGameNext.Platform.Config.CrosshairFeel> crosshairOf = null)
         {
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _worldFactory = worldFactory;
+            _crosshairOf = crosshairOf;
         }
 
         /// <summary>跑一局：房间页/HUD/世界 → 会话 → 必然清理页面与世界；取消仍清理。</summary>
@@ -40,6 +43,7 @@ namespace LiteGameNext.Features.Battle
         {
             if (match == null) throw new ArgumentNullException(nameof(match));
             var hud = new BattleHudModel();
+            if (_crosshairOf != null) hud.SetCrosshairFeel(_crosshairOf(0));
             BattleWorldView world = _worldFactory?.Invoke();
             _activeWorld = world;
             PageHandle room = await _ui.OpenAsync<RoomPage>(

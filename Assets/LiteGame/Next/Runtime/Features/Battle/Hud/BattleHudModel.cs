@@ -62,6 +62,10 @@ namespace LiteGameNext.Features.Battle.Hud
         /// <summary>准心：当前散布（度），由武器定义与连射增长算出。</summary>
         public float Spread { get; private set; }
 
+        /// <summary>准心表现参数（来自 `tbcrosshair`）；未注入时用中性值。</summary>
+        public LiteGameNext.Platform.Config.CrosshairFeel Feel { get; private set; }
+            = LiteGameNext.Platform.Config.CrosshairFeel.Neutral;
+
         public int Kills { get; private set; }
 
         public int Deaths { get; private set; }
@@ -112,6 +116,18 @@ namespace LiteGameNext.Features.Battle.Hud
         {
             IsAiming = aiming;
             Spread = Math.Max(0f, spreadDegrees);
+        }
+
+        /// <summary>注入准心表现参数（`tbcrosshair` 投影）。</summary>
+        public void SetCrosshairFeel(LiteGameNext.Platform.Config.CrosshairFeel feel) => Feel = feel;
+
+        /// <summary>准心外圈尺寸（像素）：静态满张 + 散布×张开，封顶 Cap。</summary>
+        public float CrosshairSize(float basePixels)
+        {
+            float scaled = basePixels * Math.Max(0.01f, Feel.StaticMaxScale);
+            float grown = scaled + Spread * Feel.BurstGrowth;
+            float cap = basePixels * Math.Max(1f, Feel.BurstCap);
+            return Math.Min(cap, grown);
         }
 
         public void SetScore(int kills, int deaths, int teamScore = -1)

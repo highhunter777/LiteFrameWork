@@ -14,6 +14,9 @@ namespace LiteGameNext.Features.Battle.Hud
 
         private BattleHudModel _model;
 
+        /// <summary>准心基准像素（表参数按此缩放）。</summary>
+        private const float BaseCrosshairPixels = 36f;
+
         public void Bind(BattleHudModel model)
         {
             _model = model;
@@ -60,7 +63,8 @@ namespace LiteGameNext.Features.Battle.Hud
             SetVisibleSafe("Cot_Ads", _model.IsAiming);
             RectTransform crosshair = BindSafe<RectTransform>("Cot_Crosshair");
             if (crosshair == null) return;
-            float size = Mathf.Min(120f, 36f + _model.Spread * 8f);
+            // 准心外圈尺寸由 `tbcrosshair` 参数驱动（静态满张 + 散布×张开，封顶）。
+            float size = _model.CrosshairSize(BaseCrosshairPixels);
             crosshair.sizeDelta = new Vector2(size, size);
         }
 
