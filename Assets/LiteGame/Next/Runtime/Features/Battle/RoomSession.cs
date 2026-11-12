@@ -226,7 +226,8 @@ namespace LiteGameNext.Features.Battle
         /// <summary>私有状态里的 HP/弹匣喂 HUD；只做展示，不参与判定。</summary>
         private void OnSnapshot(LiteNet.Proto.StateSnapshot snapshot)
         {
-            _world?.ApplySnapshot(snapshot);
+            // Unity fake-null：world 可能已被 BattleFeature 销毁，`?.` 挡不住。
+            if (_world != null) _world.ApplySnapshot(snapshot);
             if (snapshot.PrivateState == null) return;
             // PrivateState 的 EntityId 在 delta 快照可能缺省为 0；只在非 0 时更新，避免把本地实体清空。
             if (snapshot.PrivateState.EntityId != 0) _localEntityId = snapshot.PrivateState.EntityId;

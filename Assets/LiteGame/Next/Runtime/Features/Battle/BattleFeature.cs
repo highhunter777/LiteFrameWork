@@ -18,8 +18,13 @@ namespace LiteGameNext.Features.Battle
         private readonly Func<BattleWorldView> _worldFactory;
         private BattleWorldView _activeWorld;
 
-        /// <summary>逐帧驱动活动对局的世界视图（远端插值）；无活动对局为 no-op。</summary>
-        public void Tick(float deltaTime) => _activeWorld?.Tick(deltaTime);
+        /// <summary>逐帧驱动活动对局的世界视图（远端插值）；无活动对局或世界已销毁为 no-op。</summary>
+        public void Tick(float deltaTime)
+        {
+            // Unity 的 fake-null：对象已 Destroy 时 `?.` 不成立，必须显式比较。
+            if (_activeWorld == null) return;
+            _activeWorld.Tick(deltaTime);
+        }
 
         public BattleFeature(UiRuntime ui,
             Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken, UniTask<BattleResult>> session,

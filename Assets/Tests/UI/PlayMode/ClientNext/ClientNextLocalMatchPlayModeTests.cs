@@ -26,6 +26,10 @@ namespace LiteGame.Tests.PlayMode
         [Category("ClientNextE2E")]
         public IEnumerator Dev本地对局_真实点击游客登录后进入战斗HUD()
         {
+            // 测试隔离：清掉前序用例残留的引导件（GameEntry 有重复引导守卫）。
+            foreach (var entry in UnityEngine.Object.FindObjectsOfType<LiteGameNext.Bootstrap.GameEntry>(true))
+                UnityEngine.Object.DestroyImmediate(entry.gameObject);
+
             yield return SceneManager.LoadSceneAsync(SceneName, LoadSceneMode.Single);
             yield return WaitUntil(() => EventSystem.current != null, "BootNext 场景缺少可用的 EventSystem");
             yield return WaitUntil(() => LoginPage() != null, "启动链未在超时内打开 LoginPage");
