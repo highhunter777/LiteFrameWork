@@ -32,6 +32,22 @@ namespace LiteGameNext.Platform.Localization
         /// <summary>该 key 是否存在（任意 locale）。</summary>
         public bool HasKey(string key) => !string.IsNullOrEmpty(key) && _byKey.ContainsKey(key);
 
+        /// <summary>把本目录全部条目并入目标（同 key 同 locale 覆盖）；返回并入条数。</summary>
+        public int CopyInto(TextCatalog target)
+        {
+            if (target == null) return 0;
+            int count = 0;
+            foreach (KeyValuePair<string, Dictionary<string, string>> pair in _byKey)
+            {
+                foreach (KeyValuePair<string, string> byLocale in pair.Value)
+                {
+                    target.Add(pair.Key, byLocale.Key, byLocale.Value);
+                    count++;
+                }
+            }
+            return count;
+        }
+
         /// <summary>查询；命中目标 locale 返回 false（未回退），命中源语言返回 true。</summary>
         public bool TryGet(string key, string locale, out string text, out bool usedFallback)
         {

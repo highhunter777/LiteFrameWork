@@ -112,6 +112,11 @@ namespace LiteGameNext
             {
                 await _config.LoadAsync(ct);
                 _dev?.Configure(_config.Tables);
+                // 表文案并入本地化（覆盖内置集合；表缺行时保留内置兜底）。
+                var tableText = new TextCatalog();
+                int merged = TextTableProjection.Project(_config.Tables, tableText);
+                if (merged > 0) _text.Merge(tableText);
+                Log.Info("表文案并入：" + merged + " 条");
             }
             catch (Exception ex)
             {

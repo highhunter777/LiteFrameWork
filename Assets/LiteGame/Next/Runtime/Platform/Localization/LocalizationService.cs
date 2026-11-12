@@ -40,6 +40,15 @@ namespace LiteGameNext.Platform.Localization
             LocaleChanged?.Invoke(locale);
         }
 
+        /// <summary>把另一份目录并入（表投影/热更文案用）；同 key 同 locale 覆盖。</summary>
+        public int Merge(TextCatalog other)
+        {
+            if (other == null) return 0;
+            int merged = other.CopyInto(_catalog);
+            if (merged > 0) LocaleChanged?.Invoke(_locale);
+            return merged;
+        }
+
         /// <summary>取原始文案（允许富文本）；缺失返回诊断占位。</summary>
         public string Raw(string key)
         {
