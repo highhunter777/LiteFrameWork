@@ -11,7 +11,9 @@ using LiteGameNext.Features.Matchmaking;
 using LiteGameNext.Features.Records;
 using LiteGameNext.Features.Result;
 using LiteGameNext.Features.Settings;
+using LiteGameNext.Platform.Audio;
 using LiteGameNext.Platform.Content;
+using LiteGameNext.Platform.Localization;
 using LiteGameNext.Platform.Meta;
 using LiteGameNext.Platform.Ui;
 using UnityEngine;
@@ -24,6 +26,8 @@ namespace LiteGameNext
         private readonly LiteFrameworkNext.Platform _platform;
         private readonly NextContentService _content;
         private readonly UiRuntime _ui;
+        private readonly AudioService _audio;
+        private readonly LocalizationService _text;
         private readonly MetaClient _meta;
         private readonly AccountFeature _account;
         private readonly MatchmakingFeature _matchmaking;
@@ -42,10 +46,13 @@ namespace LiteGameNext
             _platform = platform ?? throw new ArgumentNullException(nameof(platform));
             _content = new NextContentService();
             _ui = new UiRuntime(CreatePageAsync);
+            _audio = new AudioService();
+            _text = new LocalizationService(BuildTextCatalog(), developmentMode: true);
             _meta = CreateMetaClient();
             _store = new SettingsStore();
             _store.Load();
             _settings = new SettingsFeature(_ui, new GameSettings(_store, Application.isMobilePlatform));
+            WireSettingEffects();
             _account = new AccountFeature(_ui, _meta, () => SystemInfo.deviceUniqueIdentifier);
             _matchmaking = _meta == null ? null : new MatchmakingFeature(_ui, _account, _meta);
             _records = _meta == null ? null : new RecordsFeature(_ui, _account, _meta);
@@ -90,7 +97,11 @@ namespace LiteGameNext
         public UniTask RunAsync(CancellationToken ct) => _flow.RunAsync(ct);
 
         /// <summary>逐帧驱动：UI 运行时优先（功能 Tick 在 P1 起按需接入）。</summary>
-        public void Tick(float deltaTime) => _ui.Tick(deltaTime);
+        public void Tick(float deltaTime)
+        {
+            _ui.Tick(deltaTime);
+            _audio.Tick(deltaTime);
+        }
 
         /// <summary>逆序关闭：账号功能先于 UI 运行时；内容服务最后归还句柄；关闭链末尾落盘设置。</summary>
         public async UniTask ShutdownAsync()
@@ -105,6 +116,7 @@ namespace LiteGameNext
             }
 
             await _content.ShutdownAsync(CancellationToken.None);
+            _audio.Shutdown();
             await _store.FlushAsync(CancellationToken.None);
             Log.Info("ClientApp 已关闭");
         }
@@ -119,6 +131,44 @@ namespace LiteGameNext
                 return "NextContentService(YooAsset/Offline)";
 #endif
             }
+        }
+
+        /// <summary>文案目录：内置最小集合（zh-CN 源 + en）；接 Luban tbltext 后由表投影替换。</summary>
+        private static TextCatalog BuildTextCatalog()
+        {
+            var catalog = new TextCatalog()
+                .Add("UI.Lobby.Title", "zh-CN", "大厅")
+                .Add("UI.Lobby.Title", "en", "Lobby")
+                .Add("UI.Settings.Title", "zh-CN", "设置")
+                .Add("UI.Settings.Title", "en", "Settings")
+                .Add("UI.Records.Title", "zh-CN", "战绩")
+                .Add("UI.Records.Title", "en", "Records")
+                .Add("UI.Result.Title", "zh-CN", "结算")
+                .Add("UI.Result.Title", "en", "Result")
+                .Add("Common.Close", "zh-CN", "关闭")
+                .Add("Common.Close", "en", "Close");
+            return catalog;
+        }
+
+        /// <summary>把设置项接到真实消费面：音量→音频分组、语言→本地化、sfx→Effect 组静音。</summary>
+        private void WireSettingEffects()
+        {
+            GameSettings settings = _settings.Settings;
+            settings.MasterVolume.Changed += _ => ApplyAudioVolumes();
+            settings.SoundEnabled.Changed += _ => ApplyAudioVolumes();
+            settings.Language.Changed += locale => _text.SetLocale(locale);
+            _text.SetLocale(settings.Language.Value);
+            ApplyAudioVolumes();
+        }
+
+        private void ApplyAudioVolumes()
+        {
+            GameSettings settings = _settings.Settings;
+            float master = settings.MasterVolume.Value;
+            _audio.SetGroupVolume(AudioGroup.Effect, settings.SoundEnabled.Value ? master : 0f);
+            _audio.SetGroupVolume(AudioGroup.UI, master);
+            _audio.SetGroupVolume(AudioGroup.Voice, master);
+            _audio.SetGroupVolume(AudioGroup.Bgm, master);
         }
 
         /// <summary>世界视图 + 角色实体工厂：角色 prefab 首帧加载失败时自动回退立方体。</summary>
