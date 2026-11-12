@@ -17,6 +17,7 @@ namespace LiteGameNext.Dev
             new Dictionary<string, Func<string[], string>>(StringComparer.OrdinalIgnoreCase);
 
         private ILocalRoomSession _session;
+        private cfg.Tables _tables;
         private bool _shutdown;
 
         public DevFeature()
@@ -25,6 +26,9 @@ namespace LiteGameNext.Dev
         }
 
         public bool Enabled => !_shutdown;
+
+        /// <summary>注入配置表：本地服据此投影真实地图；未注入则用内置平坦图。</summary>
+        public void Configure(cfg.Tables tables) => _tables = tables;
 
         /// <summary>已登记的 GM 命令数（诊断）。</summary>
         public int CommandCount => _commands.Count;
@@ -38,9 +42,10 @@ namespace LiteGameNext.Dev
         {
             cancellationToken.ThrowIfCancellationRequested();
             _session?.Dispose();
-            var session = new LocalRoomSession(roomId, expectedPlayers);
+            var session = new LocalRoomSession(roomId, expectedPlayers, _tables);
             _session = session;
-            Log.Info("[Dev] 本地房间已启动：" + roomId + " expected=" + expectedPlayers);
+            Log.Info("[Dev] 本地房间已启动：" + roomId + " expected=" + expectedPlayers
+                + " map=" + (_tables == null ? "内置平坦图" : "tbmap 真实地图"));
             return UniTask.FromResult<ILocalRoomSession>(session);
         }
 

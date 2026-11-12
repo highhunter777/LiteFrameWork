@@ -10,7 +10,9 @@
         "LiteSync",
         "LiteGame.Adapters.Dev",
         "RoomServer.Runtime",
-        "UniTask"
+        "UniTask",
+        "LiteGame.SimConfig",
+        "Luban.Tables"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

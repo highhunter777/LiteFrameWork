@@ -1,5 +1,6 @@
 using System;
 using LiteGame.Adapters.Dev.LocalServer;
+using LiteGame.Modules.Config;
 using LiteGameNext.Platform.Dev;
 using LiteSim;
 using UnityEngine;
@@ -11,10 +12,10 @@ namespace LiteGameNext.Dev
     {
         private readonly LocalServerTransport _transport;
 
-        public LocalRoomSession(string roomId, int expectedPlayers)
+        public LocalRoomSession(string roomId, int expectedPlayers, cfg.Tables tables = null)
         {
             RoomId = string.IsNullOrEmpty(roomId) ? "local-dev" : roomId;
-            SimMapData map = BuildFlatMap();
+            SimMapData map = tables == null ? BuildFlatMap() : MapTableProjection.Project(tables);
             _transport = LocalServerTransport.ForRoom(RoomId, Math.Max(1, expectedPlayers), null, 0u, map);
             _transport.Connect("local", 0);
         }

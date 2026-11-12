@@ -1389,7 +1389,9 @@
         "LiteSync",
         "LiteGame.Adapters.Dev",
         "RoomServer.Runtime",
-        "UniTask"
+        "UniTask",
+        "LiteGame.SimConfig",
+        "Luban.Tables"
       ],
       "notes": "迁移期开发面（本地服/GM 命令）；发布构建不引用，ClientApp 反射装载，缺件回退 NullDevHooks"
     },

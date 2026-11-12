@@ -107,6 +107,16 @@ namespace LiteGameNext
         {
             ct.ThrowIfCancellationRequested();
             await _content.InitializeAsync(ct);
+            // 表装载失败不阻断启动（内容降级：本地服回落内置平坦图、文案回落内置集合）。
+            try
+            {
+                await _config.LoadAsync(ct);
+                _dev?.Configure(_config.Tables);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("配置表装载失败，按降级启动：" + ex.Message);
+            }
             _ui.Initialize();
             _account.Initialize();
             _settings.Settings.ApplyAll();
