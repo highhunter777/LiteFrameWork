@@ -242,7 +242,14 @@ namespace LiteGameNext.Features.Battle
                 }
             }
 
-            _completion.TrySetResult(BattleResult.Completed(_client.PlayerId.ToString()));
+            var rows = new List<BattleSettlementRow>(ended.Players.Count);
+            for (int index = 0; index < ended.Players.Count; index++)
+            {
+                LiteNet.Proto.PlayerMatchResult row = ended.Players[index];
+                rows.Add(new BattleSettlementRow(row.PlayerId.ToString(), row.Kills, row.Deaths, 0L));
+            }
+
+            _completion.TrySetResult(BattleResult.Completed(_client.PlayerId.ToString(), rows));
         }
 
         private void OnPhaseChanged(ClientSessionPhase from, ClientSessionPhase to)
