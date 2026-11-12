@@ -152,7 +152,8 @@ namespace LiteGameNext.Features.Battle
                         LastInputFrame = frame;
                         SentInputs++;
                         BattleInputState state = _input.Read();
-                        _client.SendInput(frame, BattleInputFrame.Build(state, _localEntityId), frame);
+                        _client.SendInput(frame, BattleInputFrame.Build(state, _localEntityId),
+                            Math.Max(0, _client.LastSnapshotFrame)); // 视点帧=已渲染快照，不是本地超前帧
                     }
                 }
 

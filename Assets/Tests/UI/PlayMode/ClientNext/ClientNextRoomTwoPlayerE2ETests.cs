@@ -66,7 +66,6 @@ namespace LiteGame.Tests.PlayMode
                 "服务端未消费开火：ammo=" + hud1.Ammo + " sent=" + s1.SentInputs
                 + " frame=" + s1.LastInputFrame + " ack=" + s1.LastAckInput);
             yield return new WaitForSeconds(3f);
-
             cts.Cancel();
             while (!t1.IsCompleted || !t2.IsCompleted) yield return null;
             if (t1.IsFaulted) throw t1.Exception;
