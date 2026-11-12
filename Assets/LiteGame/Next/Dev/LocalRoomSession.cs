@@ -23,7 +23,22 @@ namespace LiteGameNext.Dev
             // 表值优先：把「注释说等于表值」的人工同步变成机制单源。
             CombatValues? values = config == null ? null : config.TableCombatValues;
             MatchRules rules = config == null ? MatchRules.Default : config.Rules(MatchRules.Default);
-            _transport = LocalServerTransport.ForRoom(RoomId, Math.Max(1, expectedPlayers), null, 0u, map,
+            // 摘要基值必须与客户端 ExpectedConfigHash() 同源，否则 StartGame.ConfigHash 比对会误拒局。
+            // 服务端侧 Digest = WithTestRules(基值, values.NoDeath, values.InfiniteAmmo)，故这里也传基值。
+            uint digestBase = 0u;
+            if (config != null)
+            {
+                try
+                {
+                    digestBase = config.ComputeGameplayDigestBase();
+                }
+                catch (InvalidDataException ex)
+                {
+                    Log.Warning("[Dev] 摘要无法复算，本地服以 0 启动：" + ex.Message);
+                }
+            }
+
+            _transport = LocalServerTransport.ForRoom(RoomId, Math.Max(1, expectedPlayers), null, digestBase, map,
                 roomValues: values, rules: rules);
             _transport.Connect("local", 0);
             Log.Info("[Dev] 本地房间数值来源：" + (values.HasValue ? "配置表" : "C# 默认")

@@ -172,6 +172,22 @@ namespace LiteGameNext
             }
         }
 
+        /// <summary>本局预期配置摘要（表未装载返回 null = 跳过校验，不误拒局）。</summary>
+        private uint? ExpectedConfigHash()
+        {
+            try
+            {
+                // 口径与服务端 FixedCombatConfig.Digest 一致：WithTestRules(基值, NoDeath, InfiniteAmmo)。
+                LiteSim.CombatValues values = _config.TableCombatValues;
+                return _config.ComputeGameplayDigest(values.NoDeath, values.InfiniteAmmo);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("配置摘要无法复算，跳过校验：" + ex.Message);
+                return null;
+            }
+        }
+
         /// <summary>Dev 本地对局用的 MatchInfo：无地址/票据（本地服走进程内房间，不解析 endpoint）。</summary>
         private static MatchInfo CreateLocalMatch()
             => new MatchInfo("local", string.Empty, "local-dev", string.Empty, 0L);
@@ -274,7 +290,8 @@ namespace LiteGameNext
             using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue(),
                        hud: hud, world: world, input: input,
                        audioDriver: new BattleAudioDriver(_audio, null, null, null, null),
-                       damageNumbers: new DamageNumberAggregator()))
+                       damageNumbers: new DamageNumberAggregator(),
+                       expectedConfigHash: ExpectedConfigHash()))
             {
                 session.JoinAcked += mapId => LoadMapForget(mapId, cancellationToken);
                 try
@@ -308,7 +325,8 @@ namespace LiteGameNext
             using (var session = new RoomSession("local", 1, match.RoomId, string.Empty, BuildHashValue(),
                        transport: transport, hud: hud, world: world, input: input,
                        audioDriver: new BattleAudioDriver(_audio, null, null, null, null),
-                       damageNumbers: new DamageNumberAggregator()))
+                       damageNumbers: new DamageNumberAggregator(),
+                       expectedConfigHash: ExpectedConfigHash()))
             {
                 Log.Info("使用 Dev 本地服对局：room=" + match.RoomId);
                 session.JoinAcked += mapId => LoadMapForget(mapId, cancellationToken);

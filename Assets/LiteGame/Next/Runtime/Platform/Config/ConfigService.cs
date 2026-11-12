@@ -92,6 +92,29 @@ namespace LiteGameNext.Platform.Config
 
         /// <summary>按表名取已装载原始字节（诊断/摘要用）。</summary>
         public bool TryGetRaw(string tableName, out byte[] bytes) => _byTableName.TryGetValue(tableName, out bytes);
+
+        /// <summary>
+        /// 玩法配置摘要（红线 1 的客户端复算面）：按 <see cref="TableLayout.JudgmentFiles"/> 单源取字节，
+        /// 与服务端同一算法。未装载即抛（摘要缺表等于判据不同源）。
+        /// </summary>
+        public uint ComputeGameplayDigestBase()
+        {
+            string[] files = TableLayout.JudgmentFiles;
+            var entries = new List<CombatConfigDigest.Entry>(files.Length);
+            for (int i = 0; i < files.Length; i++)
+            {
+                string file = files[i];
+                string tableName = file.Substring(file.LastIndexOf('/') + 1);
+                if (!_byTableName.TryGetValue(tableName, out byte[] bytes))
+                    throw new InvalidDataException("摘要缺表字节：" + file + "（表链不完整）");
+                entries.Add(new CombatConfigDigest.Entry(file, bytes));
+            }
+            return CombatConfigDigest.ComputeBase(entries);
+        }
+
+        /// <summary>本局终值摘要（基摘要 + 测试规则位）；与 `StartGame.ConfigHash` 比对用。</summary>
+        public uint ComputeGameplayDigest(bool noDeath = false, bool infiniteAmmo = false)
+            => CombatConfigDigest.WithTestRules(ComputeGameplayDigestBase(), noDeath, infiniteAmmo);
     }
 
     /// <summary>配置表数据缺失（表链不完整）。</summary>

@@ -28,6 +28,7 @@ namespace LiteGameNext.Features.Battle
         private readonly BattleWorldView _world;
         private readonly BattleAudioDriver _audioDriver;
         private readonly DamageNumberAggregator _damageNumbers;
+        private readonly uint? _expectedConfigHash;
         private IBattleInput _input;
         private readonly bool _autoStart;
         private readonly Dictionary<long, Vector3> _positions = new Dictionary<long, Vector3>();
@@ -44,7 +45,8 @@ namespace LiteGameNext.Features.Battle
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
             IClientTransport transport = null, BattleHudModel hud = null, BattleWorldView world = null,
             IBattleInput input = null, bool autoStart = true,
-            BattleAudioDriver audioDriver = null, DamageNumberAggregator damageNumbers = null)
+            BattleAudioDriver audioDriver = null, DamageNumberAggregator damageNumbers = null,
+            uint? expectedConfigHash = null)
         {
             if (string.IsNullOrWhiteSpace(host)) throw new ArgumentException("房间主机必填", nameof(host));
             if (port <= 0 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port));
@@ -57,6 +59,7 @@ namespace LiteGameNext.Features.Battle
             _autoStart = autoStart;
             _audioDriver = audioDriver;
             _damageNumbers = damageNumbers;
+            _expectedConfigHash = expectedConfigHash;
             _transport = transport ?? new SecureEnvelopeClientTransport(
                 new KcpTransportClient(), SecureEnvelopeOptions.FromEnvironment());
             _client = new RoomClient(_transport);
@@ -215,13 +218,29 @@ namespace LiteGameNext.Features.Battle
                 _client.SendStartMatchRequest();
         }
 
+        /// <summary>收到 StartGame：校验配置摘要（不等即判据不同源，拒绝本局）；然后起帧钟。</summary>
         private void OnStartGame(LiteNet.Proto.StartGame start)
         {
+            // 红线 1：客户端按 StartGame.ConfigHash 复算比对，不等即拒局。
+            if (_expectedConfigHash.HasValue && start.ConfigHash != _expectedConfigHash.Value)
+            {
+                string message = "配置摘要不一致：服务端=" + start.ConfigHash.ToString("x8")
+                    + " 客户端=" + _expectedConfigHash.Value.ToString("x8");
+                Log.Error("[ConfigDigest] " + message);
+                Status = message;
+                ConfigMismatch = message;
+                _client.Disconnect();
+                return;
+            }
+
             Status = "对局进行中…";
             _frame = start.Frame;
             _clock = new BattleFrameClock((ulong)Math.Max(0L, start.Seed), Math.Max(1, ExpectedPlayers));
             _started = true;
         }
+
+        /// <summary>配置摘要不一致时的说明（null = 一致或未校验）。</summary>
+        public string ConfigMismatch { get; private set; }
 
         /// <summary>私有状态里的 HP/弹匣喂 HUD；只做展示，不参与判定。</summary>
         private void OnSnapshot(LiteNet.Proto.StateSnapshot snapshot)
