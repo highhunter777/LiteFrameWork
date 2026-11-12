@@ -1155,7 +1155,10 @@
         "UnityEngine.UI",
         "Unity.TextMeshPro",
         "Unity.Newtonsoft.Json",
-        "YooAsset"
+        "YooAsset",
+        "LiteGame.SimConfig",
+        "Luban.Runtime",
+        "Luban.Tables"
       ],
       "notes": "迁移期 hot 应用件（ClientApp/UiRuntime/Features；P3b2 合并回 LiteGame）"
     },

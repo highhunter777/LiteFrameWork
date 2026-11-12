@@ -12,7 +12,10 @@
         "UniTask",
         "UnityEngine.UI",
         "Unity.TextMeshPro",
-        "Unity.Newtonsoft.Json"
+        "Unity.Newtonsoft.Json",
+        "LiteGame.SimConfig",
+        "Luban.Tables",
+        "Luban.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

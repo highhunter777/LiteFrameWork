@@ -49,6 +49,26 @@ namespace LiteGameNext.Platform.Content
             _initialized = true;
         }
 
+        /// <summary>按资源路径装载原始字节（配置表 `.bytes` 用）；缺资源返回 null 交给调用方判缺。</summary>
+        public async UniTask<byte[]> LoadBytesAsync(string address, CancellationToken ct)
+        {
+            ValidateAddress(address);
+            ct.ThrowIfCancellationRequested();
+#if UNITY_EDITOR
+            await UniTask.CompletedTask;
+            string path = address.Replace('\\', '/');
+            if (!path.StartsWith("Assets/", StringComparison.Ordinal)) path = "Assets/" + path;
+            return UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>(path)?.bytes;
+#else
+            AssetHandle handle = RequirePackage().LoadAssetAsync<TextAsset>(address);
+            await NextAssetAwait.Wait(handle, ct);
+            var asset = handle.AssetObject as TextAsset;
+            byte[] bytes = asset?.bytes;
+            handle.Release();
+            return bytes;
+#endif
+        }
+
         /// <summary>按 prefab 文件名（不含扩展名）装载并实例化，实例保持非激活交给调用方注入依赖。</summary>
         public async UniTask<GameObject> InstantiateAsync(string address, CancellationToken ct)
         {

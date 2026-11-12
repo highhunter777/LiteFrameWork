@@ -12,6 +12,7 @@ using LiteGameNext.Features.Records;
 using LiteGameNext.Features.Result;
 using LiteGameNext.Features.Settings;
 using LiteGameNext.Platform.Audio;
+using LiteGameNext.Platform.Config;
 using LiteGameNext.Platform.Content;
 using LiteGameNext.Platform.Dev;
 using LiteGameNext.Platform.Localization;
@@ -39,6 +40,7 @@ namespace LiteGameNext
         private readonly SettingsFeature _settings;
         private readonly RecordsFeature _records;
         private readonly IDevHooks _dev;
+        private readonly ConfigService _config;
         private readonly AppFlow _flow;
         private readonly Lifetime _lifetime = new Lifetime();
 
@@ -55,6 +57,8 @@ namespace LiteGameNext
         {
             _platform = platform ?? throw new ArgumentNullException(nameof(platform));
             _content = new NextContentService();
+            _config = new ConfigService((file, ct) => _content.LoadBytesAsync(
+                ConfigService.DataDir + file + ".bytes", ct));
             _ui = new UiRuntime(CreatePageAsync);
             _audio = new AudioService();
             _text = new LocalizationService(BuildTextCatalog(), developmentMode: true);
@@ -88,6 +92,9 @@ namespace LiteGameNext
 
         /// <summary>是否已登录（只读透传账号功能）。</summary>
         public bool IsSignedIn => _account.IsSignedIn;
+
+        /// <summary>配置表服务（只读观察面：测试与 Dev 面据此查表）。</summary>
+        public ConfigService Config => _config;
 
         /// <summary>设置功能（只读观察面：入口按钮据此打开设置页）。</summary>
         public SettingsFeature Settings => _settings;
