@@ -35,7 +35,8 @@ namespace LiteGameNext.Features.Battle
         private bool _disposed;
         private bool _started;
         private int _frame;
-        private float _inputAccumulator;
+        private int _lastClockFrame = -1;
+        private BattleFrameClock _clock;
         private long _localEntityId;
 
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
@@ -136,20 +137,18 @@ namespace LiteGameNext.Features.Battle
             {
                 _client.TickIncoming();
                 _client.TickOutgoing();
-                if (_started && _input != null && _localEntityId != 0)
+                if (_started && _input != null && _localEntityId != 0 && _clock != null)
                 {
-                    _inputAccumulator = Math.Min(_inputAccumulator + Time.unscaledDeltaTime, 0.25f);
-                    while (_inputAccumulator >= 1f / 60f)
+                    _clock.Tick(Time.unscaledDeltaTime);
+                    int frame = _clock.Frame;
+                    if (frame != _lastClockFrame)
                     {
-                        _inputAccumulator -= 1f / 60f;
-                        BattleInputState state = _input != null ? _input.Read() : default;
-                        if (SentInputs == 0 && _frame < _client.LastSnapshotFrame)
-                            _frame = _client.LastSnapshotFrame; // 入房/本地实体就绪晚于服务器：首帧对齐当前快照
-                        _frame++;
-                        LastInputFrame = _frame;
+                        _lastClockFrame = frame;
+                        _frame = frame;
+                        LastInputFrame = frame;
                         SentInputs++;
-                        _client.SendInput(_frame, BattleInputFrame.Build(state, _localEntityId),
-                            Math.Max(0, _client.LastSnapshotFrame));
+                        BattleInputState state = _input.Read();
+                        _client.SendInput(frame, BattleInputFrame.Build(state, _localEntityId), frame);
                     }
                 }
 
@@ -181,6 +180,7 @@ namespace LiteGameNext.Features.Battle
         {
             Status = "对局进行中…";
             _frame = start.Frame;
+            _clock = new BattleFrameClock((ulong)Math.Max(0L, start.Seed), Math.Max(1, ExpectedPlayers));
             _started = true;
         }
 
