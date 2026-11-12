@@ -52,7 +52,7 @@ namespace LiteGameNext
             _result = new ResultFeature(_ui);
             _battle = _meta == null ? null : new BattleFeature(_ui, RunRoomSessionAsync,
                 () => CreateWorld());
-            _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result);
+            _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result, _settings, _records);
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
             if (_matchmaking != null) _lifetime.Add(_matchmaking);

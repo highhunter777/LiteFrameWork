@@ -19,7 +19,7 @@ namespace LiteGameNext.Features.Settings
         public GameSettings Settings { get; }
 
         /// <summary>打开设置页并注入设置定义；页面关闭后设置值保留。</summary>
-        public UniTask OpenAsync(CancellationToken cancellationToken)
+        public UniTask<PageHandle> OpenAsync(CancellationToken cancellationToken)
             => _ui.OpenAsync<SettingsPage>(SettingsPage.Spec, page => page.Bind(Settings), cancellationToken);
 
         public void Dispose()

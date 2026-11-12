@@ -56,9 +56,11 @@ namespace LiteGameNext.Features.Matchmaking
 
         public bool IsBusy { get; private set; }
 
-        /// <summary>打开大厅页并绑定；页面关闭后功能仍保留最近房间/结果，供调用方读取。</summary>
-        public UniTask<PageHandle> OpenAsync(CancellationToken cancellationToken)
-            => _ui.OpenAsync<LobbyPage>(LobbyPage.Spec, page => page.Bind(this), cancellationToken);
+        /// <summary>打开大厅页并绑定；可注入旁路页面入口（设置/战绩）。页面关闭后功能仍保留最近状态。</summary>
+        public UniTask<PageHandle> OpenAsync(CancellationToken cancellationToken,
+            Action openSettings = null, Action openRecords = null)
+            => _ui.OpenAsync<LobbyPage>(LobbyPage.Spec,
+                page => page.Bind(this, openSettings, openRecords), cancellationToken);
 
         /// <summary>等一次建房/进房结果；流程消费后可 <see cref="ResetMatch"/> 再等下一局。</summary>
         public UniTask<MatchInfo> WaitForMatchAsync(CancellationToken cancellationToken)

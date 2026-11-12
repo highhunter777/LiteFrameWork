@@ -30,7 +30,7 @@ namespace LiteGameNext.Features.Records
 
         public bool IsBusy { get; private set; }
 
-        public UniTask OpenAsync(CancellationToken cancellationToken)
+        public UniTask<PageHandle> OpenAsync(CancellationToken cancellationToken)
             => _ui.OpenAsync<RecordsPage>(RecordsPage.Spec, page => page.Bind(this), cancellationToken);
 
         /// <summary>刷新最近战绩；失败保留旧列表并写 Status。</summary>

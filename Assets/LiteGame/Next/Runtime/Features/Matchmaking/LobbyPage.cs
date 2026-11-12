@@ -16,8 +16,16 @@ namespace LiteGameNext.Features.Matchmaking
             PageLayer.Screen, fullScreen: true, PageCachePolicy.Lru);
 
         private MatchmakingFeature _feature;
+        private Action _openSettings;
+        private Action _openRecords;
 
-        public void Bind(MatchmakingFeature feature) => _feature = feature;
+        /// <summary>注入大厅依赖与旁路页面入口（设置/战绩）；为 null 时对应按钮不显示。</summary>
+        public void Bind(MatchmakingFeature feature, Action openSettings = null, Action openRecords = null)
+        {
+            _feature = feature;
+            _openSettings = openSettings;
+            _openRecords = openRecords;
+        }
 
         protected override void OnShow()
         {
@@ -26,6 +34,10 @@ namespace LiteGameNext.Features.Matchmaking
             OnClick("Btn_Create", Create);
             OnClick("Btn_QuickJoin", QuickJoin);
             OnClick("Btn_Close", Close);
+            OnClick("Btn_Settings", () => _openSettings?.Invoke());
+            OnClick("Btn_Records", () => _openRecords?.Invoke());
+            SetVisible("Btn_Settings", _openSettings != null);
+            SetVisible("Btn_Records", _openRecords != null);
             RefreshView();
         }
 
