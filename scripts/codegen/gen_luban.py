@@ -35,7 +35,7 @@ PUBLISH_TARGETS = [
 
 # TableLayout 是表清单/域归属的单源；生成器只读它，不维护第二份清单。
 TABLE_LAYOUT_REL = os.path.join(
-    'Assets', 'LiteGame', 'Modules', 'Config', 'Table', 'TableLayout.cs')
+    'Packages', 'com.litegame.shared', 'Runtime', 'Config', 'TableLayout.cs')
 LUBAN_EXE_REL = os.path.join('Luban', 'LubanGenerater', 'Luban', 'Luban.exe')
 LUBAN_CONF_REL = os.path.join('Luban', 'luban.conf')
 TABLE_SOURCE_REL = os.path.join('Luban', 'Data')
