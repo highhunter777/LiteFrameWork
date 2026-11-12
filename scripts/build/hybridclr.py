@@ -14,7 +14,7 @@ from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root  
 from _unity_path import UnityPathError, resolve_unity_exe  # noqa: E402
 
 TOOL = "build/hybridclr"
-METHOD_TYPE = "LiteGame.Editor.Toolchain.HybridCLRTool"
+METHOD_TYPE = "LiteGameNext.Editor.HybridClrEntry"
 COMMANDS = ("status", "install", "generate")
 BATCH_METHODS = {"status": "Status", "install": "Install", "generate": "GenerateAll"}
 PIPELINE_CODE = {
@@ -24,8 +24,8 @@ PIPELINE_CODE = {
         "il2cppPlus={i.Il2cppPlusLocalVersion} installed={i.HasInstalledHybridCLR()}\");\n"
         "return \"installed=\" + i.HasInstalledHybridCLR();"
     ),
-    "install": "LiteGame.Editor.Toolchain.HybridCLRTool.Install();\nreturn \"install ok\";",
-    "generate": "LiteGame.Editor.Toolchain.HybridCLRTool.GenerateAll();\nreturn \"generate ok\";",
+    "install": "LiteGameNext.Editor.HybridClrEntry.Install();\nreturn \"install ok\";",
+    "generate": "LiteGameNext.Editor.HybridClrEntry.GenerateAll();\nreturn \"generate ok\";",
 }
 
 

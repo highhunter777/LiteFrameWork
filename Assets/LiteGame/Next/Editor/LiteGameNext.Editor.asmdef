@@ -1,0 +1,21 @@
+{
+    "name": "LiteGameNext.Editor",
+    "rootNamespace": "LiteGameNext.Editor",
+    "references": [
+        "LiteFrameworkNext",
+        "LiteGameNext",
+        "HybridCLR.Editor",
+        "UniTask"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

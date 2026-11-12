@@ -1392,6 +1392,31 @@
         "UniTask"
       ],
       "notes": "迁移期开发面（本地服/GM 命令）；发布构建不引用，ClientApp 反射装载，缺件回退 NullDevHooks"
+    },
+    {
+      "id": "LiteGameNext.Editor",
+      "assembly": "LiteGameNext.Editor",
+      "path": "Assets/LiteGame/Next/Editor",
+      "asmdef": "Assets/LiteGame/Next/Editor/LiteGameNext.Editor.asmdef",
+      "layer": "editor",
+      "rank": 76,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFrameworkNext",
+        "LiteGameNext",
+        "HybridCLR.Editor",
+        "UniTask"
+      ],
+      "notes": "迁移期编辑器工具（HybridCLR 批处理入口）；不打包，不进运行时分区"
     }
   ],
   "collectPathExceptions": {
