@@ -44,8 +44,14 @@ namespace LiteGameNext
 
         /// <summary>构造：功能只拿自己需要的平台切片（不传平台聚合体/容器）；登记逆序释放顺序。</summary>
         // 平台参数全限定：本命名空间下 LiteGameNext.Platform 会遮蔽框架的 Platform 类型（CS0118）。
-        // devHooksOverride：测试可传 NullDevHooks 以固定"无开发面"的契约（生产不传）。
-        public ClientApp(LiteFrameworkNext.Platform platform, IDevHooks devHooksOverride = null)
+        // 必须保持**单参数**：GameEntry 用 Activator.CreateInstance(type, platform) 反射构造，多签名会导致启动失败。
+        public ClientApp(LiteFrameworkNext.Platform platform)
+            : this(platform, null)
+        {
+        }
+
+        /// <summary>测试用构造：可注入 devHooksOverride 固定「无开发面」契约（生产走单参数版本）。</summary>
+        public ClientApp(LiteFrameworkNext.Platform platform, IDevHooks devHooksOverride)
         {
             _platform = platform ?? throw new ArgumentNullException(nameof(platform));
             _content = new NextContentService();
