@@ -22,7 +22,8 @@ namespace LiteGameNext.Platform.Ui
         public PageHandle Handle => _handle;
 
         /// <summary>页面元数据；未打开时为 null。</summary>
-        public PageSpec Spec => _handle?.Spec;
+        /// <summary>当前展示的页面元数据（未打开为 null）；页面类另持静态 `Spec` 定义，二者不重名。</summary>
+        public PageSpec CurrentSpec => _handle?.Spec;
 
         /// <summary>页面级生命周期；未打开时为 null，关闭后已释放。</summary>
         public Lifetime Lifetime => _handle?.Lifetime;

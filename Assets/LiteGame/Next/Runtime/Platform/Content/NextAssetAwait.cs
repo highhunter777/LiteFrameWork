@@ -50,6 +50,25 @@ namespace LiteGameNext.Platform.Content
             return source.Task;
         }
 
+        public static UniTask<SceneHandle> Wait(SceneHandle handle, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (handle.IsDone)
+            {
+                Fail(handle.Status, handle.Error);
+                return UniTask.FromResult(handle);
+            }
+            var source = new UniTaskCompletionSource<SceneHandle>();
+            handle.Completed += completed =>
+            {
+                if (completed.Status == EOperationStatus.Failed)
+                    source.TrySetException(new InvalidOperationException("YooAsset 场景加载失败:" + completed.Error));
+                else
+                    source.TrySetResult(completed);
+            };
+            return source.Task;
+        }
+
         private static void Fail(EOperationStatus status, string error)
         {
             if (status == EOperationStatus.Failed)
