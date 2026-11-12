@@ -42,7 +42,7 @@ namespace LiteGame.Tests.PlayMode
             var hud2 = new BattleHudModel();
             using var s1 = Create(envelope, tickets[0], hud1, new IdleInput());
             using var s2 = Create(envelope, tickets[1], hud2);
-            var aim = new AimAtInput(s2);
+            var aim = new AimAtInput(s1, s2);
             using var cts = new CancellationTokenSource(20000);
             Task<string> t1 = Pump(s1, cts.Token);
             Task<string> t2 = Pump(s2, cts.Token);
@@ -58,7 +58,7 @@ namespace LiteGame.Tests.PlayMode
                 yield return null;
             Assert.IsTrue(s1.Status.Contains("对局进行中") && s2.Status.Contains("对局进行中"),
                 "未开局：" + s1.Status + " / " + s2.Status);
-            yield return new WaitForSeconds(2.5f);
+            yield return new WaitForSeconds(3.5f);
             s1.SetInput(aim);
             float fireDeadline = Time.realtimeSinceStartup + 5f;
             while (hud1.Ammo >= 30 && Time.realtimeSinceStartup < fireDeadline) yield return null;
@@ -88,16 +88,36 @@ namespace LiteGame.Tests.PlayMode
 
         private sealed class AimAtInput : IBattleInput
         {
+            private readonly RoomSession _shooter;
             private readonly RoomSession _target;
 
-            public AimAtInput(RoomSession target) => _target = target;
+            public AimAtInput(RoomSession shooter, RoomSession target)
+            {
+                _shooter = shooter;
+                _target = target;
+            }
 
             public BattleInputState Read()
             {
-                Vector3 point = _target.TryGetEntityPosition(_target.LocalEntityId, out Vector3 position)
-                    ? position + Vector3.up * 1.2f
-                    : Vector3.zero;
-                return new BattleInputState(0f, 0f, fire: true, aim: false, point);
+                bool hasSelf = _shooter.TryGetEntityPosition(_shooter.LocalEntityId, out Vector3 self);
+                bool hasTarget = _target.TryGetEntityPosition(_target.LocalEntityId, out Vector3 position);
+                if (!hasTarget) return default;
+                Vector3 point = position + Vector3.up * 1.6f;
+                float moveX = 0f;
+                float moveZ = 0f;
+                if (hasSelf)
+                {
+                    Vector3 delta = position - self;
+                    delta.y = 0f;
+                    if (delta.sqrMagnitude > 4f)
+                    {
+                        delta.Normalize();
+                        moveX = delta.x;
+                        moveZ = delta.z;
+                    }
+                }
+
+                return new BattleInputState(moveX, moveZ, fire: true, aim: false, point);
             }
         }
 
