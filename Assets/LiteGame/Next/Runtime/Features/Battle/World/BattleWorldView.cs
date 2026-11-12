@@ -13,22 +13,20 @@ namespace LiteGameNext.Features.Battle.World
         [SerializeField] private Camera _camera;
 
         private readonly Dictionary<long, GameObject> _views = new Dictionary<long, GameObject>();
+        private readonly BattleCameraRig _cameraRig = new BattleCameraRig();
         private Transform _entities;
 
         public Vector3 LocalPosition { get; private set; }
 
         public long LocalEntityId { get; private set; }
 
-        public Vector3 AimPoint
-        {
-            get
-            {
-                if (_camera == null) return LocalPosition + new Vector3(0f, 1.2f, 10f);
-                Ray ray = _camera.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
-                var plane = new Plane(Vector3.up, new Vector3(0f, 1.2f, 0f));
-                return plane.Raycast(ray, out float distance) ? ray.GetPoint(distance) : ray.GetPoint(20f);
-            }
-        }
+        /// <summary>视角旋转（由输入层每帧喂入鼠标增量）。</summary>
+        public void Look(float deltaX, float deltaY) => _cameraRig.Look(deltaX, deltaY);
+
+        /// <summary>瞄准点：有相机走中心射线（可命中他人）；无相机给前向回退点（保持可射击）。</summary>
+        public Vector3 AimPoint => _camera != null
+            ? BattleCameraRig.ResolveAimPoint(_camera)
+            : LocalPosition + new Vector3(0f, 1.2f, 10f);
 
         public void ApplySnapshot(StateSnapshot snapshot)
         {
@@ -53,10 +51,7 @@ namespace LiteGameNext.Features.Battle.World
             }
 
             if (_camera != null && _views.ContainsKey(LocalEntityId))
-            {
-                _camera.transform.position = LocalPosition + new Vector3(0f, 10f, -12f);
-                _camera.transform.LookAt(LocalPosition + Vector3.up * 1.2f);
-            }
+                _cameraRig.Apply(_camera, LocalPosition);
         }
 
         private GameObject GetOrCreate(long entityId)

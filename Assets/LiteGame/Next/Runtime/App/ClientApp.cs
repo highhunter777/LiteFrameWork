@@ -110,7 +110,8 @@ namespace LiteGameNext
                 return BattleResult.Failed("房间地址无效：" + match.Address);
             var input = new UnityBattleInput(
                 () => world == null ? Vector3.zero : world.LocalPosition,
-                () => world == null ? Vector3.zero : world.AimPoint);
+                () => world == null ? Vector3.zero : world.AimPoint,
+                (dx, dy) => world?.Look(dx, dy));
             using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue(),
                        hud: hud, world: world, input: input))
                 return await session.RunAsync(cancellationToken);

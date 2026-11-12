@@ -53,12 +53,11 @@ namespace LiteGame.Tests.EditMode
             }
         }
 
-        // C2 回归卡（S0 先红）：真实 BattleWorld.prefab 的相机被固定在
-        // LocalPosition+(0,10,-12) 且 LookAt(LocalPosition+up*1.2)，屏幕中心射线与
-        // y=1.2 平面交点恒等于自身位置——瞄准点即自己脚下，真实游玩命中率确定性为 0。
-        // S2 搬入正式相机/瞄准链后本用例应转绿；转绿前不得声称「核心流程可玩」。
+        // C2 回归卡：S0 时瞄准点恒等于自身脚下（距离 1.35e-5），真实游玩命中率为 0；
+        // S2 引入 BattleCameraRig（第三人称臂长 + 中心射线瞄准）后转绿。
+        // 保留为长期回归：瞄准点必须远离自身且在可射击距离内。
         [Test]
-        [Explicit("C2 缺陷回归卡：S0 预期红，S2 修好相机/瞄准后转绿")]
+        [Explicit("C2 回归卡：需真实 prefab 相机；验收时显式跑")]
         public void 真实prefab_瞄准点不得等于自身脚下位置()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
@@ -83,16 +82,51 @@ namespace LiteGame.Tests.EditMode
                 view.ApplySnapshot(snapshot);
 
                 Vector3 ownFeet = view.LocalPosition + new Vector3(0f, 1.2f, 0f);
-                // 显式距离阈值：NUnit 对 Vector3 的 AreNotEqual 走 Unity == 容差，
-                // 会把 ~1e-5 的退化差值误判为「不等」，必须用可读的几何距离。
+                // NUnit 对 Vector3 的 AreNotEqual 走 Unity == 容差，须用几何距离断言。
                 float aimDistance = Vector3.Distance(view.AimPoint, ownFeet);
                 Assert.Greater(aimDistance, 0.5f,
                     "瞄准点贴近自身脚下位置（距离 " + aimDistance.ToString("F4") +
                     "）——相机/瞄准链退化（C2），真实游玩无法命中他人");
+                Assert.Less(aimDistance, 200f, "瞄准点距离异常（应落在中心射线可及范围）");
             }
             finally
             {
                 Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void 视角旋转_改变相机朝向并带动瞄准点()
+        {
+            var go = new GameObject("WorldAim", typeof(BattleWorldView));
+            var camGo = new GameObject("Cam");
+            try
+            {
+                var cam = camGo.AddComponent<Camera>();
+                camGo.transform.SetParent(go.transform, false);
+                var view = go.GetComponent<BattleWorldView>();
+                view.ApplySnapshot(new StateSnapshot
+                {
+                    Slots = { new SlotDelta { Id = 10, PosX = 0f, PosY = 0f, PosZ = 0f } },
+                    PrivateState = new PrivateStateDelta { EntityId = 10 },
+                });
+
+                Vector3 before = view.AimPoint;
+                view.Look(90f, 0f);
+                view.ApplySnapshot(new StateSnapshot
+                {
+                    Slots = { new SlotDelta { Id = 10, PosX = 0f, PosY = 0f, PosZ = 0f } },
+                    PrivateState = new PrivateStateDelta { EntityId = 10 },
+                });
+                Vector3 after = view.AimPoint;
+
+                Assert.Greater(Vector3.Distance(before, after), 1f,
+                    "视角旋转 90° 后瞄准点应明显改变（相机朝向驱动瞄准）");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(camGo);
             }
         }
     }

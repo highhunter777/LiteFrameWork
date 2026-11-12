@@ -9,11 +9,15 @@ namespace LiteGameNext.Features.Battle.Input
     {
         private readonly Func<Vector3> _position;
         private readonly Func<Vector3> _aim;
+        private readonly Action<float, float> _look;
+        private const float LookSensitivity = 0.12f;
 
-        public UnityBattleInput(Func<Vector3> position = null, Func<Vector3> aim = null)
+        public UnityBattleInput(Func<Vector3> position = null, Func<Vector3> aim = null,
+            Action<float, float> look = null)
         {
             _position = position ?? (() => Vector3.zero);
             _aim = aim;
+            _look = look;
         }
 
         public BattleInputState Read()
@@ -21,6 +25,13 @@ namespace LiteGameNext.Features.Battle.Input
             Keyboard keyboard = Keyboard.current;
             Mouse mouse = Mouse.current;
             if (keyboard == null) return default;
+
+            if (_look != null && mouse != null)
+            {
+                Vector2 delta = mouse.delta.ReadValue();
+                if (delta.sqrMagnitude > 0f)
+                    _look(delta.x * LookSensitivity, delta.y * LookSensitivity);
+            }
 
             float x = (keyboard.dKey.isPressed ? 1f : 0f) - (keyboard.aKey.isPressed ? 1f : 0f);
             float z = (keyboard.wKey.isPressed ? 1f : 0f) - (keyboard.sKey.isPressed ? 1f : 0f);
