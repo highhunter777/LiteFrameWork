@@ -1379,7 +1379,9 @@
         "editmode"
       ],
       "noEngine": false,
-      "defineConstraints": [],
+      "defineConstraints": [
+        "UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG"
+      ],
       "references": [
         "LiteFrameworkNext",
         "LiteGameNext",
