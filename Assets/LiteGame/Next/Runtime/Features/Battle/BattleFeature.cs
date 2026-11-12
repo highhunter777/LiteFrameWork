@@ -16,6 +16,10 @@ namespace LiteGameNext.Features.Battle
         private readonly UiRuntime _ui;
         private readonly Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken, UniTask<BattleResult>> _session;
         private readonly Func<BattleWorldView> _worldFactory;
+        private BattleWorldView _activeWorld;
+
+        /// <summary>逐帧驱动活动对局的世界视图（远端插值）；无活动对局为 no-op。</summary>
+        public void Tick(float deltaTime) => _activeWorld?.Tick(deltaTime);
 
         public BattleFeature(UiRuntime ui,
             Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken, UniTask<BattleResult>> session,
@@ -32,6 +36,7 @@ namespace LiteGameNext.Features.Battle
             if (match == null) throw new ArgumentNullException(nameof(match));
             var hud = new BattleHudModel();
             BattleWorldView world = _worldFactory?.Invoke();
+            _activeWorld = world;
             PageHandle room = await _ui.OpenAsync<RoomPage>(
                 RoomPage.Spec, page => page.Bind(match), cancellationToken);
             PageHandle hudPage = await _ui.OpenAsync<BattleHudView>(
@@ -47,6 +52,7 @@ namespace LiteGameNext.Features.Battle
                 if (!hudPage.IsClosed) await _ui.CloseAsync(hudPage);
                 if (!room.IsClosed) await _ui.CloseAsync(room);
                 if (world != null) UnityEngine.Object.Destroy(world.gameObject);
+                _activeWorld = null;
             }
         }
 

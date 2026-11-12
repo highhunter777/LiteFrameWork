@@ -14,6 +14,7 @@ namespace LiteGameNext.Features.Battle.World
 
         private readonly Dictionary<long, GameObject> _views = new Dictionary<long, GameObject>();
         private readonly BattleCameraRig _cameraRig = new BattleCameraRig();
+        private readonly SnapshotInterpolationBuffer _interp = new SnapshotInterpolationBuffer();
         private IBattleEntityViewFactory _entityFactory;
         private Transform _entities;
         private Transform _localRoot;
@@ -45,8 +46,24 @@ namespace LiteGameNext.Features.Battle.World
                 SlotDelta slot = snapshot.Slots[index];
                 if (slot.Id == 0) continue;
                 GameObject view = GetOrCreate(slot.Id);
-                view.transform.position = new Vector3(slot.PosX, slot.PosY, slot.PosZ);
-                view.transform.rotation = Quaternion.Euler(0f, slot.Yaw, 0f);
+                var position = new Vector3(slot.PosX, slot.PosY, slot.PosZ);
+                bool isLocal = slot.Id == LocalEntityId;
+
+                if (isLocal)
+                {
+                    // 本地玩家 0 延迟：直接落位。
+                    view.transform.position = position;
+                    view.transform.rotation = Quaternion.Euler(0f, slot.Yaw, 0f);
+                    LocalPosition = position;
+                    _localRoot = view.transform;
+                }
+                else
+                {
+                    // 远端：入插值缓冲，由 Tick 平滑推进。
+                    _interp.Push(slot.Id, new PoseSample(snapshot.Frame, position, slot.Yaw,
+                        (int)slot.Id * 31 + (slot.Hp > 0 ? 1 : 0)));
+                }
+
                 var flash = view.GetComponent<HitFlashTint>();
                 if (flash != null)
                 {
@@ -56,22 +73,34 @@ namespace LiteGameNext.Features.Battle.World
                 else
                 {
                     var block = new MaterialPropertyBlock();
-                    block.SetColor("_Color", slot.Id == LocalEntityId
+                    block.SetColor("_Color", isLocal
                         ? new Color(0.2f, 0.9f, 0.4f)
                         : new Color(0.9f, 0.3f, 0.3f));
                     Renderer renderer = view.GetComponent<Renderer>();
                     if (renderer != null) renderer.SetPropertyBlock(block);
-                }
-                if (slot.Id == LocalEntityId)
-                {
-                    LocalPosition = view.transform.position;
-                    _localRoot = view.transform;
                 }
             }
 
             if (_camera != null && _views.ContainsKey(LocalEntityId))
                 _cameraRig.Apply(_camera, LocalPosition);
         }
+
+        /// <summary>逐帧推进远端插值（由 ClientApp.Tick 驱动）；本地实体不参与。</summary>
+        public void Tick(float deltaTime)
+        {
+            _interp.Advance(deltaTime);
+            foreach (KeyValuePair<long, GameObject> pair in _views)
+            {
+                if (pair.Key == LocalEntityId) continue;
+                if (!_interp.TrySample(pair.Key, out Vector3 position, out float yaw)) continue;
+                if (pair.Value == null) continue;
+                pair.Value.transform.position = position;
+                pair.Value.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            }
+        }
+
+        /// <summary>换局/重连清空插值缓冲。</summary>
+        public void ResetInterpolation() => _interp.Reset();
 
         private GameObject GetOrCreate(long entityId)
         {

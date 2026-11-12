@@ -101,6 +101,7 @@ namespace LiteGameNext
         {
             _ui.Tick(deltaTime);
             _audio.Tick(deltaTime);
+            _battle?.Tick(deltaTime);
         }
 
         /// <summary>逆序关闭：账号功能先于 UI 运行时；内容服务最后归还句柄；关闭链末尾落盘设置。</summary>
