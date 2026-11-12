@@ -55,7 +55,7 @@ namespace LiteGameNext.Platform.Content
             ValidateAddress(address);
             ct.ThrowIfCancellationRequested();
 #if UNITY_EDITOR
-            GameObject prefab = LoadEditorPrefab(AddressKey(address));
+            GameObject prefab = LoadEditorPrefab(address);
             GameObject instance = UnityEngine.Object.Instantiate(prefab);
             instance.name = prefab.name + "(Page)";
             instance.SetActive(false);
@@ -75,7 +75,7 @@ namespace LiteGameNext.Platform.Content
         {
             ValidateAddress(address);
 #if UNITY_EDITOR
-            GameObject prefab = LoadEditorPrefab(AddressKey(address));
+            GameObject prefab = LoadEditorPrefab(address);
             GameObject instance = UnityEngine.Object.Instantiate(prefab);
             instance.name = prefab.name + "(Instance)";
             return instance;
@@ -172,6 +172,16 @@ namespace LiteGameNext.Platform.Content
 #if UNITY_EDITOR
         private static GameObject LoadEditorPrefab(string address)
         {
+            string normalized = address.Replace('\\', '/');
+            // 完整资源路径直接加载（角色等非 Next 子树资产）；纯文件名才在 Next 根下搜。
+            if (normalized.StartsWith("Assets/", StringComparison.Ordinal)
+                && normalized.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))
+            {
+                GameObject direct = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(normalized);
+                if (direct != null) return direct;
+                throw new InvalidOperationException("页面 prefab 不存在：" + normalized);
+            }
+
             string name = System.IO.Path.GetFileNameWithoutExtension(address);
             string[] guids = UnityEditor.AssetDatabase.FindAssets(name + " t:Prefab", new[] { NextRoot });
             string path = null;

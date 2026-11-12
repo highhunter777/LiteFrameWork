@@ -42,7 +42,7 @@ namespace LiteGameNext
             _matchmaking = _meta == null ? null : new MatchmakingFeature(_ui, _account, _meta);
             _result = new ResultFeature(_ui);
             _battle = _meta == null ? null : new BattleFeature(_ui, RunRoomSessionAsync,
-                () => BattleWorldFactory.Create(_content));
+                () => CreateWorld());
             _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result);
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
@@ -100,6 +100,15 @@ namespace LiteGameNext
                 return "NextContentService(YooAsset/Offline)";
 #endif
             }
+        }
+
+        /// <summary>世界视图 + 角色实体工厂：角色 prefab 首帧加载失败时自动回退立方体。</summary>
+        private BattleWorldView CreateWorld()
+        {
+            BattleWorldView world = BattleWorldFactory.Create(_content);
+            world.SetEntityFactory(new PrefabEntityViewFactory(
+                name => _content.InstantiateSync("Assets/LiteGame/Modules/Battle/Content/Characters/" + name + ".prefab")));
+            return world;
         }
 
         /// <summary>真实房间会话：解析地址 → RoomSession；JoinAck 定图后加载地图场景，结束时必卸。</summary>

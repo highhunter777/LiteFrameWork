@@ -14,7 +14,11 @@ namespace LiteGameNext.Features.Battle.World
 
         private readonly Dictionary<long, GameObject> _views = new Dictionary<long, GameObject>();
         private readonly BattleCameraRig _cameraRig = new BattleCameraRig();
+        private IBattleEntityViewFactory _entityFactory;
         private Transform _entities;
+
+        /// <summary>注入实体视图工厂（角色 prefab）；未注入或工厂回退时用调试立方体。</summary>
+        public void SetEntityFactory(IBattleEntityViewFactory factory) => _entityFactory = factory;
 
         public Vector3 LocalPosition { get; private set; }
 
@@ -42,11 +46,21 @@ namespace LiteGameNext.Features.Battle.World
                 GameObject view = GetOrCreate(slot.Id);
                 view.transform.position = new Vector3(slot.PosX, slot.PosY, slot.PosZ);
                 view.transform.rotation = Quaternion.Euler(0f, slot.Yaw, 0f);
-                var block = new MaterialPropertyBlock();
-                block.SetColor("_Color", slot.Id == LocalEntityId
-                    ? new Color(0.2f, 0.9f, 0.4f)
-                    : new Color(0.9f, 0.3f, 0.3f));
-                view.GetComponent<Renderer>().SetPropertyBlock(block);
+                var flash = view.GetComponent<HitFlashTint>();
+                if (flash != null)
+                {
+                    // 角色视图：受击泛红由 HP 下降触发；delta 快照 Hp=0 表示「未变化」，跳过。
+                    if (slot.Hp > 0) flash.ObserveHp(slot.Hp);
+                }
+                else
+                {
+                    var block = new MaterialPropertyBlock();
+                    block.SetColor("_Color", slot.Id == LocalEntityId
+                        ? new Color(0.2f, 0.9f, 0.4f)
+                        : new Color(0.9f, 0.3f, 0.3f));
+                    Renderer renderer = view.GetComponent<Renderer>();
+                    if (renderer != null) renderer.SetPropertyBlock(block);
+                }
                 if (slot.Id == LocalEntityId) LocalPosition = view.transform.position;
             }
 
@@ -57,8 +71,13 @@ namespace LiteGameNext.Features.Battle.World
         private GameObject GetOrCreate(long entityId)
         {
             if (_views.TryGetValue(entityId, out GameObject view)) return view;
-            view = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            view.name = "Entity_" + entityId;
+            bool isLocal = entityId == LocalEntityId;
+            view = _entityFactory != null ? _entityFactory.Create(entityId, isLocal) : null;
+            if (view == null)
+            {
+                view = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                view.name = "Entity_" + entityId;
+            }
             view.transform.SetParent(_entities, false);
             _views[entityId] = view;
             return view;
