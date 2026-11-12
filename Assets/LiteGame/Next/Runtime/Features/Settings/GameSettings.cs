@@ -13,6 +13,9 @@ namespace LiteGameNext.Features.Settings
 
         object DefaultValue { get; }
 
+        /// <summary>当前值（异构遍历用；与 <see cref="DefaultValue"/> 比较可判是否非默认）。</summary>
+        object CurrentValue { get; }
+
         /// <summary>从存档重读本项（解析失败/越界按默认与钳制归一）。</summary>
         void ReloadFromStore();
 
@@ -47,6 +50,9 @@ namespace LiteGameNext.Features.Settings
         public T Value { get; private set; }
 
         public object DefaultValue => Default;
+
+        /// <inheritdoc/>
+        public object CurrentValue => Value;
 
         public event Action<T> Changed;
 
