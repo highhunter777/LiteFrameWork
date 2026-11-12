@@ -27,6 +27,8 @@ namespace LiteGame.Tests.EditMode
                 var page = (ResultPage)ui.Top.Page;
                 Assert.IsNotNull(page);
                 Assert.AreEqual(result, feature.LastResult);
+                Assert.IsTrue(FindText(page, "Txt_Detail").Contains("p1  K 3 / D 1"),
+                    "结算页未显示结算行");
 
                 ui.CloseAsync(page.Handle).GetAwaiter().GetResult();
                 Assert.AreEqual(UniTaskStatus.Succeeded, run.Status);
@@ -37,6 +39,18 @@ namespace LiteGame.Tests.EditMode
                 feature.Dispose();
                 ui.Shutdown();
             }
+        }
+
+        private static string FindText(PageBase page, string bindName)
+        {
+            TMPro.TMP_Text[] labels = page.GetComponentsInChildren<TMPro.TMP_Text>(true);
+            for (int index = 0; index < labels.Length; index++)
+            {
+                BindName bind = labels[index].GetComponent<BindName>();
+                if (bind != null && bind.Name == bindName) return labels[index].text;
+            }
+
+            throw new System.InvalidOperationException("找不到文本：" + bindName);
         }
 
         [Test]
