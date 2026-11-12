@@ -18,10 +18,10 @@ namespace LiteGameNext.Features.Battle
 
         protected override void OnShow()
         {
-            SetText("Txt_Title", "房间");
+            SetText("Txt_Title", Text("UI.Room.Info", _match?.RoomId ?? string.Empty));
             if (_match == null) return;
-            SetText("Txt_Room", "房号 " + _match.RoomId);
-            SetText("Txt_Status", "连接 " + _match.Address);
+            SetText("Txt_Room", Text("UI.Room.Info", _match.RoomId));
+            SetText("Txt_Status", _match.Address);
             OnClick("Btn_Leave", Leave);
         }
 

@@ -147,13 +147,19 @@ namespace LiteGameNext.Features.Settings
             if (_settings == null) return;
             GameSettings s = _settings;
             SetLabel("Sld_Volume", (int)(s.MasterVolume.Value * 100f) + "%");
-            SetLabel("Sld_FrameRate", s.FrameRate.Value == 0 ? "不限" : s.FrameRate.Value + " fps");
+            SetLabel("Sld_FrameRate", s.FrameRate.Value == 0
+                ? Text("UI.Settings.FrameRate.Unlimited")
+                : s.FrameRate.Value + " fps");
             SetLabel("Sld_LookSens", s.LookSensitivity.Value.ToString("F2"));
             SetLabel("Sld_AdsSens", s.AdsSensitivity.Value.ToString("F2"));
-            SetLabel("Btn_Language", "语言：" + (s.Language.Value == "zh-CN" ? "中文" : "English"));
-            SetLabel("Txt_Resolution", "分辨率：" + (string.IsNullOrEmpty(s.Resolution.Value) ? "默认" : s.Resolution.Value));
-            SetLabel("Txt_Bindings", "按键：默认");
-            SetText("Txt_Status", "设置 " + CountNonDefault(s) + " 项非默认");
+            SetLabel("Btn_Language", Text("UI.Settings.Language") + "："
+                + (s.Language.Value == "zh-CN" ? Text("UI.Settings.Language.Zh") : Text("UI.Settings.Language.En")));
+            SetLabel("Txt_Resolution", Text("UI.Settings.Resolution") + "："
+                + (string.IsNullOrEmpty(s.Resolution.Value)
+                    ? Text("UI.Settings.Resolution.FollowDisplay")
+                    : s.Resolution.Value));
+            SetLabel("Txt_Bindings", Text("UI.Settings.Tab.Control"));
+            SetText("Txt_Status", Text("Common.Settings") + " " + CountNonDefault(s));
         }
 
         /// <summary>改控件子树上的文本（滑块/按钮的当前值显示）；控件类型不限。</summary>

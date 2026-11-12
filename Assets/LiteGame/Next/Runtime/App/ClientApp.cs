@@ -123,6 +123,7 @@ namespace LiteGameNext
                 Log.Warning("配置表装载失败，按降级启动：" + ex.Message);
             }
             _ui.Initialize();
+            _ui.AttachLocalization(_text);
             _account.Initialize();
             _settings.Settings.ApplyAll();
             Log.Info("ClientApp 初始化：platform=" + _platform.Name + " version=" + _platform.Version

@@ -19,6 +19,7 @@ namespace LiteGameNext.Features.Result
 
         protected override void OnShow()
         {
+            // 表内无「结算」标题 key（tbltext 84 条中缺），保留字面量并登记为待补。
             SetText("Txt_Title", "结算");
             SetText("Txt_Outcome", OutcomeText(_result));
             SetText("Txt_Detail", Detail(_result));
@@ -31,7 +32,7 @@ namespace LiteGameNext.Features.Result
             Handle.CloseAsync().Forget(ex => Log.Error("关闭结算页失败：" + ex));
         }
 
-        private static string OutcomeText(BattleResult result)
+        private string OutcomeText(BattleResult result)
         {
             if (result == null) return "无结果";
             switch (result.Outcome)
@@ -44,7 +45,7 @@ namespace LiteGameNext.Features.Result
             }
         }
 
-        private static string Detail(BattleResult result)
+        private string Detail(BattleResult result)
         {
             if (result == null) return string.Empty;
             var text = new StringBuilder();
@@ -53,7 +54,9 @@ namespace LiteGameNext.Features.Result
             {
                 BattleSettlementRow row = result.Settlement[index];
                 if (index > 0) text.Append('\n');
-                text.Append(row.PlayerId).Append("  K ").Append(row.Kills).Append(" / D ").Append(row.Deaths)
+                text.Append(row.PlayerId)
+                    .Append("  K ").Append(row.Kills)
+                    .Append(" / D ").Append(row.Deaths)
                     .Append("  ").Append(row.Score);
             }
 

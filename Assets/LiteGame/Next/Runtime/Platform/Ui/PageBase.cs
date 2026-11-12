@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using LiteFrameworkNext;
 using TMPro;
+using LiteGameNext.Platform.Localization;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -15,6 +16,7 @@ namespace LiteGameNext.Platform.Ui
         private readonly Dictionary<string, Component> _binds = new Dictionary<string, Component>(StringComparer.Ordinal);
         private readonly List<ClickBinding> _clicks = new List<ClickBinding>();
         private PageHandle _handle;
+        private LocalizationService _localization;
         private bool _created;
         private bool _disposed;
 
@@ -109,6 +111,17 @@ namespace LiteGameNext.Platform.Ui
         protected void SetInteractable(string name, bool interactable) => Bind<Selectable>(name).interactable = interactable;
 
         internal void Attach(PageHandle handle) => _handle = handle;
+
+        /// <summary>注入本地化（UiRuntime 在 Prepare 前调用）；未注入时 <see cref="Text"/> 返回 key 本身。</summary>
+        internal void AttachLocalization(LocalizationService localization) => _localization = localization;
+
+        /// <summary>取本地化文案；未注入本地化时返回 key（便于早期装配阶段不崩）。</summary>
+        protected string Text(string key)
+            => _localization == null ? key : _localization.Get(key);
+
+        /// <summary>取本地化文案并格式化。</summary>
+        protected string Text(string key, params object[] args)
+            => _localization == null ? key : _localization.Format(key, args);
 
         internal void Prepare()
         {

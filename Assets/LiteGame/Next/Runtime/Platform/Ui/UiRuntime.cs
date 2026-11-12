@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFrameworkNext;
+using LiteGameNext.Platform.Localization;
 using UnityEngine;
 
 namespace LiteGameNext.Platform.Ui
@@ -19,6 +20,7 @@ namespace LiteGameNext.Platform.Ui
         private readonly Dictionary<string, PageEntry> _cache = new Dictionary<string, PageEntry>(StringComparer.Ordinal);
         private readonly List<PageEntry> _stack = new List<PageEntry>();
         private readonly int _cacheBudget;
+        private LocalizationService _localization;
         private int _inputBlockCount;
         private int _lruClock;
         private float _transitionRemaining;
@@ -38,6 +40,9 @@ namespace LiteGameNext.Platform.Ui
 
         /// <summary>是否已初始化（Tick/打开页面要求已初始化）。</summary>
         public bool IsInitialized { get; private set; }
+
+        /// <summary>注入本地化：此后打开的页面可经 <c>PageBase.Text(key)</c> 取表文案。</summary>
+        public void AttachLocalization(LocalizationService localization) => _localization = localization;
 
         /// <summary>累计帧时间（秒），供转场/动效按需推进。</summary>
         public float ElapsedSeconds { get; private set; }
@@ -107,6 +112,7 @@ namespace LiteGameNext.Platform.Ui
             try
             {
                 SetInactive(entry.Page);
+                entry.Page.AttachLocalization(_localization);
                 entry.Page.Prepare();
                 bind?.Invoke(page);
                 cancellationToken.ThrowIfCancellationRequested();

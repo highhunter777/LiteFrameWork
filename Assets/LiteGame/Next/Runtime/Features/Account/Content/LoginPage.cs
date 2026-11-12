@@ -10,6 +10,7 @@ namespace LiteGameNext.Features.Account.Content
     public sealed class LoginPage : PageBase
     {
         private const string Title = "LiteGame Next";
+        // 表内无登录态 key（tbltext 缺），保留字面量并登记为待补。
         private const string IdleStatus = "未登录";
         private const string SignedInStatus = "已登录（游客）";
 

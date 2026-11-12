@@ -53,9 +53,9 @@ namespace LiteGameNext.Features.Records
             SetInteractable("Btn_Refresh", !_feature.IsBusy);
         }
 
-        private static string Describe(System.Collections.Generic.IReadOnlyList<MatchRecordInfo> matches)
+        private string Describe(System.Collections.Generic.IReadOnlyList<MatchRecordInfo> matches)
         {
-            if (matches == null || matches.Count == 0) return "暂无战绩";
+            if (matches == null || matches.Count == 0) return Text("UI.Records.Empty");
             var text = new StringBuilder();
             for (int index = 0; index < matches.Count; index++)
             {
