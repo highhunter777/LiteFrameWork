@@ -37,6 +37,7 @@
         "LiteGameNext",
         "LiteFrameworkNext",
         "LiteNet",
+        "RoomServer.Runtime",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],

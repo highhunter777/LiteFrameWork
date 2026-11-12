@@ -47,6 +47,9 @@ namespace LiteGame.Adapters.Dev.LocalServer
 
         public bool Connected => _connected;
 
+        /// <summary>诊断只读：进程内真房间内核（测试读 bot 生命/权威状态）。</summary>
+        public RoomServer.Runtime.RoomRuntime Runtime => _runtime;
+
         public event Action OnConnected;
         public event Action<ArraySegment<byte>, bool> OnData;
         public event Action OnDisconnected;
