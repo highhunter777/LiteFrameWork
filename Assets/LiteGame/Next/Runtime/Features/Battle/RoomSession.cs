@@ -87,6 +87,22 @@ namespace LiteGameNext.Features.Battle
         public bool TryGetEntityPosition(long entityId, out Vector3 position)
             => _positions.TryGetValue(entityId, out position);
 
+        /// <summary>取一个非本地实体（本地服 bot/对手）的位置；无则 false。</summary>
+        public bool TryGetOtherEntityPosition(out long entityId, out Vector3 position)
+        {
+            foreach (KeyValuePair<long, Vector3> pair in _positions)
+            {
+                if (pair.Key == 0 || pair.Key == _localEntityId) continue;
+                entityId = pair.Key;
+                position = pair.Value;
+                return true;
+            }
+
+            entityId = 0;
+            position = default;
+            return false;
+        }
+
         /// <summary>替换输入源（房间页/测试在开局前后切换）；null = 停止上行。</summary>
         public void SetInput(IBattleInput input) => _input = input;
 
@@ -100,7 +116,7 @@ namespace LiteGameNext.Features.Battle
         public async UniTask<BattleResult> RunAsync(CancellationToken cancellationToken)
         {
             using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            PumpAsync(linked.Token).Forget(ex => Log.Error("房间泵失败：" + ex));
+            UniTask pump = PumpAsync(linked.Token);
             try
             {
                 using CancellationTokenSource joinCts =
@@ -127,6 +143,7 @@ namespace LiteGameNext.Features.Battle
             finally
             {
                 linked.Cancel();
+                await pump.SuppressCancellationThrow();
                 Dispose();
             }
         }
