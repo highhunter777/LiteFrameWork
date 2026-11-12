@@ -1,0 +1,24 @@
+{
+    "name": "LiteGameNext.Dev",
+    "rootNamespace": "LiteGameNext.Dev",
+    "references": [
+        "LiteFrameworkNext",
+        "LiteGameNext",
+        "LiteGame.Core",
+        "LiteNet",
+        "LiteSim",
+        "LiteSync",
+        "LiteGame.Adapters.Dev",
+        "RoomServer.Runtime",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

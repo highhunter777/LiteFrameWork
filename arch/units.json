@@ -1359,6 +1359,36 @@
         "LiteGame.Modules.Dev"
       ],
       "notes": "产品编辑器工具程序集"
+    },
+    {
+      "id": "LiteGameNext.Dev",
+      "assembly": "LiteGameNext.Dev",
+      "path": "Assets/LiteGame/Next/Dev",
+      "asmdef": "Assets/LiteGame/Next/Dev/LiteGameNext.Dev.asmdef",
+      "layer": "app",
+      "rank": 74,
+      "owner": "product",
+      "tier": [
+        "base"
+      ],
+      "collectGroups": [],
+      "tests": [
+        "editmode"
+      ],
+      "noEngine": false,
+      "defineConstraints": [],
+      "references": [
+        "LiteFrameworkNext",
+        "LiteGameNext",
+        "LiteGame.Core",
+        "LiteNet",
+        "LiteSim",
+        "LiteSync",
+        "LiteGame.Adapters.Dev",
+        "RoomServer.Runtime",
+        "UniTask"
+      ],
+      "notes": "迁移期开发面（本地服/GM 命令）；发布构建不引用，ClientApp 反射装载，缺件回退 NullDevHooks"
     }
   ],
   "collectPathExceptions": {

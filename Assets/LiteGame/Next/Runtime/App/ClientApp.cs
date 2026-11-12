@@ -13,6 +13,7 @@ using LiteGameNext.Features.Result;
 using LiteGameNext.Features.Settings;
 using LiteGameNext.Platform.Audio;
 using LiteGameNext.Platform.Content;
+using LiteGameNext.Platform.Dev;
 using LiteGameNext.Platform.Localization;
 using LiteGameNext.Platform.Meta;
 using LiteGameNext.Platform.Ui;
@@ -36,6 +37,7 @@ namespace LiteGameNext
         private readonly SettingsStore _store;
         private readonly SettingsFeature _settings;
         private readonly RecordsFeature _records;
+        private readonly IDevHooks _dev;
         private readonly AppFlow _flow;
         private readonly Lifetime _lifetime = new Lifetime();
 
@@ -60,6 +62,7 @@ namespace LiteGameNext
             _battle = _meta == null ? null : new BattleFeature(_ui, RunRoomSessionAsync,
                 () => CreateWorld());
             _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result, _settings, _records);
+            _dev = CreateDevHooks();
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
             if (_matchmaking != null) _lifetime.Add(_matchmaking);
@@ -67,6 +70,7 @@ namespace LiteGameNext
             if (_battle != null) _lifetime.Add(_battle);
             _lifetime.Add(_result);
             _lifetime.Add(_settings);
+            if (_dev != null && _dev.Enabled) _lifetime.Add(new DevHooksDisposer(_dev));
         }
 
         /// <summary>UI 运行时（只读观察面：启动链与用例据此看栈顶页面）。</summary>
@@ -102,6 +106,7 @@ namespace LiteGameNext
             _ui.Tick(deltaTime);
             _audio.Tick(deltaTime);
             _battle?.Tick(deltaTime);
+            _dev?.Tick(deltaTime);
         }
 
         /// <summary>逆序关闭：账号功能先于 UI 运行时；内容服务最后归还句柄；关闭链末尾落盘设置。</summary>
@@ -132,6 +137,36 @@ namespace LiteGameNext
                 return "NextContentService(YooAsset/Offline)";
 #endif
             }
+        }
+
+        /// <summary>
+        /// 反射装载开发面（Dev 程序集不在 hot 引用里，发布构建缺该程序集即回退 NullDev）。
+        /// 类型名 `LiteGameNext.Dev.DevFeature, LiteGameNext.Dev`。用运行期判定而非编译宏（开发宏只许在 Dev 程序集）。
+        /// </summary>
+        private static IDevHooks CreateDevHooks()
+        {
+            if (!Application.isEditor && !Debug.isDebugBuild) return NullDevHooks.Instance;
+            Type type = Type.GetType("LiteGameNext.Dev.DevFeature, LiteGameNext.Dev", throwOnError: false);
+            if (type == null || !typeof(IDevHooks).IsAssignableFrom(type)) return NullDevHooks.Instance;
+            try
+            {
+                return (IDevHooks)Activator.CreateInstance(type);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("开发面装载失败，回退 NullDev：" + ex.Message);
+                return NullDevHooks.Instance;
+            }
+        }
+
+        /// <summary>把 IDevHooks 包成可登记进 Lifetime 的释放件。</summary>
+        private sealed class DevHooksDisposer : IDisposable
+        {
+            private readonly IDevHooks _hooks;
+
+            public DevHooksDisposer(IDevHooks hooks) => _hooks = hooks;
+
+            public void Dispose() => _hooks?.Shutdown();
         }
 
         /// <summary>文案目录：内置最小集合（zh-CN 源 + en）；接 Luban tbltext 后由表投影替换。</summary>

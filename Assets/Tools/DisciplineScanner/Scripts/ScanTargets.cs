@@ -263,6 +263,8 @@ namespace Tools.DisciplineScan
         {
             // 唯一合法档位：开发装配层（离线隔离开发的本地服 + 本地传输工厂 + 投影件）。
             "Assets/LiteGame/Adapters/Dev",
+            // 迁移期开发面（Next 子树；同样发布剔除，经 IDevHooks 注入、缺件回退 NullDevHooks）。
+            "Assets/LiteGame/Next/Dev",
         };
 
         /// <summary>客户端侧禁止出现的服务端程序集名（引它们必须落在上表的登记目录里）。</summary>

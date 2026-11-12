@@ -58,7 +58,9 @@ namespace LiteFramework.Core.Tests
                 foreach (string asmdef in Directory.GetFiles(dir, "*.asmdef", SearchOption.AllDirectories))
                 {
                     string rel = Path.GetRelativePath(root, asmdef).Replace('\\', '/');
-                    if (rel.StartsWith("Assets/LiteGame/Adapters/Dev/", StringComparison.Ordinal)) continue;
+                    // 开发面登记目录：旧 Adapters/Dev 与迁移期 Next/Dev（两者均为发布剔除的开发程序集）。
+                    if (rel.StartsWith("Assets/LiteGame/Adapters/Dev/", StringComparison.Ordinal)
+                        || rel.StartsWith("Assets/LiteGame/Next/Dev/", StringComparison.Ordinal)) continue;
                     string text = File.ReadAllText(asmdef);
                     if (text.Contains("\"RoomServer.", StringComparison.Ordinal)) offenders.Add(rel);
                 }
