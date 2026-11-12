@@ -140,6 +140,10 @@ namespace LiteGameNext.Features.Battle
                 if (_started && _input != null && _localEntityId != 0 && _clock != null)
                 {
                     _clock.Tick(Time.unscaledDeltaTime);
+                    // 网络到达晚于服务器开局：用快照+3 把本地帧轴拉到服务器未来窗内。
+                    int target = _client.LastSnapshotFrame + 3;
+                    for (int index = 0; index < 8 && _clock.Frame < target; index++)
+                        _clock.Tick(1f / 60f);
                     int frame = _clock.Frame;
                     if (frame != _lastClockFrame)
                     {
