@@ -54,7 +54,7 @@ namespace LiteGame.Tests.EditMode
         {
             var platform = new LiteFrameworkNext.Platform("ClientNextBootTests", "0.0.0");
             platform.Initialize();
-            var app = new ClientApp(platform);
+            var app = new ClientApp(platform, LiteGameNext.Platform.Dev.NullDevHooks.Instance);
             using var cts = new CancellationTokenSource();
             UniTask run = default;
             try

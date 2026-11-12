@@ -25,11 +25,13 @@ namespace LiteGameNext
         private readonly ResultFeature _result;
         private readonly SettingsFeature _settings;
         private readonly RecordsFeature _records;
+        private readonly Func<MatchInfo> _localMatchFactory;
 
         /// <summary>构造：只注入流程用到的功能；匹配为空时保留 P0 占位页路径。</summary>
         public AppFlow(UiRuntime ui, AccountFeature account, MatchmakingFeature matchmaking = null,
             BattleFeature battle = null, ResultFeature result = null,
-            SettingsFeature settings = null, RecordsFeature records = null)
+            SettingsFeature settings = null, RecordsFeature records = null,
+            Func<MatchInfo> localMatchFactory = null)
         {
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _account = account ?? throw new ArgumentNullException(nameof(account));
@@ -38,6 +40,7 @@ namespace LiteGameNext
             _result = result;
             _settings = settings;
             _records = records;
+            _localMatchFactory = localMatchFactory;
         }
 
         /// <summary>执行顶层流程：App 取消 → 静默返回；其他异常 → 打开错误页并等关闭。</summary>
@@ -58,7 +61,7 @@ namespace LiteGameNext
             }
         }
 
-        /// <summary>登录 → 占位页 → 等取消；登录页被关闭时回登录，直到登录成功或 App 取消。</summary>
+        /// <summary>登录 → 大厅 → 对局循环；无匹配功能时（Dev 本地服）直接进本地对局。</summary>
         private async UniTask RunCoreAsync(CancellationToken cancellationToken)
         {
             while (!await _account.ShowLoginAsync(cancellationToken))
@@ -69,6 +72,12 @@ namespace LiteGameNext
 
             if (_matchmaking == null)
             {
+                // Dev 本地服：无 Meta 也能跑一局（进程内房间，无网络）。
+                if (_battle != null && _localMatchFactory != null)
+                {
+                    await RunLocalMatchLoopAsync(cancellationToken);
+                    return;
+                }
                 PageHandle placeholder = await _ui.OpenAsync<PlaceholderPage>(
                     PlaceholderPage.Spec, null, cancellationToken);
                 Log.Info("占位页已打开：address=" + placeholder.Spec.Address
@@ -103,6 +112,20 @@ namespace LiteGameNext
         }
 
         /// <summary>打开错误页（标题/消息/重试/回登录）并等取消；错误页本身打不开只记日志。</summary>
+        /// <summary>Dev 本地对局循环：不经大厅/匹配，直接进一局并在结算后回登录（可重复）。</summary>
+        private async UniTask RunLocalMatchLoopAsync(CancellationToken cancellationToken)
+        {
+            Log.Info("Dev 本地对局模式：跳过大厅，直接进一局");
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                MatchInfo match = _localMatchFactory();
+                BattleResult result = await _battle.RunAsync(match, cancellationToken);
+                Log.Info("本地对局结束：" + result.Outcome + " reason=" + result.Reason);
+                if (_result != null) await _result.ShowAsync(result, cancellationToken);
+                await cancellationToken.WaitUntilCanceled();
+            }
+        }
+
         /// <summary>旁路页面（设置/战绩）：不打断 AppFlow，只等页面关闭后返回。</summary>
         private static async UniTask OpenSidePageAsync(
             Func<CancellationToken, UniTask<PageHandle>> open, CancellationToken cancellationToken)

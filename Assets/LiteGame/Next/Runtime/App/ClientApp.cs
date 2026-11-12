@@ -44,7 +44,8 @@ namespace LiteGameNext
 
         /// <summary>构造：功能只拿自己需要的平台切片（不传平台聚合体/容器）；登记逆序释放顺序。</summary>
         // 平台参数全限定：本命名空间下 LiteGameNext.Platform 会遮蔽框架的 Platform 类型（CS0118）。
-        public ClientApp(LiteFrameworkNext.Platform platform)
+        // devHooksOverride：测试可传 NullDevHooks 以固定"无开发面"的契约（生产不传）。
+        public ClientApp(LiteFrameworkNext.Platform platform, IDevHooks devHooksOverride = null)
         {
             _platform = platform ?? throw new ArgumentNullException(nameof(platform));
             _content = new NextContentService();
@@ -60,11 +61,12 @@ namespace LiteGameNext
             _matchmaking = _meta == null ? null : new MatchmakingFeature(_ui, _account, _meta);
             _records = _meta == null ? null : new RecordsFeature(_ui, _account, _meta);
             _result = new ResultFeature(_ui);
-            _dev = CreateDevHooks();
+            _dev = devHooksOverride ?? CreateDevHooks();
             // Dev 本地服不依赖 Meta（进程内房间），故有 Dev 面时也建战斗功能。
             _battle = (_meta == null && (_dev == null || !_dev.Enabled)) ? null : new BattleFeature(_ui, RunRoomSessionAsync,
                 () => CreateWorld());
-            _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result, _settings, _records);
+            _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result, _settings, _records,
+                (_dev != null && _dev.Enabled) ? CreateLocalMatch : (Func<MatchInfo>)null);
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
             if (_matchmaking != null) _lifetime.Add(_matchmaking);
@@ -140,6 +142,10 @@ namespace LiteGameNext
 #endif
             }
         }
+
+        /// <summary>Dev 本地对局用的 MatchInfo：无地址/票据（本地服走进程内房间，不解析 endpoint）。</summary>
+        private static MatchInfo CreateLocalMatch()
+            => new MatchInfo("local", string.Empty, "local-dev", string.Empty, 0L);
 
         /// <summary>
         /// 反射装载开发面（Dev 程序集不在 hot 引用里，发布构建缺该程序集即回退 NullDev）。
