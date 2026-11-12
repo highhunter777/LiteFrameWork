@@ -17,6 +17,7 @@ using LiteGameNext.Platform.Dev;
 using LiteGameNext.Platform.Localization;
 using LiteGameNext.Platform.Meta;
 using LiteGameNext.Platform.Ui;
+using LiteNet.Transport;
 using UnityEngine;
 
 namespace LiteGameNext
@@ -59,10 +60,11 @@ namespace LiteGameNext
             _matchmaking = _meta == null ? null : new MatchmakingFeature(_ui, _account, _meta);
             _records = _meta == null ? null : new RecordsFeature(_ui, _account, _meta);
             _result = new ResultFeature(_ui);
-            _battle = _meta == null ? null : new BattleFeature(_ui, RunRoomSessionAsync,
+            _dev = CreateDevHooks();
+            // Dev 本地服不依赖 Meta（进程内房间），故有 Dev 面时也建战斗功能。
+            _battle = (_meta == null && (_dev == null || !_dev.Enabled)) ? null : new BattleFeature(_ui, RunRoomSessionAsync,
                 () => CreateWorld());
             _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result, _settings, _records);
-            _dev = CreateDevHooks();
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
             if (_matchmaking != null) _lifetime.Add(_matchmaking);
@@ -220,17 +222,60 @@ namespace LiteGameNext
         private async UniTask<BattleResult> RunRoomSessionAsync(MatchInfo match, BattleHudModel hud,
             BattleWorldView world, CancellationToken cancellationToken)
         {
-            if (!TryParseEndpoint(match.Address, out string host, out int port))
-                return BattleResult.Failed("房间地址无效：" + match.Address);
             var input = new UnityBattleInput(
                 () => world == null ? Vector3.zero : world.LocalPosition,
                 () => world == null ? Vector3.zero : world.AimPoint,
                 (dx, dy) => world?.Look(dx, dy));
+
+            // Dev 本地服优先：进程内真 RoomRuntime，不需要 KCP/服务端。
+            if (_dev != null && _dev.Enabled)
+            {
+                BattleResult local = await TryRunLocalSessionAsync(match, hud, world, input, cancellationToken);
+                if (local != null) return local;
+            }
+
+            if (!TryParseEndpoint(match.Address, out string host, out int port))
+                return BattleResult.Failed("房间地址无效：" + match.Address);
             using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue(),
                        hud: hud, world: world, input: input,
                        audioDriver: new BattleAudioDriver(_audio, null, null, null, null),
                        damageNumbers: new DamageNumberAggregator()))
             {
+                session.JoinAcked += mapId => LoadMapForget(mapId, cancellationToken);
+                try
+                {
+                    return await session.RunAsync(cancellationToken);
+                }
+                finally
+                {
+                    await _content.UnloadScenesAsync(CancellationToken.None);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 本地服路径：起进程内房间并把它的传输交给 RoomSession。
+        /// 返回 null = 本地服不可用（回退 KCP）。
+        /// </summary>
+        private async UniTask<BattleResult> TryRunLocalSessionAsync(MatchInfo match, BattleHudModel hud,
+            BattleWorldView world, IBattleInput input, CancellationToken cancellationToken)
+        {
+            ILocalRoomSession local = await _dev.StartLocalRoomAsync(match.RoomId, 2, cancellationToken);
+            if (local == null) return null;
+            if (local.Transport is not IClientTransport transport)
+            {
+                Log.Warning("本地服传输类型不符，回退 KCP：" + local.Transport?.GetType().Name);
+                local.Dispose();
+                return null;
+            }
+
+            using (local)
+            using (var session = new RoomSession("local", 1, match.RoomId, string.Empty, BuildHashValue(),
+                       transport: transport, hud: hud, world: world, input: input,
+                       audioDriver: new BattleAudioDriver(_audio, null, null, null, null),
+                       damageNumbers: new DamageNumberAggregator()))
+            {
+                Log.Info("使用 Dev 本地服对局：room=" + match.RoomId);
                 session.JoinAcked += mapId => LoadMapForget(mapId, cancellationToken);
                 try
                 {
