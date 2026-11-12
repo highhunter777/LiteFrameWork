@@ -63,6 +63,9 @@ namespace RoomServer.Runtime
         private readonly int[] _pendingFireAck;
         private readonly bool[] _hasPendingFire;
 
+        /// <summary>该开火输入对应的目标逻辑帧（C4 修复：defer 位只挂到这一帧，不再无条件挂 Frame+1）。</summary>
+        private readonly int[] _pendingFireFrame;
+
         /// <summary>席位分配高水位（最高已分配席位号 + 1；**只升不降**——未开局离场释放席位后仍保持，
         /// 作为各处席位遍历的上界。真值语义见 <see cref="AllocatedSeats"/>）。</summary>
         public int NextPlayerId;
@@ -155,6 +158,7 @@ namespace RoomServer.Runtime
             _pendingFireView = new int[players];
             _pendingFireAck = new int[players];
             _hasPendingFire = new bool[players];
+            _pendingFireFrame = new int[players];
             _recentInputs = new InputHistory(SimConfig.MaxInputHistory, players);
         }
 
@@ -322,7 +326,7 @@ namespace RoomServer.Runtime
             if (seat == null) return;
 
             bool accepted = Gate.Store(batch, playerId, _entityIds[playerId], AuthSim.Frame,
-                out int _, out SimInputFrame acceptedInput,
+                out int acceptedFrame, out SimInputFrame acceptedInput,
                 shooterPos: TryResolveShooterPos(playerId, out SimVector3 sp) ? sp : null);
             if (!accepted) return;
 
@@ -334,6 +338,9 @@ namespace RoomServer.Runtime
                 _pendingFireView[playerId] = batch.ViewFrame;
                 _pendingFireAck[playerId] = Gate.LastClampedAckSnapshot;
                 _hasPendingFire[playerId] = true;
+                // C4：记下这条开火输入的**目标帧**（闸门钳位后的 acceptedFrame）——
+                // defer 位必须挂到该帧，而不是无条件挂下一个步进帧。
+                _pendingFireFrame[playerId] = acceptedFrame;
             }
         }
 
@@ -579,7 +586,9 @@ namespace RoomServer.Runtime
             {
                 // 缺席沿用：断线/未发包成员用空输入（§4.5-2；数组序即 playerId 升序——与帧号语义一致）
                 _frameInputs[i] = Gate.TryConsume(frame, i, out SimInputFrame stored) ? stored : default;
-                if (_hasPendingFire[i]) _frameInputs[i].Buttons |= SimInputFrame.ButtonDeferHit;
+                // C4：只在步进到该开火输入的目标帧时挂 defer 位（原先无条件挂 Frame+1，导致延迟命中落到错帧）。
+                if (_hasPendingFire[i] && _pendingFireFrame[i] == frame)
+                    _frameInputs[i].Buttons |= SimInputFrame.ButtonDeferHit;
             }
 
             SimStep.Step(AuthSim, Map, _frameInputs, FixedConfig.Values, FixedConfig.Weapons, advanceMatch: false, rules: _testRules);
@@ -591,6 +600,8 @@ namespace RoomServer.Runtime
                 for (int j = 0; j < AuthSim.Events.Count; j++)
                     if (AuthSim.Events.Items[j].Kind == FrameEventKind.Fire
                         && AuthSim.Events.Items[j].EntityId == _entityIds[i]) fired = true;
+                // C4：目标帧已越过（未能在该帧挂上 defer 位）→ 作废，避免待回溯标记永久悬挂。
+                if (_hasPendingFire[i] && _pendingFireFrame[i] < frame) fired = false;
                 _hasPendingFire[i] &= fired;
                 _frameInputs[i].Buttons &= ~SimInputFrame.ButtonDeferHit;
             }
