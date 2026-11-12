@@ -34,6 +34,7 @@ namespace LiteGame.Editor.Toolchain
             "LiteGame.Adapters.Luban",
             "LiteGame.Adapters.Unity",
             "LiteGame.App",
+            "LiteGameNext",
             "RoomServer.Runtime",
             "RoomServer.Application.Runtime",
         };
