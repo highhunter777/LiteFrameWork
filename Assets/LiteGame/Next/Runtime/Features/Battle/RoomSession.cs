@@ -60,6 +60,7 @@ namespace LiteGameNext.Features.Battle
             _client.OnJoinAck += OnJoinAck;
             _client.OnStartGame += OnStartGame;
             _client.OnSnapshot += OnSnapshot;
+            _client.OnCombatEvents += OnCombatEvents;
             _client.OnMatchEnded += OnMatchEnded;
             _client.OnPhaseChanged += OnPhaseChanged;
             _client.OnDisconnected += OnDisconnected;
@@ -85,6 +86,9 @@ namespace LiteGameNext.Features.Battle
 
         /// <summary>JoinAck 到达时回调地图行键（调用方据此加载地图场景）。</summary>
         public event Action<int> JoinAcked;
+
+        /// <summary>权威战斗事件统计（命中/击杀/开火/着墙）——命中判定的唯一可信来源。</summary>
+        public CombatEventStats Combat { get; } = new CombatEventStats();
 
         public long LocalEntityId => _localEntityId;
 
@@ -235,6 +239,17 @@ namespace LiteGameNext.Features.Battle
                 _hud.SetAmmo(snapshot.PrivateState.Weapons[0].MagAmmo);
         }
 
+        /// <summary>权威战斗事件：累计到 <see cref="Combat"/>（命中判定的唯一证据来源）。</summary>
+        private void OnCombatEvents(LiteNet.Proto.CombatEventBatch batch)
+        {
+            if (batch == null) return;
+            for (int i = 0; i < batch.Records.Count; i++)
+            {
+                LiteNet.Proto.CombatEventEntry entry = batch.Records[i];
+                Combat.Record((LiteSim.FrameEventKind)entry.Kind, entry.A, entry.B, entry.Value, _localEntityId);
+            }
+        }
+
         private void OnMatchEnded(LiteNet.Proto.MatchEnded ended)
         {
             Status = "对局结束";
@@ -280,6 +295,7 @@ namespace LiteGameNext.Features.Battle
             _client.OnJoinAck -= OnJoinAck;
             _client.OnStartGame -= OnStartGame;
             _client.OnSnapshot -= OnSnapshot;
+            _client.OnCombatEvents -= OnCombatEvents;
             _client.OnMatchEnded -= OnMatchEnded;
             _client.OnPhaseChanged -= OnPhaseChanged;
             _client.OnDisconnected -= OnDisconnected;
