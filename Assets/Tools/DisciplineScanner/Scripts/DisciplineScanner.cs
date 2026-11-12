@@ -197,7 +197,11 @@ namespace Tools.DisciplineScan
         private static readonly (string Adapter, string[] AllowedRoots)[] R12Boundaries =
         {
             // 适配器层（《客户端总设计》§5 顶层框图第四层 `Adapters`）： 框架侧适配器统一住 `Packages/com.litegame.framework/Runtime/Adapters/<程序集后缀>/`。
-            ("YooAsset", new[] { "Packages/com.litegame.framework/Runtime/Adapters/YooAsset/" }),
+            ("YooAsset", new[]
+            {
+                "Packages/com.litegame.framework/Runtime/Adapters/YooAsset/",
+                "Assets/LiteGame/Next/Runtime/Platform/Content/",
+            }),
             // Unity.InputSystem：输入设备适配——框架侧设备源只认 Platform.Unity。
             ("UnityEngine.InputSystem", new[] { "Packages/com.litegame.framework/Runtime/Adapters/InputSystem/", "Packages/com.litegame.framework/Runtime/Services/UI/Input/", "Assets/LiteGame/Adapters/Unity/InputSystem/", "Assets/LiteGame/Next/Runtime/Features/Battle/Input/" }),
             // Cinemachine：相机适配（同上）——消费者只认 ICameraService 端口，不认识这个包

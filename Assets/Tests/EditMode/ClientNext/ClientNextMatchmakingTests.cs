@@ -91,7 +91,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 登录成功后_AppFlow打开真实大厅页()
         {
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var transport = new FakeTransport();
             transport.Enqueue(200, "{\"accountId\":\"acc\",\"accessToken\":\"tok\",\"tokenType\":\"Bearer\",\"expiresAtMs\":1}");
@@ -120,7 +120,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 建房后_流程进入房间_结算_回到大厅()
         {
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var transport = new FakeTransport();
             transport.Enqueue(200, "{\"accountId\":\"acc\",\"accessToken\":\"tok\",\"tokenType\":\"Bearer\",\"expiresAtMs\":1}");
@@ -161,7 +161,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 打开大厅页_真实prefab可装载()
         {
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var account = new AccountFeature(ui);
             account.SignInAsGuest();

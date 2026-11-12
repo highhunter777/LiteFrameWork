@@ -85,7 +85,7 @@ namespace LiteGame.Tests.EditMode
         {
             var transport = new FakeTransport();
             transport.Enqueue(200, "{\"matches\":[]}");
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var account = new AccountFeature(ui);
             account.SignInAsGuest();

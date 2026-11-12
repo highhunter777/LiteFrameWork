@@ -79,9 +79,12 @@ namespace LiteFramework.Core.Tests
 
             var actualGroups = ReadCollectPaths(root).Keys.ToHashSet(StringComparer.Ordinal);
             Assert.NotEmpty(actualGroups);
+            // 迁移期例外表（Next 客户端收集组归新组合根，不走旧模块树）同样视为已覆盖。
+            var exceptionGroups = LoadCollectPathExceptions(root).Keys.ToHashSet(StringComparer.Ordinal);
 
             foreach (string group in actualGroups)
-                if (!coveredGroups.Contains(group)) errors.Add("收集组未登记到任何模块：" + group);
+                if (!coveredGroups.Contains(group) && !exceptionGroups.Contains(group))
+                    errors.Add("收集组未登记到任何模块：" + group);
             foreach (string group in coveredGroups)
                 if (!actualGroups.Contains(group)) errors.Add("登记了不存在的收集组：" + group);
 
@@ -149,11 +152,13 @@ namespace LiteFramework.Core.Tests
             }
 
             foreach (string group in paths.Keys)
-                if (!owner.ContainsKey(group)) errors.Add("收集组无模块归属：" + group);
+                if (!owner.ContainsKey(group) && !collectPathExceptions.ContainsKey(group))
+                    errors.Add("收集组无模块归属：" + group);
             foreach (string group in collectPathExceptions.Keys)
             {
                 if (!paths.ContainsKey(group)) errors.Add("例外表登记了不存在的收集组：" + group);
-                else if (!usedExceptions.Contains(group)) errors.Add("例外表残留（该组已按模块 Content 路径对齐）：" + group);
+                else if (!usedExceptions.Contains(group) && owner.ContainsKey(group))
+                    errors.Add("例外表残留（该组已按模块 Content 路径对齐）：" + group);
             }
 
             foreach (KeyValuePair<string, List<string>> pair in paths)

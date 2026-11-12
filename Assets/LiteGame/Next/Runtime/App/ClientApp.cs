@@ -9,6 +9,7 @@ using LiteGameNext.Features.Battle.Input;
 using LiteGameNext.Features.Battle.World;
 using LiteGameNext.Features.Matchmaking;
 using LiteGameNext.Features.Result;
+using LiteGameNext.Platform.Content;
 using LiteGameNext.Platform.Meta;
 using LiteGameNext.Platform.Ui;
 using UnityEngine;
@@ -19,6 +20,7 @@ namespace LiteGameNext
     public sealed class ClientApp : IClientApp
     {
         private readonly LiteFrameworkNext.Platform _platform;
+        private readonly NextContentService _content;
         private readonly UiRuntime _ui;
         private readonly MetaClient _meta;
         private readonly AccountFeature _account;
@@ -33,12 +35,14 @@ namespace LiteGameNext
         public ClientApp(LiteFrameworkNext.Platform platform)
         {
             _platform = platform ?? throw new ArgumentNullException(nameof(platform));
+            _content = new NextContentService();
             _ui = new UiRuntime(CreatePageAsync);
             _meta = CreateMetaClient();
             _account = new AccountFeature(_ui, _meta, () => SystemInfo.deviceUniqueIdentifier);
             _matchmaking = _meta == null ? null : new MatchmakingFeature(_ui, _account, _meta);
             _result = new ResultFeature(_ui);
-            _battle = _meta == null ? null : new BattleFeature(_ui, RunRoomSessionAsync, BattleWorldFactory.Create);
+            _battle = _meta == null ? null : new BattleFeature(_ui, RunRoomSessionAsync,
+                () => BattleWorldFactory.Create(_content));
             _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result);
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
@@ -53,15 +57,15 @@ namespace LiteGameNext
         /// <summary>是否已登录（只读透传账号功能）。</summary>
         public bool IsSignedIn => _account.IsSignedIn;
 
-        /// <summary>初始化 UI 运行时与账号功能；页面由 RunAsync 打开（启动链可观察点）。</summary>
-        public UniTask InitializeAsync(CancellationToken ct)
+        /// <summary>初始化内容包、UI 运行时与账号功能；页面由 RunAsync 打开。</summary>
+        public async UniTask InitializeAsync(CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
+            await _content.InitializeAsync(ct);
             _ui.Initialize();
             _account.Initialize();
             Log.Info("ClientApp 初始化：platform=" + _platform.Name + " version=" + _platform.Version
                 + " 页面工厂=" + PageFactoryMode);
-            return UniTask.CompletedTask;
         }
 
         /// <summary>顶层流程交给 AppFlow（登录 → 占位页 → 等取消）；取消由 AppFlow 静默收口。</summary>
@@ -70,8 +74,8 @@ namespace LiteGameNext
         /// <summary>逐帧驱动：UI 运行时优先（功能 Tick 在 P1 起按需接入）。</summary>
         public void Tick(float deltaTime) => _ui.Tick(deltaTime);
 
-        /// <summary>逆序关闭：账号功能先于 UI 运行时；释放期异常只记日志不向上抛。</summary>
-        public UniTask ShutdownAsync()
+        /// <summary>逆序关闭：账号功能先于 UI 运行时；内容服务最后归还句柄。</summary>
+        public async UniTask ShutdownAsync()
         {
             try
             {
@@ -82,8 +86,8 @@ namespace LiteGameNext
                 Log.Error("ClientApp 关闭期异常：" + ex);
             }
 
+            await _content.ShutdownAsync(CancellationToken.None);
             Log.Info("ClientApp 已关闭");
-            return UniTask.CompletedTask;
         }
 
         private static string PageFactoryMode
@@ -91,9 +95,9 @@ namespace LiteGameNext
             get
             {
 #if UNITY_EDITOR
-                return "EditorPageFactory(AssetDatabase)";
+                return "NextContentService(AssetDatabase)";
 #else
-                return "未接入（P0 仅编辑器装载）";
+                return "NextContentService(YooAsset/Offline)";
 #endif
             }
         }
@@ -135,17 +139,8 @@ namespace LiteGameNext
             return string.IsNullOrWhiteSpace(url) ? null : new MetaClient(new UnityMetaTransport(url));
         }
 
-        /// <summary>页面工厂：编辑器按 prefab 资源路径装载；Player 侧 P1 换 YooAsset，当前先告警并抛（不静默造空页）。</summary>
-        // 工厂签名必须匹配 UiRuntime 的 Func<PageSpec, CancellationToken, UniTask<PageBase>>。
-        private static async UniTask<PageBase> CreatePageAsync(PageSpec spec, CancellationToken cancellationToken)
-        {
-#if UNITY_EDITOR
-            return await EditorPageFactory.CreateAsync(spec, cancellationToken);
-#else
-            await UniTask.CompletedTask;
-            Log.Warning("P0 非编辑器未接入内容装载器：页面 " + (spec == null ? "<null>" : spec.Address) + " 打开失败");
-            throw new NotSupportedException("P0 非编辑器未接入内容装载器（P1 接 YooAsset）");
-#endif
-        }
+        /// <summary>页面工厂：由内容服务按 PageSpec 归一后的文件名装载（编辑器/Player 同一入口）。</summary>
+        private async UniTask<PageBase> CreatePageAsync(PageSpec spec, CancellationToken cancellationToken)
+            => await EditorPageFactory.CreateAsync(spec, cancellationToken, _content);
     }
 }

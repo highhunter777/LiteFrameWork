@@ -42,7 +42,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 设置页_滑条与开关写回定义()
         {
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var feature = new SettingsFeature(ui);
             try

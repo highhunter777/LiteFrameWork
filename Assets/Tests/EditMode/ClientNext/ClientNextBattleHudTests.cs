@@ -25,7 +25,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void HUD页面_绑定模型后刷新文本()
         {
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var model = new BattleHudModel();
             model.SetVitals(75, 100, 12);

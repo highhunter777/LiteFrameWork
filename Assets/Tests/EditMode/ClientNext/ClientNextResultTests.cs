@@ -14,7 +14,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 完成结果_页面可装载且显示明细()
         {
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var feature = new ResultFeature(ui);
             var result = BattleResult.Completed("p1", new List<BattleSettlementRow>
@@ -56,7 +56,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 失败结果_可展示原因()
         {
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var feature = new ResultFeature(ui);
             try

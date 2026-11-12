@@ -14,7 +14,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 对局成功_返回Completed并关闭房间页()
         {
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var feature = new BattleFeature(ui, (match, hud, world, ct) =>
                 UniTask.FromResult(BattleResult.Completed("p1")));
@@ -35,7 +35,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 对局失败_原样返回SessionFailed()
         {
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var feature = new BattleFeature(ui, (match, hud, world, ct) =>
                 UniTask.FromResult(BattleResult.Failed("connect refused")));
@@ -56,7 +56,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 取消_传播且关闭房间页()
         {
-            var ui = new UiRuntime(EditorPageFactory.CreateAsync);
+            var ui = new UiRuntime(ClientNextTestPages.PageFactory());
             ui.Initialize();
             var feature = new BattleFeature(ui, (match, hud, world, ct) =>
                 throw new OperationCanceledException(ct));

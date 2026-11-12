@@ -1136,7 +1136,9 @@
       "tier": [
         "base"
       ],
-      "collectGroups": [],
+      "collectGroups": [
+        "NextPages"
+      ],
       "tests": [
         "editmode"
       ],
@@ -1152,7 +1154,8 @@
         "UniTask",
         "UnityEngine.UI",
         "Unity.TextMeshPro",
-        "Unity.Newtonsoft.Json"
+        "Unity.Newtonsoft.Json",
+        "YooAsset"
       ],
       "notes": "迁移期 hot 应用件（ClientApp/UiRuntime/Features；P3b2 合并回 LiteGame）"
     },
@@ -1370,6 +1373,10 @@
     "Fonts": {
       "owner": "LiteGame.Modules.UI",
       "reason": "2026-11-12 S0：TMP 中文字体迁出旧树至 Assets/LiteGame/Next/Content/Fonts（重写客户端共享资源目录），GUID 保留、32 处资产引用不断；旧目录将在 P3b 删除"
+    },
+    "NextPages": {
+      "owner": "LiteGameNext",
+      "reason": "2026-11-12 S1：Next 子树功能页面/世界 prefab 内聚在 Features/*/Content/ 与 Platform/Ui/Content/，收集组根取 Assets/LiteGame/Next 通配，非单模块 Content 目录"
     }
   },
   "changeMatrix": [
