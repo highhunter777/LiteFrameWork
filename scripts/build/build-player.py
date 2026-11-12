@@ -297,7 +297,16 @@ def main(argv=None):
             info("build/player", "== hybridclr generate ==")
             builder.eval_file(
                 "hybridclr-generate.cs",
-                "LiteGame.Editor.Toolchain.HybridCLRTool.GenerateAll();\n"
+                "bool installed = new HybridCLR.Installer.InstallerController().HasInstalledHybridCLR();\n"
+                "if (!installed)\n"
+                "{\n"
+                "    UnityEngine.Debug.LogError(\"[hclr] not installed; run: python scripts/build/hybridclr.py install\");\n"
+                "}\n"
+                "else\n"
+                "{\n"
+                "    HybridCLR.Commands.PrebuildCommand.GenerateAll();\n"
+                "    UnityEngine.Debug.Log(\"[hclr] generate all ok\");\n"
+                "}\n"
                 "return \"hybridclr generate ok\";",
             )
             hot_target = project / "Library" / "HybridCLR" / "HotUpdateDlls" / str(profile.get("platform") or "")

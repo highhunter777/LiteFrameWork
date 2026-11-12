@@ -182,11 +182,11 @@ def main(argv=None):
         miss("UniTask missing: Assets/ThirdParty/Plugins/UniTask (runtime required; should ship with repo)")
 
     # 5. Tracked UI/render assets
-    if (project / "Assets" / "LiteGame" / "Modules" / "UI" / "Content" / "Fonts" / "NotoSansSC-Regular SDF.asset").is_file():
-        good("TMP CJK font present (Assets/LiteGame/Modules/UI/Content/Fonts, tracked)")
+    if (project / "Assets" / "LiteGame" / "Next" / "Content" / "Fonts" / "NotoSansSC-Regular SDF.asset").is_file():
+        good("TMP CJK font present (Assets/LiteGame/Next/Content/Fonts, tracked)")
     else:
         miss(
-            "TMP CJK font missing: Assets/LiteGame/Modules/UI/Content/Fonts/NotoSansSC-Regular SDF.asset "
+            "TMP CJK font missing: Assets/LiteGame/Next/Content/Fonts/NotoSansSC-Regular SDF.asset "
             "(tracked since 2026-10-13; incomplete checkout - see restore guide)"
         )
     if (project / "Assets" / "Settings" / "URP-Balanced.asset").is_file():

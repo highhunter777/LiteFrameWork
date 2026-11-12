@@ -1366,6 +1366,10 @@
     "Config": {
       "owner": "LiteGame.Modules.Config",
       "reason": "2026-10-11 裁决：表产物维持 Assets/GameData/Config 顶层"
+    },
+    "Fonts": {
+      "owner": "LiteGame.Modules.UI",
+      "reason": "2026-11-12 S0：TMP 中文字体迁出旧树至 Assets/LiteGame/Next/Content/Fonts（重写客户端共享资源目录），GUID 保留、32 处资产引用不断；旧目录将在 P3b 删除"
     }
   },
   "changeMatrix": [

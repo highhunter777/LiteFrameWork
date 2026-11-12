@@ -1,6 +1,7 @@
 using LiteGameNext.Features.Battle.World;
 using LiteNet.Proto;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace LiteGame.Tests.EditMode
@@ -45,6 +46,49 @@ namespace LiteGame.Tests.EditMode
             try
             {
                 Assert.DoesNotThrow(() => go.GetComponent<BattleWorldView>().ApplySnapshot(null));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        // C2 回归卡（S0 先红）：真实 BattleWorld.prefab 的相机被固定在
+        // LocalPosition+(0,10,-12) 且 LookAt(LocalPosition+up*1.2)，屏幕中心射线与
+        // y=1.2 平面交点恒等于自身位置——瞄准点即自己脚下，真实游玩命中率确定性为 0。
+        // S2 搬入正式相机/瞄准链后本用例应转绿；转绿前不得声称「核心流程可玩」。
+        [Test]
+        [Explicit("C2 缺陷回归卡：S0 预期红，S2 修好相机/瞄准后转绿")]
+        public void 真实prefab_瞄准点不得等于自身脚下位置()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/LiteGame/Next/Runtime/Features/Battle/Content/BattleWorld.prefab");
+            Assert.IsNotNull(prefab, "BattleWorld.prefab 应存在");
+
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            try
+            {
+                var view = go.GetComponent<BattleWorldView>();
+                Assert.IsNotNull(view, "prefab 根应挂 BattleWorldView");
+
+                var snapshot = new StateSnapshot
+                {
+                    Slots =
+                    {
+                        new SlotDelta { Id = 10, PosX = 1f, PosY = 0f, PosZ = 2f },
+                        new SlotDelta { Id = 11, PosX = -1f, PosY = 0f, PosZ = -2f },
+                    },
+                    PrivateState = new PrivateStateDelta { EntityId = 10 },
+                };
+                view.ApplySnapshot(snapshot);
+
+                Vector3 ownFeet = view.LocalPosition + new Vector3(0f, 1.2f, 0f);
+                // 显式距离阈值：NUnit 对 Vector3 的 AreNotEqual 走 Unity == 容差，
+                // 会把 ~1e-5 的退化差值误判为「不等」，必须用可读的几何距离。
+                float aimDistance = Vector3.Distance(view.AimPoint, ownFeet);
+                Assert.Greater(aimDistance, 0.5f,
+                    "瞄准点贴近自身脚下位置（距离 " + aimDistance.ToString("F4") +
+                    "）——相机/瞄准链退化（C2），真实游玩无法命中他人");
             }
             finally
             {

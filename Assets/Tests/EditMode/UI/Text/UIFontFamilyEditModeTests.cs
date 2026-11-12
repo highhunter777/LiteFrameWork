@@ -11,7 +11,7 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class UIFontFamilyEditModeTests
     {
-        private const string NotoSansScPath = "Assets/LiteGame/Modules/UI/Content/Fonts/NotoSansSC-Regular SDF.asset";
+        private const string NotoSansScPath = "Assets/LiteGame/Next/Content/Fonts/NotoSansSC-Regular SDF.asset";
 
         private static TMP_FontAsset LoadNotoSansSc()
             => UnityEditor.AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(NotoSansScPath);

@@ -84,7 +84,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/LiteGame/Modules/UI/Content/Fonts
+      - CollectPath: Assets/LiteGame/Next/Content/Fonts
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName

@@ -39,7 +39,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         private static TMP_FontAsset Font()
-            => AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/LiteGame/Modules/UI/Content/Fonts/NotoSansSC SDF.asset");
+            => AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/LiteGame/Next/Content/Fonts/NotoSansSC SDF.asset");
 
         private static string SavePrefab(string name, System.Action<GameObject> build)
         {
