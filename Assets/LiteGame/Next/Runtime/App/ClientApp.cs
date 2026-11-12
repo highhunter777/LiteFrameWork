@@ -192,7 +192,9 @@ namespace LiteGameNext
                 () => world == null ? Vector3.zero : world.AimPoint,
                 (dx, dy) => world?.Look(dx, dy));
             using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue(),
-                       hud: hud, world: world, input: input))
+                       hud: hud, world: world, input: input,
+                       audioDriver: new BattleAudioDriver(_audio, null, null, null, null),
+                       damageNumbers: new DamageNumberAggregator()))
             {
                 session.JoinAcked += mapId => LoadMapForget(mapId, cancellationToken);
                 try

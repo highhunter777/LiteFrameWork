@@ -26,6 +26,8 @@ namespace LiteGameNext.Features.Battle
         private readonly string _buildHash;
         private readonly BattleHudModel _hud;
         private readonly BattleWorldView _world;
+        private readonly BattleAudioDriver _audioDriver;
+        private readonly DamageNumberAggregator _damageNumbers;
         private IBattleInput _input;
         private readonly bool _autoStart;
         private readonly Dictionary<long, Vector3> _positions = new Dictionary<long, Vector3>();
@@ -41,7 +43,8 @@ namespace LiteGameNext.Features.Battle
 
         public RoomSession(string host, int port, string roomId, string ticket, string buildHash,
             IClientTransport transport = null, BattleHudModel hud = null, BattleWorldView world = null,
-            IBattleInput input = null, bool autoStart = true)
+            IBattleInput input = null, bool autoStart = true,
+            BattleAudioDriver audioDriver = null, DamageNumberAggregator damageNumbers = null)
         {
             if (string.IsNullOrWhiteSpace(host)) throw new ArgumentException("房间主机必填", nameof(host));
             if (port <= 0 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port));
@@ -52,6 +55,8 @@ namespace LiteGameNext.Features.Battle
             _world = world;
             _input = input;
             _autoStart = autoStart;
+            _audioDriver = audioDriver;
+            _damageNumbers = damageNumbers;
             _transport = transport ?? new SecureEnvelopeClientTransport(
                 new KcpTransportClient(), SecureEnvelopeOptions.FromEnvironment());
             _client = new RoomClient(_transport);
@@ -248,11 +253,24 @@ namespace LiteGameNext.Features.Battle
                 LiteNet.Proto.CombatEventEntry entry = batch.Records[i];
                 var kind = (LiteSim.FrameEventKind)entry.Kind;
                 Combat.Record(kind, entry.A, entry.B, entry.Value, _localEntityId);
+                RouteFeedback(kind, entry);
                 if (VerboseEventLog)
                     Log.Info("[CombatEvent] {\"kind\":\"" + kind + "\",\"a\":" + entry.A + ",\"b\":" + entry.B
                         + ",\"frame\":" + entry.Frame + ",\"value\":" + entry.Value
                         + ",\"local\":" + _localEntityId + "}");
             }
+        }
+
+        /// <summary>事件 → 音效与伤害数字（表现面；不参与判定）。</summary>
+        private void RouteFeedback(LiteSim.FrameEventKind kind, LiteNet.Proto.CombatEventEntry entry)
+        {
+            var position = new Vector3(entry.X, entry.Y, entry.Z);
+            _audioDriver?.OnCombatEvent(kind, entry.A, _localEntityId, position);
+            if (_damageNumbers == null) return;
+            if (kind != LiteSim.FrameEventKind.Hit && kind != LiteSim.FrameEventKind.Crit) return;
+            DamageNumber number = _damageNumbers.Record(kind, entry.A, _localEntityId, entry.Value,
+                Time.realtimeSinceStartup);
+            Log.Info("[DamageNumber] " + number.Text + " (" + number.Role + ") target=" + number.TargetId);
         }
 
         /// <summary>是否逐条打印战斗事件（默认开：命中验证需要可读证据；压测时关）。</summary>
