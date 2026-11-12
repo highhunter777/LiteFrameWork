@@ -80,6 +80,12 @@ namespace LiteGameNext.Features.Battle
 
         public int ExpectedPlayers { get; private set; }
 
+        /// <summary>本局地图行键（来自 JoinAck；0 = 服务端未标注，由调用方取默认图）。</summary>
+        public int MapId { get; private set; }
+
+        /// <summary>JoinAck 到达时回调地图行键（调用方据此加载地图场景）。</summary>
+        public event Action<int> JoinAcked;
+
         public long LocalEntityId => _localEntityId;
 
         public int PlayerId => _client.PlayerId;
@@ -192,7 +198,9 @@ namespace LiteGameNext.Features.Battle
             IsJoined = true;
             _joined.TrySetResult(true);
             ExpectedPlayers = ack.ExpectedPlayers;
+            MapId = ack.MapId;
             Status = "已进房，等待开局…";
+            JoinAcked?.Invoke(MapId);
             if (_autoStart && _client.IsOwner
                 && (ack.ExpectedPlayers <= 1 || ack.Members.Count >= ack.ExpectedPlayers))
                 _client.SendStartMatchRequest();

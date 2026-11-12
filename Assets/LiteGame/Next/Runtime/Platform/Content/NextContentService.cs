@@ -19,6 +19,7 @@ namespace LiteGameNext.Platform.Content
         private bool _initialized;
 #if !UNITY_EDITOR
         private readonly Dictionary<GameObject, AssetHandle> _handles = new Dictionary<GameObject, AssetHandle>();
+        private readonly List<SceneHandle> _scenes = new List<SceneHandle>();
         private ResourcePackage _package;
 #endif
 
@@ -85,6 +86,42 @@ namespace LiteGameNext.Platform.Content
 #endif
         }
 
+        /// <summary>加载地图场景（Additive）；编辑器走 SceneManager，Player 走 YooAsset 场景句柄。</summary>
+        public async UniTask<bool> LoadSceneAsync(string scenePath, CancellationToken ct)
+        {
+            ValidateAddress(scenePath);
+            ct.ThrowIfCancellationRequested();
+#if UNITY_EDITOR
+            UnityEngine.AsyncOperation op = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(
+                scenePath, UnityEngine.SceneManagement.LoadSceneMode.Additive);
+            while (op != null && !op.isDone) await UniTask.Yield();
+            return UnityEngine.SceneManagement.SceneManager.GetSceneByPath(scenePath).IsValid();
+#else
+            ResourcePackage package = RequirePackage();
+            SceneHandle handle = package.LoadSceneAsync(scenePath,
+                UnityEngine.SceneManagement.LoadSceneMode.Additive);
+            await NextAssetAwait.Wait(handle, ct);
+            handle.ActivateScene();
+            _scenes.Add(handle);
+            return true;
+#endif
+        }
+
+        /// <summary>卸载全部本服务加载的场景（逆序）。</summary>
+        public async UniTask UnloadScenesAsync(CancellationToken ct)
+        {
+#if UNITY_EDITOR
+            await UniTask.CompletedTask;
+#else
+            for (int i = _scenes.Count - 1; i >= 0; i--)
+            {
+                SceneHandle handle = _scenes[i];
+                await NextAssetAwait.Wait(handle.UnloadSceneAsync(), ct);
+            }
+            _scenes.Clear();
+#endif
+        }
+
         /// <summary>销毁实例并归还其内容句柄；编辑器侧只销毁实例。</summary>
         public void Release(GameObject instance)
         {
@@ -104,6 +141,8 @@ namespace LiteGameNext.Platform.Content
         public UniTask ShutdownAsync(CancellationToken ct)
         {
 #if !UNITY_EDITOR
+            for (int i = _scenes.Count - 1; i >= 0; i--) _scenes[i].UnloadSceneAsync();
+            _scenes.Clear();
             foreach (KeyValuePair<GameObject, AssetHandle> pair in _handles) pair.Value.Release();
             _handles.Clear();
             _package = null;

@@ -102,8 +102,8 @@ namespace LiteGameNext
             }
         }
 
-        /// <summary>真实房间会话：解析 MatchInfo 地址 → RoomSession（KCP/安全信封）。地址非法直接失败，不静默降级。</summary>
-        private static async UniTask<BattleResult> RunRoomSessionAsync(MatchInfo match, BattleHudModel hud,
+        /// <summary>真实房间会话：解析地址 → RoomSession；JoinAck 定图后加载地图场景，结束时必卸。</summary>
+        private async UniTask<BattleResult> RunRoomSessionAsync(MatchInfo match, BattleHudModel hud,
             BattleWorldView world, CancellationToken cancellationToken)
         {
             if (!TryParseEndpoint(match.Address, out string host, out int port))
@@ -114,8 +114,29 @@ namespace LiteGameNext
                 (dx, dy) => world?.Look(dx, dy));
             using (var session = new RoomSession(host, port, match.RoomId, match.Ticket, BuildHashValue(),
                        hud: hud, world: world, input: input))
-                return await session.RunAsync(cancellationToken);
+            {
+                session.JoinAcked += mapId => LoadMapForget(mapId, cancellationToken);
+                try
+                {
+                    return await session.RunAsync(cancellationToken);
+                }
+                finally
+                {
+                    await _content.UnloadScenesAsync(CancellationToken.None);
+                }
+            }
         }
+
+        /// <summary>JoinAck 回调是同步事件：地图加载 kick 出去，失败只记日志（不阻塞会话）。</summary>
+        private void LoadMapForget(int mapId, CancellationToken cancellationToken)
+        {
+            string scenePath = BattleMapCatalog.SceneOf(BattleMapCatalog.Resolve(mapId));
+            Log.Info("加载地图：" + scenePath + "（mapId=" + mapId + "）");
+            LoadMapAsync(scenePath, cancellationToken).Forget(ex => Log.Error("地图加载失败：" + ex));
+        }
+
+        private async UniTask LoadMapAsync(string scenePath, CancellationToken cancellationToken)
+            => await _content.LoadSceneAsync(scenePath, cancellationToken);
 
         private static bool TryParseEndpoint(string address, out string host, out int port)
         {
