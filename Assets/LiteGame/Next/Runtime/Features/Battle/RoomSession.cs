@@ -239,16 +239,24 @@ namespace LiteGameNext.Features.Battle
                 _hud.SetAmmo(snapshot.PrivateState.Weapons[0].MagAmmo);
         }
 
-        /// <summary>权威战斗事件：累计到 <see cref="Combat"/>（命中判定的唯一证据来源）。</summary>
+        /// <summary>权威战斗事件：累计到 <see cref="Combat"/>，并把每条写成单行 JSON 日志（命中验证的唯一证据面）。</summary>
         private void OnCombatEvents(LiteNet.Proto.CombatEventBatch batch)
         {
             if (batch == null) return;
             for (int i = 0; i < batch.Records.Count; i++)
             {
                 LiteNet.Proto.CombatEventEntry entry = batch.Records[i];
-                Combat.Record((LiteSim.FrameEventKind)entry.Kind, entry.A, entry.B, entry.Value, _localEntityId);
+                var kind = (LiteSim.FrameEventKind)entry.Kind;
+                Combat.Record(kind, entry.A, entry.B, entry.Value, _localEntityId);
+                if (VerboseEventLog)
+                    Log.Info("[CombatEvent] {\"kind\":\"" + kind + "\",\"a\":" + entry.A + ",\"b\":" + entry.B
+                        + ",\"frame\":" + entry.Frame + ",\"value\":" + entry.Value
+                        + ",\"local\":" + _localEntityId + "}");
             }
         }
+
+        /// <summary>是否逐条打印战斗事件（默认开：命中验证需要可读证据；压测时关）。</summary>
+        public bool VerboseEventLog { get; set; } = true;
 
         private void OnMatchEnded(LiteNet.Proto.MatchEnded ended)
         {
