@@ -62,9 +62,11 @@ namespace LiteGame.Tests.PlayMode
             s1.SetInput(aim);
             float fireDeadline = Time.realtimeSinceStartup + 5f;
             while (hud1.Ammo >= 30 && Time.realtimeSinceStartup < fireDeadline) yield return null;
+            s1.TryGetOtherEntityPosition(out long otherId, out Vector3 otherPos);
             Assert.Less(hud1.Ammo, 30,
                 "服务端未消费开火：ammo=" + hud1.Ammo + " sent=" + s1.SentInputs
-                + " frame=" + s1.LastInputFrame + " ack=" + s1.LastAckInput);
+                + " frame=" + s1.LastInputFrame + " ack=" + s1.LastAckInput
+                + " other=" + otherId + "@" + otherPos);
             yield return new WaitForSeconds(8f);
             cts.Cancel();
             while (!t1.IsCompleted || !t2.IsCompleted) yield return null;
