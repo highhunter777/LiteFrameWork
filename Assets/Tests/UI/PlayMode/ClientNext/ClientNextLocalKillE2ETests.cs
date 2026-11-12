@@ -16,6 +16,7 @@ namespace LiteGame.Tests.PlayMode
     public sealed class ClientNextLocalKillE2ETests
     {
         [UnityTest]
+        [Category("ClientNextE2E")]
         public IEnumerator 本地真房间_击杀自然结算()
         {
             var map = new SimMapData { GroundY = 0f, HalfWidth = 10f, HalfDepth = 10f, SpawnPointCount = 2 };

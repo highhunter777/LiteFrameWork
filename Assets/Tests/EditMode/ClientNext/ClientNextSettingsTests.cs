@@ -36,7 +36,7 @@ namespace LiteGame.Tests.EditMode
             settings.Quality.Set(9);
 
             Assert.AreEqual(1f, settings.MasterVolume.Value);
-            Assert.AreEqual(2, settings.Quality.Value);
+            Assert.AreEqual(3, settings.Quality.Value);   // 与旧客户端同值域：quality 钳制 0..3
         }
 
         [Test]

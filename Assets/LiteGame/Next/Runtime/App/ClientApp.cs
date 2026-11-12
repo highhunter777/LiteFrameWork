@@ -8,7 +8,9 @@ using LiteGameNext.Features.Battle.Hud;
 using LiteGameNext.Features.Battle.Input;
 using LiteGameNext.Features.Battle.World;
 using LiteGameNext.Features.Matchmaking;
+using LiteGameNext.Features.Records;
 using LiteGameNext.Features.Result;
+using LiteGameNext.Features.Settings;
 using LiteGameNext.Platform.Content;
 using LiteGameNext.Platform.Meta;
 using LiteGameNext.Platform.Ui;
@@ -27,6 +29,9 @@ namespace LiteGameNext
         private readonly MatchmakingFeature _matchmaking;
         private readonly BattleFeature _battle;
         private readonly ResultFeature _result;
+        private readonly SettingsStore _store;
+        private readonly SettingsFeature _settings;
+        private readonly RecordsFeature _records;
         private readonly AppFlow _flow;
         private readonly Lifetime _lifetime = new Lifetime();
 
@@ -38,8 +43,12 @@ namespace LiteGameNext
             _content = new NextContentService();
             _ui = new UiRuntime(CreatePageAsync);
             _meta = CreateMetaClient();
+            _store = new SettingsStore();
+            _store.Load();
+            _settings = new SettingsFeature(_ui, new GameSettings(_store, Application.isMobilePlatform));
             _account = new AccountFeature(_ui, _meta, () => SystemInfo.deviceUniqueIdentifier);
             _matchmaking = _meta == null ? null : new MatchmakingFeature(_ui, _account, _meta);
+            _records = _meta == null ? null : new RecordsFeature(_ui, _account, _meta);
             _result = new ResultFeature(_ui);
             _battle = _meta == null ? null : new BattleFeature(_ui, RunRoomSessionAsync,
                 () => CreateWorld());
@@ -47,8 +56,10 @@ namespace LiteGameNext
             _lifetime.Add(_ui);
             _lifetime.Add(_account);
             if (_matchmaking != null) _lifetime.Add(_matchmaking);
+            if (_records != null) _lifetime.Add(_records);
             if (_battle != null) _lifetime.Add(_battle);
             _lifetime.Add(_result);
+            _lifetime.Add(_settings);
         }
 
         /// <summary>UI 运行时（只读观察面：启动链与用例据此看栈顶页面）。</summary>
@@ -57,13 +68,20 @@ namespace LiteGameNext
         /// <summary>是否已登录（只读透传账号功能）。</summary>
         public bool IsSignedIn => _account.IsSignedIn;
 
-        /// <summary>初始化内容包、UI 运行时与账号功能；页面由 RunAsync 打开。</summary>
+        /// <summary>设置功能（只读观察面：入口按钮据此打开设置页）。</summary>
+        public SettingsFeature Settings => _settings;
+
+        /// <summary>战绩功能（只读观察面；Meta 未配置时为 null）。</summary>
+        public RecordsFeature Records => _records;
+
+        /// <summary>初始化内容包、UI 运行时与账号功能；同时把存档读回的音量/画质/显示项落到引擎。</summary>
         public async UniTask InitializeAsync(CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             await _content.InitializeAsync(ct);
             _ui.Initialize();
             _account.Initialize();
+            _settings.Settings.ApplyAll();
             Log.Info("ClientApp 初始化：platform=" + _platform.Name + " version=" + _platform.Version
                 + " 页面工厂=" + PageFactoryMode);
         }
@@ -74,7 +92,7 @@ namespace LiteGameNext
         /// <summary>逐帧驱动：UI 运行时优先（功能 Tick 在 P1 起按需接入）。</summary>
         public void Tick(float deltaTime) => _ui.Tick(deltaTime);
 
-        /// <summary>逆序关闭：账号功能先于 UI 运行时；内容服务最后归还句柄。</summary>
+        /// <summary>逆序关闭：账号功能先于 UI 运行时；内容服务最后归还句柄；关闭链末尾落盘设置。</summary>
         public async UniTask ShutdownAsync()
         {
             try
@@ -87,6 +105,7 @@ namespace LiteGameNext
             }
 
             await _content.ShutdownAsync(CancellationToken.None);
+            await _store.FlushAsync(CancellationToken.None);
             Log.Info("ClientApp 已关闭");
         }
 

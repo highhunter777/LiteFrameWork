@@ -17,6 +17,7 @@ namespace LiteGame.Tests.PlayMode
     public sealed class ClientNextRoomE2ETests
     {
         [UnityTest]
+        [Category("ClientNextE2E")]
         public IEnumerator 真实房间_JoinStart快照()
         {
             string root = Directory.GetCurrentDirectory();

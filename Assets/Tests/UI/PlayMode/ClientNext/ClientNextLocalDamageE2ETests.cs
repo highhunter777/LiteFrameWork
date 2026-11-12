@@ -17,6 +17,7 @@ namespace LiteGame.Tests.PlayMode
     public sealed class ClientNextLocalDamageE2ETests
     {
         [UnityTest]
+        [Category("ClientNextE2E")]
         public IEnumerator 本地真房间_无遮挡开火产生权威命中事件()
         {
             var map = new SimMapData { GroundY = 0f, HalfWidth = 10f, HalfDepth = 10f, SpawnPointCount = 2 };

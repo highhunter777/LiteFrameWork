@@ -18,6 +18,7 @@ namespace LiteGame.Tests.PlayMode
     public sealed class ClientNextRoomTwoPlayerE2ETests
     {
         [UnityTest]
+        [Category("ClientNextE2E")]
         public IEnumerator 双人进房_开火被服务端消费()
         {
             string root = Directory.GetCurrentDirectory();

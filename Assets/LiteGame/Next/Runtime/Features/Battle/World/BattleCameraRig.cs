@@ -33,14 +33,27 @@ namespace LiteGameNext.Features.Battle.World
             camera.transform.rotation = Quaternion.LookRotation(pivot - camera.transform.position, Vector3.up);
         }
 
-        /// <summary>屏幕中心射线的瞄准点：先打物理体，未命中取远处（不是自身脚下）。</summary>
-        public static Vector3 ResolveAimPoint(Camera camera, float fallbackDistance = 40f)
+        /// <summary>
+        /// 屏幕中心射线的瞄准点：命中最近的非自身碰撞体；未命中取远处。
+        /// <paramref name="selfRoot"/> 为本地角色根——必须排除，否则射线先命中自己（枢轴在胶囊体内）。
+        /// </summary>
+        public static Vector3 ResolveAimPoint(Camera camera, Transform selfRoot, float fallbackDistance = 40f)
         {
             if (camera == null) return Vector3.zero;
             Ray ray = camera.ScreenPointToRay(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f));
-            if (Physics.Raycast(ray, out RaycastHit hit, 500f, ~0, QueryTriggerInteraction.Ignore))
-                return hit.point;
-            return ray.GetPoint(fallbackDistance);
+            RaycastHit[] hits = Physics.RaycastAll(ray, 500f, ~0, QueryTriggerInteraction.Ignore);
+            float nearest = float.MaxValue;
+            Vector3 point = Vector3.zero;
+            bool found = false;
+            for (int i = 0; i < hits.Length; i++)
+            {
+                if (selfRoot != null && hits[i].collider.transform.IsChildOf(selfRoot)) continue;
+                if (hits[i].distance >= nearest) continue;
+                nearest = hits[i].distance;
+                point = hits[i].point;
+                found = true;
+            }
+            return found ? point : ray.GetPoint(fallbackDistance);
         }
     }
 }

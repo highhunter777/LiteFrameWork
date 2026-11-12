@@ -23,6 +23,7 @@ namespace LiteGame.Tests.UI.PlayMode
         private const float TimeoutSeconds = 20f;
 
         [UnityTest]
+        [Category("ClientNextE2E")]
         public IEnumerator BootNext启动链_真实指针点击游客登录后进占位页()
         {
             yield return SceneManager.LoadSceneAsync(SceneName, LoadSceneMode.Single);

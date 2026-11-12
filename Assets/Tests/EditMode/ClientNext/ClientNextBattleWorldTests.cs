@@ -53,41 +53,47 @@ namespace LiteGame.Tests.EditMode
             }
         }
 
-        // C2 回归卡：S0 时瞄准点恒等于自身脚下（距离 1.35e-5），真实游玩命中率为 0；
-        // S2 引入 BattleCameraRig（第三人称臂长 + 中心射线瞄准）后转绿。
-        // 保留为长期回归：瞄准点必须远离自身且在可射击距离内。
+        /// <summary>C2 回归卡：须注入真实角色 prefab（带 CharacterController）复现生产碰撞布局；
+        /// 枢轴 PivotHeight=1.5 在胶囊体（高 1.8/中心 0.9）内，无自身排除则射线先命中自己。</summary>
         [Test]
-        [Explicit("C2 回归卡：需真实 prefab 相机；验收时显式跑")]
-        public void 真实prefab_瞄准点不得等于自身脚下位置()
+        [Category("ClientNextE2E")]
+        [Explicit("C2 回归卡：需真实角色 prefab；验收时显式跑")]
+        public void 真实prefab_瞄准点不得命中自身()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
                 "Assets/LiteGame/Next/Runtime/Features/Battle/Content/BattleWorld.prefab");
             Assert.IsNotNull(prefab, "BattleWorld.prefab 应存在");
 
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            var content = new LiteGameNext.Platform.Content.NextContentService();
             try
             {
                 var view = go.GetComponent<BattleWorldView>();
                 Assert.IsNotNull(view, "prefab 根应挂 BattleWorldView");
+                // 关键：注入真实角色工厂，使实体带真实 CharacterController 碰撞体。
+                view.SetEntityFactory(new PrefabEntityViewFactory(
+                    name => content.InstantiateSync(
+                        "Assets/LiteGame/Modules/Battle/Content/Characters/" + name + ".prefab")));
 
                 var snapshot = new StateSnapshot
                 {
                     Slots =
                     {
                         new SlotDelta { Id = 10, PosX = 1f, PosY = 0f, PosZ = 2f },
-                        new SlotDelta { Id = 11, PosX = -1f, PosY = 0f, PosZ = -2f },
+                        new SlotDelta { Id = 11, PosX = 1f, PosY = 0f, PosZ = 12f },
                     },
                     PrivateState = new PrivateStateDelta { EntityId = 10 },
                 };
                 view.ApplySnapshot(snapshot);
+                view.Look(0f, 0f);                       // 默认 pitch 18°
+                view.ApplySnapshot(snapshot);
 
-                Vector3 ownFeet = view.LocalPosition + new Vector3(0f, 1.2f, 0f);
-                // NUnit 对 Vector3 的 AreNotEqual 走 Unity == 容差，须用几何距离断言。
-                float aimDistance = Vector3.Distance(view.AimPoint, ownFeet);
-                Assert.Greater(aimDistance, 0.5f,
-                    "瞄准点贴近自身脚下位置（距离 " + aimDistance.ToString("F4") +
-                    "）——相机/瞄准链退化（C2），真实游玩无法命中他人");
-                Assert.Less(aimDistance, 200f, "瞄准点距离异常（应落在中心射线可及范围）");
+                // 枪口高度 1.2948（CombatGeometry）—— 瞄准点作为射击基准须远离它。
+                Vector3 muzzle = view.LocalPosition + new Vector3(0f, 1.2948f, 0f);
+                float aimDistance = Vector3.Distance(view.AimPoint, muzzle);
+                Assert.Greater(aimDistance, 3f,
+                    "瞄准点距枪口仅 " + aimDistance.ToString("F4") +
+                    "m——射线命中了自身碰撞体（枢轴在胶囊体内且未排除自身），真实游玩无法命中他人");
             }
             finally
             {
