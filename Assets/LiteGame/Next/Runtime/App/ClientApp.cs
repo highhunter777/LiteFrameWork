@@ -74,8 +74,8 @@ namespace LiteGameNext
             _result = new ResultFeature(_ui);
             _dev = devHooksOverride ?? CreateDevHooks();
             // Dev 本地服不依赖 Meta（进程内房间），故有 Dev 面时也建战斗功能。
-            _battle = (_meta == null && (_dev == null || !_dev.Enabled)) ? null : new BattleFeature(_ui, RunRoomSessionAsync,
-                () => CreateWorld(), CrosshairOf);
+            _battle = (_meta == null && (_dev == null || !_dev.Enabled)) ? null : new BattleFeature(_ui,
+                RunRoomSessionAsync, () => CreateWorld(), CrosshairOf, RunRoomSessionAsync);
             _flow = new AppFlow(_ui, _account, _matchmaking, _battle, _result, _settings, _records,
                 (_dev != null && _dev.Enabled) ? CreateLocalMatch : (Func<MatchInfo>)null);
             _lifetime.Add(_ui);
@@ -273,14 +273,21 @@ namespace LiteGameNext
         private BattleWorldView CreateWorld()
         {
             BattleWorldView world = BattleWorldFactory.Create(_content);
+            if (_config.Loaded) world.SetAnimProfiles(
+                LiteGameNext.Platform.Config.AnimProfileProjection.Project(_config.Tables));
             world.SetEntityFactory(new PrefabEntityViewFactory(
                 name => _content.InstantiateSync("Assets/LiteGame/Modules/Battle/Content/Characters/" + name + ".prefab")));
             return world;
         }
 
         /// <summary>真实房间会话：解析地址 → RoomSession；JoinAck 定图后加载地图场景，结束时必卸。</summary>
-        private async UniTask<BattleResult> RunRoomSessionAsync(MatchInfo match, BattleHudModel hud,
+        private UniTask<BattleResult> RunRoomSessionAsync(MatchInfo match, BattleHudModel hud,
             BattleWorldView world, CancellationToken cancellationToken)
+            => RunRoomSessionAsync(match, hud, world, cancellationToken, null);
+
+        private async UniTask<BattleResult> RunRoomSessionAsync(MatchInfo match, BattleHudModel hud,
+            BattleWorldView world, CancellationToken cancellationToken,
+            Action<string, Vector3, bool> onDamageNumber)
         {
             var input = new UnityBattleInput(
                 () => world == null ? Vector3.zero : world.LocalPosition,
@@ -290,7 +297,8 @@ namespace LiteGameNext
             // Dev 本地服优先：进程内真 RoomRuntime，不需要 KCP/服务端。
             if (_dev != null && _dev.Enabled)
             {
-                BattleResult local = await TryRunLocalSessionAsync(match, hud, world, input, cancellationToken);
+                BattleResult local = await TryRunLocalSessionAsync(match, hud, world, input,
+                    cancellationToken, onDamageNumber);
                 if (local != null) return local;
             }
 
@@ -300,7 +308,7 @@ namespace LiteGameNext
                        hud: hud, world: world, input: input,
                        audioDriver: new BattleAudioDriver(_audio, null, null, null, null),
                        damageNumbers: new DamageNumberAggregator(),
-                       expectedConfigHash: ExpectedConfigHash()))
+                       expectedConfigHash: ExpectedConfigHash(), onDamageNumber: onDamageNumber))
             {
                 session.JoinAcked += mapId => LoadMapForget(mapId, cancellationToken);
                 try
@@ -319,7 +327,8 @@ namespace LiteGameNext
         /// 返回 null = 本地服不可用（回退 KCP）。
         /// </summary>
         private async UniTask<BattleResult> TryRunLocalSessionAsync(MatchInfo match, BattleHudModel hud,
-            BattleWorldView world, IBattleInput input, CancellationToken cancellationToken)
+            BattleWorldView world, IBattleInput input, CancellationToken cancellationToken,
+            Action<string, Vector3, bool> onDamageNumber)
         {
             ILocalRoomSession local = await _dev.StartLocalRoomAsync(match.RoomId, 2, cancellationToken);
             if (local == null) return null;
@@ -335,7 +344,7 @@ namespace LiteGameNext
                        transport: transport, hud: hud, world: world, input: input,
                        audioDriver: new BattleAudioDriver(_audio, null, null, null, null),
                        damageNumbers: new DamageNumberAggregator(),
-                       expectedConfigHash: ExpectedConfigHash()))
+                       expectedConfigHash: ExpectedConfigHash(), onDamageNumber: onDamageNumber))
             {
                 Log.Info("使用 Dev 本地服对局：room=" + match.RoomId);
                 session.JoinAcked += mapId => LoadMapForget(mapId, cancellationToken);

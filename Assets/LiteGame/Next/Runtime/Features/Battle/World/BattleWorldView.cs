@@ -13,6 +13,10 @@ namespace LiteGameNext.Features.Battle.World
         [SerializeField] private Camera _camera;
 
         private readonly Dictionary<long, GameObject> _views = new Dictionary<long, GameObject>();
+        private readonly Dictionary<long, CharacterAnimPlayer> _anims =
+            new Dictionary<long, CharacterAnimPlayer>();
+        private readonly Dictionary<long, Vector3> _lastPositions = new Dictionary<long, Vector3>();
+        private System.Collections.Generic.IReadOnlyDictionary<string, LiteGameNext.Platform.Config.AnimProfile> _animProfiles;
         private readonly BattleCameraRig _cameraRig = new BattleCameraRig();
         private readonly SnapshotInterpolationBuffer _interp = new SnapshotInterpolationBuffer();
         private IBattleEntityViewFactory _entityFactory;
@@ -85,10 +89,16 @@ namespace LiteGameNext.Features.Battle.World
                 _cameraRig.Apply(_camera, LocalPosition);
         }
 
-        /// <summary>逐帧推进远端插值（由 ClientApp.Tick 驱动）；本地实体不参与。</summary>
+        /// <summary>注入动画档案表（`tbanimationprofile` 投影）；null = 用内置速度阈值。</summary>
+        public void SetAnimProfiles(
+            System.Collections.Generic.IReadOnlyDictionary<string, LiteGameNext.Platform.Config.AnimProfile> profiles)
+            => _animProfiles = profiles;
+
+        /// <summary>逐帧推进远端插值并驱动角色动画（由 ClientApp.Tick 驱动）。</summary>
         public void Tick(float deltaTime)
         {
             _interp.Advance(deltaTime);
+            float now = Time.realtimeSinceStartup;
             foreach (KeyValuePair<long, GameObject> pair in _views)
             {
                 if (pair.Key == LocalEntityId) continue;
@@ -96,11 +106,39 @@ namespace LiteGameNext.Features.Battle.World
                 if (pair.Value == null) continue;
                 pair.Value.transform.position = position;
                 pair.Value.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+                DriveAnimation(pair.Key, pair.Value, position, now, deltaTime);
             }
         }
 
-        /// <summary>换局/重连清空插值缓冲。</summary>
-        public void ResetInterpolation() => _interp.Reset();
+        /// <summary>按位移速度驱动角色动画（瞄准/换弹/受击态当前不喂，留默认）。</summary>
+        private void DriveAnimation(long entityId, GameObject view, Vector3 position, float now, float deltaTime)
+        {
+            if (!_anims.TryGetValue(entityId, out CharacterAnimPlayer anim) || anim == null)
+            {
+                Animator animator = view.GetComponentInChildren<Animator>(true);
+                anim = new CharacterAnimPlayer(animator, _animProfiles);
+                _anims[entityId] = anim;
+            }
+
+            if (!_lastPositions.TryGetValue(entityId, out Vector3 last))
+            {
+                _lastPositions[entityId] = position;
+                return;
+            }
+
+            Vector3 delta = position - last;
+            _lastPositions[entityId] = position;
+            float speed = deltaTime > 0f ? delta.magnitude / deltaTime : 0f;
+            anim.Apply(new CharacterAnimFacts(false, false, false, speed, delta, -999f, now));
+        }
+
+        /// <summary>换局/重连清空插值缓冲与动画缓存。</summary>
+        public void ResetInterpolation()
+        {
+            _interp.Reset();
+            _anims.Clear();
+            _lastPositions.Clear();
+        }
 
         private GameObject GetOrCreate(long entityId)
         {

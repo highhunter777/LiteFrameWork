@@ -17,13 +17,29 @@ namespace LiteGameNext.Features.Battle.Hud
         /// <summary>准心基准像素（表参数按此缩放）。</summary>
         private const float BaseCrosshairPixels = 36f;
 
+        private DamageNumberPool _damagePool;
+
         public void Bind(BattleHudModel model)
         {
             _model = model;
             if (IsOpen) Refresh();
         }
 
-        protected override void OnShow() => Refresh();
+        protected override void OnShow()
+        {
+            Refresh();
+            if (_damagePool == null && HasBinding("Cot_DamageNumbers"))
+                _damagePool = new DamageNumberPool(Bind<RectTransform>("Cot_DamageNumbers"));
+        }
+
+        /// <summary>压入一条伤害飘字（世界坐标）；未就绪时静默跳过。</summary>
+        public void PushDamage(string text, Vector3 world, bool crit)
+            => _damagePool?.Push(text, world, crit ? CritColor : NormalColor);
+
+        protected override void OnTick(float deltaTime) => _damagePool?.Tick();
+
+        private static readonly Color NormalColor = new Color(1f, 0.85f, 0.2f, 1f);
+        private static readonly Color CritColor = new Color(1f, 0.35f, 0.2f, 1f);
 
         /// <summary>按模型全量刷新 10 类读数。</summary>
         public void Refresh()

@@ -29,6 +29,7 @@ namespace LiteGameNext.Features.Battle
         private readonly BattleAudioDriver _audioDriver;
         private readonly DamageNumberAggregator _damageNumbers;
         private readonly uint? _expectedConfigHash;
+        private readonly System.Action<string, Vector3, bool> _onDamageNumber;
         private IBattleInput _input;
         private readonly bool _autoStart;
         private readonly Dictionary<long, Vector3> _positions = new Dictionary<long, Vector3>();
@@ -46,7 +47,8 @@ namespace LiteGameNext.Features.Battle
             IClientTransport transport = null, BattleHudModel hud = null, BattleWorldView world = null,
             IBattleInput input = null, bool autoStart = true,
             BattleAudioDriver audioDriver = null, DamageNumberAggregator damageNumbers = null,
-            uint? expectedConfigHash = null)
+            uint? expectedConfigHash = null,
+            System.Action<string, Vector3, bool> onDamageNumber = null)
         {
             if (string.IsNullOrWhiteSpace(host)) throw new ArgumentException("房间主机必填", nameof(host));
             if (port <= 0 || port > 65535) throw new ArgumentOutOfRangeException(nameof(port));
@@ -60,6 +62,7 @@ namespace LiteGameNext.Features.Battle
             _audioDriver = audioDriver;
             _damageNumbers = damageNumbers;
             _expectedConfigHash = expectedConfigHash;
+            _onDamageNumber = onDamageNumber;
             _transport = transport ?? new SecureEnvelopeClientTransport(
                 new KcpTransportClient(), SecureEnvelopeOptions.FromEnvironment());
             _client = new RoomClient(_transport);
@@ -291,6 +294,7 @@ namespace LiteGameNext.Features.Battle
             DamageNumber number = _damageNumbers.Record(kind, entry.A, _localEntityId, entry.Value,
                 Time.realtimeSinceStartup);
             Log.Info("[DamageNumber] " + number.Text + " (" + number.Role + ") target=" + number.TargetId);
+            _onDamageNumber?.Invoke(number.Text, new Vector3(entry.X, entry.Y, entry.Z), number.Crit);
         }
 
         /// <summary>是否逐条打印战斗事件（默认开：命中验证需要可读证据；压测时关）。</summary>

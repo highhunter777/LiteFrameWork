@@ -15,6 +15,8 @@ namespace LiteGameNext.Features.Battle
     {
         private readonly UiRuntime _ui;
         private readonly Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken, UniTask<BattleResult>> _session;
+        private readonly Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken,
+            System.Action<string, UnityEngine.Vector3, bool>, UniTask<BattleResult>> _sessionWithFeedback;
         private readonly Func<BattleWorldView> _worldFactory;
         private readonly Func<int, LiteGameNext.Platform.Config.CrosshairFeel> _crosshairOf;
         private BattleWorldView _activeWorld;
@@ -31,11 +33,23 @@ namespace LiteGameNext.Features.Battle
             Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken, UniTask<BattleResult>> session,
             Func<BattleWorldView> worldFactory = null,
             Func<int, LiteGameNext.Platform.Config.CrosshairFeel> crosshairOf = null)
+            : this(ui, session, worldFactory, crosshairOf, null)
+        {
+        }
+
+        /// <summary>带伤害反馈回调的构造（HUD 飘字用）；反馈为 null 时退回 4 参委托。</summary>
+        public BattleFeature(UiRuntime ui,
+            Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken, UniTask<BattleResult>> session,
+            Func<BattleWorldView> worldFactory,
+            Func<int, LiteGameNext.Platform.Config.CrosshairFeel> crosshairOf,
+            Func<MatchInfo, BattleHudModel, BattleWorldView, CancellationToken,
+                System.Action<string, UnityEngine.Vector3, bool>, UniTask<BattleResult>> sessionWithFeedback)
         {
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _session = session ?? throw new ArgumentNullException(nameof(session));
             _worldFactory = worldFactory;
             _crosshairOf = crosshairOf;
+            _sessionWithFeedback = sessionWithFeedback;
         }
 
         /// <summary>跑一局：房间页/HUD/世界 → 会话 → 必然清理页面与世界；取消仍清理。</summary>
@@ -52,7 +66,11 @@ namespace LiteGameNext.Features.Battle
                 BattleHudView.Spec, page => page.Bind(hud), cancellationToken);
             try
             {
-                BattleResult result = await _session(match, hud, world, cancellationToken);
+                    var hudView = hudPage.Page as BattleHudView;
+                BattleResult result = _sessionWithFeedback != null
+                    ? await _sessionWithFeedback(match, hud, world, cancellationToken,
+                        (text, pos, crit) => hudView?.PushDamage(text, pos, crit))
+                    : await _session(match, hud, world, cancellationToken);
                 Log.Info("对局结束：" + result.Outcome + " reason=" + result.Reason);
                 return result;
             }
