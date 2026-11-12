@@ -1,23 +1,33 @@
 using System;
+using LiteFrameworkNext;
 using LiteGame.Adapters.Dev.LocalServer;
 using LiteGame.Modules.Config;
+using LiteGameNext.Platform.Config;
 using LiteGameNext.Platform.Dev;
 using LiteSim;
 using UnityEngine;
 
 namespace LiteGameNext.Dev
 {
-    /// <summary>本地房间会话：进程内真 RoomRuntime（无 KCP），把传输交给 RoomSession 消费。</summary>
+    /// <summary>本地房间会话：进程内真 RoomRuntime（无 KCP）；判定数值与规则来自配置表。</summary>
     internal sealed class LocalRoomSession : ILocalRoomSession
     {
         private readonly LocalServerTransport _transport;
 
-        public LocalRoomSession(string roomId, int expectedPlayers, cfg.Tables tables = null)
+        /// <param name="config">配置表服务；null = 直构形态，判定数值与地图回落 C# 默认。</param>
+        public LocalRoomSession(string roomId, int expectedPlayers, ConfigService config = null)
         {
             RoomId = string.IsNullOrEmpty(roomId) ? "local-dev" : roomId;
+            cfg.Tables tables = config?.Tables;
             SimMapData map = tables == null ? BuildFlatMap() : MapTableProjection.Project(tables);
-            _transport = LocalServerTransport.ForRoom(RoomId, Math.Max(1, expectedPlayers), null, 0u, map);
+            // 表值优先：把「注释说等于表值」的人工同步变成机制单源。
+            CombatValues? values = config == null ? null : config.TableCombatValues;
+            MatchRules rules = config == null ? MatchRules.Default : config.Rules(MatchRules.Default);
+            _transport = LocalServerTransport.ForRoom(RoomId, Math.Max(1, expectedPlayers), null, 0u, map,
+                roomValues: values, rules: rules);
             _transport.Connect("local", 0);
+            Log.Info("[Dev] 本地房间数值来源：" + (values.HasValue ? "配置表" : "C# 默认")
+                + "，地图来源：" + (tables == null ? "内置平坦图" : "tbmap"));
         }
 
         public object Transport => _transport;
@@ -33,7 +43,7 @@ namespace LiteGameNext.Dev
 
         public void Dispose() => _transport.Dispose();
 
-        /// <summary>平坦测试图：2 个出生点相距 6m（无遮挡，验命中用）。</summary>
+        /// <summary>平坦兜底图：2 个出生点相距 6m（表未装载时用）。</summary>
         private static SimMapData BuildFlatMap()
         {
             var map = new SimMapData { GroundY = 0f, HalfWidth = 20f, HalfDepth = 20f, SpawnPointCount = 2 };

@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using LiteGameNext.Platform.Config;
 
 namespace LiteGameNext.Platform.Dev
 {
@@ -10,8 +11,8 @@ namespace LiteGameNext.Platform.Dev
         /// <summary>是否启用（发布构建恒 false）。</summary>
         bool Enabled { get; }
 
-        /// <summary>注入配置表（本地服用真实地图）；表未装载时传 null，本地服回落内置平坦图。</summary>
-        void Configure(cfg.Tables tables);
+        /// <summary>注入配置服务（本地服用真实地图/判定数值/规则）；未装载时传 null，回落内置默认。</summary>
+        void Configure(ConfigService config);
 
         /// <summary>逐帧驱动（无开发面为 no-op）。</summary>
         void Tick(float deltaTime);
@@ -47,7 +48,7 @@ namespace LiteGameNext.Platform.Dev
 
         public bool Enabled => false;
 
-        public void Configure(cfg.Tables tables)
+        public void Configure(ConfigService config)
         {
         }
 
