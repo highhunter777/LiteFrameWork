@@ -165,6 +165,14 @@ namespace LiteGameNext.Platform.Ui
             OnCreate();
         }
 
+        /// <summary>控件是否已绑定（可选控件先探测再取，避免缺件抛异常）。</summary>
+        protected bool HasBinding(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            EnsureBindings();
+            return _binds.ContainsKey(name);
+        }
+
         private Component Require(string name)
         {
             if (string.IsNullOrEmpty(name)) throw new ArgumentException("控件名不能为空", nameof(name));
