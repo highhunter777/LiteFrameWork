@@ -49,9 +49,14 @@ namespace LiteGameNext.Bootstrap
             {
                 Log.Error("引导失败：" + ex);
                 ShutdownState();
-                return;
             }
+        }
 
+        // 异步流程必须在 Start 启动：Awake 期 UniTask 的 PlayerLoop 尚未泵动，
+        // 续体不会推进（旧 GameEntry 同口径）。Awake 只做同步引导与入口装载。
+        private void Start()
+        {
+            if (!_active || _clientApp == null) return;
             BootAsync(_clientApp, _shutdown.Token).Forget(ex => Log.Error("启动异步失败：" + ex));
         }
 

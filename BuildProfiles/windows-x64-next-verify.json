@@ -1,0 +1,20 @@
+{
+  "$comment": "S1-B Next client Player profile: boots BootNext.unity (new client) instead of Boot.unity. KEEP ASCII-ONLY.",
+  "profileName": "windows-x64-next-verify",
+  "updatedAt": "2026-11-12",
+  "environment": "dev",
+  "channel": "development",
+  "platform": "StandaloneWindows64",
+  "buildTargetGroup": "Standalone",
+  "backend": "IL2CPP",
+  "architecture": "x86_64",
+  "scenes": ["Assets/Scenes/BootNext.unity"],
+  "defines": [],
+  "contentMode": "OfflineBundles",
+  "endpoints": {},
+  "signing": { "mode": "none" },
+  "stripping": { "level": "Minimal" },
+  "debugSymbols": true,
+  "output": "Builds/StandaloneWindows64Next",
+  "artifactGlob": "*.exe"
+}

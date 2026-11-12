@@ -186,6 +186,8 @@ def parse_args(argv=None):
     parser.add_argument("--skip-restore-check", action="store_true")
     parser.add_argument("--skip-bundles", action="store_true")
     parser.add_argument("--skip-hybridclr", action="store_true")
+    parser.add_argument("--keep-scenes", action="store_true",
+                        help="keep build-settings scenes not listed in the profile (migration: old client stays runnable)")
     return parser.parse_args(argv)
 
 
@@ -361,6 +363,9 @@ def main(argv=None):
         for scene in build_settings.get("scenes") or []:
             path = scene.get("path")
             if path not in profile_scenes:
+                if args.keep_scenes:
+                    info("build/player", f"keeping scene not in profile (--keep-scenes): {path}")
+                    continue
                 info("build/player", f"removing scene from build (not in profile): {path}")
                 builder.pipeline("remove_scene_from_build", ["--path", path])
 

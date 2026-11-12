@@ -54,12 +54,13 @@ namespace LiteGameNext.Platform.Content
             ValidateAddress(address);
             ct.ThrowIfCancellationRequested();
 #if UNITY_EDITOR
-            GameObject prefab = LoadEditorPrefab(address);
+            GameObject prefab = LoadEditorPrefab(AddressKey(address));
             GameObject instance = UnityEngine.Object.Instantiate(prefab);
             instance.name = prefab.name + "(Page)";
             instance.SetActive(false);
             return instance;
 #else
+            // Player：包未开启 addressable（EnableAddressable=0），按资源路径加载。
             AssetHandle handle = RequirePackage().LoadAssetAsync<GameObject>(address);
             await NextAssetAwait.Wait(handle, ct);
             GameObject go = Track(handle, address, "(Page)");
@@ -73,7 +74,7 @@ namespace LiteGameNext.Platform.Content
         {
             ValidateAddress(address);
 #if UNITY_EDITOR
-            GameObject prefab = LoadEditorPrefab(address);
+            GameObject prefab = LoadEditorPrefab(AddressKey(address));
             GameObject instance = UnityEngine.Object.Instantiate(prefab);
             instance.name = prefab.name + "(Instance)";
             return instance;

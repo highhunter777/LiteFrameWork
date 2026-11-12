@@ -10,8 +10,7 @@ namespace LiteGameNext.Features.Battle.World
         public static BattleWorldView Create(NextContentService content)
         {
             if (content == null) throw new ArgumentNullException(nameof(content));
-            GameObject instance = content.InstantiateSync(
-                NextContentService.AddressKey(BattleWorldView.PrefabPath));
+            GameObject instance = content.InstantiateSync(BattleWorldView.PrefabPath);
             BattleWorldView view = instance.GetComponent<BattleWorldView>();
             if (view == null)
             {

@@ -15,8 +15,7 @@ namespace LiteGameNext.Platform.Ui
         {
             if (spec == null) throw new ArgumentNullException(nameof(spec));
             if (content == null) throw new ArgumentNullException(nameof(content));
-            GameObject instance = await content.InstantiateAsync(
-                NextContentService.AddressKey(spec.Address), cancellationToken);
+            GameObject instance = await content.InstantiateAsync(spec.Address, cancellationToken);
             PageBase page = instance.GetComponent<PageBase>();
             if (page == null)
             {
