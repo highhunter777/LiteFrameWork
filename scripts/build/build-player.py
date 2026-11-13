@@ -17,6 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E402
+from _unity_path import resolve_unity_exe  # noqa: E402
 
 
 # ---- 平台映射（profile → Unity 构建参数；纯函数，供 scripts/tests 契约测试） ----
@@ -189,6 +190,39 @@ def parse_args(argv=None):
     parser.add_argument("--keep-scenes", action="store_true",
                         help="keep build-settings scenes not listed in the profile (migration: old client stays runnable)")
     return parser.parse_args(argv)
+
+
+
+def build_bundles_batchmode(project, profile):
+    """用 -batchmode -executeMethod 同步构建内置 Bundle（绕开 delayCall）。
+
+    返回 True = 成功。失败/超时返回 False，由调用方回退 pipeline。
+    """
+    try:
+        unity_exe, _source = resolve_unity_exe(project)
+    except UnityPathError as exc:
+        info("build/player", f"batchmode bundle build: Unity 路径不可用 ({exc})")
+        return False
+    target = profile.get("platform") or "StandaloneWindows64"
+    log = project / "Temp" / "bundle-batchmode.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        str(unity_exe), "-batchmode", "-quit",
+        "-projectPath", str(project),
+        "-executeMethod", "LiteGameNext.Editor.BundleBuildEntry.BuildWindows",
+        "-logFile", str(log),
+    ]
+    info("build/player", "batchmode bundle build -> " + target)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True,
+                                encoding="utf-8", errors="replace", timeout=1800)
+    except (OSError, subprocess.SubprocessError) as exc:
+        info("build/player", f"batchmode bundle build 无法启动: {exc}")
+        return False
+    if result.returncode == 0:
+        return True
+    info("build/player", f"batchmode bundle build 退出码 {result.returncode}")
+    return False
 
 
 class Builder:
@@ -410,8 +444,15 @@ def main(argv=None):
             )
         else:
             info("build/player", "== bundles: build builtin content bundles (Offline) ==")
-            builder.focus_editor()
-            auto_tick_enabled = builder.set_auto_tick(True)
+            # 首选 batchmode：编辑器后台/失焦时 EditorApplication.delayCall 可能永不触发，
+            # 异步构建会永久停在 starting（实测 4 次）。batchmode 无该问题，且不占运行中的编辑器。
+            if build_bundles_batchmode(project, profile):
+                info("build/player", "bundles OK (batchmode)")
+                auto_tick_enabled = False
+            else:
+                info("build/player", "batchmode 失败，回退 pipeline 异步构建")
+                builder.focus_editor()
+                auto_tick_enabled = builder.set_auto_tick(True)
             builder.eval_file("build-bundles.cs", bundles_cs(profile))
             builder.pipeline("run_script", ["--file", "Temp/build-bundles.cs", "--entry", "BuildBundles.Start"])
             bundle_state = ""
