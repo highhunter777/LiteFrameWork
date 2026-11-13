@@ -54,9 +54,17 @@ namespace LiteGameNext.Bootstrap
 
         // 异步流程必须在 Start 启动：Awake 期 UniTask 的 PlayerLoop 尚未泵动，
         // 续体不会推进（旧 GameEntry 同口径）。Awake 只做同步引导与入口装载。
+        /// <summary>命令行截图探针：-s8shot &lt;绝对路径&gt; [-s8shotDelay 秒]。仅开发构建用，默认关闭。</summary>
+        private float _shotAt = -1f;
+        private string _shotPath;
+        private string _clickBind;
+        private float _clickAt = -1f;
+        private bool _clicked;
+
         private void Start()
         {
             if (!_active || _clientApp == null) return;
+            ArmScreenshotProbe();
             BootAsync(_clientApp, _shutdown.Token).Forget(ex => Log.Error("启动异步失败：" + ex));
         }
 
@@ -64,6 +72,94 @@ namespace LiteGameNext.Bootstrap
         {
             if (!_active || _clientApp == null) return;
             _clientApp.Tick(Time.unscaledDeltaTime);
+            TickScreenshotProbe();
+        }
+
+        /// <summary>解析 -s8shot 参数并定时；未传则永不动作。</summary>
+        private void ArmScreenshotProbe()
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                if (args[i] != "-s8shot") continue;
+                _shotPath = args[i + 1];
+                float delay = 12f;
+                for (int j = 0; j < args.Length - 1; j++)
+                    if (args[j] == "-s8shotDelay" && float.TryParse(args[j + 1], out float parsed))
+                        delay = parsed;
+                _shotAt = Time.realtimeSinceStartup + delay;
+                Log.Info("[S8Shot] 将在 " + delay + "s 后截图到 " + _shotPath);
+                break;
+            }
+
+            // 可选：截图前用真实 EventSystem 射线点击指定 BindName 控件。
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                if (args[i] != "-s8click") continue;
+                _clickBind = args[i + 1];
+                _clickAt = Time.realtimeSinceStartup + 8f;
+                Log.Info("[S8Shot] 将在 8s 后真实点击 " + _clickBind);
+                break;
+            }
+        }
+
+        /// <summary>到点截图并退出（探针专用；正常启动不会进入）。</summary>
+        private void TickScreenshotProbe()
+        {
+            if (!_clicked && _clickAt > 0f && Time.realtimeSinceStartup >= _clickAt)
+            {
+                _clicked = true;
+                ClickByBindName(_clickBind);
+            }
+            if (_shotAt < 0f || Time.realtimeSinceStartup < _shotAt) return;
+            _shotAt = -1f;
+            Log.Info("[S8Shot] 截图：" + _shotPath);
+            UnityEngine.ScreenCapture.CaptureScreenshot(_shotPath);
+            StartCoroutine(QuitAfterShot());
+        }
+
+        /// <summary>真实指针点击：经 EventSystem 射线命中目标控件后派发 pointerClick（不直调页面 API）。</summary>
+        private static void ClickByBindName(string bindName)
+        {
+            UnityEngine.EventSystems.EventSystem es = UnityEngine.EventSystems.EventSystem.current;
+            if (es == null) { Log.Warning("[S8Shot] 无 EventSystem"); return; }
+            foreach (UnityEngine.GameObject go in UnityEngine.Object.FindObjectsOfType<UnityEngine.GameObject>())
+            {
+                if (!TryMatchBindName(go, bindName)) continue;
+                var rt = go.GetComponent<UnityEngine.RectTransform>();
+                if (rt == null) continue;
+                var pointer = new UnityEngine.EventSystems.PointerEventData(es)
+                {
+                    position = UnityEngine.RectTransformUtility.WorldToScreenPoint(null, rt.position),
+                };
+                var hits = new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
+                es.RaycastAll(pointer, hits);
+                if (hits.Count == 0) { Log.Warning("[S8Shot] 射线未命中 " + bindName); return; }
+                Log.Info("[S8Shot] 命中 " + hits[0].gameObject.name + "，派发点击");
+                UnityEngine.EventSystems.ExecuteEvents.ExecuteHierarchy(hits[0].gameObject, pointer,
+                    UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler);
+                return;
+            }
+            Log.Warning("[S8Shot] 未找到控件 " + bindName);
+        }
+
+        /// <summary>反射读 BindName.Name（Bootstrap 是 AOT 侧，不能引 hot 的 BindName 类型）。</summary>
+        private static bool TryMatchBindName(UnityEngine.GameObject go, string bindName)
+        {
+            foreach (UnityEngine.Component component in go.GetComponents<UnityEngine.Component>())
+            {
+                System.Type type = component.GetType();
+                if (type.FullName != "LiteGameNext.Platform.Ui.BindName") continue;
+                var prop = type.GetProperty("Name");
+                return prop != null && (prop.GetValue(component) as string) == bindName;
+            }
+            return false;
+        }
+
+        private System.Collections.IEnumerator QuitAfterShot()
+        {
+            yield return new WaitForSecondsRealtime(3f);
+            Application.Quit();
         }
 
         private void OnDestroy()

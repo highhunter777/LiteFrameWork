@@ -64,6 +64,8 @@ namespace LiteGameNext.Features.Battle
                 RoomPage.Spec, page => page.Bind(match), cancellationToken);
             PageHandle hudPage = await _ui.OpenAsync<BattleHudView>(
                 BattleHudView.Spec, page => page.Bind(hud), cancellationToken);
+            // 房间页是「对局前等待页」：HUD 起来后即关闭，否则会与 HUD 文本重叠。
+            if (!room.IsClosed) await _ui.CloseAsync(room);
             try
             {
                     var hudView = hudPage.Page as BattleHudView;
